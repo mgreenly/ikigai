@@ -56,7 +56,7 @@ All of these are **subdirectories of this one repo**, except `marketplace`
 The Go modules (`crm`, `dashboard`, `eventplane`, `ledger`, `notify`, plus
 `ralph`, `dropbox`, `wiki` and the shared libs `agentkit`/`appkit`) are wired
 together for local dev by the root `go.work`; the production build (the shared
-repo-root `bin/deploy`) forces `GOWORK=off` and does **not** depend on it (see
+repo-root `bin/ship`) forces `GOWORK=off` and does **not** depend on it (see
 Deployments).
 
 Each service exposes a no-side-effect `<svc>_whoami` MCP tool (proves the
@@ -71,14 +71,14 @@ their own per-service audit store; the dashboard audits auth/token/grant events.
 - **The app *is* one static binary** implementing the fixed appkit verb set
   (`<app>` serve, `version`, `manifest`, `migrate`, `schema`, `backup`,
   `restore`) — there is no per-service `bin/build`/`bin/deploy`/`bin/setup` clone
-  anymore. Building and shipping is the *shared* repo-root `bin/deploy <app>
-  [version]` → on-box `opsctl`; provisioning is `opsctl setup <app>` /
+  anymore. Building and shipping is the *shared* repo-root `bin/ship <app>` →
+  on-box `opsctl stage`/`opsctl deploy`; provisioning is `opsctl setup <app>` /
   `opsctl init-box` (see Deployments). The only `bin/*` scripts a service still
   carries are operator-side glue with no opsctl verb yet: `start`/`stop` (systemd
   control), `secrets` (SSM seeding), and `teardown` (dashboard/ralph).
 - `etc/manifest.env` — flat `KEY=value`, carries `MOUNT=/srv/<svc>/` + `PORT`;
   dashboard is `DEFAULT=true`. **The binary is the source of truth: `<app>
-  manifest` emits it, and `opsctl install` regenerates `/opt/<app>/etc/
+  manifest` emits it, and `opsctl deploy` regenerates `/opt/<app>/etc/
   manifest.env` from the new binary on every swap** (round-tripping the role keys
   `FEED`/`CONSUMES` and any service config the dashboard + `bin/registry` read).
 - `etc/nginx.conf` — the service's `/srv/<svc>/` location fragment. The dashboard
@@ -101,7 +101,7 @@ Production is the box at `<account>.metaspot.org` (first/only account: **ai**).
 **Deploy ships one static binary into a versioned release dir, not `git push`
 and not an in-place overwrite.** The repo has a GitHub remote (`origin` →
 `mgreenly/ikigai`) for version-control backup, but pushing there ships nothing to
-the box; shipping is the shared `bin/deploy` wrapper + on-box `opsctl` below. Work
+the box; shipping is the shared `bin/ship` wrapper + on-box `opsctl` below. Work
 the services in dependency order and verify on the box after each step. The
 canonical description of this model is `docs/adr-deployment-redesign.md`.
 
@@ -129,14 +129,16 @@ version state lives in `main`'s commit history, made durable/immutable by branch
 protection (a GitHub ruleset blocking force-push + branch deletion, requiring
 linear history). The full how-to is `docs/versioning.md`.
 
-**Build + ship is the *shared* repo-root `bin/deploy <app>`** (no version arg). It
+**Build + ship is the *shared* repo-root `bin/ship <app>`** (no version arg). It
 owns the off-box build half only: it builds **current `main` (HEAD)** in a
 throwaway detached `git worktree` (`CGO_ENABLED=0 GOOS=linux GOARCH=amd64
 GOWORK=off -trimpath -buildvcs=false`, ldflags stamping
 `appkit.version`/`appkit.commit`), reads the version from **that worktree's**
 `<app>/VERSION` and prepends `v`, `scp`s the single artifact to the box `/tmp`,
-then runs `ssh sudo opsctl install <app> v<version> --artifact …`. No install logic
-runs on the laptop. The commit SHA stamped into the binary (`appkit.commit`) pins
+then **prints the two box commands** (`sudo opsctl stage <app> v<version>
+--artifact …` then `sudo opsctl deploy <app> v<version>`) and **stops** — it runs
+no stage/deploy over ssh; the box owns every state change beyond the `/tmp`
+upload. The commit SHA stamped into the binary (`appkit.commit`) pins
 the app code and its committed `replace … => ../<lib>` library trees together —
 one commit = one reproducible build (the job a tag used to do). `-buildvcs=false`
 stays mandatory (the module is a subdir of a bare mono-repo `.git`, so Go's auto
@@ -144,7 +146,8 @@ VCS stamp would abort) and `GOWORK=off` keeps the prod build deterministic.
 
 **`opsctl` (on-box, `/usr/local/bin/opsctl`, run via `sudo`) owns everything on
 the box** — release dirs, atomic swap, migrate, restart, rollback, prune, and
-box/app provisioning. Verbs: `install · rollback · prune · setup · init-box`
+box/app provisioning. Verbs: `stage · deploy · rollback · prune · status ·
+releases · tail · start/stop/restart/enable/disable · setup · init-box`
 (`backup`/`restore` are folded into each app binary as verbs; a standalone
 `opsctl backup`/`restore` orchestration verb does **not** exist yet — see the gap
 note below). Layout on the box:
@@ -158,12 +161,19 @@ note below). Layout on the box:
   data/<app>.db                 # state — NEVER touched by deploy
 ```
 
-- **`opsctl install <app> <ver> --artifact …`** — preflight (static? amd64?
-  `<app> version` matches the arg? `<app> manifest` parses?) → place into
-  `releases/<ver>/` → regenerate the stable `etc/manifest.env` from the new binary
-  → **back up the DB if the schema advances** → `migrate` → atomic swap `current`
-  → restart the unit → `is-active` → prune old releases. Never touches
-  `data/<app>.db` except to migrate/snapshot it; migrations are forward-only.
+- **`opsctl stage <app> <ver> --artifact … [--force]`** — preflight (static?
+  amd64? `<app> version` matches the arg? `<app> manifest` parses?) → **SHA
+  collision guard** (compare the incoming artifact's commit SHA against any
+  already-placed `releases/<ver>/<app>`: same SHA = idempotent no-op, different
+  SHA refuses unless `--force`) → place into `releases/<ver>/` → **delete the
+  `/tmp` artifact on success** (kept on refusal/error so the operator can retry).
+  Stages a release; does **not** make it live and does **not** touch the manifest,
+  DB, or running unit.
+- **`opsctl deploy <app> <ver>`** (version REQUIRED) — guard that `<ver>` was
+  staged → regenerate the stable `etc/manifest.env` from the new binary → **back
+  up the DB if the schema advances** → `migrate` → atomic swap `current` → restart
+  the unit → `is-active` → prune old releases. Never touches `data/<app>.db`
+  except to migrate/snapshot it; migrations are forward-only.
 - **`opsctl rollback <app> [ver]`** — repoint `current` → the prior (or named)
   release → restart. If the rolled-back-from release advanced the schema, it
   **restores the pre-migration DB snapshot first** (the downgrade guard otherwise
@@ -174,11 +184,16 @@ note below). Layout on the box:
   the `/opt/<app>` tree, the enabled-not-started systemd unit
   (`ExecStart=/usr/local/bin/metaspot-launch <app>`), the nginx fragment into
   `/etc/nginx/conf.d/locations/<app>.conf` (`nginx -t` + reload). Required once
-  before a brand-new service's first `install`.
+  before a brand-new service's first `stage`/`deploy`.
 - **`opsctl init-box`** — one-time box-global substrate (nginx + certbot + the one
   apex cert + renewal timer, the apex `server{}` block, `/_authn`, the
   `conf.d/locations/` include dir). The box-global half the dashboard's old
   overloaded `setup` used to bootstrap.
+- **Read/control verbs:** `opsctl status [app]` (one app or all: `app · version ·
+  sha · active`), `opsctl releases <app>` (list `releases/<ver>/` ascending,
+  marking current + predecessor), `opsctl tail <app> [args…]` (`journalctl -u
+  <app> -f`, extra args forwarded), and `opsctl start/stop/restart/enable/disable
+  <app> [args…]` (`systemctl` passthroughs).
 
 The stable paths `/opt/<app>/bin/run` (a symlink into `current`) and
 `/opt/<app>/etc/manifest.env` (regenerated from the binary) stay valid at all
@@ -206,7 +221,7 @@ ai` — interactive, the user runs it; the token expires).
 > rather than a plain deploy — the now-standard pattern, since **no DB needs
 > preserving** (2026-06-05).)
 
-> **Dashboard cutover = reset + install (no DB preservation).** Per the
+> **Dashboard cutover = reset + deploy (no DB preservation).** Per the
 > 2026-06-05 directive **no databases need to be preserved**, so the dashboard
 > box cutover is the same backup+reset pattern as every other DB. Adopting
 > appkit's **integer-keyed** migration runner renumbered the dashboard's
@@ -214,10 +229,11 @@ ai` — interactive, the user runs it; the token expires).
 > (`schema_migrations.name`) to `NNN_*.sql` (+ a new `001_schema_migrations.sql`).
 > A *fresh* DB migrates correctly (verified, v5); the live `ai` box's
 > `/opt/dashboard/data/dashboard.db` applied the OLD name-keyed ledger, which the
-> integer runner will not recognize — so a plain `opsctl install` against the
+> integer runner will not recognize — so a plain `opsctl deploy` against the
 > **existing** DB would fail to boot. That is exactly why the cutover includes a
 > one-time DB reset: **stop → (optional backup) → drop/reset the DB → `opsctl
-> install` (the fresh DB migrates clean to v5) → restart → verify**. Off-box code
+> stage` + `opsctl deploy` (the fresh DB migrates clean to v5) → restart →
+> verify**. Off-box code
 > needs no change; this is purely the box-DB reset. The operator deliverable is
 > `docs/runbook-dashboard-box-cutover.md`.
 
@@ -234,7 +250,7 @@ preserved. The launcher injects them into the process env only — never on disk
 **Registering a new MCP service with the dashboard is now automatic — no env
 edit.** The dashboard derives its OAuth-AS resource list at startup from the
 manifests under `/opt/*/etc/manifest.env` (those with `MCP=true`), via
-`DASHBOARD_MANIFEST_ROOT` (default `/opt`). `opsctl install` regenerates the
+`DASHBOARD_MANIFEST_ROOT` (default `/opt`). `opsctl deploy` regenerates the
 service's stable `etc/manifest.env` from its own binary on every swap, so adding a
 service is just deploying it (which lands its manifest) then **restarting the
 dashboard** so it re-reads the manifests. There is **no hardcoded resource list**
@@ -249,8 +265,10 @@ seconds.) Until that restart, the new service's `/srv/<svc>/mcp` 401 omits
 3. `opsctl setup <svc>` (provision) — `opsctl init-box` first only on a brand-new
    box,
 4. `bin/bump <svc> <major|minor|patch>` (advance the committed `<svc>/VERSION` on
-   `main`), then `bin/deploy <svc>` (build current `main` off-box → `opsctl
-   install` → migrate → atomic swap → start),
+   `main`), then `bin/ship <svc>` (build current `main` off-box → `scp` to `/tmp`
+   → prints the box commands), then on the box `sudo opsctl stage <svc> v<ver>
+   --artifact …` → `sudo opsctl deploy <svc> v<ver>` (migrate → atomic swap →
+   start),
 5. restart the dashboard so it re-reads the manifests (picks up the new
    `MCP=true` service automatically),
 6. verify (and on failure, `opsctl rollback <svc>`).

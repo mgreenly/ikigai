@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 )
 
@@ -50,6 +51,37 @@ func (o *Opsctl) keep() int {
 }
 
 func (o *Opsctl) layout(app string) Layout { return NewLayoutSys(o.Root, o.SysRoot, app) }
+
+// discoverApps lists the installed apps under OPSCTL_ROOT: the immediate
+// subdirectories of Root that carry a `current` symlink (a deployed release).
+// Bare /opt children without one (a setup-but-never-deployed tree, or unrelated
+// dirs) are skipped, so `status` and friends report only live apps. The result is
+// sorted ascending by name.
+func (o *Opsctl) discoverApps() ([]string, error) {
+	root := o.Root
+	if root == "" {
+		root = "/opt"
+	}
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	var apps []string
+	for _, e := range entries {
+		if !e.IsDir() {
+			continue
+		}
+		l := o.layout(e.Name())
+		if fi, lerr := os.Lstat(l.CurrentLink()); lerr == nil && fi.Mode()&os.ModeSymlink != 0 {
+			apps = append(apps, e.Name())
+		}
+	}
+	sort.Strings(apps)
+	return apps, nil
+}
 
 func (o *Opsctl) logf(format string, args ...any) {
 	w := o.Out

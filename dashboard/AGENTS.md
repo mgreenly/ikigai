@@ -63,7 +63,7 @@ on its real DNS name (`ai.metaspot.org`) with real TLS.**
   the bits in the right structure — serves the index page + static assets, does
   structured logging. Chassis (config, SQLite+migrations, logging, server, CLI,
   banner) + the full deploy spine (manifest/deploy env, the appkit one-binary
-  contract shipped via the shared `bin/deploy` → `opsctl install`, systemd via the
+  contract shipped via the shared `bin/ship` → `opsctl stage`/`deploy`, systemd via the
   platform launcher, the apex nginx `server` block + HTTP-01 TLS). **No
   auth, no identity, no tokens.** Phase 0 is **fully deployed and serving the
   index over real TLS on `ai.metaspot.org` before Phase 1 begins** — the deploy
@@ -132,22 +132,23 @@ into the binary at E6 — bare invocation = the operator cert+S3+DB snapshot;
 `dashboard manifest`. The dashboard **derives** its OAuth-AS resource list at
 startup from the on-box service manifests (`/opt/*/etc/manifest.env`, `MCP=true`,
 via `DASHBOARD_MANIFEST_ROOT`) — there is **no** hardcoded env resource list.
-Shipping is the shared repo-root `bin/deploy dashboard` (no version arg; version is
+Shipping is the shared repo-root `bin/ship dashboard` (no version arg; version is
 the committed `dashboard/VERSION`, advanced by `bin/bump dashboard <field>`) →
-`opsctl install`; provisioning is `opsctl init-box` (box-global) + `opsctl setup
-dashboard` (per-app). The only `bin/*` scripts it still carries are `start`/`stop`
+`opsctl stage` + `opsctl deploy`; provisioning is `opsctl init-box` (box-global) +
+`opsctl setup dashboard` (per-app). The only `bin/*` scripts it still carries are `start`/`stop`
 (systemd control), `secrets` (SSM seeding), and `teardown` (box removal — no
 opsctl verb yet). Drop everything `contacts`/`mcp-crm` from the port — that is the
 crm service's.
 
-> **Cutover = reset + install (no DB preservation).** The dashboard's migrations
+> **Cutover = reset + deploy (no DB preservation).** The dashboard's migrations
 > were renumbered name/timestamp-keyed → integer-keyed for the appkit runner. A
 > fresh DB migrates correctly, but the **live `ai` box**
 > `/opt/dashboard/data/dashboard.db` applied the OLD name-keyed ledger, which the
-> integer runner will not recognize — so a plain `opsctl install` against the
+> integer runner will not recognize — so a plain `opsctl deploy` against the
 > existing DB would fail to boot. Per the 2026-06-05 directive **no databases need
 > to be preserved**, the cutover therefore just resets the DB: **stop → (optional
-> backup) → drop/reset the DB → `bin/deploy dashboard` → `opsctl install` (fresh
-> DB migrates clean to v5) → restart → verify**. Off-box code needs no change.
+> backup) → drop/reset the DB → `bin/ship dashboard` → `opsctl stage` + `opsctl
+> deploy` (fresh DB migrates clean to v5) → restart → verify**. Off-box code needs
+> no change.
 > See `docs/runbook-dashboard-box-cutover.md` (and the cutover note in the root
 > `AGENTS.md` Deployments section).

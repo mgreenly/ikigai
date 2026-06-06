@@ -123,10 +123,10 @@ ledger is one static appkit binary (the `appkit.Main(appkit.Spec{…})` contract
 `restore` verbs, no `run` wrapper. `etc/manifest.env` (`APP=ledger`,
 `MOUNT=/srv/ledger/`, `DEFAULT=false`, `PORT=3002`, `MCP=true` so the dashboard
 inventory lists it) is emitted by `ledger manifest` — the binary owns its own
-identity, and `opsctl install` regenerates the on-box copy on every swap. Shipping
-is the shared repo-root `bin/deploy ledger` (no version arg; version is the
+identity, and `opsctl deploy` regenerates the on-box copy on every swap. Shipping
+is the shared repo-root `bin/ship ledger` (no version arg; version is the
 committed `ledger/VERSION`, advanced by `bin/bump ledger <field>`) → `opsctl
-install` (versioned release dir + atomic swap + rollback); provisioning is
-`opsctl setup ledger`. The
+stage` + `opsctl deploy` (versioned release dir + atomic swap + rollback);
+provisioning is `opsctl setup ledger`. The
 only `bin/*` scripts ledger still carries are `start`/`stop` (systemd control). No
 `plugin/` in this repo.

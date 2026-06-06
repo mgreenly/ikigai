@@ -55,6 +55,18 @@ func itoa(n int) string {
 	return string(b)
 }
 
+// stageAndDeploy runs the two-verb cutover the old monolithic Install did in one
+// shot: stage the artifact into releases/<version>/ then deploy (activate) it. The
+// acceptance tests below drive the full lifecycle through this helper so they
+// exercise both verbs exactly as an operator would.
+func stageAndDeploy(t *testing.T, o *Opsctl, app, version, artifact string) error {
+	t.Helper()
+	if err := o.Stage(context.Background(), app, version, artifact, false); err != nil {
+		return err
+	}
+	return o.Deploy(context.Background(), app, version)
+}
+
 // readlinkBase resolves current → its version basename.
 func readlinkBase(t *testing.T, link string) string {
 	t.Helper()
@@ -116,8 +128,8 @@ func TestInstallInstallRollback_NoSchemaChange(t *testing.T) {
 	// First install: v1.0.0, embedded schema 2 (creates the DB at applied=2).
 	o := newOpsctl(t, root, app, sys, fakeEnv(app, "v1.0.0", 2, ""))
 	art1 := stageArtifact(t, "ledger-v1.0.0")
-	if err := o.Install(context.Background(), app, "v1.0.0", art1); err != nil {
-		t.Fatalf("install v1.0.0: %v", err)
+	if err := stageAndDeploy(t, o, app, "v1.0.0", art1); err != nil {
+		t.Fatalf("deploy v1.0.0: %v", err)
 	}
 	if got := readlinkBase(t, l.CurrentLink()); got != "v1.0.0" {
 		t.Fatalf("current = %q, want v1.0.0", got)
@@ -133,8 +145,8 @@ func TestInstallInstallRollback_NoSchemaChange(t *testing.T) {
 	// must NOT be modified and NO backup taken.
 	o2 := newOpsctl(t, root, app, sys, fakeEnv(app, "v1.1.0", 2, ""))
 	art2 := stageArtifact(t, "ledger-v1.1.0")
-	if err := o2.Install(context.Background(), app, "v1.1.0", art2); err != nil {
-		t.Fatalf("install v1.1.0: %v", err)
+	if err := stageAndDeploy(t, o2, app, "v1.1.0", art2); err != nil {
+		t.Fatalf("deploy v1.1.0: %v", err)
 	}
 	if got := readlinkBase(t, l.CurrentLink()); got != "v1.1.0" {
 		t.Fatalf("current = %q, want v1.1.0", got)
@@ -184,8 +196,8 @@ func TestSchemaAdvance_BackupAndRollbackRestores(t *testing.T) {
 
 	// v1.0.0 — embedded schema 2, fresh DB → applied=2.
 	o1 := newOpsctl(t, root, app, sys, fakeEnv(app, "v1.0.0", 2, ""))
-	if err := o1.Install(context.Background(), app, "v1.0.0", stageArtifact(t, "v1")); err != nil {
-		t.Fatalf("install v1.0.0: %v", err)
+	if err := stageAndDeploy(t, o1, app, "v1.0.0", stageArtifact(t, "v1")); err != nil {
+		t.Fatalf("deploy v1.0.0: %v", err)
 	}
 	if applied, _ := dbApplied(t, l); applied != 2 {
 		t.Fatalf("applied after v1.0.0 = %d, want 2", applied)
@@ -194,8 +206,8 @@ func TestSchemaAdvance_BackupAndRollbackRestores(t *testing.T) {
 	// v2.0.0 — embedded schema 5 → schema ADVANCES (2 → 5). Install must back up the
 	// DB (named pre-v2.0.0.db) BEFORE migrating it forward to 5.
 	o2 := newOpsctl(t, root, app, sys, fakeEnv(app, "v2.0.0", 5, ""))
-	if err := o2.Install(context.Background(), app, "v2.0.0", stageArtifact(t, "v2")); err != nil {
-		t.Fatalf("install v2.0.0: %v", err)
+	if err := stageAndDeploy(t, o2, app, "v2.0.0", stageArtifact(t, "v2")); err != nil {
+		t.Fatalf("deploy v2.0.0: %v", err)
 	}
 	backup := l.PreMigrationBackup("v2.0.0")
 	if _, err := os.Stat(backup); err != nil {
@@ -232,14 +244,19 @@ func TestPreflight_Rejections(t *testing.T) {
 	app := "ledger"
 	sys := &stubSystem{}
 
-	// Version mismatch: artifact self-reports v9.9.9 but we install it as v1.0.0.
+	// Version mismatch: artifact self-reports v9.9.9 but we stage it as v1.0.0.
 	o := newOpsctl(t, root, app, sys, fakeEnv(app, "v9.9.9", 1, ""))
-	err := o.Install(context.Background(), app, "v1.0.0", stageArtifact(t, "mismatch"))
+	mismatch := stageArtifact(t, "mismatch")
+	err := o.Stage(context.Background(), app, "v1.0.0", mismatch, false)
 	if err == nil || !strings.Contains(err.Error(), "self-reports version") {
-		t.Fatalf("version-mismatch install err = %v, want a version-mismatch refusal", err)
+		t.Fatalf("version-mismatch stage err = %v, want a version-mismatch refusal", err)
 	}
 	if sys.restarts != 0 {
 		t.Errorf("preflight failure still restarted the unit (%d times)", sys.restarts)
+	}
+	// Preflight refusal keeps the /tmp artifact for retry (decision 2).
+	if _, err := os.Stat(mismatch); err != nil {
+		t.Errorf("preflight refusal removed the /tmp artifact, want it kept: %v", err)
 	}
 
 	// Not a static ELF: a text file as the artifact.
@@ -248,8 +265,8 @@ func TestPreflight_Rejections(t *testing.T) {
 		t.Fatal(err)
 	}
 	o2 := newOpsctl(t, root, app, sys, fakeEnv(app, "v1.0.0", 1, ""))
-	if err := o2.Install(context.Background(), app, "v1.0.0", bad); err == nil || !strings.Contains(err.Error(), "ELF") {
-		t.Fatalf("non-ELF install err = %v, want an ELF refusal", err)
+	if err := o2.Stage(context.Background(), app, "v1.0.0", bad, false); err == nil || !strings.Contains(err.Error(), "ELF") {
+		t.Fatalf("non-ELF stage err = %v, want an ELF refusal", err)
 	}
 }
 
@@ -272,8 +289,8 @@ func TestInstall_ConvertsLegacyBinRunFile(t *testing.T) {
 	}
 
 	o := newOpsctl(t, root, app, sys, fakeEnv(app, "v0.1.0", 3, ""))
-	if err := o.Install(context.Background(), app, "v0.1.0", stageArtifact(t, "ledger-v0.1.0")); err != nil {
-		t.Fatalf("install over legacy bin/run: %v", err)
+	if err := stageAndDeploy(t, o, app, "v0.1.0", stageArtifact(t, "ledger-v0.1.0")); err != nil {
+		t.Fatalf("deploy over legacy bin/run: %v", err)
 	}
 	// bin/run is now a symlink at ../current/<app> and resolves to a real binary.
 	got, err := os.Readlink(l.RunLink())
@@ -334,8 +351,8 @@ func TestInstall_ChownsDataDirToAppUser(t *testing.T) {
 	sys := &stubSystem{}
 
 	o := newOpsctl(t, root, app, sys, fakeEnv(app, "v1.0.0", 2, ""))
-	if err := o.Install(context.Background(), app, "v1.0.0", stageArtifact(t, "crm-v1.0.0")); err != nil {
-		t.Fatalf("install: %v", err)
+	if err := stageAndDeploy(t, o, app, "v1.0.0", stageArtifact(t, "crm-v1.0.0")); err != nil {
+		t.Fatalf("deploy: %v", err)
 	}
 
 	want := "chown:" + app + ":" + app + ":" + l.DataDir()
@@ -358,7 +375,7 @@ func TestInstall_IsActiveFailure(t *testing.T) {
 	app := "ledger"
 	sys := &stubSystem{failIsActive: true}
 	o := newOpsctl(t, root, app, sys, fakeEnv(app, "v1.0.0", 1, ""))
-	err := o.Install(context.Background(), app, "v1.0.0", stageArtifact(t, "v1"))
+	err := stageAndDeploy(t, o, app, "v1.0.0", stageArtifact(t, "v1"))
 	if err == nil || !strings.Contains(err.Error(), "did not come up") {
 		t.Fatalf("is-active failure err = %v, want a 'did not come up' error", err)
 	}

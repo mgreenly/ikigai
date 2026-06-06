@@ -110,14 +110,14 @@ crm is one static appkit binary (the `appkit.Main(appkit.Spec{…})` contract):
 `restore` verbs, no `run` wrapper. `etc/manifest.env` (`APP=crm`,
 `MOUNT=/srv/crm/`, `DEFAULT=false`, `PORT=3001`, `MCP=true`; producer, so it also
 round-trips `FEED` + the `OUTBOX_RETENTION_*` config) is emitted by `crm manifest`
-and regenerated on the box by `opsctl install` on every swap. Shipping is the
-shared repo-root `bin/deploy crm` (no version arg; version is the committed
-`crm/VERSION`, advanced by `bin/bump crm <field>`) → `opsctl install`; provisioning is
-`opsctl setup crm`. The only `bin/*` scripts crm still carries are `start`/`stop`
+and regenerated on the box by `opsctl deploy` on every swap. Shipping is the
+shared repo-root `bin/ship crm` (no version arg; version is the committed
+`crm/VERSION`, advanced by `bin/bump crm <field>`) → `opsctl stage` + `opsctl
+deploy`; provisioning is `opsctl setup crm`. The only `bin/*` scripts crm still carries are `start`/`stop`
 (systemd control), plus `backup`/`restore` (operator-side S3 tooling — see
 below). No `plugin/` in this repo. **Backup note:** the binary's `backup`/
 `restore` verbs give appkit's default local DB snapshot (used by `opsctl
-install`/`rollback`); the richer operator S3-bucket workflow + event-plane epoch
+deploy`/`rollback`); the richer operator S3-bucket workflow + event-plane epoch
 re-mint on restore is **not yet** folded into `Spec.Backup`, so crm **retains its
 `bin/backup`/`bin/restore` scripts operator-side** (the same category as
 `secrets`) until that fold-in (or an `opsctl backup`/`restore` verb) lands — see

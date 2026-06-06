@@ -15,8 +15,8 @@ func installSeq(t *testing.T, root, app string, sys *stubSystem, keep int, versi
 	for _, v := range versions {
 		o = newOpsctl(t, root, app, sys, fakeEnv(app, v, 1, ""))
 		o.Keep = keep
-		if err := o.Install(context.Background(), app, v, stageArtifact(t, app+"-"+v)); err != nil {
-			t.Fatalf("install %s: %v", v, err)
+		if err := stageAndDeploy(t, o, app, v, stageArtifact(t, app+"-"+v)); err != nil {
+			t.Fatalf("deploy %s: %v", v, err)
 		}
 	}
 	return o

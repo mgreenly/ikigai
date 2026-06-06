@@ -9,42 +9,118 @@ import (
 	"strings"
 )
 
-// Install ships a new version live, following the ADR install sequence exactly:
+// Stage places a new version into releases/<version>/<app> WITHOUT making it live.
+// It is the first half of the old monolithic install (ADR install steps 1–2):
 //
-//  1. preflight (static? amd64? version matches? manifest parses?) — refuse early,
-//     live release untouched.
-//  2. place the artifact into releases/<version>/<app>.
-//  3. regenerate etc/manifest.env via `<new binary> manifest` (the STABLE path the
-//     dashboard derivation + bin/registry read).
-//  4. back up data/<app>.db IF the schema will advance (applied < embedded), keyed
-//     by <version> so the matching rollback can restore it.
-//  5. migrate (forward-only).
-//  6. atomic swap current → releases/<version> (ln -sfn equivalent).
-//  7. restart the unit + is-active.
-//  8. prune old releases.
+//  1. preflight (static? amd64? version matches? manifest parses?) — refuse early.
+//  2. SHA collision guard against any already-placed releases/<version>/<app>.
+//  3. place the artifact into releases/<version>/<app>.
 //
-// data/<app>.db is NEVER overwritten by placement — only read/migrated/snapshotted
-// (PLAN §2.7). bin/run and etc/manifest.env stay valid throughout (PLAN §2.6).
-func (o *Opsctl) Install(ctx context.Context, app, version, artifact string) error {
+// The stable etc/manifest.env and the live `current` symlink are NEVER touched by
+// stage — those change only at Deploy (the cutover), so a staged-but-not-deployed
+// release is invisible to the running unit and the dashboard's manifest derivation.
+//
+// On success — whether the artifact was freshly placed OR the same-SHA build was
+// already present (an idempotent no-op) — stage deletes the /tmp artifact (decision
+// 2: the release is confirmed in place either way). On a refusal (different-SHA
+// collision without --force, a corrupt existing release, a failed preflight) the
+// /tmp artifact is LEFT so the operator can retry (e.g. with --force) without a
+// re-scp.
+func (o *Opsctl) Stage(ctx context.Context, app, version, artifact string, force bool) error {
 	if app == "" || version == "" || artifact == "" {
-		return fmt.Errorf("install: app, version, and --artifact are all required")
+		return fmt.Errorf("stage: app, version, and --artifact are all required")
 	}
 	l := o.layout(app)
 
-	// 1. Preflight — before touching anything live.
+	// 1. Preflight — refuse a bad artifact before touching the release dir.
 	o.logf("preflight %s %s", app, version)
 	if err := o.preflight(ctx, artifact, app, version); err != nil {
 		return err
 	}
 
-	// 2. Place the artifact into releases/<version>/<app> (idempotent re-install).
 	relBin := l.ReleaseBinary(version)
+
+	// 2. Collision guard: if a binary is already placed for this version, compare
+	//    commit SHAs. Same SHA → idempotent no-op (skip the copy). Different SHA, or
+	//    the existing binary won't exec (corrupt) → refuse unless --force. On any
+	//    refusal the /tmp artifact is kept (we return before the os.Remove below).
+	if _, err := os.Stat(relBin); err == nil {
+		existing, existErr := o.Runner.Run(ctx, relBin, "version", nil, nil)
+		switch {
+		case existErr != nil:
+			if !force {
+				return fmt.Errorf("stage: existing release %s will not exec (corrupt?); re-stage with --force: %w", relBin, existErr)
+			}
+			o.logf("existing release %s will not exec — --force overrides, replacing", relBin)
+		default:
+			incoming, err := o.Runner.Run(ctx, artifact, "version", nil, nil)
+			if err != nil {
+				return fmt.Errorf("stage: artifact %q version: %w", app, err)
+			}
+			existSHA := commitToken(existing)
+			incomingSHA := commitToken(incoming)
+			if existSHA == incomingSHA {
+				// Same commit already staged — confirm in place, delete /tmp, done.
+				o.logf("release %s already staged at the same commit %q — idempotent no-op", version, incomingSHA)
+				if err := os.Remove(artifact); err != nil && !os.IsNotExist(err) {
+					return fmt.Errorf("stage: remove staged artifact: %w", err)
+				}
+				return nil
+			}
+			if !force {
+				return fmt.Errorf("stage: release %s already staged at commit %q, incoming is %q; re-stage with --force to replace",
+					version, existSHA, incomingSHA)
+			}
+			o.logf("release %s already staged at commit %q — --force overrides, replacing with %q", version, existSHA, incomingSHA)
+		}
+	}
+
+	// 3. Place the artifact into releases/<version>/<app>.
 	o.logf("place artifact -> %s", relBin)
 	if err := os.MkdirAll(l.ReleaseDir(version), 0o755); err != nil {
-		return fmt.Errorf("install: mkdir release dir: %w", err)
+		return fmt.Errorf("stage: mkdir release dir: %w", err)
 	}
 	if err := copyExecutable(artifact, relBin); err != nil {
-		return fmt.Errorf("install: place artifact: %w", err)
+		return fmt.Errorf("stage: place artifact: %w", err)
+	}
+
+	// On success: delete the /tmp artifact (decision 2). Leave it only on the
+	// refusal/error paths above, which return before reaching here.
+	if err := os.Remove(artifact); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("stage: remove staged artifact: %w", err)
+	}
+
+	o.logf("staged %s %s", app, version)
+	return nil
+}
+
+// Deploy makes an already-staged release live, following the second half of the
+// old monolithic install (ADR install steps 3–8):
+//
+//  3. regenerate etc/manifest.env via `<new binary> manifest` (the STABLE path the
+//     dashboard derivation + bin/registry read).
+//  4. back up data/<app>.db IF the schema will advance (applied < embedded), keyed
+//     by <version> so the matching rollback can restore it.
+//  5. migrate (forward-only).
+//  6. chown the data tree back to the <app> service user.
+//  7. ensure the stable bin/run link, then atomic swap current → releases/<version>.
+//  8. restart the unit + is-active, then prune old releases.
+//
+// It refuses early if the release was never staged (releases/<version>/<app> is
+// absent) so the manifest/schema/migrate execs never fail opaquely. data/<app>.db
+// is NEVER overwritten — only read/migrated/snapshotted (PLAN §2.7). bin/run and
+// etc/manifest.env stay valid throughout (PLAN §2.6).
+func (o *Opsctl) Deploy(ctx context.Context, app, version string) error {
+	if app == "" || version == "" {
+		return fmt.Errorf("deploy: app and version are both required")
+	}
+	l := o.layout(app)
+	relBin := l.ReleaseBinary(version)
+
+	// Guard: the release must have been staged first. Refuse before any exec so a
+	// missing stage fails loudly instead of through an opaque manifest/migrate error.
+	if _, err := os.Stat(relBin); err != nil {
+		return fmt.Errorf("deploy: release %s is not staged (run: opsctl stage %s %s --artifact …): %w", version, app, version, err)
 	}
 
 	// 3. Regenerate the stable manifest from the binary that will serve it. Written
@@ -59,15 +135,15 @@ func (o *Opsctl) Install(ctx context.Context, app, version, artifact string) err
 	//    paths (it already injects them for its own migrate/schema/backup verbs via
 	//    dbEnv), so it stamps them into the stable manifest here. Idempotent: the
 	//    keys are only appended if the binary's own manifest did not already carry
-	//    them.
+	//    them. This is the FIRST live-facing change, bound to the cutover below.
 	o.logf("regenerate %s", l.ManifestPath())
 	manOut, err := o.Runner.Run(ctx, relBin, "manifest", nil, nil)
 	if err != nil {
-		return fmt.Errorf("install: manifest: %w", err)
+		return fmt.Errorf("deploy: manifest: %w", err)
 	}
 	manOut = stampDataPaths(manOut, l)
 	if err := writeFileAtomic(l.ManifestPath(), []byte(manOut), 0o644); err != nil {
-		return fmt.Errorf("install: write manifest: %w", err)
+		return fmt.Errorf("deploy: write manifest: %w", err)
 	}
 
 	// 4. Back up the DB IF the schema advances. The new binary reports applied (the
@@ -82,30 +158,30 @@ func (o *Opsctl) Install(ctx context.Context, app, version, artifact string) err
 			backup := l.PreMigrationBackup(version)
 			o.logf("schema advances — backup %s -> %s", l.DBPath(), backup)
 			if err := os.MkdirAll(l.BackupsDir(), 0o755); err != nil {
-				return fmt.Errorf("install: mkdir backups: %w", err)
+				return fmt.Errorf("deploy: mkdir backups: %w", err)
 			}
 			if _, err := o.Runner.Run(ctx, relBin, "backup",
 				[]string{"--out", backup}, o.dbEnv(l)); err != nil {
-				return fmt.Errorf("install: pre-migration backup: %w", err)
+				return fmt.Errorf("deploy: pre-migration backup: %w", err)
 			}
 		} else {
-			// No DB yet (first install of a brand-new app): nothing to back up, the
+			// No DB yet (first deploy of a brand-new app): nothing to back up, the
 			// migrate below creates it. The schema-advance flag is still true, but the
 			// rollback target for a first release does not exist, so no backup needed.
-			o.logf("schema advances but no DB yet (first install) — no backup")
+			o.logf("schema advances but no DB yet (first deploy) — no backup")
 		}
 	}
 
 	// 5. Migrate (forward-only). Idempotent: applies only unapplied higher versions.
 	//    Ensure data/ exists so the app can create data/<app>.db on first migrate
-	//    (setup creates this tree on the box; install self-heals it). Creating the
+	//    (setup creates this tree on the box; deploy self-heals it). Creating the
 	//    directory never touches an existing DB file (PLAN §2.7).
 	if err := os.MkdirAll(l.DataDir(), 0o755); err != nil {
-		return fmt.Errorf("install: mkdir data dir: %w", err)
+		return fmt.Errorf("deploy: mkdir data dir: %w", err)
 	}
 	o.logf("migrate %s", app)
 	if _, err := o.Runner.Run(ctx, relBin, "migrate", nil, o.dbEnv(l)); err != nil {
-		return fmt.Errorf("install: migrate: %w", err)
+		return fmt.Errorf("deploy: migrate: %w", err)
 	}
 
 	// opsctl runs privileged (sudo opsctl …), so the root-run migrate above creates
@@ -115,43 +191,43 @@ func (o *Opsctl) Install(ctx context.Context, app, version, artifact string) err
 	// `<app>` group), so a root-owned DB leaves the service unable to take a write
 	// lock — e.g. crm's event-plane outbox single-writer probe (`BEGIN IMMEDIATE`)
 	// fails and the unit crash-loops. Hand the whole data tree back to <app>:<app>
-	// before the swap/restart. Unconditional + idempotent on every install: it also
+	// before the swap/restart. Unconditional + idempotent on every deploy: it also
 	// reclaims root-owned -wal/-shm files migrate may create against an EXISTING DB.
 	// The user/group is the bare app name to match setup exactly (EnsureSystemUser).
 	o.logf("chown %s -> %s:%s", l.DataDir(), app, app)
 	if err := o.System.ChownTree(ctx, app, app, l.DataDir()); err != nil {
-		return fmt.Errorf("install: chown data dir: %w", err)
+		return fmt.Errorf("deploy: chown data dir: %w", err)
 	}
 
 	// Ensure the stable bin/run -> ../current/<app> link exists (self-heal). This
-	// is set at setup; install never repoints it (the cutover is `current`).
+	// is set at setup; deploy never repoints it (the cutover is `current`).
 	if err := ensureSymlink(l.RunLink(), l.RunTarget()); err != nil {
-		return fmt.Errorf("install: ensure bin/run: %w", err)
+		return fmt.Errorf("deploy: ensure bin/run: %w", err)
 	}
 
 	// 6. Atomic swap: current -> releases/<version>. The symlink only ever points
 	//    at a complete release (relative target so it survives a path move).
 	o.logf("atomic swap current -> releases/%s", version)
 	if err := atomicSwap(l.CurrentLink(), filepath.Join("releases", version)); err != nil {
-		return fmt.Errorf("install: %w", err)
+		return fmt.Errorf("deploy: %w", err)
 	}
 
 	// 7. Restart + is-active. On failure the operator's recovery is `rollback`
 	//    (the prior release dir + pre-migration backup are intact).
 	o.logf("restart %s", app)
 	if err := o.System.Restart(ctx, app); err != nil {
-		return fmt.Errorf("install: restart: %w", err)
+		return fmt.Errorf("deploy: restart: %w", err)
 	}
 	if err := o.System.IsActive(ctx, app); err != nil {
-		return fmt.Errorf("install: %s did not come up (recover with: opsctl rollback %s): %w", app, app, err)
+		return fmt.Errorf("deploy: %s did not come up (recover with: opsctl rollback %s): %w", app, app, err)
 	}
 
 	// 8. Prune old releases (never current's target / its predecessor).
 	if err := o.Prune(ctx, app); err != nil {
-		return fmt.Errorf("install: prune: %w", err)
+		return fmt.Errorf("deploy: prune: %w", err)
 	}
 
-	o.logf("installed %s %s", app, version)
+	o.logf("deployed %s %s", app, version)
 	return nil
 }
 
@@ -194,11 +270,11 @@ func manifestHasKey(manifest, key string) bool {
 func (o *Opsctl) schemaAdvances(ctx context.Context, l Layout, binary string) (bool, error) {
 	out, err := o.Runner.Run(ctx, binary, "schema", nil, o.dbEnv(l))
 	if err != nil {
-		return false, fmt.Errorf("install: schema check: %w", err)
+		return false, fmt.Errorf("deploy: schema check: %w", err)
 	}
 	applied, embedded, err := schemaVersions(out)
 	if err != nil {
-		return false, fmt.Errorf("install: %w", err)
+		return false, fmt.Errorf("deploy: %w", err)
 	}
 	return embedded > applied, nil
 }

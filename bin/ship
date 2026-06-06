@@ -1,40 +1,45 @@
 #!/usr/bin/env bash
-# bin/deploy — the ONE shared deploy wrapper for the whole ikigai suite
-# (PLAN §1.5). Replaces the per-service cloned */bin/deploy.
+# bin/ship — the ONE shared SHIP wrapper for the whole ikigai suite (laptop side).
+# Renamed from bin/deploy; replaces the per-service cloned */bin/deploy.
 #
-#   bin/deploy <app>
+#   bin/ship <app>
 #
-# It is deliberately thin: it owns the OFF-BOX BUILD HALF only — there is NO
-# install logic on the laptop. After building it hands the single static artifact
-# to the box's `opsctl install`, which owns the release-dir / atomic-swap /
-# migrate / restart / rollback machinery (PLAN §1.3–1.4).
+# It is deliberately thin: it owns the OFF-BOX BUILD HALF only, and its ONLY box
+# write is the scp of the single static artifact into the box's /tmp. It does NOT
+# stage, deploy, migrate, or swap anything — no install logic runs over ssh from
+# the laptop. The box owns every state change. After the scp, ship PRINTS the two
+# box commands the operator runs next (`opsctl stage …` then `opsctl deploy …`)
+# and STOPS.
 #
 # The version is the committed file <app>/VERSION (a bare X.Y.Z) — git tags are NO
-# LONGER the version mechanism. deploy always builds CURRENT main (HEAD); whatever
+# LONGER the version mechanism. ship always builds CURRENT main (HEAD); whatever
 # version is committed in <app>/VERSION on HEAD is what ships. There is no version
-# argument: bump the file with bin/bump first, then deploy builds that committed
+# argument: bump the file with bin/bump first, then ship builds that committed
 # state.
 #
 # What it does:
 #   1. Source <app>/etc/deploy.env (ACCOUNT, SSH_USER, SSH_KEY; HOST defaults to
 #      ${ACCOUNT}.metaspot.org).
-#   2. Build CURRENT main (HEAD) in a throwaway `git worktree` (PLAN §4 dec 4) so
-#      the build is reproducible, excludes any uncommitted working-tree edits, and
-#      never disturbs the operator's tree. The artifact reflects exactly what is
-#      committed on main — the point of the file-on-main version model.
-#      Build flags honor §2: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GOWORK=off
-#      -trimpath -buildvcs=false, ldflags stamping appkit.version/appkit.commit.
-#      The build runs INSIDE the worktree's <app>/ dir so the committed
+#   2. Add a throwaway detached `git worktree` of HEAD and read the version FROM
+#      THE WORKTREE'S <app>/VERSION (the actual build source), prepend "v" -> the
+#      BARE release name (the cheap half).
+#   3. EARLY EXISTENCE CHECK: ssh `test -e /opt/<app>/releases/v<ver>` — if the
+#      release already exists on the box, refuse unless --force. This runs AFTER
+#      the cheap worktree add + VERSION read but BEFORE the expensive compile, so
+#      a forgotten bin/bump fails before the build.
+#   4. Build CURRENT main (HEAD) inside the worktree's <app>/ dir (PLAN §4 dec 4)
+#      so the build is reproducible, excludes any uncommitted working-tree edits,
+#      and never disturbs the operator's tree. Build flags honor §2:
+#      CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GOWORK=off -trimpath -buildvcs=false,
+#      ldflags stamping appkit.version/appkit.commit. The committed
 #      `replace appkit/eventplane/agentkit => ../...` directives resolve against
 #      the worktree's sibling lib trees (no network).
-#   3. Read the version FROM THE WORKTREE'S <app>/VERSION (the actual build
-#      source), prepend "v" -> the BARE release name handed to opsctl.
-#   4. scp the single artifact to the box /tmp, then
-#      ssh sudo opsctl install <app> <bare-version> --artifact /tmp/<file>.
+#   5. scp the single artifact to the box /tmp/<app>-v<ver>, then STOP — printing
+#      the two box commands (`sudo opsctl stage …`, then `sudo opsctl deploy …`).
 #
 # --dry-run (or DRY_RUN=1) does the FULL build (producing the artifact) but PRINTS
-# the scp/ssh/opsctl commands instead of running them, so the build half is fully
-# exercisable off-box while the box half stays gated (PLAN C3 / verified in D2).
+# the existence check / scp commands instead of running them, so the build half is
+# fully exercisable off-box while the box half stays gated.
 #
 # Honors §2: the box never compiles; -buildvcs=false is mandatory (the module is a
 # subdir of a bare mono-repo .git — Go's auto VCS stamp would abort); GOWORK=off so
@@ -45,49 +50,62 @@ set -euo pipefail
 
 usage() {
   cat <<'USAGE'
-bin/deploy — build the current main of an ikigai service off-box and hand it to opsctl on the box.
+bin/ship — build the current main of an ikigai service off-box and ship the artifact to the box /tmp.
 
 Usage:
-  bin/deploy <app>
+  bin/ship <app>
 
 Arguments:
-  <app>        service to deploy (ledger, crm, dashboard, ...). Its
+  <app>        service to ship (ledger, crm, dashboard, ...). Its
                <app>/etc/deploy.env supplies ACCOUNT / SSH_USER / SSH_KEY / HOST.
 
-There is no version argument. deploy builds CURRENT main (HEAD); the release
+There is no version argument. ship builds CURRENT main (HEAD); the release
 version is read from the committed file <app>/VERSION (a bare X.Y.Z) and shipped
 as v<X.Y.Z>. Bump the file first with `bin/bump <app> <field>`.
 
+ship's ONLY box write is the scp of the artifact to /tmp. It does NOT stage,
+deploy, or migrate — the box owns every state change. After the scp it prints the
+two box commands the operator runs next (opsctl stage, then opsctl deploy) and
+stops.
+
 Flags:
   -h, --help   show this help.
+  --force      ship even if /opt/<app>/releases/v<ver> already exists on the box
+               (otherwise ship refuses, so a forgotten bin/bump fails early).
   --dry-run    do the full off-box build (produce the artifact) but PRINT the
-               scp / ssh / opsctl install commands instead of running them.
+               existence-check / scp commands instead of running them.
                Equivalent to DRY_RUN=1.
 
 Environment:
   DRY_RUN=1    same as --dry-run.
 
-What it does (PLAN §1.5):
+What it does:
   source <app>/etc/deploy.env
-  -> build CURRENT main (HEAD) in a throwaway `git worktree`
+  -> add a throwaway detached `git worktree` of HEAD, read v<X.Y.Z> from its <app>/VERSION
+  -> early existence check: ssh test -e /opt/<app>/releases/v<X.Y.Z> (refuse unless --force)
+  -> build CURRENT main (HEAD) in the worktree
      (CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GOWORK=off -trimpath -buildvcs=false,
       ldflags -X appkit.version=v<X.Y.Z> -X appkit.commit=<short-sha>[-dirty])
-  -> read the version from the worktree's <app>/VERSION, ship as v<X.Y.Z>
-  -> scp the single static artifact to the box /tmp
-  -> ssh sudo opsctl install <app> v<X.Y.Z> --artifact /tmp/<file>
+  -> scp the single static artifact to the box /tmp/<app>-v<X.Y.Z>
+  -> STOP, printing the box commands:
+       sudo opsctl stage  <app> v<X.Y.Z> --artifact /tmp/<app>-v<X.Y.Z>
+       sudo opsctl deploy <app> v<X.Y.Z>
 
-There is NO install logic locally: opsctl on the box owns release dirs, atomic
-swap, migrate, restart, and rollback.
+There is NO install logic locally and NO ssh stage/deploy/install run from the
+laptop: opsctl on the box owns release dirs, atomic swap, migrate, restart, and
+rollback.
 USAGE
 }
 
 # --- parse args -------------------------------------------------------------
 DRY_RUN="${DRY_RUN:-0}"
+FORCE=0
 APP=""
 for arg in "$@"; do
   case "$arg" in
     -h|--help)  usage; exit 0 ;;
     --dry-run)  DRY_RUN=1 ;;
+    --force)    FORCE=1 ;;
     -*)         echo "!! unknown flag: $arg" >&2; usage >&2; exit 2 ;;
     *)
       if [ -z "$APP" ]; then APP="$arg"
@@ -125,7 +143,7 @@ BRANCH="$(git branch --show-current || echo '(detached)')"
 echo ">> ${APP}: building current main (HEAD ${SHA})"
 
 # --- throwaway worktree of HEAD --------------------------------------------
-WORKTREE="$(mktemp -d "${TMPDIR:-/tmp}/ikigai-deploy-${APP}.XXXXXX")"
+WORKTREE="$(mktemp -d "${TMPDIR:-/tmp}/ikigai-ship-${APP}.XXXXXX")"
 ARTIFACT_DIR="$(mktemp -d "${TMPDIR:-/tmp}/ikigai-artifact-${APP}.XXXXXX")"
 ARTIFACT="${ARTIFACT_DIR}/${APP}"
 
@@ -158,6 +176,30 @@ BARE="v$VER"
 
 echo ">> ${APP}: release ${BARE} (commit ${COMMIT_STAMP})"
 
+# --- early existence check (cheap, BEFORE the expensive compile) ------------
+# Refuse if /opt/<app>/releases/v<ver> already exists on the box, unless --force.
+# This catches a forgotten `bin/bump` (re-shipping an already-present version)
+# before paying for the build. It runs after the cheap worktree add + VERSION
+# read (which is where <ver> comes from) but before the compile. ec2-user can
+# `test -e` /opt/<app>/releases at 0755; fall back to `sudo test -e` if not.
+REMOTE_RELEASE="/opt/${APP}/releases/${BARE}"
+EXISTS_CMD=(ssh -i "$SSH_KEY" "${SSH_USER}@${HOST}"
+  "test -e ${REMOTE_RELEASE} || sudo test -e ${REMOTE_RELEASE}")
+
+if [ "$DRY_RUN" = "1" ]; then
+  echo ">> DRY RUN — not checking the box. The existence check would run:"
+  echo "   ${EXISTS_CMD[*]}"
+elif [ "$FORCE" = "1" ]; then
+  echo ">> --force: skipping the box existence check for ${REMOTE_RELEASE}"
+else
+  echo ">> checking the box: ${REMOTE_RELEASE} must not already exist"
+  if "${EXISTS_CMD[@]}" 2>/dev/null; then
+    echo "!! ${REMOTE_RELEASE} already exists on ${HOST} — did you forget 'bin/bump ${APP}'?" >&2
+    echo "!! re-ship this exact version with --force (the box stage's collision guard still applies)." >&2
+    exit 1
+  fi
+fi
+
 # The build source is the worktree — a detached checkout of HEAD. Re-derive the
 # dirty flag FROM THE WORKTREE (the actual build source), so the stamp tells the
 # truth about exactly what was compiled. Clean by construction for a HEAD checkout
@@ -185,18 +227,23 @@ echo ">> build ${APP} -> ${ARTIFACT}"
 [ -x "$ARTIFACT" ] || { echo "!! build did not produce ${ARTIFACT}" >&2; exit 1; }
 echo ">> built $(basename "$ARTIFACT") ($(du -h "$ARTIFACT" | cut -f1))"
 
-echo ">> SHIPPING ${APP} ${BARE}  (branch ${BRANCH}, commit ${COMMIT_STAMP}) -> ${HOST}"
-
-# --- hand off to opsctl on the box (or print, in dry-run) ------------------
+# --- ship the artifact to the box /tmp (the ONLY box write) ----------------
+# ship's box footprint stops here: scp into /tmp, then print the box commands.
+# No stage/deploy/install runs over ssh — the box owns every state change.
 REMOTE_ARTIFACT="/tmp/${APP}-${BARE}"
 SCP_CMD=(scp -i "$SSH_KEY" "$ARTIFACT" "${SSH_USER}@${HOST}:${REMOTE_ARTIFACT}")
-SSH_CMD=(ssh -i "$SSH_KEY" "${SSH_USER}@${HOST}"
-  "sudo opsctl install ${APP} ${BARE} --artifact ${REMOTE_ARTIFACT}")
+
+# The two box commands the operator runs next (printed after the scp, or in
+# dry-run). These exactly match opsctl's stage/deploy synopsis.
+STAGE_CMD="sudo opsctl stage  ${APP} ${BARE} --artifact ${REMOTE_ARTIFACT}"
+DEPLOY_CMD="sudo opsctl deploy ${APP} ${BARE}"
 
 if [ "$DRY_RUN" = "1" ]; then
-  echo ">> DRY RUN — not shipping. The box half would run:"
+  echo ">> DRY RUN — not shipping. The box write would be:"
   echo "   ${SCP_CMD[*]}"
-  echo "   ${SSH_CMD[*]}"
+  echo ">> then, ON THE BOX (${HOST}), the operator would run:"
+  echo "   ${STAGE_CMD}"
+  echo "   ${DEPLOY_CMD}"
   echo ">> dry-run complete. Artifact: ${ARTIFACT}"
   exit 0
 fi
@@ -204,7 +251,10 @@ fi
 echo ">> scp ${APP} ${BARE} -> ${HOST}:${REMOTE_ARTIFACT}"
 "${SCP_CMD[@]}"
 
-echo ">> ssh sudo opsctl install ${APP} ${BARE}"
-"${SSH_CMD[@]}"
-
-echo ">> deploy complete: ${APP} ${BARE} (${COMMIT_STAMP})"
+echo ">> SHIPPED -> ${HOST}:${REMOTE_ARTIFACT}  (${APP} ${BARE}, branch ${BRANCH}, commit ${COMMIT_STAMP})"
+echo ">>"
+echo ">> Next, ON THE BOX (${HOST}), run:"
+echo "     ${STAGE_CMD}"
+echo "     ${DEPLOY_CMD}"
+echo ">>"
+echo ">> ship's job is done — it does NOT stage or deploy. The box owns every state change."

@@ -218,10 +218,10 @@ producer + `Workers` sync engine): `<app>` serve + the fixed `version`/`manifest
 `registry`. `etc/manifest.env` (`APP=dropbox`, `MOUNT=/srv/dropbox/`,
 `DEFAULT=false`, `PORT=3005`, `MCP=true` so the dashboard inventory lists it;
 producer, so it also round-trips `FEED=/feed` + the `OUTBOX_RETENTION_*` config)
-is emitted by `dropbox manifest` and regenerated on the box by `opsctl install` on
-every swap. Shipping is the shared repo-root `bin/deploy dropbox` (no version arg;
+is emitted by `dropbox manifest` and regenerated on the box by `opsctl deploy` on
+every swap. Shipping is the shared repo-root `bin/ship dropbox` (no version arg;
 version is the committed `dropbox/VERSION`, advanced by `bin/bump dropbox <field>`)
-→ `opsctl install`; provisioning is `opsctl setup dropbox` (the `dropbox`
+→ `opsctl stage` + `opsctl deploy`; provisioning is `opsctl setup dropbox` (the `dropbox`
 `--system` user + `/opt/dropbox` tree — data `0750`, **mirror is a private subdir
 of data** — the enabled systemd unit, the nginx fragment).
 

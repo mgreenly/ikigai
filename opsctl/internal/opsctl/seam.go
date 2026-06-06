@@ -2,7 +2,9 @@ package opsctl
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 )
@@ -26,6 +28,22 @@ type System interface {
 	// is-active <app>`). A non-nil error means the new release failed to come up
 	// and the operator's recovery is `opsctl rollback`.
 	IsActive(ctx context.Context, app string) error
+	// IsActiveState returns the raw state string from `systemctl is-active <app>`
+	// (e.g. "active", "inactive", "failed", "activating") REGARDLESS of exit code —
+	// is-active exits non-zero for any non-active state, so the state is the signal,
+	// not the exit status. It errors only on a genuine exec failure (binary missing,
+	// context cancelled). The `status` verb reads it; the deploy gate (IsActive) is
+	// built on top of it.
+	IsActiveState(ctx context.Context, app string) (string, error)
+
+	// Systemctl runs `systemctl <args...>`, folding stderr into the error on
+	// failure. It backs the `start`/`stop`/`restart`/`enable`/`disable`
+	// passthrough verbs.
+	Systemctl(ctx context.Context, args ...string) error
+	// Journalctl runs `journalctl <args...>` STREAMING (the process's own
+	// stdin/stdout/stderr) so `opsctl tail` follows the log live; it does not
+	// capture output.
+	Journalctl(ctx context.Context, args ...string) error
 
 	// InstallPackages installs the named OS packages (the box runs `dnf install
 	// -y <pkgs...>`). init-box installs nginx+certbot; setup installs the app's
@@ -79,14 +97,14 @@ type AppRunner interface {
 // RealSystem drives systemd via systemctl. On the box opsctl runs privileged
 // (sudo opsctl …) so systemctl needs no further escalation here.
 type RealSystem struct {
-	// Systemctl overrides the binary name/path (default "systemctl"); handy if a
+	// SystemctlBin overrides the binary name/path (default "systemctl"); handy if a
 	// box wants an absolute path.
-	Systemctl string
+	SystemctlBin string
 }
 
 func (s RealSystem) systemctl() string {
-	if s.Systemctl != "" {
-		return s.Systemctl
+	if s.SystemctlBin != "" {
+		return s.SystemctlBin
 	}
 	return "systemctl"
 }
@@ -99,14 +117,46 @@ func (s RealSystem) Restart(ctx context.Context, app string) error {
 	return nil
 }
 
-func (s RealSystem) IsActive(ctx context.Context, app string) error {
+func (s RealSystem) IsActiveState(ctx context.Context, app string) (string, error) {
 	cmd := exec.CommandContext(ctx, s.systemctl(), "is-active", app)
-	out, err := cmd.CombinedOutput()
+	out, err := cmd.Output()
 	if err != nil {
-		return fmt.Errorf("systemctl is-active %s: %w: %s", app, err, strings.TrimSpace(string(out)))
+		// is-active exits non-zero for any non-active state, printing the state on
+		// stdout — that is NOT a genuine exec failure, so return the state with no
+		// error. Only an *ExitError carries a real exit-code result; anything else
+		// (binary missing, context cancelled) is a true exec failure.
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			return strings.TrimSpace(string(out)), nil
+		}
+		return "", fmt.Errorf("systemctl is-active %s: %w", app, err)
 	}
-	if strings.TrimSpace(string(out)) != "active" {
-		return fmt.Errorf("unit %s is not active: %s", app, strings.TrimSpace(string(out)))
+	return strings.TrimSpace(string(out)), nil
+}
+
+func (s RealSystem) IsActive(ctx context.Context, app string) error {
+	state, err := s.IsActiveState(ctx, app)
+	if err != nil {
+		return fmt.Errorf("systemctl is-active %s: %w", app, err)
+	}
+	if state != "active" {
+		return fmt.Errorf("unit %s is not active: %s", app, state)
+	}
+	return nil
+}
+
+func (s RealSystem) Systemctl(ctx context.Context, args ...string) error {
+	return run(ctx, s.systemctl(), args...)
+}
+
+func (s RealSystem) Journalctl(ctx context.Context, args ...string) error {
+	cmd := exec.CommandContext(ctx, "journalctl", args...)
+	// Stream: wire the child to opsctl's own stdfds so `tail` follows live.
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("journalctl %s: %w", strings.Join(args, " "), err)
 	}
 	return nil
 }

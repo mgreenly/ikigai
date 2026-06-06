@@ -1,4 +1,4 @@
-# Versioning — the bump→deploy workflow
+# Versioning — the bump→ship→stage→deploy workflow
 
 > **Operator how-to.** This is the concrete, day-to-day procedure for advancing
 > the version of an ikigai service and shipping it. The *why* lives in
@@ -14,8 +14,13 @@ bin/bump crm patch                # X.Y.Z -> X.Y.(Z+1); writes crm/VERSION, comm
 bin/bump crm minor                # X.Y.Z -> X.(Y+1).0
 bin/bump crm major                # X.Y.Z -> (X+1).0.0
 
-# 2. ship it (build current main off-box, hand the static binary to opsctl):
-bin/deploy crm                    # no version arg — builds HEAD, version from crm/VERSION
+# 2. ship it (build current main off-box, scp the static binary to the box /tmp):
+bin/ship crm                      # no version arg — builds HEAD, version from crm/VERSION;
+                                  #   then prints the two box commands and stops
+
+# 3. on the box, stage then activate (the commands bin/ship printed):
+sudo opsctl stage crm v1.4.0 --artifact /tmp/crm-v1.4.0   # preflight + place release, not live
+sudo opsctl deploy crm v1.4.0                             # manifest + migrate + atomic swap + restart
 ```
 
 The binary self-reports what it is — `crm version` → `v1.4.0 (<sha>)` — so the
@@ -34,7 +39,7 @@ box can never lie about what's deployed.
   makes it durable and immutable. Any release tags that survive from the old
   scheme are **vestigial/historical**: they are left in place but drive nothing.
 - **The `v` prefix is a deploy-time display/release convention**, not stored in
-  the file. The file holds the bare `0.1.1`; `bin/deploy` prepends the `v` so the
+  the file. The file holds the bare `0.1.1`; `bin/ship` prepends the `v` so the
   on-box release dir is `/opt/<app>/releases/v0.1.1/` and the binary self-reports
   `v0.1.1 (<sha>)`. `bin/bump` deals only in bare numbers (it shows `v…` only in
   the commit message / human-facing prints).
@@ -61,9 +66,10 @@ services have a `VERSION` file — `bin/bump` refuses anything else.
 
 ## How `bin/bump` advances the version
 
-`bin/bump <app> <major|minor|patch> [--dry-run]` is the companion to `bin/deploy`:
-`bump` decides the version, `deploy` builds + ships it. They stay separate steps —
-bumping never touches the live box. `bump`:
+`bin/bump <app> <major|minor|patch> [--dry-run]` is the companion to `bin/ship`:
+`bump` decides the version, `ship` builds + uploads it (and the box `stage`/`deploy`
+verbs activate it). They stay separate steps — bumping never touches the live box.
+`bump`:
 
 1. reads the current bare number from the committed `<app>/VERSION`,
 2. increments the requested field (`patch` → X.Y.Z+1, `minor` → X.Y+1.0,
@@ -80,15 +86,15 @@ You **never need to know the current version number** — `bump` reads it for yo
 `--dry-run` prints the next version + the commit message and writes/commits/pushes
 **nothing** (answers "what would the next patch be?").
 
-## How `bin/deploy` builds the current main
+## How `bin/ship` builds the current main
 
-`bin/deploy <app>` takes **no version argument**. It always builds **current main
+`bin/ship <app>` takes **no version argument**. It always builds **current main
 (HEAD)** in a throwaway detached `git worktree`, then reads the version from
 **that worktree's** `<app>/VERSION` (the actual build source) and ships it:
 
 | invocation | builds |
 |---|---|
-| `bin/deploy crm` | the current `main` tip (HEAD); the release version is whatever `crm/VERSION` holds on that commit |
+| `bin/ship crm` | the current `main` tip (HEAD); the release version is whatever `crm/VERSION` holds on that commit |
 
 The detached-HEAD worktree materializes exactly what is committed on `main`,
 **excluding** any uncommitted edits in the operator's working tree — that
@@ -99,13 +105,18 @@ worktree's sibling library trees — no network, no `go.work` (`GOWORK=off`). Fl
 `CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GOWORK=off go build -trimpath
 -buildvcs=false`. The worktree is removed on exit (success or failure).
 
+`bin/ship`'s only box write is the `scp` of the single artifact into `/tmp`. After
+the upload it **prints the two box commands** (`sudo opsctl stage <app> v<ver>
+--artifact …` then `sudo opsctl deploy <app> v<ver>`) and **stops** — it runs no
+stage/deploy over ssh. The box owns every state change beyond `/tmp`.
+
 ## The SHA + dirty co-stamp
 
 The version is **co-stamped with the git commit** so the running binary identifies
 exactly what built it. Because `-buildvcs=false` is mandatory (the module is a
 subdir of a **bare** mono-repo `.git`; Go's auto VCS stamp runs git at the bare
 root and aborts with exit 128), Go's automatic `vcs.revision`/`vcs.modified` stamp
-is dropped — so `bin/deploy` re-injects it via ldflags:
+is dropped — so `bin/ship` re-injects it via ldflags:
 
 ```
 -ldflags "-s -w -X appkit.version=v<bare-version> -X appkit.commit=<short-sha>[-dirty]"
@@ -119,7 +130,7 @@ is dropped — so `bin/deploy` re-injects it via ldflags:
   worktree is a clean detached checkout of `main`'s HEAD, so its tree has no diff
   and the suffix is empty: a deployed artifact always self-reports `vX.Y.Z (<sha>)`.
 - **`-dirty` only surfaces if a build is ever driven from a dirty source tree.**
-  `bin/deploy` re-derives the flag *from the actual build source*
+  `bin/ship` re-derives the flag *from the actual build source*
   (`git -C <worktree> status --porcelain`), so the stamp tells the truth about
   exactly what was compiled. A direct ad-hoc `go build` off a dirty tree with
   `-X appkit.commit=$(git rev-parse --short HEAD)-dirty` self-reports
@@ -132,11 +143,11 @@ So: `<app> version` →
 
 ## The box release-dir naming
 
-`bin/deploy` prepends the `v` to the bare file version and hands that to
-`opsctl install`, which names the on-box release dir accordingly:
+`bin/ship` prepends the `v` to the bare file version and prints it in the box
+commands; `opsctl stage`/`opsctl deploy` name the on-box release dir accordingly:
 
 ```
-crm/VERSION = 1.4.0   →   bin/deploy crm   →   opsctl install crm v1.4.0   →   /opt/crm/releases/v1.4.0/crm
+crm/VERSION = 1.4.0   →   bin/ship crm   →   opsctl stage crm v1.4.0 + opsctl deploy crm v1.4.0   →   /opt/crm/releases/v1.4.0/crm
 ```
 
 `opsctl` owns the release-dir / atomic-`current`-symlink / migrate / restart /
@@ -160,15 +171,19 @@ so the protected `main` is always the authoritative version state.)
    `<app>/VERSION`, increments, commits **only** that file to `main`, and pushes.
    Use `--dry-run` first if you just want to see the next number. You never type a
    version yourself.
-3. **Ship it:** `bin/deploy <app>` (no version arg) — it builds current `main`
-   (HEAD) and ships whatever `<app>/VERSION` holds on that commit. Use `--dry-run`
-   (or `DRY_RUN=1`) to do the full off-box build and print the `scp`/`ssh`/`opsctl`
-   commands without shipping.
-4. **Verify on the box:** `opsctl`'s install runs preflight (static? amd64?
-   `<app> version` matches the version arg? `<app> manifest` parses?), backs up
-   the DB if the schema advances, migrates, atomically swaps `current`, restarts,
-   and confirms `is-active`. Confirm `<app> version` self-reports `v<the number you
-   bumped to>`.
+3. **Ship it:** `bin/ship <app>` (no version arg) — it builds current `main`
+   (HEAD), `scp`s whatever `<app>/VERSION` holds on that commit to the box `/tmp`,
+   then prints the two box commands and stops. Use `--dry-run` (or `DRY_RUN=1`) to
+   do the full off-box build and print the `scp`/`opsctl` commands without
+   shipping.
+4. **Stage + deploy on the box** (the commands `bin/ship` printed): `sudo opsctl
+   stage <app> v<ver> --artifact /tmp/<app>-v<ver>` runs preflight (static? amd64?
+   `<app> version` matches the version arg? `<app> manifest` parses?) plus the SHA
+   collision guard, places the release (not live), and deletes the `/tmp` artifact
+   on success; then `sudo opsctl deploy <app> v<ver>` regenerates the manifest,
+   backs up the DB if the schema advances, migrates, atomically swaps `current`,
+   restarts, and confirms `is-active`. Confirm `<app> version` self-reports `v<the
+   number you bumped to>`.
 5. **Roll back if needed:** `sudo opsctl rollback <app>` repoints `current` to the
    prior release (restoring the DB first if the rolled-back-from release advanced
    the schema — the forward-only migration runner's downgrade guard requires it).

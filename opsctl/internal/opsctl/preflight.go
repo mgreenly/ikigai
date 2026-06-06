@@ -83,3 +83,25 @@ func versionToken(out string) string {
 	}
 	return strings.TrimSpace(line)
 }
+
+// commitToken extracts the commit-SHA field from `<app> version` output, which is
+// "<version>" or "<version> (<sha>[-dirty])". It returns the contents of the
+// parenthesised "(<sha>[-dirty])" field (without the parens), or "" if the
+// self-report carries no commit stamp. The stage collision guard compares these:
+// versionToken strips the SHA, so it cannot tell two builds of the same version
+// apart — only the commit token can.
+func commitToken(out string) string {
+	line := strings.TrimSpace(out)
+	if i := strings.IndexByte(line, '\n'); i >= 0 {
+		line = line[:i]
+	}
+	open := strings.IndexByte(line, '(')
+	if open < 0 {
+		return ""
+	}
+	close := strings.IndexByte(line[open:], ')')
+	if close < 0 {
+		return ""
+	}
+	return strings.TrimSpace(line[open+1 : open+close])
+}

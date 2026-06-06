@@ -202,31 +202,33 @@ Verbs: `install · rollback · backup · restore · setup · init-box · prune`
 ```
 
 The release dir on the box is named `v<version>` → `ledger/VERSION` of `1.4.0`
-becomes `releases/v1.4.0/` (`bin/deploy` prepends the `v`). `/opt/<app>/bin/run`
+becomes `releases/v1.4.0/` (`bin/ship` prepends the `v`). `/opt/<app>/bin/run`
 and `/opt/<app>/etc/manifest.env` stay as stable paths at all times (the symlink
 and
 the regenerated file), so the baked `metaspot-launch`, `bin/registry`, and the
 dashboard's manifest-derived resource list are all untouched and remain valid
 mid-swap.
 
-### 5. `deploy <app>` — the thin local wrapper (+ `bump`)
+### 5. `ship <app>` — the thin local wrapper (+ `bump`)
 
-**One shared script** (repo-root `bin/deploy`) replaces the seven cloned
+**One shared script** (repo-root `bin/ship`) replaces the seven cloned
 `*/bin/deploy`. It takes **no version argument**: the version is the committed
 `<app>/VERSION` file. Its body: source the app's `deploy.env` → build **current
 `main` (HEAD)** in a throwaway detached `git worktree` (reproducible, doesn't
 disturb the operator's working tree) → off-box `go build` (`CGO_ENABLED=0
 GOOS=linux GOARCH=amd64 -trimpath -buildvcs=false GOWORK=off`, ldflags version
 stamp) → read the version from **that worktree's** `<app>/VERSION` and prepend
-`v` → `scp` the single artifact to the box `/tmp` → `ssh sudo opsctl install
-<app> v<version> --artifact /tmp/…`. **No install logic runs on the laptop** —
-the box-side install is entirely `opsctl`'s job.
+`v` → `scp` the single artifact to the box `/tmp` → **print the two box commands**
+(`sudo opsctl stage <app> v<version> --artifact /tmp/…` then `sudo opsctl deploy
+<app> v<version>`) and **stop**. `bin/ship`'s only box write is the `/tmp` upload;
+it runs **no** stage/deploy over ssh — the box owns every state change, split
+across the `stage` (place) and `deploy` (activate) verbs.
 
 The companion **`bin/bump <app> <major|minor|patch>`** is how the version is
 advanced: it reads `<app>/VERSION`, increments the requested SemVer field, writes
 the new bare number back, makes a **path-limited** commit of only that file
 directly to `main` (`git commit … -- "<app>/VERSION"`), and pushes. `bump`
-decides the version; `deploy` builds + ships current `main`. The operator-facing
+decides the version; `ship` builds + uploads current `main`. The operator-facing
 how-to is [`versioning.md`](./versioning.md).
 
 ### 6. Versioning
@@ -247,8 +249,9 @@ how-to is [`versioning.md`](./versioning.md).
   mono-repo's `main`. The **commit** that lands a `VERSION` change pins the app's
   code **and** its library source (via the committed `replace` directives)
   atomically — the job a tag used to do. `bin/bump <app> <field>` advances it
-  (path-limited commit to `main` + push); `bin/deploy <app>` builds current `main`
-  and ships that committed version. **Git tags are NOT the version mechanism**
+  (path-limited commit to `main` + push); `bin/ship <app>` builds current `main`
+  and ships that committed version (the box `stage`/`deploy` verbs activate it).
+  **Git tags are NOT the version mechanism**
   (no `git tag <app>/vX.Y.Z`, no `git describe`); the `v` is a deploy-time
   display prefix only.
 - **Libraries (`eventplane`, `agentkit`, `appkit`) and `opsctl` are NOT
@@ -263,8 +266,9 @@ how-to is [`versioning.md`](./versioning.md).
   (`<app> version` → `v<x.y.z> (<sha>)`) — the box can't lie; `releases/` +
   `current` = the on-box ledger. The version history itself lives in `main`'s
   commits (the `<app>/VERSION` ledger), made immutable by branch protection.
-- **No release tooling now** — `bin/bump` (file edit + commit) + `bin/deploy`
-  (build current `main`) + ldflags. GoReleaser / release-please only if/when
+- **No release tooling now** — `bin/bump` (file edit + commit) + `bin/ship`
+  (build current `main`, upload) + the box `opsctl stage`/`deploy` verbs +
+  ldflags. GoReleaser / release-please only if/when
   GitHub Actions arrives.
 
 ### `opsctl` — per-verb internals
@@ -273,34 +277,53 @@ All verbs operate over the §4 release-dir + atomic-symlink layout, rooted at
 `OPSCTL_ROOT` (default `/opt`). "Atomic swap" everywhere means `ln -sfn` of
 `current` (a symlink rename, atomic on the same filesystem).
 
-**`install <app> <version> --artifact <path>`** — ship a new version live.
-1. **Preflight (refuse early, before touching anything live):**
+Shipping a new version live is split across **two** verbs: `stage` (place a
+release, not live) then `deploy` (activate it). `bin/ship` prints both. The split
+keeps the stable `manifest.env`, the DB migrate, and the running unit untouched
+until the operator explicitly runs `deploy`.
+
+**`stage <app> <version> --artifact <path> [--force]`** — place a release; NOT
+live.
+1. **Preflight (refuse early, before placing anything):**
    - the artifact is a **static** binary (no dynamic linkage);
    - its arch is `amd64` (`linux/amd64`);
    - `<artifact> version` self-reports a version that **matches the `<version>`
      arg** (the binary can't lie about which version it is);
    - `<artifact> manifest` **parses** and emits a well-formed `manifest.env`.
-   Any failure aborts with the live release untouched.
-2. **Place** the artifact into `releases/<version>/<app>` (creating the release
-   dir; idempotent if re-installing the same version).
-3. **Regenerate `etc/manifest.env`** by running `<new binary> manifest` and
+   Any failure aborts.
+2. **SHA collision guard.** If `releases/<version>/<app>` already exists, run its
+   `version` verb and the incoming artifact's, and compare the **commit SHA**: same
+   SHA → idempotent no-op (skip the copy); different SHA, or the existing binary
+   won't exec → **refuse unless `--force`**.
+3. **Place** the artifact into `releases/<version>/<app>` (creating the release
+   dir).
+4. **Delete the `/tmp` artifact on success** (freshly placed or idempotent no-op).
+   On refusal/error the `/tmp` file is **kept** so the operator can retry (e.g.
+   with `--force`) without a re-`scp`. `stage` never touches the manifest, the DB,
+   or the running unit.
+
+**`deploy <app> <version>`** — activate a staged release. `<version>` is
+**required** (no "newest staged" default).
+1. **Guard: the release was staged** — refuse early if `releases/<version>/<app>`
+   is absent ("stage it first").
+2. **Regenerate `etc/manifest.env`** by running `<new binary> manifest` and
    writing its output to the stable `/opt/<app>/etc/manifest.env` path. This is
    where `FEED`/`CONSUMES`/service-config round-trip back onto the box for the
    dashboard + `bin/registry` to read.
-4. **Backup the DB if the schema advances.** Compare the migration version the
+3. **Backup the DB if the schema advances.** Compare the migration version the
    new binary embeds against what the live DB carries; if the new binary
    advances the schema, snapshot `data/<app>.db` first (named/retained so the
    matching `rollback` can restore it). If the schema does not advance, no backup
    is needed.
-5. **Migrate** — run `<new binary> migrate` against `data/<app>.db` (forward-only;
+4. **Migrate** — run `<new binary> migrate` against `data/<app>.db` (forward-only;
    applies only the unapplied higher versions).
-6. **Atomic swap** — `ln -sfn releases/<version> current`. Because `bin/run`
+5. **Atomic swap** — `ln -sfn releases/<version> current`. Because `bin/run`
    points at `../current/<app>`, the launcher now execs the new binary on next
    start without any path edit.
-7. **Restart** the systemd unit (behind the stubbable seam) and assert
+6. **Restart** the systemd unit (behind the stubbable seam) and assert
    `is-active`. On failure, the operator's recovery is `rollback` (the prior
    release dir and pre-migration backup are intact).
-8. **Prune** old releases (see `prune`).
+7. **Prune** old releases (see `prune`).
 
    The DB at `data/<app>.db` is never overwritten by the artifact placement —
    only ever read/migrated/snapshotted (honoring §2.7).
@@ -320,7 +343,7 @@ All verbs operate over the §4 release-dir + atomic-symlink layout, rooted at
 (per-account bucket / box-local, per the metaspot backup convention). Invokes
 the app's `backup` verb (which honors the `Spec.Backup` hook, default =
 consistent SQLite snapshot of `data/<app>.db`). Used both standalone (operator
-backup) and internally by `install` on schema advance.
+backup) and internally by `deploy` on schema advance.
 
 **`restore <app> [snapshot]`** — restore the app's SQLite state from a snapshot.
 Invokes the app's `restore` verb (honoring `Spec.Restore`). Used both standalone
@@ -367,7 +390,7 @@ nothing global.** Responsibilities:
 - drop the app's nginx location fragment into
   `/etc/nginx/conf.d/locations/<app>.conf`, then `nginx -t` + reload.
 
-`setup <app>` is required once before a brand-new service's first `install`. It
+`setup <app>` is required once before a brand-new service's first `stage`/`deploy`. It
 assumes `init-box` already ran (the `conf.d/locations/` dir, apex block, and
 cert exist). The diff from today's behavior is **only the split** — the unit
 file and nginx fragment it emits match what the old `bin/setup` produced.
@@ -384,7 +407,7 @@ file and nginx fragment it emits match what the old `bin/setup` produced.
    one-static-binary contract depends on it.
 3. **`metaspot-launch`: additive first** — leave the baked launcher untouched
    (it is a load-bearing stable-path contract); add `opsctl launch` later.
-4. **`deploy` build source: throwaway `git worktree`** — reproducible build
+4. **`ship` build source: throwaway `git worktree`** — reproducible build
    without disturbing the working tree. (Originally a checkout of the *tagged*
    commit; in the implemented file model it is a detached checkout of **current
    `main` (HEAD)**, whose committed `<app>/VERSION` supplies the version.)
@@ -396,7 +419,7 @@ file and nginx fragment it emits match what the old `bin/setup` produced.
 
 - **P1 (this design):** operator ships builds of committed `main` into versioned
   release dirs — full versioning + rollback immediately, no new infra.
-- **P2 (later):** S3 artifacts bucket + box-pull (`opsctl install --artifact
+- **P2 (later):** S3 artifacts bucket + box-pull (`opsctl stage --artifact
   s3://…`, new IAM) — enables CI, multi-box, dashboard-initiated deploy.
 - **P3 (optional):** GitHub Actions builds+publishes on tag, box pulls. CI must
   be build-and-publish (box pulls), **never** inbound SSH (SSH is pinned to one
@@ -419,11 +442,12 @@ appliance ethos), git-pull-build on the box (the box never compiles), Nix
   box can't lie) and the on-box `releases/`+`current` ledger; the version *history*
   lives in `main`'s committed `<app>/VERSION` ledger (immutable under branch
   protection).
-- **One deploy path, not seven.** A single shared `bin/deploy` wrapper + one
-  `opsctl` replace the seven cloned `bin/build`+`bin/deploy` stacks; the
+- **One deploy path, not seven.** A single shared `bin/ship` wrapper + one
+  `opsctl` (its `stage`/`deploy` verbs) replace the seven cloned
+  `bin/build`+`bin/deploy` stacks; the
   artifact shrinks to one static binary (no wrapper, no bundled registry).
 - **The app's identity is owned by the app.** `<app> manifest` is the single
-  source of truth; `install` regenerates `/opt/<app>/etc/manifest.env` from it on
+  source of truth; `deploy` regenerates `/opt/<app>/etc/manifest.env` from it on
   every swap, so the dashboard's resource derivation and `bin/registry` always
   read a manifest the running binary itself produced.
 
@@ -439,7 +463,7 @@ appliance ethos), git-pull-build on the box (the box never compiles), Nix
   byte-compare of `<app> manifest` against the committed `etc/manifest.env` is
   the guard, and `ManifestExtras` exists so every declared key round-trips.
 - **Rollback across a schema advance depends on the pre-migration backup
-  existing.** `install` must snapshot the DB *before* migrating whenever the
+  existing.** `deploy` must snapshot the DB *before* migrating whenever the
   schema advances, and `rollback` must restore it — otherwise the downgrade guard
   bricks the rolled-back binary on boot. This is a forced consequence of
   forward-only, downgrade-guarded migrations (§2.5), not an optional nicety.
@@ -464,7 +488,7 @@ bugs):**
   the single shared tag namespace cross-contaminates services.~~ **Superseded:**
   there is no `git describe` and no tag namespace. The version is read from the
   committed `<app>/VERSION` file (per service by construction, so no
-  cross-contamination is possible); `bin/deploy` reads it from the build
+  cross-contamination is possible); `bin/ship` reads it from the build
   worktree's copy and stamps it via ldflags.
 - the ldflags `-X` target must be a **`var`**, not a `const` — `-X` against a
   `const` is silently ignored, leaving the `dev` default.

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # bin/bump — advance the committed version of an ikigai service, without you having
-# to know its current version. The companion to bin/deploy: `bump` decides the
-# version (writes the committed <app>/VERSION file), `deploy` builds + ships it.
+# to know its current version. The companion to bin/ship: `bump` decides the
+# version (writes the committed <app>/VERSION file), `ship` builds + ships it.
 # They stay separate steps — bumping never touches the live box.
 #
 #   bin/bump <app> <major|minor|patch> [--dry-run]
@@ -17,7 +17,7 @@
 #   major  X.Y.Z -> (X+1).0.0
 #
 # The file holds the BARE number (no leading "v"). The "v" prefix is a display /
-# release convention applied by bin/deploy (and shown in commit messages /
+# release convention applied by bin/ship (and shown in commit messages /
 # human-facing prints here), NOT something stored in the file — bump deals only in
 # bare numbers.
 #
@@ -52,7 +52,7 @@ leading "v"). Git tags are no longer the version mechanism. Unless --dry-run, bu
 writes the new bare version, commits ONLY that file to main, and pushes origin main.
 
 Next step after bumping:
-  bin/deploy <app>     # builds current main (HEAD); version comes from <app>/VERSION
+  bin/ship <app>       # builds current main (HEAD); version comes from <app>/VERSION
 USAGE
 }
 
@@ -129,7 +129,7 @@ if [ "$DRY_RUN" = "1" ]; then
   echo "   write ${NEW_VER} to ${VERSION_FILE}"
   echo "   git commit -m \"${COMMIT_MSG}\" -- \"${VERSION_FILE}\""
   echo "   would push origin main"
-  echo ">> next: bin/deploy ${APP}"
+  echo ">> next: bin/ship ${APP}"
   exit 0
 fi
 
@@ -146,4 +146,4 @@ echo ">> committed ${VERSION_FILE} (v${NEW_VER}) at $(git rev-parse --short HEAD
 echo ">> git push origin main"
 git push origin main
 
-echo ">> next: bin/deploy ${APP}"
+echo ">> next: bin/ship ${APP}"

@@ -235,7 +235,7 @@ func dispatch(spec Spec, args []string, getenv func(string) string, stdin io.Rea
 }
 
 // versionString is the self-report: "<version> (<commit>)" — the box cannot lie
-// about what is deployed (PLAN §1.6). The commit stamp is whatever bin/deploy
+// about what is deployed (PLAN §1.6). The commit stamp is whatever bin/ship
 // injects via -ldflags -X appkit.commit=…: a short SHA for a clean tag build, or
 // "<sha>-dirty" for an ad-hoc build off a dirty source tree (the suffix is part
 // of the injected string, so it renders here verbatim — no extra logic needed).

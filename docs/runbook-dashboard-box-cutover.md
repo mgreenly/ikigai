@@ -7,29 +7,30 @@ onto the box for the first time under the new release-dir layout. It is the
 operator deliverable for the dashboard cutover noted in `PLAN.md` §5 and
 `AGENTS.md` (Deployments).
 
-**Why a cutover and not a plain `bin/deploy`.** Adopting appkit's
+**Why a cutover and not a plain ship.** Adopting appkit's
 **integer-keyed** migration runner renumbered the dashboard's migrations from
 their old **name/timestamp-keyed** scheme (`schema_migrations.name`) to
 `NNN_*.sql` (+ a new `001_schema_migrations.sql`). A *fresh* DB migrates cleanly
 to v5 (verified, tests green). But the live `ai` box's
 `/opt/dashboard/data/dashboard.db` already applied the OLD name-keyed ledger,
-which the integer runner will **not** recognize — so a plain `opsctl install`
+which the integer runner will **not** recognize — so a plain `opsctl deploy`
 against the existing DB would fail to boot. Per the **2026-06-05 directive that
 no databases need to be preserved**, the fix is simply to reset the DB before
-the install: the new binary then creates and migrates a fresh DB to v5. That is
-the only difference from a normal `bin/deploy dashboard`.
+the deploy: the new binary then creates and migrates a fresh DB to v5. That is
+the only difference from a normal `bin/ship dashboard` → `opsctl stage`/`deploy`.
 
 > **Cutover in one line:** stop → (optional backup) → drop/reset the DB →
-> `bin/deploy dashboard` (no version arg; off-box build of current `main` →
-> `opsctl install`) → restart → verify. No bespoke `schema_migrations` rewrite,
-> no data preservation.
+> `bin/ship dashboard` (no version arg; off-box build of current `main`, `scp`
+> to `/tmp`) → `sudo opsctl stage dashboard vX.Y.Z --artifact …` → `sudo opsctl
+> deploy dashboard vX.Y.Z` → restart → verify. No bespoke `schema_migrations`
+> rewrite, no data preservation.
 
 ---
 
 ## Conventions used below
 
 - **Run from** the repo root `/mnt/projects/ikigai/deployments` on your
-  workstation. Never `cd` into `dashboard/` for `bin/deploy` — it resolves paths
+  workstation. Never `cd` into `dashboard/` for `bin/ship` — it resolves paths
   itself.
 - `$BOX` = `ai.metaspot.org`, `$SSH` = `ssh -i ~/.ssh/id_ed25519_ai4mgreenly
   ec2-user@ai.metaspot.org` (the values come from `dashboard/etc/deploy.env`:
@@ -94,7 +95,8 @@ ssh … 'systemctl is-active crm ledger notify; ls /opt/*/etc/manifest.env'
   `/opt/<svc>/etc/manifest.env` files exist. **The dashboard is cut over LAST**
   so that on restart it re-reads `/opt/*/etc/manifest.env` and registers every
   already-deployed `MCP=true` service in its OAuth-AS resource list. If a service
-  is meant to be live but isn't, bring it up first (its own `bin/deploy`), then
+  is meant to be live but isn't, bring it up first (its own `bin/ship` →
+  `opsctl stage`/`deploy`), then
   return here. Abort/restore: read-only.
 
 **0e. Confirm dashboard secrets are seeded.** The dashboard hard-fails at start
@@ -203,22 +205,26 @@ cat dashboard/VERSION             # -> the bare X.Y.Z that will ship as vX.Y.Z
 
 - Expected: `dashboard/VERSION` holds the bare `X.Y.Z` on `main`.
 - Abort/restore: a version bump is a path-limited commit on `main`; nothing is
-  shipped to the box until `bin/deploy`.
+  shipped to the box until `bin/ship`.
 
-### 3b. Deploy it (real run)
+### 3b. Ship, stage, and deploy it (real run)
 
-`bin/deploy <app>` (no version arg) builds current `main` (HEAD) in a throwaway
+`bin/ship <app>` (no version arg) builds current `main` (HEAD) in a throwaway
 detached worktree
 (`CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GOWORK=off -trimpath -buildvcs=false`,
 ldflags-stamped), reads the version from that worktree's `dashboard/VERSION`
-(→ `vX.Y.Z`), `scp`s the single artifact, then runs the box half:
-`ssh sudo opsctl install dashboard vX.Y.Z --artifact /tmp/dashboard-vX.Y.Z`.
+(→ `vX.Y.Z`), `scp`s the single artifact to `/tmp`, then **prints the two box
+commands and stops** — it runs no stage/deploy over ssh. You then run those two
+commands on the box: `sudo opsctl stage dashboard vX.Y.Z --artifact
+/tmp/dashboard-vX.Y.Z` (preflight + place the release, not live, then delete the
+`/tmp` artifact) followed by `sudo opsctl deploy dashboard vX.Y.Z` (manifest →
+migrate → atomic swap → restart).
 
 ```
-bin/deploy dashboard
+bin/ship dashboard
 ```
 
-- Expected (workstation side, the `>>` lines from `bin/deploy`):
+- Expected (workstation side, the `>>` lines from `bin/ship`):
   ```
   >> dashboard: building current main (HEAD <sha>)
   >> git worktree add --detach <tmp> HEAD
@@ -226,33 +232,41 @@ bin/deploy dashboard
   >> build dashboard -> <tmp-artifact>/dashboard
   >> built dashboard (<size>)
   >> scp dashboard vX.Y.Z -> ai.metaspot.org:/tmp/dashboard-vX.Y.Z
-  >> ssh sudo opsctl install dashboard vX.Y.Z
+  >> SHIPPED -> /tmp/dashboard-vX.Y.Z; next, on the box:
+  >>   sudo opsctl stage dashboard vX.Y.Z --artifact /tmp/dashboard-vX.Y.Z
+  >>   sudo opsctl deploy dashboard vX.Y.Z
   ```
-- Expected (box side — `opsctl install` progress; the DB was reset in §2, so it
-  is created during migrate and there is no pre-migration backup):
+- Run `sudo opsctl stage dashboard vX.Y.Z --artifact /tmp/dashboard-vX.Y.Z` on
+  the box — expected (preflight + place, not live; the `/tmp` artifact is removed
+  on success):
   ```
   >> preflight dashboard vX.Y.Z
   >> place artifact -> /opt/dashboard/releases/vX.Y.Z/dashboard
+  >> staged dashboard vX.Y.Z (removed /tmp/dashboard-vX.Y.Z)
+  ```
+- Then run `sudo opsctl deploy dashboard vX.Y.Z` — expected (the DB was reset in
+  §2, so it is created during migrate and there is no pre-migration backup):
+  ```
   >> regenerate /opt/dashboard/etc/manifest.env
   >> schema advances but no DB yet (fresh) — no backup
   >> migrate dashboard
   >> atomic swap current -> releases/vX.Y.Z
   >> restart dashboard
-  >> installed dashboard vX.Y.Z
+  >> deployed dashboard vX.Y.Z
   ```
-- Final `>> deploy complete: dashboard vX.Y.Z (<sha>)` from the wrapper.
-- **Preflight gates** (from `preflight.go`, refuse a bad artifact before touching
-  anything live): static `linux/amd64`, `dashboard version` self-report ==
-  `vX.Y.Z`, `dashboard manifest` parses (`APP=dashboard`, `MOUNT=/`,
-  `DEFAULT=true`, no `MCP`). A failure here aborts with the live release
-  untouched — but note the dashboard is **already stopped** and its DB reset, so
-  on a preflight abort the box has no serving dashboard: fix and re-deploy
-  promptly (recovery in §5).
-- **Abort/restore:** if `install` aborts before the atomic swap, nothing is
-  repointed — re-run after fixing. If it swapped but the unit did not come up,
-  opsctl prints `… did not come up (recover with: opsctl rollback dashboard)` —
-  but on this first new-layout install there is no prior new-layout release to
-  roll back to, so recovery is fix-and-redeploy (see §5).
+- **Preflight gates** (from `preflight.go`, run by `stage` to refuse a bad
+  artifact before placing it): static `linux/amd64`, `dashboard version`
+  self-report == `vX.Y.Z`, `dashboard manifest` parses (`APP=dashboard`,
+  `MOUNT=/`, `DEFAULT=true`, no `MCP`). A failure here aborts at `stage` — the
+  release is never placed and the live release is untouched — but note the
+  dashboard is **already stopped** and its DB reset, so on a preflight abort the
+  box has no serving dashboard: fix and re-ship promptly (recovery in §5).
+- **Abort/restore:** if `stage` aborts, nothing is placed — fix and re-ship. If
+  `deploy` aborts before the atomic swap, nothing is repointed — re-run `deploy`
+  after fixing (the release is already staged). If it swapped but the unit did
+  not come up, opsctl prints `… did not come up (recover with: opsctl rollback
+  dashboard)` — but on this first new-layout deploy there is no prior new-layout
+  release to roll back to, so recovery is fix-and-reship (see §5).
 
 ### 3c. Confirm the swap and manifest regen
 
@@ -361,15 +375,17 @@ DB**, the downgrade-guard/snapshot behavior applies in principle (rolling back t
 a release that embeds fewer migrations would restore the pre-migration snapshot
 first) — but with **no DB-preservation requirement**, rollback here is
 low-stakes: if anything is wrong, the simplest recovery is to fix the cause, bump
-`dashboard/VERSION` (`bin/bump dashboard <field>`), and re-run `bin/deploy
-dashboard` (the artifact is rebuildable from the committed `main` history).
+`dashboard/VERSION` (`bin/bump dashboard <field>`), and re-run `bin/ship
+dashboard` → `opsctl stage`/`deploy` (the artifact is rebuildable from the
+committed `main` history).
 
-- **On a failed first new-layout install** (no prior new-layout release to roll
-  back to): the dashboard is stopped/DB-reset; fix the cause and re-run `bin/deploy
-  dashboard <ver>`. If you must restore the box's *old* serving state instead,
-  re-point `current` at the old release dir and restore the §2a snapshot — but
-  under the no-preservation directive the forward fix (re-deploy) is preferred.
-- **On a later install** (a prior new-layout release exists):
+- **On a failed first new-layout deploy** (no prior new-layout release to roll
+  back to): the dashboard is stopped/DB-reset; fix the cause and re-run `bin/ship
+  dashboard` → `opsctl stage`/`deploy`. If you must restore the box's *old*
+  serving state instead, re-point `current` at the old release dir and restore the
+  §2a snapshot — but under the no-preservation directive the forward fix
+  (re-ship) is preferred.
+- **On a later deploy** (a prior new-layout release exists):
   `sudo opsctl rollback dashboard` repoints to it and restarts; the data DB is
   only touched (snapshot/restore) if the rolled-back-from release advanced the
   schema.
@@ -389,8 +405,8 @@ curl -s -o /dev/null -w '%{http_code}\n' https://ai.metaspot.org/   # 200/302
 ## Cleanup (optional, after a successful cutover)
 
 Leave `dashboard` deployed (it is the live apex app); the shipped version stays
-recorded in the committed `dashboard/VERSION` on `main`. The throwaway `bin/deploy`
-worktree and `/tmp` artifacts are removed automatically (the wrapper's `trap
-cleanup EXIT`). The optional
+recorded in the committed `dashboard/VERSION` on `main`. The throwaway `bin/ship`
+worktree is removed automatically (the wrapper's `trap cleanup EXIT`), and the
+`/tmp` artifact is deleted by `opsctl stage` on success. The optional
 `/opt/dashboard/data/*.pre-cutover*` snapshot from §2a can be removed once you
 are satisfied — it is not needed (no DB preservation).

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # bin/start — run crm locally on its loopback port, writing its PID to build/crm.pid.
 #
-# Local-run only. The systemd-on-the-box lifecycle lands with bin/deploy later.
+# Local-run only. The systemd-on-the-box lifecycle is owned by opsctl (deploy + the start/stop passthroughs).
 # crm binds 127.0.0.1 by default; nginx is its only real ingress.
 set -euo pipefail
 

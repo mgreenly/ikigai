@@ -137,7 +137,7 @@ func Migrate(ctx context.Context, conn *sql.DB, migs []Migration) error {
 }
 
 // AppliedVersion returns the highest version recorded in schema_migrations, or 0
-// if the table is absent or empty. opsctl install reads this against
+// if the table is absent or empty. opsctl deploy reads this against
 // MaxEmbedded(migs) to decide whether the schema advances (→ backup first).
 func AppliedVersion(ctx context.Context, conn *sql.DB) (int, error) {
 	exists, err := tableExists(ctx, conn, "schema_migrations")

@@ -97,7 +97,7 @@ func (o *Opsctl) Setup(ctx context.Context, opts SetupOptions) error {
 		o.logf("no nginx fragment (worker/batch service)")
 	}
 
-	o.logf("setup complete for %s — next: opsctl install %s <version>", app, app)
+	o.logf("setup complete for %s — next: opsctl stage %s <version> --artifact …, then opsctl deploy %s <version>", app, app, app)
 	return nil
 }
 

@@ -36,7 +36,15 @@ func main() {
 	app := env("FAKE_APP", "fakeapp")
 	switch verb {
 	case "version":
-		fmt.Println(env("FAKE_VERSION", "v0.0.0"))
+		// When FAKE_COMMIT is set, mirror the real `<ver> (<sha>[-dirty])`
+		// self-report so the stage collision guard can compare commit SHAs; unset
+		// leaves the bare-version behavior unchanged.
+		ver := env("FAKE_VERSION", "v0.0.0")
+		if commit := os.Getenv("FAKE_COMMIT"); commit != "" {
+			fmt.Printf("%s (%s)\n", ver, commit)
+		} else {
+			fmt.Println(ver)
+		}
 	case "manifest":
 		body := env("FAKE_MANIFEST", "APP="+app+"\nMOUNT=/srv/"+app+"/\nDEFAULT=false\nPORT=3999\nMCP=true\n")
 		fmt.Print(body)

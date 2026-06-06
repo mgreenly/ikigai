@@ -19,6 +19,7 @@ type stubSystem struct {
 	mu             sync.Mutex
 	restarts       int
 	failIsActive   bool
+	activeState    string   // state IsActiveState reports (default "active" if "")
 	currentLink    string   // /opt/<app>/current — read on each Restart
 	seenAtRestart  []string // current's target version observed at each restart
 	binExistsAtRun []bool   // whether current/<app> existed (complete release) at restart
@@ -117,18 +118,47 @@ func (s *stubSystem) IsActive(ctx context.Context, app string) error {
 	return nil
 }
 
+func (s *stubSystem) IsActiveState(ctx context.Context, app string) (string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.activeState != "" {
+		return s.activeState, nil
+	}
+	return "active", nil
+}
+
+func (s *stubSystem) Systemctl(ctx context.Context, args ...string) error {
+	s.record("systemctl:" + strings.Join(args, " "))
+	return nil
+}
+
+func (s *stubSystem) Journalctl(ctx context.Context, args ...string) error {
+	s.record("journalctl:" + strings.Join(args, " "))
+	return nil
+}
+
 // fakeRunner execs the compiled fakeapp binary, injecting a fixed base env (the
 // FAKE_* knobs that parameterise the scenario) plus opsctl's per-verb env
 // overrides. It mirrors RealRunner but with a controllable base env so a test can
 // set the binary's self-reported version, embedded schema, and manifest body.
 type fakeRunner struct {
 	baseEnv []string // FAKE_VERSION=…, FAKE_EMBEDDED=…, FAKE_MANIFEST=…, FAKE_APP=…
+	// commitByPath overrides FAKE_COMMIT per binary path, so the stage collision
+	// guard can be exercised: a real binary self-reports its OWN ldflag-stamped
+	// commit regardless of env, so the already-placed release and the incoming
+	// artifact (distinct paths) can report different SHAs. A path absent here falls
+	// back to the baseEnv FAKE_COMMIT (if any). Keyed by absolute path basename via
+	// exact path match.
+	commitByPath map[string]string
 }
 
 func (r fakeRunner) Run(ctx context.Context, binary, verb string, args []string, env []string) (string, error) {
 	full := append([]string{verb}, args...)
 	cmd := exec.CommandContext(ctx, binary, full...)
 	cmd.Env = append(append(os.Environ(), r.baseEnv...), env...)
+	if c, ok := r.commitByPath[binary]; ok {
+		cmd.Env = append(cmd.Env, "FAKE_COMMIT="+c)
+	}
 	var stdout, stderr strings.Builder
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
