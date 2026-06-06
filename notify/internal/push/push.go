@@ -97,6 +97,21 @@ type contactCreated struct {
 	DisplayName string `json:"display_name"`
 }
 
+// Subscription is notify's single declared event-plane in-edge: it listens to
+// crm's contact.created and fires a best-effort ntfy push in reaction. It is the
+// ONE source of truth — the consumer Handler matches each event against it
+// (sub.Match) and the reflection tool reports it via Spec.Subscriptions, so the
+// runtime filter and what reflection advertises cannot drift (decision 10). The
+// Handler field is left unset here; the engine wiring uses Subscription only as a
+// declared graph edge, while Handler builds the effect separately.
+func Subscription() consumer.Subscription {
+	return consumer.Subscription{
+		Source:      "crm",
+		Filter:      "contact.created",
+		Description: "fires a best-effort ntfy.sh push (Title \"New contact\", body = display_name) for every contact created",
+	}
+}
+
 // Handler returns the consumer.Handler notify hands to the engine. It runs the
 // effect only for contact.created (consumer-side filtering, §7.3) and ignores
 // every other type — the engine still commits the cursor for those, so they do
@@ -109,8 +124,9 @@ func Handler(c *Client, logger *slog.Logger) consumer.Handler {
 	if logger == nil {
 		logger = slog.Default()
 	}
+	sub := Subscription() // the SAME declared in-edge reflection reports (decision 10)
 	return func(ctx context.Context, ev consumer.Event) error {
-		if ev.Type != "contact.created" {
+		if !sub.Match(ev.Type) {
 			return nil // not ours — the engine advances the cursor anyway (§7.3)
 		}
 		var p contactCreated

@@ -20,6 +20,9 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+
+	"eventplane/consumer"
+	"eventplane/outbox"
 )
 
 // Identity is the authenticated caller, as told to us authoritatively by nginx
@@ -35,17 +38,28 @@ type Identity struct {
 // holds no domain service; a future notify domain service is injected here (see
 // NewHandler) the same way crm injects internal/contacts.
 type Handler struct {
-	version string
-	service string
-	health  func(context.Context) (map[string]any, error)
+	version       string
+	service       string
+	health        func(context.Context) (map[string]any, error)
+	events        outbox.Registry
+	subscriptions func() []consumer.Subscription
 }
 
 // NewHandler builds a Handler. version/service/health populate the
 // ikigenba_notify_health envelope; health is the optional per-service reporter
-// (nil → details is {}).
+// (nil → details is {}). events is the published-event registry (empty for
+// notify, a consumer-only service) and subscriptions the live subscription
+// provider, both rendered by ikigenba_notify_reflection.
 func NewHandler(version, service string,
-	health func(context.Context) (map[string]any, error)) *Handler {
-	return &Handler{version: version, service: service, health: health}
+	health func(context.Context) (map[string]any, error),
+	events outbox.Registry, subscriptions func() []consumer.Subscription) *Handler {
+	return &Handler{
+		version:       version,
+		service:       service,
+		health:        health,
+		events:        events,
+		subscriptions: subscriptions,
+	}
 }
 
 // ServeHTTP dispatches a single JSON-RPC 2.0 request. Identity is read from the

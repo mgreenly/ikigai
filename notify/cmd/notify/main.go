@@ -59,6 +59,14 @@ func main() {
 		Port:       3003,
 		MCP:        true,
 		Consumes:   []string{upstreamSource}, // event-plane consumer → CONSUMES=crm
+		// Subscriptions is the LIVE provider the reflection tool reports (mirrors
+		// Spec.Health). notify is a static consumer, so it returns the fixed list of
+		// its one declared in-edge — the SAME push.Subscription() the consumer
+		// Handler matches against, so the runtime filter and reflection cannot drift
+		// (decision 10). Spec.Consumes stays the separate build-time envelope.
+		Subscriptions: func() []consumer.Subscription {
+			return []consumer.Subscription{push.Subscription()}
+		},
 		Migrations: db.FS,
 		// Handlers mounts the ikigenba_notify_health MCP surface (gated behind
 		// nginx-injected identity) and records the Router so the consumer worker below
@@ -66,7 +74,8 @@ func main() {
 		Handlers: func(r *appkit.Router) error {
 			rt = r
 			rt.Handle("POST /mcp", rt.RequireIdentity(
-				mcp.NewHandler(rt.Version(), rt.Service(), rt.Health())))
+				mcp.NewHandler(rt.Version(), rt.Service(), rt.Health(),
+					rt.Events(), rt.Subscriptions())))
 			return nil
 		},
 		// Workers carries notify's event-plane consumer loop. appkit launches it on
