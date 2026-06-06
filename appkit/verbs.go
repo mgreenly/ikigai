@@ -190,6 +190,7 @@ func runServe(spec Spec, args []string, getenv func(string) string, stdout, stde
 			Logger:           logger,
 			RetentionDays:    retDays,
 			RetentionMaxRows: retRows,
+			Registry:         spec.Events,
 		})
 		if err != nil {
 			return err
@@ -200,18 +201,20 @@ func runServe(spec Spec, args []string, getenv func(string) string, stdout, stde
 
 	addr := net.JoinHostPort(*ip, strconv.Itoa(*port))
 	srv, err := server.New(server.Options{
-		Addr:       addr,
-		Logger:     logger,
-		ResourceID: cfg.ResourceID,
-		AuthServer: cfg.AuthServer,
-		Apex:       spec.Default,
-		Version:    versionString(),
-		Service:    spec.App,
-		Health:     spec.Health,
-		Feed:       feedH,
-		FeedPath:   spec.Feed,
-		Register:   spec.Handlers,
-		DB:         conn,
+		Addr:          addr,
+		Logger:        logger,
+		ResourceID:    cfg.ResourceID,
+		AuthServer:    cfg.AuthServer,
+		Apex:          spec.Default,
+		Version:       versionString(),
+		Service:       spec.App,
+		Health:        spec.Health,
+		Events:        spec.Events,
+		Subscriptions: spec.Subscriptions,
+		Feed:          feedH,
+		FeedPath:      spec.Feed,
+		Register:      spec.Handlers,
+		DB:            conn,
 	})
 	if err != nil {
 		return err

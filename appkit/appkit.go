@@ -22,6 +22,7 @@ import (
 
 	"appkit/server"
 
+	"eventplane/consumer"
 	"eventplane/outbox"
 )
 
@@ -173,6 +174,17 @@ type Spec struct {
 	// The reporter contributes ONLY to details; the required top-level keys
 	// (status/version/service) are appkit-owned and reserved (DECISIONS §3).
 	Health func(ctx context.Context) (map[string]any, error)
+	// Events is the published event-type registry — the static source of truth for
+	// the reflection tool (its `publishes` half) AND Append-time validation (a
+	// non-empty registry makes the outbox reject any unregistered ev.Type). A
+	// service's emittable types are compile-time payload structs, so this is a
+	// static value, not a provider. Empty for non-producers.
+	Events outbox.Registry
+	// Subscriptions is the LIVE provider of what this service currently listens to,
+	// called at reflection time (mirrors Spec.Health). It returns a fixed list for
+	// a static consumer and the live union for a future dynamic one, so reflection
+	// always reports the live in-edges with no redesign. nil for non-consumers.
+	Subscriptions func() []consumer.Subscription
 	// Backup overrides the backup verb (nil = appkit's default SQLite snapshot).
 	Backup func(ctx context.Context, req BackupReq) error
 	// Restore overrides the restore verb (nil = appkit's default SQLite restore).

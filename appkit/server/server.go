@@ -29,6 +29,9 @@ import (
 	"time"
 
 	"appkit/logging"
+
+	"eventplane/consumer"
+	"eventplane/outbox"
 )
 
 // shutdownTimeout bounds how long Run waits for in-flight requests to finish
@@ -76,6 +79,14 @@ type Options struct {
 	Service string
 	// Health is the optional per-service details reporter for the health envelope.
 	Health func(ctx context.Context) (map[string]any, error)
+	// Events is the published event-type registry, exposed to the Register hook
+	// (rt.Events()) so a service wires its reflection tool from the same source the
+	// producer outbox validates against. Empty for non-producers.
+	Events outbox.Registry
+	// Subscriptions is the live provider of what this service listens to, exposed
+	// to the Register hook (rt.Subscriptions()) so the reflection tool reports the
+	// live in-edges (mirrors Health). nil for non-consumers.
+	Subscriptions func() []consumer.Subscription
 
 	// DB is the shared single-writer SQLite handle appkit opened and migrated. It
 	// is exposed to the Register hook (rt.DB()) so a service builds its domain over
@@ -144,16 +155,28 @@ func (rt *Router) Service() string { return rt.app.service }
 // the MCP health tool renders the same details as the HTTP /health route.
 func (rt *Router) Health() func(context.Context) (map[string]any, error) { return rt.app.health }
 
+// Events returns the published event-type registry, so the MCP reflection tool's
+// `publishes` half renders from the same source the producer outbox validates
+// against. Empty for non-producers.
+func (rt *Router) Events() outbox.Registry { return rt.app.events }
+
+// Subscriptions returns the live provider of what this service listens to (nil
+// when unset), so the MCP reflection tool's `subscribes` half reports the live
+// in-edges. Mirrors Health.
+func (rt *Router) Subscriptions() func() []consumer.Subscription { return rt.app.subscriptions }
+
 // appHandler holds the HTTP layer's auth dependencies. Methods on it implement
 // the PRM document, the identity gate, and health. Unexported: the package's
 // public surface is New/Run/Router.
 type appHandler struct {
-	logger     *slog.Logger
-	resourceID string
-	authServer string
-	version    string
-	service    string
-	health     func(ctx context.Context) (map[string]any, error)
+	logger        *slog.Logger
+	resourceID    string
+	authServer    string
+	version       string
+	service       string
+	health        func(ctx context.Context) (map[string]any, error)
+	events        outbox.Registry
+	subscriptions func() []consumer.Subscription
 }
 
 // New builds the HTTP server with its routes, security headers, and pinned
@@ -174,12 +197,14 @@ func New(opts Options) (*http.Server, error) {
 	}
 
 	a := &appHandler{
-		logger:     opts.Logger,
-		resourceID: opts.ResourceID,
-		authServer: opts.AuthServer,
-		version:    opts.Version,
-		service:    opts.Service,
-		health:     opts.Health,
+		logger:        opts.Logger,
+		resourceID:    opts.ResourceID,
+		authServer:    opts.AuthServer,
+		version:       opts.Version,
+		service:       opts.Service,
+		health:        opts.Health,
+		events:        opts.Events,
+		subscriptions: opts.Subscriptions,
 	}
 	mux := http.NewServeMux()
 	rt := &Router{mux: mux, app: a, logger: opts.Logger, resourceID: opts.ResourceID, authServer: opts.AuthServer, db: opts.DB}

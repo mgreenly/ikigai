@@ -28,6 +28,10 @@ type Options struct {
 	Logger           *slog.Logger // feed/retention observability
 	RetentionDays    int          // 0 = library default (7 days)
 	RetentionMaxRows int          // 0 = library default (1,000,000 rows)
+	// Registry is the producer's published event-type registry. When non-empty it
+	// is forwarded into outbox.Options so Append rejects an unregistered ev.Type
+	// (§5.3 fail-loud); empty preserves today's unvalidated behavior.
+	Registry outbox.Registry
 }
 
 // Producer bundles the constructed outbox and its mountable feed handler. The
@@ -51,6 +55,7 @@ func Start(ctx context.Context, conn *sql.DB, opts Options) (*Producer, error) {
 		Logger:           opts.Logger,
 		RetentionDays:    opts.RetentionDays,
 		RetentionMaxRows: int64(opts.RetentionMaxRows),
+		Registry:         opts.Registry,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("event plane: %w", err)
