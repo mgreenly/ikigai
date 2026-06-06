@@ -92,7 +92,7 @@ var groups = []group{
 		{"tail", "opsctl tail <app> [journalctl args…]"},
 	}},
 	{"Provisioning", []verb{
-		{"setup", "opsctl setup <app> [--port <n>] [--fragment <path>]"},
+		{"setup", "opsctl setup <app> [--port <n>] [--fragment <path>] [--defer-nginx]"},
 		// One flag per line; line 1 is the verb + first flag, continuation lines
 		// align under --domain (16 cols = len("opsctl init-box "); the renderer
 		// prepends the 4-col group indent → column 20).
@@ -389,21 +389,23 @@ func runSetup(ctx context.Context, root, name string, args []string) error {
 	fs := newFlagSet(name)
 	port := fs.Int("port", 0, "the service's loopback port (substituted for __PORT__ in the fragment)")
 	fragment := fs.String("fragment", "", "path to the service's nginx location fragment source (omit for a worker)")
+	deferNginx := fs.Bool("defer-nginx", false, "stage the fragment but skip nginx -t/reload (greenfield box with no apex cert yet)")
 	if err := fs.Parse(reorderArgs(args, map[string]bool{"port": true, "fragment": true})); err != nil {
 		return helpErr(err)
 	}
 	pos := fs.Args()
 	if len(pos) != 1 {
-		return fmt.Errorf("usage: opsctl setup <app> [--port N] [--fragment <path>]")
+		return fmt.Errorf("usage: opsctl setup <app> [--port N] [--fragment <path>] [--defer-nginx]")
 	}
 	frag, err := opsctl.LoadFragmentFile(*fragment)
 	if err != nil {
 		return err
 	}
 	return opsctl.New(root).Setup(ctx, opsctl.SetupOptions{
-		App:      pos[0],
-		Port:     *port,
-		Fragment: frag,
+		App:        pos[0],
+		Port:       *port,
+		Fragment:   frag,
+		DeferNginx: *deferNginx,
 	})
 }
 

@@ -18,6 +18,13 @@ type SetupOptions struct {
 	Fragment string // the service's nginx location fragment SOURCE (with __PORT__
 	// placeholders), exactly the committed etc/nginx.conf body. Empty ⇒ a service
 	// with no public route (worker/batch) — no fragment is dropped.
+
+	// DeferNginx stages the fragment file but skips the `nginx -t` + reload. On a
+	// greenfield box nginx is not yet serviceable (the apex 443 cert does not
+	// exist until the apex/dashboard deploy issues it), so `nginx -t` would
+	// hard-fail. With DeferNginx the fragment is written and validated/reloaded
+	// later, when the cert lands and nginx comes up. Mirrors init-box --skip-cert.
+	DeferNginx bool
 }
 
 // Setup performs first-time, idempotent per-app provisioning, the per-APP half of
@@ -87,11 +94,15 @@ func (o *Opsctl) Setup(ctx context.Context, opts SetupOptions) error {
 		if err := writeFileAtomic(l.FragmentPath(), []byte(frag), 0o644); err != nil {
 			return fmt.Errorf("setup: write fragment: %w", err)
 		}
-		if err := o.System.NginxTest(ctx); err != nil {
-			return fmt.Errorf("setup: nginx -t: %w", err)
-		}
-		if err := o.System.NginxReload(ctx); err != nil {
-			return fmt.Errorf("setup: nginx reload: %w", err)
+		if opts.DeferNginx {
+			o.logf("defer-nginx: fragment staged; not validating/reloading nginx (cert issued later)")
+		} else {
+			if err := o.System.NginxTest(ctx); err != nil {
+				return fmt.Errorf("setup: nginx -t: %w", err)
+			}
+			if err := o.System.NginxReload(ctx); err != nil {
+				return fmt.Errorf("setup: nginx reload: %w", err)
+			}
 		}
 	} else {
 		o.logf("no nginx fragment (worker/batch service)")

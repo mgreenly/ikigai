@@ -72,29 +72,37 @@ func (o *Opsctl) InitBox(ctx context.Context, opts InitBoxOptions) error {
 		return fmt.Errorf("init-box: write apex block: %w", err)
 	}
 
-	// 4. Validate + bring nginx up.
-	if err := o.System.NginxTest(ctx); err != nil {
-		return fmt.Errorf("init-box: nginx -t: %w", err)
-	}
-	if err := o.System.EnableUnit(ctx, "nginx", true); err != nil {
-		return fmt.Errorf("init-box: enable nginx: %w", err)
-	}
-	if err := o.System.NginxReload(ctx); err != nil {
-		return fmt.Errorf("init-box: nginx reload: %w", err)
-	}
-
-	// 5. The one apex TLS cert (HTTP-01 webroot). Idempotent: certbot reuses a
-	//    live cert. SkipCert lets a caller stage the block before a cert exists.
+	// 4 + 5. Bring nginx up and obtain the apex TLS cert — UNLESS --skip-cert.
+	//
+	// The apex block's 443 server references the apex cert by path, so `nginx -t`
+	// (and therefore enable/reload) cannot succeed until that cert exists. On a
+	// greenfield box the cert is issued later (the apex/dashboard deploy gate),
+	// so --skip-cert must stage the block WITHOUT validating/starting nginx —
+	// otherwise nginx -t hard-fails on the not-yet-present cert. The block + the
+	// locations dir are still written above; nginx is brought up when the cert
+	// lands. (Cert issuance itself is HTTP-01 webroot, idempotent.)
 	if !opts.SkipCert {
 		if opts.Email == "" {
 			return fmt.Errorf("init-box: certbot email is required (set --email or --skip-cert)")
 		}
+		// 4. Validate + bring nginx up.
+		if err := o.System.NginxTest(ctx); err != nil {
+			return fmt.Errorf("init-box: nginx -t: %w", err)
+		}
+		if err := o.System.EnableUnit(ctx, "nginx", true); err != nil {
+			return fmt.Errorf("init-box: enable nginx: %w", err)
+		}
+		if err := o.System.NginxReload(ctx); err != nil {
+			return fmt.Errorf("init-box: nginx reload: %w", err)
+		}
+		// 5. The one apex TLS cert (HTTP-01 webroot). Idempotent: certbot reuses
+		//    a live cert.
 		o.logf("obtain apex cert for %s", opts.Domain)
 		if err := o.System.ObtainCert(ctx, opts.Domain, opts.Email, l.LetsEncryptWebroot()); err != nil {
 			return fmt.Errorf("init-box: obtain cert: %w", err)
 		}
 	} else {
-		o.logf("skip-cert: not issuing a TLS cert")
+		o.logf("skip-cert: staging apex block only (nginx not validated/started; cert issued later)")
 	}
 
 	// 6. The certbot renewal timer (suite-owned), enabled now.

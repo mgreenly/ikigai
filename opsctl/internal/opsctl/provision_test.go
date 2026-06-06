@@ -143,7 +143,11 @@ func TestInitBox_WritesApexSubstrate(t *testing.T) {
 }
 
 // TestInitBox_SkipCert exercises the cert short-circuit: the apex block + timer
-// are still written, but certbot is not invoked.
+// are still written, but nginx is NOT validated/started and certbot is NOT
+// invoked. The apex block's 443 server references the apex cert by path, so on a
+// greenfield box `nginx -t` cannot pass until that cert exists — --skip-cert
+// must therefore stage the block without touching nginx, deferring nginx
+// validate/start (and cert issuance) to when the cert lands.
 func TestInitBox_SkipCert(t *testing.T) {
 	root := t.TempDir()
 	sysRoot := t.TempDir()
@@ -157,10 +161,21 @@ func TestInitBox_SkipCert(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("init-box --skip-cert: %v", err)
 	}
-	for _, op := range sys.opSeq() {
-		if strings.HasPrefix(op, "obtain-cert") {
-			t.Fatalf("--skip-cert still requested a cert: %v", sys.opSeq())
-		}
+
+	// The apex block + locations dir are staged and the renew timer enabled, but
+	// no nginx validate/start and no cert — those wait for the cert to exist.
+	wantOps := []string{
+		"install-packages:nginx,certbot",
+		"daemon-reload",
+		"enable-now:ikigenba-certbot-renew.timer",
+	}
+	if got := sys.opSeq(); strings.Join(got, "|") != strings.Join(wantOps, "|") {
+		t.Fatalf("init-box --skip-cert ops = %v, want %v", got, wantOps)
+	}
+
+	// The apex block is still written so the cert step can validate it later.
+	if got := readRepoFile(t, o.layout("dashboard").ApexBlockPath()); !strings.Contains(got, "server_name int.ikigenba.com;") {
+		t.Errorf("--skip-cert did not stage the apex block")
 	}
 }
 
@@ -233,6 +248,42 @@ func TestSetup_PathRoutedService(t *testing.T) {
 	// The unit was enabled but never started (no restart/start op recorded).
 	if sys.restarts != 0 {
 		t.Errorf("setup started the unit (%d restarts), want enabled-not-started", sys.restarts)
+	}
+}
+
+// TestSetup_DeferNginx stages the fragment but skips nginx -t/reload — the
+// greenfield path where nginx is not yet serviceable (no apex cert). The
+// fragment is still written; only the validate/reload ops are absent.
+func TestSetup_DeferNginx(t *testing.T) {
+	root := t.TempDir()
+	sysRoot := t.TempDir()
+	sys := &stubSystem{}
+	o := newProvisioner(t, root, sysRoot, sys)
+	runInitBox(t, o, readRepoFile(t, "../../../dashboard/etc/nginx.conf"))
+	sys.ops = nil
+
+	app := "ledger"
+	fragSrc := readRepoFile(t, "../../../ledger/etc/nginx.conf")
+	if err := o.Setup(context.Background(), SetupOptions{
+		App: app, Port: 3002, Fragment: fragSrc, DeferNginx: true,
+	}); err != nil {
+		t.Fatalf("setup ledger --defer-nginx: %v", err)
+	}
+
+	l := NewLayoutSys(root, sysRoot, app)
+	// The fragment is still staged.
+	wantFrag := shellSubst(fragSrc, map[string]string{"__PORT__": "3002"})
+	if got := readRepoFile(t, l.FragmentPath()); got != wantFrag {
+		t.Fatalf("defer-nginx did not stage the fragment")
+	}
+	// But nginx -t/reload were NOT requested.
+	wantOps := []string{
+		"ensure-user:ledger:" + l.AppDir(),
+		"daemon-reload",
+		"enable:ledger.service",
+	}
+	if got := sys.opSeq(); strings.Join(got, "|") != strings.Join(wantOps, "|") {
+		t.Fatalf("defer-nginx ops = %v, want %v", got, wantOps)
 	}
 }
 
