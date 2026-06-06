@@ -136,7 +136,7 @@ The one you'll use most. You describe a sale, bill, payment, or paycheck, and th
 > • "Bill Mr. Burns $1,854 for the engine overhaul — he's paying later."
 > • "Pay Lenny and Carl their $2,000 wages out of the bank."
 
-*(`ledger_record` — one balanced transaction.)*
+*(`ikigenba_ledger_record` — one balanced transaction.)*
 
 #### 2. Undo a mistake
 
@@ -145,7 +145,7 @@ You can't edit or delete an entry. When something's wrong, the assistant posts a
 > • "That utilities bill was wrong — back it out."
 > • "Reverse the $1,500 utilities charge, it should've been $150."
 
-*(`ledger_reverse` — posts the linked, sign-flipped mirror of an entry.)*
+*(`ikigenba_ledger_reverse` — posts the linked, sign-flipped mirror of an entry.)*
 
 #### 3. Confirm something cleared
 
@@ -154,7 +154,7 @@ When a payment shows up on a statement, you mark it confirmed — `pending` to `
 > • "These all cleared on the bank statement — mark them cleared."
 > • "Everything ties out — lock these in as reconciled."
 
-*(`ledger_reconcile` — moves postings among `pending` / `cleared` / `reconciled`.)*
+*(`ikigenba_ledger_reconcile` — moves postings among `pending` / `cleared` / `reconciled`.)*
 
 #### 4. See where you stand
 
@@ -164,7 +164,7 @@ The workhorse read: it totals accounts and tells you the balance. A balance shee
 > • "Who owes me money?"
 > • "What did we make and spend in June?"
 
-*(`ledger_balance` — totals accounts, optionally filtered by account, period, or status.)*
+*(`ikigenba_ledger_balance` — totals accounts, optionally filtered by account, period, or status.)*
 
 #### 5. List a history
 
@@ -173,7 +173,7 @@ Where balances give totals, this gives the story: every entry touching an accoun
 > • "Show me Mr. Burns's account — everything he's been charged and paid."
 > • "List all the transactions that hit checking in June."
 
-*(`ledger_register` — matched entries in date order with a running total.)*
+*(`ikigenba_ledger_register` — matched entries in date order with a running total.)*
 
 #### 6. Pull up one entry
 
@@ -181,7 +181,7 @@ See a single transaction in full — every side, its status, whether it's been r
 
 > • "Pull up that wrong utilities entry so I can see it."
 
-*(`ledger_get` — fetches one transaction in full.)*
+*(`ikigenba_ledger_get` — fetches one transaction in full.)*
 
 #### 7. Learn the lay of the land
 
@@ -189,7 +189,7 @@ The orientation move: it reports the five buckets, the confirmation states, the 
 
 > • "What kinds of accounts do my books have?"
 
-*(`ledger_describe` — the discovery call.)*
+*(`ikigenba_ledger_describe` — the discovery call.)*
 
 #### 8. Confirm you're connected
 
@@ -197,20 +197,20 @@ The quick "are we wired up?" check: it reports who you're connected as. It chang
 
 > • "Am I connected to my books? Who am I logged in as?"
 
-*(`ledger_whoami` — reports the connected identity.)*
+*(`ikigenba_ledger_health` — reports the connected identity.)*
 
 Invoices, bills, and reports aren't separate features. An invoice is a recorded transaction that says a customer owes you; a bill is the same in reverse; paying either is another recorded transaction; a report is a balance or register read. A single sentence often chains several moves: "that utilities bill should've been $150" makes the assistant pull up the bad entry, reverse it, and record the correct one — you said one thing, it did three, and you never type an ID along the way.
 
 | What you want | Something you might say | Behind the scenes |
 |---|---|---|
-| Record what happened | "Moe paid cash for the $450 job." · "Bill Burns $1,854." | `ledger_record` |
-| Undo a mistake | "That entry was wrong — back it out." | `ledger_reverse` |
-| Confirm something cleared | "These cleared on the statement." | `ledger_reconcile` |
-| See where you stand | "How much is in the bank?" · "Who owes me?" | `ledger_balance` |
-| List a history | "Show me Burns's account." | `ledger_register` |
-| Pull up one transaction | "Show me that utilities entry." | `ledger_get` |
-| Get the lay of the land | "What kinds of accounts do I have?" | `ledger_describe` |
-| Check you're connected | "Am I connected? Who am I?" | `ledger_whoami` |
+| Record what happened | "Moe paid cash for the $450 job." · "Bill Burns $1,854." | `ikigenba_ledger_record` |
+| Undo a mistake | "That entry was wrong — back it out." | `ikigenba_ledger_reverse` |
+| Confirm something cleared | "These cleared on the statement." | `ikigenba_ledger_reconcile` |
+| See where you stand | "How much is in the bank?" · "Who owes me?" | `ikigenba_ledger_balance` |
+| List a history | "Show me Burns's account." | `ikigenba_ledger_register` |
+| Pull up one transaction | "Show me that utilities entry." | `ikigenba_ledger_get` |
+| Get the lay of the land | "What kinds of accounts do I have?" | `ikigenba_ledger_describe` |
+| Check you're connected | "Am I connected? Who am I?" | `ikigenba_ledger_health` |
 
 ---
 
@@ -222,7 +222,7 @@ You've signed a lease on a little repair shop in Springfield. You can rebuild a 
 
 **You say:** "Are you connected to my ledger? Who does it think I am?"
 
-Your assistant reports who you're signed in as — your owner email and which app is talking to the books. Nothing is created. *(`ledger_whoami()` — takes no input.)*
+Your assistant reports who you're signed in as — your owner email and which app is talking to the books. Nothing is created. *(`ikigenba_ledger_health()` — takes no input.)*
 
 **You get back:** "You're connected as **homer@greasedlightning.example**. The books are open and ready."
 
@@ -529,11 +529,11 @@ That's the year. You opened a shop from nothing, ran a month of real business en
 
 ## 9. Say It Your Way
 
-You never learn the ledger's words. There are eight things it can do, and the assistant maps whatever you actually said onto one of them. This is a phrasebook: the same intent, many ways to say it, all landing on the same eight tools — `ledger_record`, `ledger_reverse`, `ledger_reconcile`, `ledger_balance`, `ledger_register`, `ledger_get`, `ledger_describe`, `ledger_whoami`.
+You never learn the ledger's words. There are eight things it can do, and the assistant maps whatever you actually said onto one of them. This is a phrasebook: the same intent, many ways to say it, all landing on the same eight tools — `ikigenba_ledger_record`, `ikigenba_ledger_reverse`, `ikigenba_ledger_reconcile`, `ikigenba_ledger_balance`, `ikigenba_ledger_register`, `ikigenba_ledger_get`, `ikigenba_ledger_describe`, `ikigenba_ledger_health`.
 
 > **Loose in, corrective out.** Phrase the request like someone who runs an auto shop, not an accountant. If something's off — the two sides don't add up, an account's root isn't one of the five, a date isn't a real day, a transaction doesn't exist — the service hands back a plain typed error (`unbalanced`, `bad_root`, `validation`, `not_found`, `already_reversed`), and the assistant fixes the entry and retries. You usually never see the round trip.
 
-**Recording what happened** (`ledger_record`) — every sale, bill, paycheck, and deposit:
+**Recording what happened** (`ikigenba_ledger_record`) — every sale, bill, paycheck, and deposit:
 
 - "Moe paid cash for the $450 transmission job."
 - "We did a $450 transmission job for Moe, cash."
@@ -544,9 +544,9 @@ You never learn the ledger's words. There are eight things it can do, and the as
 
 Say the number you know and the other side balances itself — that's **elision**. Exactly one leg of a transaction can leave its amount blank; the ledger fills it with whatever balances. Name two unknowns and there's nothing to solve for (`validation`).
 
-A bill or invoice is still just `ledger_record`: an invoice puts the amount into `Assets:Receivable:<customer>` (owed to you), a bill into `Liabilities:Payable:<vendor>` (you owe), a card purchase into `Liabilities:CreditCard`, and getting paid moves money from the receivable into the bank. You say "invoice," "bill," "on account," "they paid"; the assistant routes each. There's no invoice object to manage — there's the journal, and the journal remembers everything.
+A bill or invoice is still just `ikigenba_ledger_record`: an invoice puts the amount into `Assets:Receivable:<customer>` (owed to you), a bill into `Liabilities:Payable:<vendor>` (you owe), a card purchase into `Liabilities:CreditCard`, and getting paid moves money from the receivable into the bank. You say "invoice," "bill," "on account," "they paid"; the assistant routes each. There's no invoice object to manage — there's the journal, and the journal remembers everything.
 
-**Fixing a mistake** (`ledger_reverse`) — you can't edit or delete, so you reverse and re-record:
+**Fixing a mistake** (`ikigenba_ledger_reverse`) — you can't edit or delete, so you reverse and re-record:
 
 - "I fat-fingered the utilities bill — that should've been $150, not $1,500. Fix it."
 - "Undo that last entry, it's wrong."
@@ -554,7 +554,7 @@ A bill or invoice is still just `ledger_record`: an invoice puts the amount into
 
 The assistant reverses the wrong transaction (posting its sign-flipped mirror, the mirror's legs reset to `pending`), then re-records the right numbers. All three entries stay. A transaction can be reversed only once; reverse an already-reversed one and you get `already_reversed` (reverse its mirror instead).
 
-**Reconciling against a statement** (`ledger_reconcile`) — touches only a posting's status:
+**Reconciling against a statement** (`ikigenba_ledger_reconcile`) — touches only a posting's status:
 
 - "These all cleared on the June statement — mark them cleared."
 - "The rent check hasn't hit the bank yet, leave it."
@@ -562,7 +562,7 @@ The assistant reverses the wrong transaction (posting its sign-flipped mirror, t
 
 It's all-or-nothing: one bad posting fails the whole batch (`not_found`). The assistant pulls the postings and grabs their ids; you never touch an id.
 
-**Asking "what's the balance?"** (`ledger_balance`) — your trial balance, balance sheet, net worth, and A/R, all one read:
+**Asking "what's the balance?"** (`ikigenba_ledger_balance`) — your trial balance, balance sheet, net worth, and A/R, all one read:
 
 - "What's in the checking account?"
 - "How much does Burns owe me?"
@@ -572,23 +572,23 @@ It's all-or-nothing: one bad posting fails the whole batch (`not_found`). The as
 
 "Who owes me" and "what's in checking" are the same verb, just a different slice. The account match is a plain substring, so "Receivable" finds every customer's tab at once.
 
-**Asking "what happened, in order?"** (`ledger_register`) — every matching posting in date order with a running total: a customer statement, an account history, a search:
+**Asking "what happened, in order?"** (`ikigenba_ledger_register`) — every matching posting in date order with a running total: a customer statement, an account history, a search:
 
 - "Show me Burns's account history."
 - "Walk me through everything that hit checking."
 - "Show me every parts purchase this year."
 
-**Looking one transaction up** (`ledger_get`) — all its legs, each leg's status, whether it's been reversed; usually right before a correction:
+**Looking one transaction up** (`ikigenba_ledger_get`) — all its legs, each leg's status, whether it's been reversed; usually right before a correction:
 
 - "Pull up that utilities transaction."
 - "Let me see both sides of that one before I fix it."
 
-**Finding your footing** (`ledger_describe`) — the assistant's first call: the five account types, the money unit, the reconciliation states, the live account list, and the report recipes:
+**Finding your footing** (`ikigenba_ledger_describe`) — the assistant's first call: the five account types, the money unit, the reconciliation states, the live account list, and the report recipes:
 
 - "What can this thing track?"
 - "How do the books work here?"
 
-**The handshake** (`ledger_whoami`) — reports who the platform sees you as; changes nothing:
+**The handshake** (`ikigenba_ledger_health`) — reports who the platform sees you as; changes nothing:
 
 - "Am I connected to my ledger?"
 - "Who does it think I am?"
@@ -607,18 +607,18 @@ There is **one write entity — the balanced transaction** — and everything el
 
 | Tool | Signature | What it does |
 |---|---|---|
-| `ledger_record` | `(date, description, postings[], status?)` | Post one balanced transaction (2+ postings summing to zero). Returns the full transaction with the resolved residual and assigned ids. |
-| `ledger_reverse` | `(id, date?, memo?)` | Post the sign-flipped mirror of a transaction, linked both ways. The correction primitive. Returns the mirror. |
-| `ledger_reconcile` | `(posting_ids[], status)` | Transition the reconciliation status of one or more postings — the only mutation of existing rows. Returns the affected transactions. |
-| `ledger_balance` | `(query?, period?, depth?, status?)` | The `bal` report and live chart of accounts. Returns `{lines:[{account, amount_cents}], total, unit}`. |
-| `ledger_register` | `(query?, period?, status?)` | The `reg` report: matched postings in chronological order with a running total. |
-| `ledger_get` | `(id)` | Fetch one transaction in full (all postings, per-posting status, order, reversal links). |
-| `ledger_describe` | `()` | Discovery — the five roots, the unit, the reconciliation states, the live account tree, and report recipes. The first call an agent makes. |
-| `ledger_whoami` | `()` | The authenticated caller's identity (owner email + client id). The end-to-end auth proof. |
+| `ikigenba_ledger_record` | `(date, description, postings[], status?)` | Post one balanced transaction (2+ postings summing to zero). Returns the full transaction with the resolved residual and assigned ids. |
+| `ikigenba_ledger_reverse` | `(id, date?, memo?)` | Post the sign-flipped mirror of a transaction, linked both ways. The correction primitive. Returns the mirror. |
+| `ikigenba_ledger_reconcile` | `(posting_ids[], status)` | Transition the reconciliation status of one or more postings — the only mutation of existing rows. Returns the affected transactions. |
+| `ikigenba_ledger_balance` | `(query?, period?, depth?, status?)` | The `bal` report and live chart of accounts. Returns `{lines:[{account, amount_cents}], total, unit}`. |
+| `ikigenba_ledger_register` | `(query?, period?, status?)` | The `reg` report: matched postings in chronological order with a running total. |
+| `ikigenba_ledger_get` | `(id)` | Fetch one transaction in full (all postings, per-posting status, order, reversal links). |
+| `ikigenba_ledger_describe` | `()` | Discovery — the five roots, the unit, the reconciliation states, the live account tree, and report recipes. The first call an agent makes. |
+| `ikigenba_ledger_health` | `()` | The authenticated caller's identity (owner email + client id). The end-to-end auth proof. |
 
 There is no `create_account`, `ledger_report`, `ledger_delete`, or `ledger_update`, and no invoice / bill / customer / vendor entity. Accounts are emergent (they appear on first posting); reports come from recipes over `balance` and `register`.
 
-**`ledger_record` postings.** Each posting is `{account, amount_cents, status?}`. There must be **2 or more**, and the signed `amount_cents` (debit `+`, credit `−`) must **sum to exactly zero**. Transaction-level and posting-level `status?` is one of `pending` / `cleared` / `reconciled`, defaulting to `pending`.
+**`ikigenba_ledger_record` postings.** Each posting is `{account, amount_cents, status?}`. There must be **2 or more**, and the signed `amount_cents` (debit `+`, credit `−`) must **sum to exactly zero**. Transaction-level and posting-level `status?` is one of `pending` / `cleared` / `reconciled`, defaulting to `pending`.
 
 ### The five account roots
 
@@ -650,27 +650,27 @@ The lifecycle you'll walk for the bank: `pending → cleared → reconciled`.
 
 - Money is **integer USD cents**, single currency. `$450.00` = `45000`; `$1,854.00` = `185400`. The unit string the tools return is `"USD cents"`.
 - **Debit `+`, credit `−`**, stored raw and signed with no normalization.
-- A single transaction's postings sum to **0**, and a balance over *every* account also sums to **0** — that whole-ledger `total: 0` is a free correctness check on every `ledger_balance`.
+- A single transaction's postings sum to **0**, and a balance over *every* account also sums to **0** — that whole-ledger `total: 0` is a free correctness check on every `ikigenba_ledger_balance`.
 - Reads return raw signed sums (ledger-cli convention): Assets and Expenses come back positive; Liabilities, Equity, and Income come back negative. The assistant flips the signs using each root's normal balance to show numbers human-side-up (revenue and expenses read as positive dollars).
 
 ### The elision rule
 
-Exactly **one** posting in a `ledger_record` may omit its `amount_cents`; that leg receives the **balancing residual** — the negation of everything else, so the transaction nets to zero. Omitting the amount on two or more postings is a `validation` error (there's nothing to solve for). This is why "deposit the $450" or "put $10,000 of capital in" needs only the single number you know.
+Exactly **one** posting in a `ikigenba_ledger_record` may omit its `amount_cents`; that leg receives the **balancing residual** — the negation of everything else, so the transaction nets to zero. Omitting the amount on two or more postings is a `validation` error (there's nothing to solve for). This is why "deposit the $450" or "put $10,000 of capital in" needs only the single number you know.
 
 ### Immutability & reverse
 
-The journal **never changes** — no edit, no delete. A mistake is fixed with `ledger_reverse`, which:
+The journal **never changes** — no edit, no delete. A mistake is fixed with `ikigenba_ledger_reverse`, which:
 
 - posts a new transaction whose legs are the **sign-flipped mirror** of the original (whole transaction only, never a partial leg),
 - links the two both ways (`reverses_id` on the mirror, `reversed_by_id` on the original),
 - resets the mirror's legs to `pending` (a reversal hasn't cleared anything),
 - and defaults the mirror's description to `"Reversal of: <original>"` (override with `memo?`) and its date to the original's (override with `date?`).
 
-The original, the reversal, and the correction all stay in the journal. A transaction can be reversed only once; reversing an already-reversed one returns `already_reversed` (reverse its mirror instead). The lone row-mutating exception is `ledger_reconcile`, which touches **status only** — never an amount, account, or date.
+The original, the reversal, and the correction all stay in the journal. A transaction can be reversed only once; reversing an already-reversed one returns `already_reversed` (reverse its mirror instead). The lone row-mutating exception is `ikigenba_ledger_reconcile`, which touches **status only** — never an amount, account, or date.
 
 ### Filters: period, query, depth, status
 
-These narrow the `ledger_balance` and `ledger_register` reads.
+These narrow the `ikigenba_ledger_balance` and `ikigenba_ledger_register` reads.
 
 **`period`** — a **bucket string** or an inclusive **range object**:
 
@@ -691,7 +691,7 @@ Omit `period` for "all time" / "now."
 
 ### The recipes (reports without report tools)
 
-Every statement is a recipe over `balance` / `register` — there is no report tool. These are the ones published via `ledger_describe`:
+Every statement is a recipe over `balance` / `register` — there is no report tool. These are the ones published via `ikigenba_ledger_describe`:
 
 | Report | How |
 |---|---|
@@ -722,13 +722,13 @@ These are typed; the assistant catches each and fixes the entry before you'd not
 No. Accounts are emergent — `Assets:Bank:Checking` exists the moment you first post to it. You describe what happened in plain English; the assistant picks the account paths. The only rule is that an account's root has to be one of the five types.
 
 **Can I edit or delete a transaction I already recorded?**
-No — the journal is immutable, no edits and no deletes. To fix a mistake you reverse it (a linked, sign-flipped mirror that cancels it out) and re-record it correctly, exactly like the utilities fat-finger in the story. All three entries — the mistake, the reversal, the fix — stay on the books. The one thing you can change on an existing row is a posting's reconciliation status, via `ledger_reconcile`.
+No — the journal is immutable, no edits and no deletes. To fix a mistake you reverse it (a linked, sign-flipped mirror that cancels it out) and re-record it correctly, exactly like the utilities fat-finger in the story. All three entries — the mistake, the reversal, the fix — stay on the books. The one thing you can change on an existing row is a posting's reconciliation status, via `ikigenba_ledger_reconcile`.
 
 **Why is income negative under the hood?**
 The ledger stores raw signed amounts ledger-cli style: debits `+`, credits `−`. Revenue is credit-normal, so `Income` accounts sum to a negative number internally — a sign convention, not a loss. The assistant flips it so revenue reads as positive dollars. The same is true of Liabilities and Equity (stored negative); Assets and Expenses are stored positive. A handy consequence: net income is `−(Income + Expenses)`, and a balance over every account sums to exactly zero.
 
 **What does "closing the books" mean?**
-At year-end you sweep every `Income` and `Expenses` account to `$0` and roll the year's net profit into `Equity:RetainedEarnings`, with one balanced `ledger_record` the assistant computes from the year's totals. In the story, FY2026's **$21,000** profit moves into retained earnings (the elided leg absorbs it) and the temporary accounts reset to zero. Because this ledger's reports are date-filtered, your P&L for any year is always available via `period:"YYYY"` regardless — so there's no fiscal-period lock and no "close" tool. You close mainly so the balance sheet's equity reflects retained earnings; it's a standard practice, not a feature.
+At year-end you sweep every `Income` and `Expenses` account to `$0` and roll the year's net profit into `Equity:RetainedEarnings`, with one balanced `ikigenba_ledger_record` the assistant computes from the year's totals. In the story, FY2026's **$21,000** profit moves into retained earnings (the elided leg absorbs it) and the temporary accounts reset to zero. Because this ledger's reports are date-filtered, your P&L for any year is always available via `period:"YYYY"` regardless — so there's no fiscal-period lock and no "close" tool. You close mainly so the balance sheet's equity reflects retained earnings; it's a standard practice, not a feature.
 
 **Is there a screen, an app, or a forms-based dashboard?**
 No — and that's the point. No buttons, no forms, no debit/credit columns to fill in. The ledger is the eight things the assistant can do on your behalf, driven by you describing what happened in plain language. This appendix exists for precision, not because you'll ever type any of it.

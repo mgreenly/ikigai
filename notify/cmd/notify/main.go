@@ -8,7 +8,7 @@
 // from-env, the migration runner + downgrade guard, the loopback HTTP server +
 // PRM + identity gate, and the serve lifecycle — is owned by appkit. main.go
 // declares only notify's identity (the Spec) and wires its domain surface: the
-// notify_whoami MCP tool and, through the appkit Workers seam, the background
+// ikigenba_notify_health MCP tool and, through the appkit Workers seam, the background
 // event-plane consumer loop (eventplane/consumer) that subscribes to crm's
 // east/west /feed and fires a best-effort ntfy.sh push (internal/push) on every
 // contact.created.
@@ -60,12 +60,13 @@ func main() {
 		MCP:        true,
 		Consumes:   []string{upstreamSource}, // event-plane consumer → CONSUMES=crm
 		Migrations: db.FS,
-		// Handlers mounts the notify_whoami MCP surface (gated behind nginx-injected
-		// identity) and records the Router so the consumer worker below can reach the
-		// shared DB handle and logger.
+		// Handlers mounts the ikigenba_notify_health MCP surface (gated behind
+		// nginx-injected identity) and records the Router so the consumer worker below
+		// can reach the shared DB handle and logger.
 		Handlers: func(r *appkit.Router) error {
 			rt = r
-			rt.Handle("POST /mcp", rt.RequireIdentity(mcp.NewHandler()))
+			rt.Handle("POST /mcp", rt.RequireIdentity(
+				mcp.NewHandler(rt.Version(), rt.Service(), rt.Health())))
 			return nil
 		},
 		// Workers carries notify's event-plane consumer loop. appkit launches it on

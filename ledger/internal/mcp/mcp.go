@@ -1,9 +1,9 @@
 // Package mcp implements a minimal MCP transport for the /mcp endpoint and the
-// ledger_* tool surface.
+// ikigenba_ledger_* tool surface.
 //
-// This is the skeleton ledger service: the only tool is ledger_whoami, the
-// end-to-end auth proof. Real ledger domain tools are added here later, wired to
-// a domain service the same way crm wires internal/contacts.
+// The health tool, ikigenba_ledger_health, is the end-to-end auth proof. The
+// ledger domain tools are wired to a domain service the same way crm wires
+// internal/contacts.
 //
 // The transport speaks JSON-RPC 2.0 over plain HTTP POST (no SSE/streaming),
 // responding with Content-Type: application/json. It carries NO token logic:
@@ -17,6 +17,7 @@
 package mcp
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -32,19 +33,26 @@ type Identity struct {
 }
 
 // Handler is the http.Handler for POST /mcp. It is constructed once at wiring
-// time with a non-nil ledger service and dispatches JSON-RPC methods.
+// time with a non-nil ledger service and the health-envelope inputs (version,
+// service, optional reporter) threaded from appkit's Router accessors, and
+// dispatches JSON-RPC methods.
 type Handler struct {
-	ledger *ledger.Service
+	ledger  *ledger.Service
+	version string
+	service string
+	health  func(context.Context) (map[string]any, error)
 }
 
 // NewHandler builds a Handler. The ledger service is required; a nil service is
 // a wiring error and panics at this seam rather than deferring a nil dereference
-// to first request.
-func NewHandler(svc *ledger.Service) *Handler {
+// to first request. version/service/health populate the ikigenba_ledger_health
+// envelope; health is the optional per-service reporter (nil → details is {}).
+func NewHandler(svc *ledger.Service, version, service string,
+	health func(context.Context) (map[string]any, error)) *Handler {
 	if svc == nil {
 		panic("mcp: ledger service is required")
 	}
-	return &Handler{ledger: svc}
+	return &Handler{ledger: svc, version: version, service: service, health: health}
 }
 
 // ServeHTTP dispatches a single JSON-RPC 2.0 request. Identity is read from the
@@ -122,14 +130,14 @@ func toolResultErr(msg string) map[string]any {
 
 // translateLedgerError maps a ledger domain/validation sentinel to the
 // structured wire error the tool surface returns — the same sentinel→wire
-// pattern crm uses. bad_root points the agent at ledger_describe so it can
-// discover the five typed roots.
+// pattern crm uses. bad_root points the agent at ikigenba_ledger_describe so it
+// can discover the five typed roots.
 func translateLedgerError(err error) string {
 	switch {
 	case errors.Is(err, ledger.ErrUnbalanced):
 		return `{"error":{"code":"unbalanced","message":"` + jsonEscape(err.Error()) + `"}}`
 	case errors.Is(err, ledger.ErrBadRoot):
-		return `{"error":{"code":"bad_root","message":"account root must be one of Assets, Liabilities, Equity, Income (alias Revenue), Expenses — call ledger_describe"}}`
+		return `{"error":{"code":"bad_root","message":"account root must be one of Assets, Liabilities, Equity, Income (alias Revenue), Expenses — call ikigenba_ledger_describe"}}`
 	case errors.Is(err, ledger.ErrAlreadyReversed):
 		return `{"error":{"code":"already_reversed","message":"transaction already has a reversal; reverse its mirror instead"}}`
 	case errors.Is(err, ledger.ErrNotFound):

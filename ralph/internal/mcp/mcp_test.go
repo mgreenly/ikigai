@@ -56,7 +56,7 @@ func newTestHandler(t *testing.T) (*Handler, *sandbox.Manager) {
 	}
 	store := session.NewStore(conn)
 	svc := session.NewService(store, sb, t.TempDir(), &fakeRunner{})
-	return NewHandler(svc), sb
+	return NewHandler(svc, "1.2.3", "ralph", nil), sb
 }
 
 // call drives one tools/call over ServeHTTP and returns the decoded result.
@@ -139,18 +139,18 @@ func TestToolsListReturns12(t *testing.T) {
 	}
 	sort.Strings(got)
 	want := []string{
-		"ralph_describe",
-		"ralph_session_cancel",
-		"ralph_session_create",
-		"ralph_session_delete",
-		"ralph_session_fs_list",
-		"ralph_session_fs_read",
-		"ralph_session_get",
-		"ralph_session_list",
-		"ralph_session_output",
-		"ralph_session_run",
-		"ralph_session_update",
-		"ralph_whoami",
+		"ikigenba_ralph_describe",
+		"ikigenba_ralph_health",
+		"ikigenba_ralph_session_cancel",
+		"ikigenba_ralph_session_create",
+		"ikigenba_ralph_session_delete",
+		"ikigenba_ralph_session_fs_list",
+		"ikigenba_ralph_session_fs_read",
+		"ikigenba_ralph_session_get",
+		"ikigenba_ralph_session_list",
+		"ikigenba_ralph_session_output",
+		"ikigenba_ralph_session_run",
+		"ikigenba_ralph_session_update",
 	}
 	if len(got) != len(want) {
 		t.Fatalf("name count mismatch: %v", got)
@@ -164,19 +164,19 @@ func TestToolsListReturns12(t *testing.T) {
 
 func TestDescribe(t *testing.T) {
 	h, _ := newTestHandler(t)
-	res := call(t, h, "ralph_describe", nil)
+	res := call(t, h, "ikigenba_ralph_describe", nil)
 	if isError(res) {
-		t.Fatalf("ralph_describe returned isError: %+v", res)
+		t.Fatalf("ikigenba_ralph_describe returned isError: %+v", res)
 	}
 	txt := resultText(t, res)
 	if len(txt) == 0 {
-		t.Fatal("ralph_describe returned empty text")
+		t.Fatal("ikigenba_ralph_describe returned empty text")
 	}
 	// Sanity: it should actually describe the lifecycle entry points, not just
 	// be non-empty.
-	for _, want := range []string{"session", "ralph_session_create", "ralph_session_run"} {
+	for _, want := range []string{"session", "ikigenba_ralph_session_create", "ikigenba_ralph_session_run"} {
 		if !strings.Contains(txt, want) {
-			t.Fatalf("ralph_describe text missing %q:\n%s", want, txt)
+			t.Fatalf("ikigenba_ralph_describe text missing %q:\n%s", want, txt)
 		}
 	}
 }
@@ -196,29 +196,40 @@ func TestInitializeIncludesInstructions(t *testing.T) {
 	if resp.Result.Instructions == "" {
 		t.Fatal("initialize result missing instructions")
 	}
-	if !strings.Contains(resp.Result.Instructions, "ralph_describe") {
+	if !strings.Contains(resp.Result.Instructions, "ikigenba_ralph_describe") {
 		t.Fatalf("instructions should point at ralph_describe, got: %q", resp.Result.Instructions)
 	}
 }
 
-func TestWhoami(t *testing.T) {
+func TestHealth(t *testing.T) {
 	h, _ := newTestHandler(t)
-	res := call(t, h, "ralph_whoami", nil)
+	res := call(t, h, "ikigenba_ralph_health", nil)
 	var out struct {
-		OwnerEmail string `json:"owner_email"`
-		ClientID   string `json:"client_id"`
+		Status     string         `json:"status"`
+		Version    string         `json:"version"`
+		Service    string         `json:"service"`
+		OwnerEmail string         `json:"owner_email"`
+		ClientID   string         `json:"client_id"`
+		Details    map[string]any `json:"details"`
 	}
 	if err := json.Unmarshal([]byte(resultText(t, res)), &out); err != nil {
-		t.Fatalf("decode whoami: %v", err)
+		t.Fatalf("decode health: %v", err)
+	}
+	if out.Status != "ok" || out.Version != "1.2.3" || out.Service != "ralph" {
+		t.Fatalf("health envelope: got %+v", out)
 	}
 	if out.OwnerEmail != ownerEmail || out.ClientID != clientID {
-		t.Fatalf("whoami: got %+v", out)
+		t.Fatalf("health identity: got %+v", out)
+	}
+	// ralph supplies no reporter → details is an empty object, always present.
+	if out.Details == nil || len(out.Details) != 0 {
+		t.Fatalf("health details: want empty {}, got %+v", out.Details)
 	}
 }
 
 func createSession(t *testing.T, h *Handler) string {
 	t.Helper()
-	res := call(t, h, "ralph_session_create", map[string]any{
+	res := call(t, h, "ikigenba_ralph_session_create", map[string]any{
 		"prompt": "do a thing",
 		"config": map[string]any{"model": "haiku"},
 		"name":   "test",
@@ -245,7 +256,7 @@ func TestDispatchRoundtrip(t *testing.T) {
 	id := createSession(t, h)
 
 	// get returns it, idle, no last_run.
-	getRes := call(t, h, "ralph_session_get", map[string]any{"session_id": id})
+	getRes := call(t, h, "ikigenba_ralph_session_get", map[string]any{"session_id": id})
 	var detail session.SessionDetail
 	if err := json.Unmarshal([]byte(resultText(t, getRes)), &detail); err != nil {
 		t.Fatalf("decode get: %v", err)
@@ -255,7 +266,7 @@ func TestDispatchRoundtrip(t *testing.T) {
 	}
 
 	// list includes it.
-	listRes := call(t, h, "ralph_session_list", nil)
+	listRes := call(t, h, "ikigenba_ralph_session_list", nil)
 	var listOut struct {
 		Sessions []session.Session `json:"sessions"`
 	}
@@ -267,7 +278,7 @@ func TestDispatchRoundtrip(t *testing.T) {
 	}
 
 	// fs_list on the empty sandbox returns [].
-	fsRes := call(t, h, "ralph_session_fs_list", map[string]any{"session_id": id})
+	fsRes := call(t, h, "ikigenba_ralph_session_fs_list", map[string]any{"session_id": id})
 	var fsOut struct {
 		Entries []sandbox.Entry `json:"entries"`
 	}
@@ -279,7 +290,7 @@ func TestDispatchRoundtrip(t *testing.T) {
 	}
 
 	// run flips to running; get.last_run reflects it.
-	runRes := call(t, h, "ralph_session_run", map[string]any{"session_id": id})
+	runRes := call(t, h, "ikigenba_ralph_session_run", map[string]any{"session_id": id})
 	var runOut struct {
 		Status string `json:"status"`
 	}
@@ -289,7 +300,7 @@ func TestDispatchRoundtrip(t *testing.T) {
 	if runOut.Status != "running" {
 		t.Fatalf("run: want running, got %q", runOut.Status)
 	}
-	getRes = call(t, h, "ralph_session_get", map[string]any{"session_id": id})
+	getRes = call(t, h, "ikigenba_ralph_session_get", map[string]any{"session_id": id})
 	if err := json.Unmarshal([]byte(resultText(t, getRes)), &detail); err != nil {
 		t.Fatalf("decode get2: %v", err)
 	}
@@ -301,7 +312,7 @@ func TestDispatchRoundtrip(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(sb.Root(id), "hello.txt"), []byte("line one\nline two\n"), 0o644); err != nil {
 		t.Fatalf("write sandbox file: %v", err)
 	}
-	readRes := call(t, h, "ralph_session_fs_read", map[string]any{"session_id": id, "path": "hello.txt"})
+	readRes := call(t, h, "ikigenba_ralph_session_fs_read", map[string]any{"session_id": id, "path": "hello.txt"})
 	if got := resultText(t, readRes); got != "line one\nline two\n" {
 		t.Fatalf("fs_read: got %q", got)
 	}
@@ -311,7 +322,7 @@ func TestErrorMapping(t *testing.T) {
 	h, _ := newTestHandler(t)
 
 	// unknown id -> isError (not found).
-	res := call(t, h, "ralph_session_get", map[string]any{"session_id": "nope"})
+	res := call(t, h, "ikigenba_ralph_session_get", map[string]any{"session_id": "nope"})
 	if !isError(res) {
 		t.Fatalf("get unknown: want isError, got %+v", res)
 	}
@@ -319,28 +330,28 @@ func TestErrorMapping(t *testing.T) {
 	id := createSession(t, h)
 
 	// run twice -> second is busy.
-	if r := call(t, h, "ralph_session_run", map[string]any{"session_id": id}); isError(r) {
+	if r := call(t, h, "ikigenba_ralph_session_run", map[string]any{"session_id": id}); isError(r) {
 		t.Fatalf("first run: unexpected isError %+v", r)
 	}
-	busy := call(t, h, "ralph_session_run", map[string]any{"session_id": id})
+	busy := call(t, h, "ikigenba_ralph_session_run", map[string]any{"session_id": id})
 	if !isError(busy) || !contains(resultText(t, busy), "flight") {
 		t.Fatalf("second run: want busy isError, got %+v", busy)
 	}
 
 	// update/delete while running -> isError.
-	upd := call(t, h, "ralph_session_update", map[string]any{
+	upd := call(t, h, "ikigenba_ralph_session_update", map[string]any{
 		"session_id": id, "prompt": "x", "config": map[string]any{"model": "haiku"},
 	})
 	if !isError(upd) {
 		t.Fatalf("update while running: want isError, got %+v", upd)
 	}
-	del := call(t, h, "ralph_session_delete", map[string]any{"session_id": id})
+	del := call(t, h, "ikigenba_ralph_session_delete", map[string]any{"session_id": id})
 	if !isError(del) {
 		t.Fatalf("delete while running: want isError, got %+v", del)
 	}
 
 	// fs_read path escape -> isError.
-	esc := call(t, h, "ralph_session_fs_read", map[string]any{"session_id": id, "path": "../escape"})
+	esc := call(t, h, "ikigenba_ralph_session_fs_read", map[string]any{"session_id": id, "path": "../escape"})
 	if !isError(esc) {
 		t.Fatalf("fs_read escape: want isError, got %+v", esc)
 	}

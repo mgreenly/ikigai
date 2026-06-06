@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"time"
 
+	"appkit"
+
 	"ledger/internal/ledger"
 )
 
@@ -15,26 +17,34 @@ import (
 // read API so timestamps are stable across the suite.
 const timeFormat = "2006-01-02T15:04:05.000000000Z07:00"
 
+// toolPrefix brands every MCP tool name (DECISIONS §1). It is the suite name
+// ikigenba + the service name; HTTP route paths are NOT branded.
+const toolPrefix = "ikigenba_ledger_"
+
+// tool returns the branded, fully-qualified MCP tool name. Used by BOTH
+// toolDescriptors and dispatchTool so the two sites cannot drift.
+func tool(verb string) string { return toolPrefix + verb }
+
 // toolDescriptors returns the fixed eight-verb ledger surface (PLAN.md §2). Tool
 // count is a function of verbs, not entities: there is one write entity (the
 // balanced transaction) and an emergent, typed account tree. Schemas are
 // hand-coded with per-field docs to improve LLM hinting.
 func toolDescriptors() []map[string]any {
 	return []map[string]any{
-		desc("ledger_record",
+		desc(tool("record"),
 			"Post one balanced double-entry transaction — the heart of the ledger and its most frequent write. Provide 2+ postings whose signed amount_cents sum to zero (debit +, credit −). Exactly one posting MAY omit amount_cents to receive the balancing residual (ledger-cli's killer ergonomic). Accounts are colon-paths whose root must be a known type; sub-accounts spring into existence on first posting. Returns the full transaction with the resolved residual and assigned ids.",
 			obj(map[string]any{
 				"date":        typd("string", "calendar day YYYY-MM-DD (a business day, not a timestamp)"),
 				"description": typd("string", "payee / memo"),
 				"status":      enumd("default reconciliation status for postings that omit their own (defaults to pending)", ledger.StatusPending, ledger.StatusCleared, ledger.StatusReconciled),
 				"postings": array(obj(map[string]any{
-					"account":      typd("string", "colon-path, e.g. Assets:Bank:Checking; root must be Assets|Liabilities|Equity|Income(alias Revenue)|Expenses — call ledger_describe to see the live chart"),
+					"account":      typd("string", "colon-path, e.g. Assets:Bank:Checking; root must be Assets|Liabilities|Equity|Income(alias Revenue)|Expenses — call ikigenba_ledger_describe to see the live chart"),
 					"amount_cents": typd("integer", "signed minor units in USD cents (debit +, credit −); omit on at most one posting to receive the balancing residual"),
 					"status":       enumd("this posting's reconciliation status; overrides the transaction default", ledger.StatusPending, ledger.StatusCleared, ledger.StatusReconciled),
 				}, "account")),
 			}, "date", "description", "postings")),
 
-		desc("ledger_reverse",
+		desc(tool("reverse"),
 			"The correction primitive. Posts the sign-flipped mirror of an existing transaction (whole-transaction only) and links the two both ways. The journal is immutable — there is no edit or delete; corrections are compensating facts. Blocked if the transaction is already reversed (reverse its mirror instead). Returns the new mirror transaction.",
 			obj(map[string]any{
 				"id":   typd("string", "id of the transaction to reverse"),
@@ -42,14 +52,14 @@ func toolDescriptors() []map[string]any {
 				"memo": typd("string", "optional description for the mirror (defaults to 'Reversal of: <original>')"),
 			}, "id")),
 
-		desc("ledger_reconcile",
+		desc(tool("reconcile"),
 			"Transition the reconciliation status of one or more postings — the ONLY permitted mutation of existing journal rows. It can never touch an amount, account, or date. Transitions among pending/cleared/reconciled are free (including backward). All-or-nothing: an unknown posting_id fails the whole call. Returns the affected transactions in full.",
 			obj(map[string]any{
 				"posting_ids": array(typ("string")),
 				"status":      enumd("the status to set on every listed posting", ledger.StatusPending, ledger.StatusCleared, ledger.StatusReconciled),
 			}, "posting_ids", "status")),
 
-		desc("ledger_balance",
+		desc(tool("balance"),
 			"The `bal` report and the live chart of accounts. With no arguments returns the whole emergent account tree with raw signed balances (Assets/Expenses positive, Liabilities/Equity/Income negative; the whole-ledger total is 0). Serves trial balance, balance sheet, net worth, and per-customer A/R. Filter by account substring, period, depth, and reconciliation status (the cleared-vs-ledger view).",
 			obj(map[string]any{
 				"query":  typd("string", "case-insensitive substring matched against the full account path; omit for every account"),
@@ -58,21 +68,21 @@ func toolDescriptors() []map[string]any {
 				"status": enumd("restrict to postings in this reconciliation state — e.g. cleared for a bank-reconciliation view", ledger.StatusPending, ledger.StatusCleared, ledger.StatusReconciled),
 			})),
 
-		desc("ledger_register",
-			"The `reg` report — matched postings in chronological order with a running total. Customer statements, account history, search, and the list verb. Raw signed amounts like ledger_balance.",
+		desc(tool("register"),
+			"The `reg` report — matched postings in chronological order with a running total. Customer statements, account history, search, and the list verb. Raw signed amounts like ikigenba_ledger_balance.",
 			obj(map[string]any{
 				"query":  typd("string", "case-insensitive substring matched against the full account path; omit for every posting"),
 				"period": periodSchema(),
 				"status": enumd("restrict to postings in this reconciliation state", ledger.StatusPending, ledger.StatusCleared, ledger.StatusReconciled),
 			})),
 
-		desc("ledger_get", "Fetch one transaction in full: all postings, per-posting status, ord, and reversal links.", obj(map[string]any{"id": typd("string", "the transaction id")}, "id")),
+		desc(tool("get"), "Fetch one transaction in full: all postings, per-posting status, ord, and reversal links.", obj(map[string]any{"id": typd("string", "the transaction id")}, "id")),
 
-		desc("ledger_describe",
-			"Discovery — the first call any agent should make. Returns the five typed roots (with normal balance and which statement they feed), the money unit (USD cents), the reconciliation states and their meaning, the live emergent account tree, and recipes for producing a balance sheet / P&L / customer statement from ledger_balance + ledger_register. Takes no inputs.",
+		desc(tool("describe"),
+			"Discovery — the first call any agent should make. Returns the five typed roots (with normal balance and which statement they feed), the money unit (USD cents), the reconciliation states and their meaning, the live emergent account tree, and recipes for producing a balance sheet / P&L / customer statement from ikigenba_ledger_balance + ikigenba_ledger_register. Takes no inputs.",
 			obj(map[string]any{})),
 
-		desc("ledger_whoami", "Return the authenticated caller's identity (owner email and client id) as established by the platform's auth gate. Takes no inputs; the end-to-end auth proof.", obj(map[string]any{})),
+		desc(tool("health"), "Health + diagnostics for the ledger service. Returns the fixed envelope (status, version, service, details) plus the authenticated caller's identity (owner_email, client_id) as established by the platform's auth gate — the end-to-end auth-chain proof. Takes no inputs.", obj(map[string]any{})),
 	}
 }
 
@@ -130,7 +140,7 @@ func (h *Handler) handleToolCall(ctx context.Context, w http.ResponseWriter, req
 		writeJSONRPCError(w, req.ID, -32602, "invalid params")
 		return
 	}
-	res, err := dispatchTool(ctx, h.ledger, p.Name, p.Arguments, id)
+	res, err := h.dispatchTool(ctx, p.Name, p.Arguments, id)
 	if err != nil {
 		writeJSONRPCResult(w, req.ID, toolResultErr(err.Error()))
 		return
@@ -138,24 +148,25 @@ func (h *Handler) handleToolCall(ctx context.Context, w http.ResponseWriter, req
 	writeJSONRPCResult(w, req.ID, res)
 }
 
-func dispatchTool(ctx context.Context, svc *ledger.Service, name string, argsRaw json.RawMessage, id Identity) (map[string]any, error) {
+func (h *Handler) dispatchTool(ctx context.Context, name string, argsRaw json.RawMessage, id Identity) (map[string]any, error) {
+	svc := h.ledger
 	switch name {
-	case "ledger_record":
+	case tool("record"):
 		return toolRecord(ctx, svc, argsRaw)
-	case "ledger_reverse":
+	case tool("reverse"):
 		return toolReverse(ctx, svc, argsRaw)
-	case "ledger_reconcile":
+	case tool("reconcile"):
 		return toolReconcile(ctx, svc, argsRaw)
-	case "ledger_balance":
+	case tool("balance"):
 		return toolBalance(ctx, svc, argsRaw)
-	case "ledger_register":
+	case tool("register"):
 		return toolRegister(ctx, svc, argsRaw)
-	case "ledger_get":
+	case tool("get"):
 		return toolGet(ctx, svc, argsRaw)
-	case "ledger_describe":
+	case tool("describe"):
 		return toolDescribe(ctx, svc)
-	case "ledger_whoami":
-		return toolWhoami(id)
+	case tool("health"):
+		return h.toolHealth(ctx, id)
 	default:
 		return nil, errors.New("unknown tool: " + name)
 	}
@@ -163,11 +174,24 @@ func dispatchTool(ctx context.Context, svc *ledger.Service, name string, argsRaw
 
 // ── tool implementations ─────────────────────────────────────────────────
 
-func toolWhoami(id Identity) (map[string]any, error) {
-	return toolResultJSON(map[string]any{
-		"owner_email": id.OwnerEmail,
-		"client_id":   id.ClientID,
-	})
+// toolHealth renders the shared health envelope (status/version/service/details)
+// via appkit.Envelope and then adds the authenticated caller's identity — the
+// end-to-end auth-chain proof (DECISIONS §6). ledger supplies no reporter, so
+// details renders as {}.
+func (h *Handler) toolHealth(ctx context.Context, id Identity) (map[string]any, error) {
+	details := map[string]any{}
+	if h.health != nil {
+		d, err := h.health(ctx)
+		if err != nil {
+			details = map[string]any{"error": err.Error()}
+		} else if d != nil {
+			details = d
+		}
+	}
+	env := appkit.Envelope(h.version, h.service, details) // status/version/service/details
+	env["owner_email"] = id.OwnerEmail
+	env["client_id"] = id.ClientID
+	return toolResultJSON(env)
 }
 
 type postingArg struct {

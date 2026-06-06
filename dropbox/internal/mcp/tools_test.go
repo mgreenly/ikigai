@@ -28,7 +28,7 @@ func newHandler(t *testing.T) *Handler {
 	if err := db.Migrate(context.Background(), conn); err != nil {
 		t.Fatalf("migrate: %v", err)
 	}
-	return NewHandler(dropbox.NewService(conn))
+	return NewHandler(dropbox.NewService(conn), "v-test", "dropbox", nil)
 }
 
 // rpc drives one JSON-RPC call through ServeHTTP and returns the decoded result
@@ -75,49 +75,52 @@ func callTool(t *testing.T, h *Handler, name, args string) (map[string]any, bool
 	return payload, isErr
 }
 
-func TestToolsList_HasExactlyTwo(t *testing.T) {
+func TestToolsList_HasExactlyOne(t *testing.T) {
 	h := newHandler(t)
 	res := rpc(t, h, "tools/list", `{}`)
 	tools, _ := res["tools"].([]any)
-	if len(tools) != 2 {
-		t.Fatalf("tools/list returned %d tools, want 2", len(tools))
+	if len(tools) != 1 {
+		t.Fatalf("tools/list returned %d tools, want 1", len(tools))
 	}
 	names := map[string]bool{}
 	for _, tl := range tools {
 		names[tl.(map[string]any)["name"].(string)] = true
 	}
-	for _, want := range []string{"dropbox_whoami", "dropbox_health"} {
-		if !names[want] {
-			t.Errorf("tools/list missing %s", want)
-		}
+	if !names["ikigenba_dropbox_health"] {
+		t.Errorf("tools/list missing ikigenba_dropbox_health (got %v)", names)
+	}
+	// whoami is folded away — it must not reappear.
+	if names["dropbox_whoami"] || names["ikigenba_dropbox_whoami"] {
+		t.Errorf("tools/list still advertises a whoami tool: %v", names)
 	}
 }
 
-func TestWhoami(t *testing.T) {
+func TestHealth_Envelope(t *testing.T) {
 	h := newHandler(t)
-	p, isErr := callTool(t, h, "dropbox_whoami", `{}`)
-	if isErr {
-		t.Fatal("whoami isError")
-	}
-	if p["owner_email"] != "me@example.com" || p["client_id"] != "client-123" {
-		t.Errorf("whoami = %v", p)
-	}
-}
-
-func TestHealth_ReturnsIdentity(t *testing.T) {
-	h := newHandler(t)
-	p, isErr := callTool(t, h, "dropbox_health", `{}`)
+	p, isErr := callTool(t, h, "ikigenba_dropbox_health", `{}`)
 	if isErr {
 		t.Fatal("health isError")
 	}
+	// Envelope required top-level keys + identity (no reporter here → details {}).
+	if p["status"] != "ok" || p["version"] != "v-test" || p["service"] != "dropbox" {
+		t.Errorf("health envelope keys = %v", p)
+	}
 	if p["owner_email"] != "me@example.com" || p["client_id"] != "client-123" {
-		t.Errorf("health = %v", p)
+		t.Errorf("health identity = %v", p)
+	}
+	d, ok := p["details"].(map[string]any)
+	if !ok {
+		t.Fatalf("details missing or not an object: %v", p["details"])
+	}
+	if len(d) != 0 {
+		t.Errorf("details = %v, want empty {} with no reporter", d)
 	}
 }
 
-func TestHealth_ReturnsTelemetry(t *testing.T) {
-	// Build a Service with a real DB + mirror so dropbox_health returns full
-	// telemetry (identity + mirror_bytes + disk numbers + failed_files).
+func TestHealth_ReporterPopulatesDetails(t *testing.T) {
+	// Build a Service with a real DB + mirror and wire a Health reporter (the
+	// Spec.Health path) so the telemetry lands UNDER details — not splatted at
+	// the top level.
 	conn, err := sql.Open("sqlite", "file:"+t.TempDir()+"/dropbox.db?_pragma=foreign_keys(ON)")
 	if err != nil {
 		t.Fatalf("open: %v", err)
@@ -133,26 +136,49 @@ func TestHealth_ReturnsTelemetry(t *testing.T) {
 	}
 	svc := dropbox.NewService(conn)
 	svc.Mirror = mirror
-	h := NewHandler(svc)
 
-	p, isErr := callTool(t, h, "dropbox_health", `{}`)
+	// The reporter mirrors cmd/dropbox/main.go's Spec.Health: telemetry only,
+	// no identity.
+	reporter := func(ctx context.Context) (map[string]any, error) {
+		info, err := svc.Health("", "")
+		if err != nil {
+			return nil, err
+		}
+		return map[string]any{
+			"mirror_bytes":     info.MirrorBytes,
+			"disk_free_bytes":  info.DiskFreeBytes,
+			"disk_total_bytes": info.DiskTotalBytes,
+			"failed_files":     info.FailedFiles,
+		}, nil
+	}
+	h := NewHandler(svc, "v-test", "dropbox", reporter)
+
+	p, isErr := callTool(t, h, "ikigenba_dropbox_health", `{}`)
 	if isErr {
 		t.Fatal("health isError")
 	}
 	if p["owner_email"] != "me@example.com" || p["client_id"] != "client-123" {
 		t.Errorf("health identity = %v", p)
 	}
+	d, ok := p["details"].(map[string]any)
+	if !ok {
+		t.Fatalf("details missing or not an object: %v", p["details"])
+	}
 	for _, k := range []string{"mirror_bytes", "disk_free_bytes", "disk_total_bytes", "failed_files"} {
-		if _, ok := p[k]; !ok {
-			t.Errorf("health missing field %q (payload %v)", k, p)
+		if _, ok := d[k]; !ok {
+			t.Errorf("details missing telemetry field %q (details %v)", k, d)
+		}
+		// Telemetry must NOT splat at the top level (DECISIONS §3).
+		if _, top := p[k]; top {
+			t.Errorf("telemetry field %q splatted at top level, want only under details", k)
 		}
 	}
 	// Disk numbers must be plausible/non-zero for a real filesystem.
-	if dt, _ := p["disk_total_bytes"].(float64); dt <= 0 {
-		t.Errorf("disk_total_bytes = %v, want > 0", p["disk_total_bytes"])
+	if dt, _ := d["disk_total_bytes"].(float64); dt <= 0 {
+		t.Errorf("details.disk_total_bytes = %v, want > 0", d["disk_total_bytes"])
 	}
-	if df, _ := p["disk_free_bytes"].(float64); df <= 0 {
-		t.Errorf("disk_free_bytes = %v, want > 0", p["disk_free_bytes"])
+	if df, _ := d["disk_free_bytes"].(float64); df <= 0 {
+		t.Errorf("details.disk_free_bytes = %v, want > 0", d["disk_free_bytes"])
 	}
 }
 

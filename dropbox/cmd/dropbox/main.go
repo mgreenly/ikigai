@@ -64,6 +64,31 @@ func main() {
 			{Key: "OUTBOX_RETENTION_DAYS", Value: "7"},
 			{Key: "OUTBOX_RETENTION_MAX_ROWS", Value: "1000000"},
 		},
+		// Health is dropbox's per-service telemetry reporter (DECISIONS §3/§7).
+		// Unlike the other five services, dropbox has real telemetry, so it
+		// supplies a reporter: appkit calls it to populate the `details` object of
+		// the shared health envelope on BOTH the ungated HTTP /health route and the
+		// gated ikigenba_dropbox_health MCP tool, so the two cannot diverge. The
+		// source is svc.Health (the same data the old dropbox_health tool used) —
+		// only its mirror/disk telemetry goes under details; identity is NOT
+		// included here (the MCP tool adds owner_email/client_id; HTTP carries
+		// none). svc is built in Handlers, which appkit calls before serve, so the
+		// closure captures a non-nil Service by the time the reporter runs.
+		Health: func(ctx context.Context) (map[string]any, error) {
+			if svc == nil {
+				return nil, fmt.Errorf("dropbox: Health reporter ran before Handlers built the Service")
+			}
+			info, err := svc.Health("", "")
+			if err != nil {
+				return nil, err
+			}
+			return map[string]any{
+				"mirror_bytes":     info.MirrorBytes,
+				"disk_free_bytes":  info.DiskFreeBytes,
+				"disk_total_bytes": info.DiskTotalBytes,
+				"failed_files":     info.FailedFiles,
+			}, nil
+		},
 		// Handlers builds dropbox's domain Service + sync engine over appkit's shared
 		// DB handle, then mounts the two routes dropbox owns: the gated dropbox_* MCP
 		// surface (POST /mcp) and the UNAUTHENTICATED, loopback-only private byte feed
@@ -126,7 +151,8 @@ func main() {
 				MaxEntryRetries: maxEntryRetries,
 			})
 
-			rt.Handle("POST /mcp", rt.RequireIdentity(mcp.NewHandler(svc)))
+			rt.Handle("POST /mcp", rt.RequireIdentity(
+				mcp.NewHandler(svc, rt.Version(), rt.Service(), rt.Health())))
 			// /content is unauthenticated + loopback-only (the handler self-guards),
 			// so it is registered verbatim, NOT behind RequireIdentity.
 			rt.Handle("GET /content", svc.ContentHandler())

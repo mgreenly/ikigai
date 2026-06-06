@@ -126,9 +126,9 @@ Goal: the fusion example end-to-end — *create a session → set its prompt →
 once → poll status → read the output / the file it wrote.*
 
 - **Chassis** cloned from `../ledger` — loopback (**:3004**), `/srv/ralph/` nginx
-  fragment, identity gate, PRM doc, `ralph_whoami`, `bin/*` lifecycle, SQLite +
-  migrations, MCP JSON-RPC. Port `ledger_*` → `ralph_*`.
-- **Session CRUD** — `ralph_session_create` (prompt + config) / `_list` / `_get`
+  fragment, identity gate, PRM doc, `ikigenba_ralph_health`, `bin/*` lifecycle,
+  SQLite + migrations, MCP JSON-RPC. Tool prefix → `ikigenba_ralph_`.
+- **Session CRUD** — `ikigenba_ralph_session_create` (prompt + config) / `_list` / `_get`
   (incl. status) / `_update` (edit prompt/config — the "edit" tool) / `_delete`.
   Config is a normalized blob, validated at create time; provider keys are
   deployment secrets via the `.envrc` → env pattern, validated **per session**.
@@ -139,10 +139,10 @@ once → poll status → read the output / the file it wrote.*
   metaspot **platform** concern since it owns the box.
 - **Run engine** — borrow the `ikigai-cli` provider seam (Anthropic reference
   adapter) + agent loop + tool registry (`bash/read/write/edit/grep/glob` +
-  `websearch/webfetch`). `ralph_session_run` (one-shot) spawns a run, collects
+  `websearch/webfetch`). `ikigenba_ralph_session_run` (one-shot) spawns a run, collects
   output to a run record.
-- **Read surface** — `ralph_session_output`, `ralph_session_fs_list`,
-  `ralph_session_fs_read` (status/usage ride on `ralph_session_get.last_run`). See
+- **Read surface** — `ikigenba_ralph_session_output`, `ikigenba_ralph_session_fs_list`,
+  `ikigenba_ralph_session_fs_read` (status/usage ride on `ikigenba_ralph_session_get.last_run`). See
   the full MCP tool surface below.
 
 ## MCP tool surface (draft 1 — 11 tools, run-once only)
@@ -153,43 +153,43 @@ the sandbox is **read-only** from the foreground; the toolset is **fixed**.
 
 **Identity (chassis)**
 
-- `ralph_whoami` — prove the connector → OAuth → service chain; no side effects.
-  *in:* none · *out:* `{owner_email, client_id, service, version}`.
+- `ikigenba_ralph_health` — prove the connector → OAuth → service chain; no side effects.
+  *in:* none · *out:* `{status, version, service, owner_email, client_id, details}`.
 
 **Session lifecycle**
 
-- `ralph_session_create` — create a durable session + its empty sandbox folder.
+- `ikigenba_ralph_session_create` — create a durable session + its empty sandbox folder.
   *in:* `{name?, prompt, system_prompt?, config:{provider, model, effort?, max_tokens?, temperature?}}` ·
   *out:* `{session_id, status:"idle"}` ·
   *errors:* unknown provider/model; **missing provider key** (validated per-session); bad config.
-- `ralph_session_list` — enumerate the owner's sessions.
+- `ikigenba_ralph_session_list` — enumerate the owner's sessions.
   *in:* none · *out:* `[{session_id, name, status, created_at, last_run:{status, ended_at}}]`.
-- `ralph_session_get` — full detail of one session.
+- `ikigenba_ralph_session_get` — full detail of one session.
   *in:* `{session_id}` · *out:* `{prompt, system_prompt, config, status, created_at, updated_at, last_run:{status, started_at, ended_at, usage, error?}}`.
-- `ralph_session_update` — the "edit" tool: change prompt/system_prompt/config/name.
+- `ikigenba_ralph_session_update` — the "edit" tool: change prompt/system_prompt/config/name.
   *in:* `{session_id, name?, prompt?, system_prompt?, config?}` · *out:* updated session ·
   *errors:* **rejected while `running`**.
-- `ralph_session_delete` — remove the session, its folder, and its run history.
+- `ikigenba_ralph_session_delete` — remove the session, its folder, and its run history.
   *in:* `{session_id}` · *out:* `{ok}` · *errors:* **rejected while `running`** (cancel first).
 
 **Run (one-shot)**
 
-- `ralph_session_run` — start one run. **Async** — returns immediately, does not block.
+- `ikigenba_ralph_session_run` — start one run. **Async** — returns immediately, does not block.
   *in:* `{session_id}` · *out:* `{status:"running", started_at}` ·
   *errors:* **`busy`** if a run is already in flight (single-flight invariant) ·
   *side effect:* spawns the run engine over the session's folder.
-- `ralph_session_cancel` — terminate the in-flight run; the **folder is kept**.
+- `ikigenba_ralph_session_cancel` — terminate the in-flight run; the **folder is kept**.
   *in:* `{session_id}` · *out:* `{status:"cancelled"}` · *errors:* no run in flight.
 
 **Read surfaces (pull, on demand)**
 
-- `ralph_session_output` — read the **latest run's output log** by line range (the narrated
+- `ikigenba_ralph_session_output` — read the **latest run's output log** by line range (the narrated
   "what the agent did"); tailable while running.
   *in:* `{session_id, offset?=0, limit?=200}` · *out:* `{lines[], total_lines, run_status}`.
-- `ralph_session_fs_list` — list the sandbox folder.
+- `ikigenba_ralph_session_fs_list` — list the sandbox folder.
   *in:* `{session_id, path?="."}` · *out:* `[{name, type:"file"|"dir", size, modified}]` ·
   *errors:* path escaping the folder is rejected.
-- `ralph_session_fs_read` — read a sandbox file by line range (the deliverable, e.g. `report.md`).
+- `ikigenba_ralph_session_fs_read` — read a sandbox file by line range (the deliverable, e.g. `report.md`).
   *in:* `{session_id, path, offset?=0, limit?=200}` · *out:* `{lines[], total_lines, truncated}` ·
   *errors:* path-escape; not-a-file.
 
@@ -216,7 +216,7 @@ subscribe trigger verbs.
 
 **Reuses (clone/borrow):**
 - metaspot **chassis** from `../ledger` (loopback bind, nginx fragment, identity
-  gate, PRM doc, `<svc>_whoami`, `bin/*` lifecycle, SQLite + migrations, MCP
+  gate, PRM doc, `ikigenba_<svc>_health`, `bin/*` lifecycle, SQLite + migrations, MCP
   JSON-RPC).
 - **run engine** architecture from `ikigai-cli` (provider seam + neutral wire
   types + tool registry + the iteration loop).
@@ -248,7 +248,7 @@ subscribe trigger verbs.
 - `../docs/event-plane-decisions.md`, `../docs/event-plane-technical-overview.md`.
 
 **Exemplars (this repo):**
-- `../ledger/` — the whoami-only **chassis skeleton** to clone from.
+- `../ledger/` — the health-only **chassis skeleton** to clone from.
 - `../crm/` — event-plane **producer** (outbox wiring) — *for the deferred phase.*
 - `../notify/` — event-plane **consumer** — *for the deferred phase.*
 - `../eventplane/` — the shared library to make multi-tenant — *deferred.*

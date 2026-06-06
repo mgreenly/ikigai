@@ -1,9 +1,9 @@
 package mcp
 
-// describeText is the on-demand deep overview returned by the ralph_describe
+// describeText is the on-demand deep overview returned by the ikigenba_ralph_describe
 // tool. It is intentionally NOT loaded into the initialize `instructions`
 // field (which every client pays on every connection) — agents load it only
-// when they choose to call ralph_describe, conserving context for callers that
+// when they choose to call ikigenba_ralph_describe, conserving context for callers that
 // already know the surface.
 //
 // Source of truth for the concepts below is README.md / ARCHITECTURE.md in this
@@ -22,33 +22,33 @@ WHAT IT IS
   behind. Sessions are isolated per caller.
 
 LIFECYCLE
-  1. ralph_session_create {prompt, config} -> {session_id, status:"idle"}
-  2. ralph_session_run {session_id}        -> starts a run, returns immediately
-  3. poll ralph_session_get {session_id}   -> watch last_run.status until it is
+  1. ikigenba_ralph_session_create {prompt, config} -> {session_id, status:"idle"}
+  2. ikigenba_ralph_session_run {session_id}        -> starts a run, returns immediately
+  3. poll ikigenba_ralph_session_get {session_id}   -> watch last_run.status until it is
      succeeded | failed | cancelled
-  4. ralph_session_output {session_id}     -> the run's narrated log
-  5. ralph_session_fs_list / ralph_session_fs_read -> the files the agent wrote
+  4. ikigenba_ralph_session_output {session_id}     -> the run's narrated log
+  5. ikigenba_ralph_session_fs_list / ikigenba_ralph_session_fs_read -> the files the agent wrote
 
 OUTPUT FORMAT
-- ralph_session_output returns the latest run's log as append-only stream-json:
+- ikigenba_ralph_session_output returns the latest run's log as append-only stream-json:
   one JSON event per line (the agent's turn-by-turn event stream). offset is
   1-based; limit caps lines — tail a long run by advancing offset.
 - The *answer* is usually a file in the sandbox (e.g. report.md), not the
-  agent's final message — read it with ralph_session_fs_read.
+  agent's final message — read it with ikigenba_ralph_session_fs_read.
 
 WORKED EXAMPLE
-  ralph_session_create {"prompt":"Summarize X into report.md",
+  ikigenba_ralph_session_create {"prompt":"Summarize X into report.md",
                         "config":{"model":"claude-sonnet-4-6","effort":"low"}}
     -> {"session_id":"S","status":"idle"}
-  ralph_session_run {"session_id":"S"}
-  ralph_session_get {"session_id":"S"}   # repeat until last_run.status=="succeeded"
-  ralph_session_fs_list {"session_id":"S"}                    # -> report.md
-  ralph_session_fs_read {"session_id":"S","path":"report.md"}
+  ikigenba_ralph_session_run {"session_id":"S"}
+  ikigenba_ralph_session_get {"session_id":"S"}   # repeat until last_run.status=="succeeded"
+  ikigenba_ralph_session_fs_list {"session_id":"S"}                    # -> report.md
+  ikigenba_ralph_session_fs_read {"session_id":"S","path":"report.md"}
 
 CONFIG
   model is required (e.g. claude-sonnet-4-6 / claude-haiku-4-5, or aliases
   opus|sonnet|haiku); optional effort (low|medium|high|xhigh|max, model-
-  dependent), max_tokens, temperature. ralph_whoami proves the auth chain.`
+  dependent), max_tokens, temperature. ikigenba_ralph_health proves the auth chain.`
 
 // toolDescribe returns the on-demand overview. Takes no inputs.
 func toolDescribe() (map[string]any, error) {

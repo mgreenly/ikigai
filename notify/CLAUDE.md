@@ -5,10 +5,10 @@ The **notify** service for the metaspot single-tenant suite. A pure MCP API with
 (e.g. `ai.metaspot.org/srv/notify/`). First demo account: **ai**.
 
 notify is the suite's **first event-plane consumer**. It was duplicated from
-`../ledger` (the whoami-only chassis skeleton) and given a domain: it subscribes
+`../ledger` (the health-only chassis skeleton) and given a domain: it subscribes
 to crm's east/west event feed and fires a best-effort ntfy.sh push for every
-contact created. The MCP `notify_whoami` tool is retained as the north/south auth
-proof; the real work happens in the background consumer loop.
+contact created. The MCP `ikigenba_notify_health` tool is retained as the
+north/south auth proof; the real work happens in the background consumer loop.
 
 **Read the decisions first — do not re-derive them:**
 
@@ -30,7 +30,7 @@ If anything here conflicts with those docs, the docs win — and flag the confli
   every request via `auth_request` against the dashboard, strips the
   `/srv/notify/` prefix, and injects `X-Owner-Email` / `X-Client-Id`. notify
   trusts those headers and does NO token logic. Surface: `POST /mcp`
-  (`notify_whoami`) and the unauthenticated RFC 9728 PRM doc. notify is a
+  (`ikigenba_notify_health`) and the unauthenticated RFC 9728 PRM doc. notify is a
   consumer, **not** a producer — it serves **no** `/feed` endpoint, and its nginx
   fragment (`etc/nginx.conf`, dev mirror `../nginx/locations/notify.conf`) has no
   feed block.
@@ -82,7 +82,7 @@ so tests point it at a mock.
   `001_schema_migrations`, then `002_feed_offset` which applies
   `consumer.SchemaSQL` verbatim (asserted by `migrations_feed_offset_test.go`).
 - **`internal/mcp`, `internal/server`, `internal/logging`, `internal/ids`** — the
-  carried-over chassis (whoami, PRM, identity gate, security headers, request ids).
+  carried-over chassis (health, PRM, identity gate, security headers, request ids).
 
 ## Tests
 

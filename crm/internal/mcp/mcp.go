@@ -1,5 +1,6 @@
 // Package mcp implements a minimal MCP transport for the /mcp endpoint and the
-// fixed six-verb crm_* tool surface (PLAN.md §2) that wraps internal/crm.
+// fixed six-verb ikigenba_crm_* tool surface (PLAN.md §2) that wraps
+// internal/crm.
 //
 // The transport speaks JSON-RPC 2.0 over plain HTTP POST (no SSE/streaming),
 // responding with Content-Type: application/json. It carries NO token logic:
@@ -13,6 +14,7 @@
 package mcp
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -28,19 +30,26 @@ type Identity struct {
 }
 
 // Handler is the http.Handler for POST /mcp. It is constructed once at wiring
-// time with a non-nil crm service and dispatches JSON-RPC methods.
+// time with a non-nil crm service and the health-envelope inputs (version,
+// service, optional reporter) threaded from appkit's Router accessors, and
+// dispatches JSON-RPC methods.
 type Handler struct {
-	svc *crm.Service
+	svc     *crm.Service
+	version string
+	service string
+	health  func(context.Context) (map[string]any, error)
 }
 
 // NewHandler builds a Handler. The crm service is required; a nil service is a
 // wiring error and panics at this seam rather than deferring a nil dereference to
-// first request.
-func NewHandler(s *crm.Service) *Handler {
+// first request. version/service/health populate the ikigenba_crm_health
+// envelope; health is the optional per-service reporter (nil → details is {}).
+func NewHandler(s *crm.Service, version, service string,
+	health func(context.Context) (map[string]any, error)) *Handler {
 	if s == nil {
 		panic("mcp: crm service is required")
 	}
-	return &Handler{svc: s}
+	return &Handler{svc: s, version: version, service: service, health: health}
 }
 
 // ServeHTTP dispatches a single JSON-RPC 2.0 request. Identity is read from the

@@ -1,6 +1,6 @@
 // Package server builds and runs an ikigai app's loopback-only HTTP server:
 // routing, the unauthenticated RFC 9728 protected-resource metadata document,
-// the identity-header gate, the whoami proof, security headers, and graceful
+// the identity-header gate, the ungated health route, security headers, and graceful
 // shutdown. It is the uniform HTTP layer lifted from every path-routed service's
 // internal/server (appkit extraction, PLAN §B).
 //
@@ -12,8 +12,8 @@
 //
 // The server supports two shapes through one Router seam:
 //   - path-routed services (crm/ledger/notify/dropbox/wiki/ralph) get the
-//     standard route table (PRM + whoami + gated MCP + optional /feed) plus any
-//     extra routes their Spec.Handlers register;
+//     standard route table (PRM + ungated /health + gated MCP + optional /feed)
+//     plus any extra routes their Spec.Handlers register;
 //   - the dashboard apex supplies its WHOLE route table via Spec.Handlers,
 //     bypassing the PRM/identity routes (it issues identity, it does not consume
 //     it). See PLAN §B1 map §3 risk 3.
@@ -42,7 +42,7 @@ type Options struct {
 	ResourceID string       // this service's canonical resource id (required unless Apex)
 	AuthServer string       // the dashboard authorization-server base URL (required unless Apex)
 
-	// Apex bypasses the standard PRM/whoami routes and the identity gate: the
+	// Apex bypasses the standard PRM/health routes and the identity gate: the
 	// dashboard registers its own complete route table via Register and consumes
 	// no injected identity. When Apex is true, ResourceID/AuthServer are optional
 	// and no PRM route is mounted.
@@ -68,6 +68,14 @@ type Options struct {
 	// a service mounts its own extra routes — gated or unauthenticated — using the
 	// Router seam. May be nil.
 	Register func(*Router) error
+
+	// Version is the build-stamped version string for the health envelope
+	// (required for the standard table).
+	Version string
+	// Service is the service name (spec.App) for the health envelope.
+	Service string
+	// Health is the optional per-service details reporter for the health envelope.
+	Health func(ctx context.Context) (map[string]any, error)
 
 	// DB is the shared single-writer SQLite handle appkit opened and migrated. It
 	// is exposed to the Register hook (rt.DB()) so a service builds its domain over
@@ -125,13 +133,27 @@ func (rt *Router) AuthServer() string { return rt.authServer }
 // shares it too). It is nil only when New was given no DB (apex/test).
 func (rt *Router) DB() *sql.DB { return rt.db }
 
+// Version returns the build-stamped version string for the health envelope, so a
+// service wires its MCP health tool from the same source as the HTTP /health route.
+func (rt *Router) Version() string { return rt.app.version }
+
+// Service returns the service name for the health envelope.
+func (rt *Router) Service() string { return rt.app.service }
+
+// Health returns the optional per-service details reporter (nil when unset), so
+// the MCP health tool renders the same details as the HTTP /health route.
+func (rt *Router) Health() func(context.Context) (map[string]any, error) { return rt.app.health }
+
 // appHandler holds the HTTP layer's auth dependencies. Methods on it implement
-// the PRM document, the identity gate, and whoami. Unexported: the package's
+// the PRM document, the identity gate, and health. Unexported: the package's
 // public surface is New/Run/Router.
 type appHandler struct {
 	logger     *slog.Logger
 	resourceID string
 	authServer string
+	version    string
+	service    string
+	health     func(ctx context.Context) (map[string]any, error)
 }
 
 // New builds the HTTP server with its routes, security headers, and pinned
@@ -155,6 +177,9 @@ func New(opts Options) (*http.Server, error) {
 		logger:     opts.Logger,
 		resourceID: opts.ResourceID,
 		authServer: opts.AuthServer,
+		version:    opts.Version,
+		service:    opts.Service,
+		health:     opts.Health,
 	}
 	mux := http.NewServeMux()
 	rt := &Router{mux: mux, app: a, logger: opts.Logger, resourceID: opts.ResourceID, authServer: opts.AuthServer, db: opts.DB}
@@ -164,8 +189,9 @@ func New(opts Options) (*http.Server, error) {
 		// Unauthenticated: RFC 9728 protected-resource metadata — the only route
 		// NOT behind the identity gate, so a client can discover the AS.
 		mux.Handle("GET /.well-known/oauth-protected-resource", a.handlePRMetadata())
-		// Authenticated: the whoami proof.
-		mux.Handle("GET /whoami", a.requireIdentityHeaders(a.handleWhoami()))
+		// Ungated: the liveness health route (DECISIONS §5) — joins PRM and /feed
+		// as an unauthenticated route, so it survives an auth outage.
+		mux.Handle("GET /health", a.handleHealth())
 		// Authenticated: the JSON-RPC MCP endpoint (when the service exposes one).
 		if opts.MCP != nil {
 			mux.Handle("POST /mcp", a.requireIdentityHeaders(opts.MCP))

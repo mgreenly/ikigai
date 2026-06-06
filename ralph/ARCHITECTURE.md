@@ -59,7 +59,7 @@ ralph/
 
 Rename points (full list in the ledger exploration): module `ledger`→`ralph`,
 `cmd/ledger`→`cmd/ralph`, env prefix `LEDGER_`→`RALPH_`, port `3002`→`3004`,
-mount `/srv/ledger/`→`/srv/ralph/`, tool prefix `ledger_`→`ralph_`, db
+mount `/srv/ledger/`→`/srv/ralph/`, tool prefix → `ikigenba_ralph_`, db
 `ledger.db`→`ralph.db`, app user / `/opt/ledger` / systemd unit → `ralph`.
 
 ---
@@ -73,10 +73,11 @@ mount `/srv/ledger/`→`/srv/ralph/`, tool prefix `ledger_`→`ralph_`, db
   here: (a) construct the `session.Service` (with store, sandbox root, runner)
   and inject it into the MCP handler; (b) run the **crash-recovery sweep**
   (§5.3) right after migrate.
-- **`internal/server`** — `POST /mcp` and `GET /whoami` behind
-  `requireIdentityHeaders` (reads injected `X-Owner-Email` / `X-Client-Id`,
-  401 + `WWW-Authenticate` if absent); `GET /.well-known/oauth-protected-resource`
-  open. nginx is the sole trust boundary; ralph trusts the headers blindly.
+- **`internal/server`** — `POST /mcp` behind `requireIdentityHeaders` (reads
+  injected `X-Owner-Email` / `X-Client-Id`, 401 + `WWW-Authenticate` if absent);
+  the ungated `GET /health` liveness route and
+  `GET /.well-known/oauth-protected-resource` are open. nginx is the sole trust
+  boundary; ralph trusts the headers blindly.
 - **`internal/db`** — SQLite open + embedded `migrations/NNN_*.sql` runner
   (idempotent, downgrade-refusing). ralph adds `002_ralph.sql` (§4).
 - **`internal/ids`** — ULID generation (session ids, run ids).
@@ -84,8 +85,9 @@ mount `/srv/ledger/`→`/srv/ralph/`, tool prefix `ledger_`→`ralph_`, db
 - **`internal/mcp`** — JSON-RPC 2.0 dispatch (`initialize`, `tools/list`,
   `tools/call`). EXTENDED for ralph: the skeleton's `Handler struct{}` becomes
   `Handler{ svc *session.Service }`; `toolDescriptors()` lists the 11 tools (§7);
-  `dispatchTool` routes each `ralph_*` name to a `Service` method, marshals the
-  result to MCP content. `ralph_whoami` stays as the chassis proof.
+  `dispatchTool` routes each `ikigenba_ralph_*` name to a `Service` method,
+  marshals the result to MCP content. `ikigenba_ralph_health` stays as the
+  chassis proof.
 
 ---
 
@@ -188,7 +190,7 @@ runtime requirement is a `python3` interpreter on the box's `PATH` (§8).
 2. Open the log sink: a file `data/runs/<session>/<run>.jsonl`, wrapped as the
    engine's `wire.Session(writer)`. The engine already emits **stream-json**
    (one JSON event per line: assistant / user / result) — append-only and
-   line-addressable, so `ralph_session_output` is a cheap line-slice with no
+   line-addressable, so `ikigenba_ralph_session_output` is a cheap line-slice with no
    transform.
 3. Build the Anthropic client (`anthropic.New(os.Getenv("ANTHROPIC_API_KEY"),
    model)`) and the `provider.Request`: system_prompt + framing, the user
@@ -252,17 +254,17 @@ from the foreground. The toolset is **fixed**.
 
 | MCP tool | Service entry | Notes |
 |---|---|---|
-| `ralph_whoami` | (chassis) | identity proof; no side effects |
-| `ralph_session_create` | `Service.Create` | validates config; makes sandbox; → `{session_id, status:"idle"}` |
-| `ralph_session_list` | `Service.List` | owner-scoped enumeration |
-| `ralph_session_get` | `Service.Get` | full detail incl. `last_run` |
-| `ralph_session_update` | `Service.Update` | rejected while `running` |
-| `ralph_session_delete` | `Service.Delete` | rejected while `running`; removes folder + logs |
-| `ralph_session_run` | `Service.Run` | async; `busy` if in-flight; → `{status:"running", started_at}` |
-| `ralph_session_cancel` | `Service.Cancel` | terminate in-flight run; folder kept |
-| `ralph_session_output` | reads `runs.log_path` | latest run's jsonl, by line range; tailable |
-| `ralph_session_fs_list` | `sandbox.List` | path-escape rejected |
-| `ralph_session_fs_read` | `sandbox.Read` | path-escape / not-a-file rejected |
+| `ikigenba_ralph_health` | (chassis) | identity proof; no side effects |
+| `ikigenba_ralph_session_create` | `Service.Create` | validates config; makes sandbox; → `{session_id, status:"idle"}` |
+| `ikigenba_ralph_session_list` | `Service.List` | owner-scoped enumeration |
+| `ikigenba_ralph_session_get` | `Service.Get` | full detail incl. `last_run` |
+| `ikigenba_ralph_session_update` | `Service.Update` | rejected while `running` |
+| `ikigenba_ralph_session_delete` | `Service.Delete` | rejected while `running`; removes folder + logs |
+| `ikigenba_ralph_session_run` | `Service.Run` | async; `busy` if in-flight; → `{status:"running", started_at}` |
+| `ikigenba_ralph_session_cancel` | `Service.Cancel` | terminate in-flight run; folder kept |
+| `ikigenba_ralph_session_output` | reads `runs.log_path` | latest run's jsonl, by line range; tailable |
+| `ikigenba_ralph_session_fs_list` | `sandbox.List` | path-escape rejected |
+| `ikigenba_ralph_session_fs_read` | `sandbox.Read` | path-escape / not-a-file rejected |
 
 ---
 
@@ -317,17 +319,17 @@ issue a PRM challenge for ralph and connector OAuth can't discover it.
 
 ## 9. End-to-end flow (the fusion example)
 
-1. `ralph_session_create {prompt, config}` → `Service.Create` → validate config
+1. `ikigenba_ralph_session_create {prompt, config}` → `Service.Create` → validate config
    → insert session (`idle`) → `sandbox.Create(id)` → `{session_id, "idle"}`.
-2. `ralph_session_run {session_id}` → single-flight check (`busy` if not) →
+2. `ikigenba_ralph_session_run {session_id}` → single-flight check (`busy` if not) →
    insert run (`running`), session→`running` → `runner.Spawn` → return
    `{running, started_at}` immediately.
 3. goroutine: `agent.Run` drives Anthropic; tools confined to the sandbox;
    narration streams into `<run>.jsonl`; on finish → run `succeeded`,
    session→`idle`.
-4. `ralph_session_output {session_id, offset, limit}` → slice the jsonl.
-   `ralph_session_fs_list` / `_read` → confined sandbox reads. status/usage ride
-   on `ralph_session_get.last_run`.
+4. `ikigenba_ralph_session_output {session_id, offset, limit}` → slice the jsonl.
+   `ikigenba_ralph_session_fs_list` / `_read` → confined sandbox reads. status/usage ride
+   on `ikigenba_ralph_session_get.last_run`.
 
 ---
 

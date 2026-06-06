@@ -7,7 +7,7 @@
 // backup/restore), config-from-env, the migration runner + downgrade guard, the
 // loopback HTTP server + PRM + identity gate, and the /feed producer mount — is
 // owned by appkit. main.go declares only crm's identity (the Spec) and wires its
-// domain surface (the crm_* MCP tools and the contact.* producer) through the
+// domain surface (the ikigenba_crm_* MCP tools and the contact.* producer) through the
 // Spec hooks. RESOURCE_ID / AUTH_SERVER are composed in-binary by appkit/config
 // from METASPOT_DOMAIN + MOUNT (was the deleted bin/build run-wrapper's job).
 package main
@@ -27,7 +27,7 @@ import (
 func main() {
 	// The domain Service is built once and shared by the producer-injection hook
 	// (which attaches the outbox so contact.* events append atomically with the
-	// domain write) and the route hook (which mounts the crm_* MCP surface over
+	// domain write) and the route hook (which mounts the ikigenba_crm_* MCP surface over
 	// it). Both close over svc; appkit calls Producer after Handlers when crm is a
 	// producer (Spec.Feed != "").
 	var svc *crm.Service
@@ -43,7 +43,7 @@ func main() {
 			{Key: "OUTBOX_RETENTION_DAYS", Value: "7"},
 			{Key: "OUTBOX_RETENTION_MAX_ROWS", Value: "1000000"},
 		},
-		// Handlers mounts the crm_* MCP surface, gated behind nginx-injected
+		// Handlers mounts the ikigenba_crm_* MCP surface, gated behind nginx-injected
 		// identity, over the Service built on appkit's shared single-writer DB
 		// handle. The same Service is reused by the producer hook below.
 		Handlers: func(rt *appkit.Router) error {
@@ -52,7 +52,8 @@ func main() {
 				return fmt.Errorf("crm: no DB handle on router")
 			}
 			svc = crm.NewService(conn)
-			rt.Handle("POST /mcp", rt.RequireIdentity(mcp.NewHandler(svc)))
+			rt.Handle("POST /mcp", rt.RequireIdentity(
+				mcp.NewHandler(svc, rt.Version(), rt.Service(), rt.Health())))
 			return nil
 		},
 		// Producer fires after Handlers: inject the outbox so every committed

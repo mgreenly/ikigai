@@ -39,11 +39,11 @@ nginx (owned by the dashboard) terminates TLS, introspects every `/srv/dropbox/`
 request via `auth_request` against the dashboard, and injects `X-Owner-Email` /
 `X-Client-Id`; this service **trusts those headers** and does no token validation
 of its own. nginx strips the `/srv/dropbox/` prefix, so internal routes stay bare
-(`/mcp`, `/whoami`, `/feed`, `/content`, `/.well-known/...`).
+(`/mcp`, `/health`, `/feed`, `/content`, `/.well-known/...`).
 
 **Single box, single account.** One Dropbox app folder, one owner; no
 owner/tenant column. `Identity` (the injected headers) is consulted only by
-`dropbox_whoami` / `dropbox_health`. Per-user OAuth is explicitly out of scope —
+the single `ikigenba_dropbox_health` tool. Per-user OAuth is explicitly out of scope —
 a folder-sync daemon has one folder.
 
 ## The daemon + producer model
@@ -75,19 +75,21 @@ bootstrap → longpoll(cursor) → continue(cursor) → apply each delta → adv
   raw files. **Never public** — guarded by the handler's identity-header check
   (see below), not by nginx.
 
-## The MCP surface (2 tools — it's a daemon)
+## The MCP surface (1 tool — it's a daemon)
 
 The service side is read-only; there are no write verbs. MCP is thin and exists
-for the auth proof + the dashboard inventory (`MCP=true`).
+for the auth proof + the dashboard inventory (`MCP=true`). The former pair of
+identity/health probes are **folded into one** branded tool (DECISIONS §7).
 
-- **`dropbox_whoami`** — `()` identity probe (owner email + client id); the
-  end-to-end auth proof. Kept, slated to be superseded by `dropbox_health` later.
-- **`dropbox_health`** — `()` identity (same fields as whoami, so the eventual
-  migration is additive) **plus** disk telemetry: `mirror_bytes` (`SUM(size)` over
-  the index — indexed logical size, no directory walk), `disk_free_bytes` /
-  `disk_total_bytes` (a `statfs` on the mirror path), and `failed_files` (count of
-  index rows with a non-null `error` — the poison entries the engine advanced
-  past).
+- **`ikigenba_dropbox_health`** — `()` renders the shared health envelope
+  (`status`/`version`/`service`/`details`) **plus** the authenticated caller's
+  identity (`owner_email`/`client_id`, the end-to-end auth proof). dropbox's disk
+  telemetry lives under `details`, supplied by its `Spec.Health` reporter:
+  `mirror_bytes` (`SUM(size)` over the index — indexed logical size, no directory
+  walk), `disk_free_bytes` / `disk_total_bytes` (a `statfs` on the mirror path),
+  and `failed_files` (count of index rows with a non-null `error` — the poison
+  entries the engine advanced past). The same reporter feeds the HTTP `/health`
+  route, so the two transports can't diverge.
 
 ## Package layout
 
@@ -118,12 +120,14 @@ Same chassis layering as ledger/crm (one file per concern within one package;
     seam (lets the engine run with emission disabled in unit tests, like ledger).
   - `content.go` — the loopback `GET /content` handler.
   - `health.go` — `HealthInfo` assembly.
-- **`internal/mcp`** — JSON-RPC 2.0 transport. `tools.go` holds the 2 descriptors,
-  dispatches into `dropbox.Service` (`Whoami`/`Health`), translates sentinels to
-  tool-error text. `mcp.go` is the transport, unchanged.
+- **`internal/mcp`** — JSON-RPC 2.0 transport. `tools.go` holds the single
+  `ikigenba_dropbox_health` descriptor, dispatches into `dropbox.Service`
+  (`Health`), translates sentinels to tool-error text. `mcp.go` is the transport,
+  unchanged.
 - **`internal/server`** — routing, the RFC 9728 protected-resource metadata
-  document, `requireIdentityHeaders`, `/whoami`, the unauthenticated `GET /feed`
-  and `GET /content` routes, security headers, graceful shutdown.
+  document, `requireIdentityHeaders`, the ungated `/health` route, the
+  unauthenticated `GET /feed` and `GET /content` routes, security headers,
+  graceful shutdown.
 - **`internal/db`** — SQLite open (WAL, FK, single-writer) + embedded migration
   runner. Migrations: `001_schema_migrations` (chassis, byte-identical),
   `002_dropbox.sql` (`sync_state` single-row cursor table; `files` per-path index

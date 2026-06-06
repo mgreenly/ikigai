@@ -357,9 +357,11 @@ journalctl -u dashboard -n 80 --no-pager
 plugin → connector → dashboard OAuth → service chain: add a connector for one
 service from a Claude client, complete the OAuth round-trip (the dashboard mints
 its own opaque token; nginx introspects + injects identity), and call that
-service's `<svc>_whoami` MCP tool. A clean `whoami` proves the cut-over dashboard
-is a working OAuth AS end-to-end. Out of scope for the mechanism proof, but the
-strongest single check.
+service's `ikigenba_<svc>_health` MCP tool — gated, so it echoes the caller's
+`owner_email`/`client_id` (the auth-chain proof, alongside the shared
+`status`/`version`/`service`/`details` envelope). A clean `ikigenba_<svc>_health`
+proves the cut-over dashboard is a working OAuth AS end-to-end. Out of scope for
+the mechanism proof, but the strongest single check.
 
 > Note: because the DB was reset, all prior OAuth AS state (DCR clients, grants,
 > web sessions) is gone — any existing connectors must re-authorize, and users

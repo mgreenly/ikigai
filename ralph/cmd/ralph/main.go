@@ -5,7 +5,7 @@
 //
 // The uniform chassis — the fixed subcommands (serve/version/manifest/migrate/
 // backup/restore), config-from-env, the migration runner + downgrade guard, the
-// loopback HTTP server + PRM + identity gate (ralph_whoami), and graceful
+// loopback HTTP server + PRM + identity gate (ikigenba_ralph_health), and graceful
 // shutdown — is owned by appkit. main.go declares only ralph's identity (the
 // Spec) and wires its domain surface through the Handlers hook: the session
 // store, per-session sandbox tree, async runner, the boot-time crash-recovery
@@ -98,6 +98,6 @@ func registerRoutes(rt *appkit.Router) error {
 		rt.Logger().Warn("crash-recovery: swept orphaned runs", "count", swept)
 	}
 
-	rt.Handle("POST /mcp", rt.RequireIdentity(mcp.NewHandler(svc)))
+	rt.Handle("POST /mcp", rt.RequireIdentity(mcp.NewHandler(svc, rt.Version(), rt.Service(), rt.Health())))
 	return nil
 }

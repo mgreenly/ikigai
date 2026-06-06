@@ -10,14 +10,15 @@
 >
 > This is still a **research tech demo**, not production. The goal of the first
 > slice is to prove the producer→SSE→consumer→effect chain end to end, the way
-> `<svc>_whoami` proves the auth chain.
+> the gated `ikigenba_<svc>_health` MCP tool proves the auth chain (it echoes the
+> caller's `owner_email`/`client_id`).
 >
 > Still-open items are collected at the end — do not treat them as settled.
 
 ## Build plan
 
 - **New service `notify`** — a path-routed service `/srv/notify/`, loopback port
-  **3003**, started as a clone of `ledger` (whoami-only skeleton). It then gains
+  **3003**, started as a clone of `ledger` (health-only skeleton). It then gains
   a second role: an **event consumer** that watches `crm` for new contacts and
   sends a notification.
 - **First proof-of-concept event: `contact.created`.** Emitted by `crm` when a

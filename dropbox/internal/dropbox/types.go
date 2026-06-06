@@ -1,7 +1,7 @@
 // Package dropbox is the domain for the dropbox service: a one-way folder mirror
 // that ingests Dropbox app-folder files into the event plane (PLAN.md). This is
 // the Phase 0 scaffold — a stub Service exposing only the identity probe used by
-// the two MCP tools (dropbox_whoami / dropbox_health). The sync engine, client,
+// the single MCP tool (ikigenba_dropbox_health). The sync engine, client,
 // store, mirror, events, and health subsystems are added in later phases (§8).
 //
 // The layering mirrors the ledger/crm chassis it was cloned from: a SQL-only

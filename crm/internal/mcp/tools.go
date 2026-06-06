@@ -6,19 +6,29 @@ import (
 	"errors"
 	"net/http"
 
+	"appkit"
+
 	"crm/internal/crm"
 )
 
-// toolDescriptors returns the fixed six-verb crm_* surface (PLAN.md §2). Tool
-// count is a function of verbs, not entities: adding an entity type later adds
-// fields, never tools.
+// toolPrefix brands every MCP tool name (DECISIONS §1). It is the suite name
+// ikigenba + the service name; HTTP route paths are NOT branded.
+const toolPrefix = "ikigenba_crm_"
+
+// tool returns the branded, fully-qualified MCP tool name. Used by BOTH
+// toolDescriptors and dispatchTool so the two sites cannot drift.
+func tool(verb string) string { return toolPrefix + verb }
+
+// toolDescriptors returns the fixed six-verb ikigenba_crm_* surface (PLAN.md
+// §2). Tool count is a function of verbs, not entities: adding an entity type
+// later adds fields, never tools.
 //
 // crm_save's inputSchema is intentionally loose (PLAN.md §4) — the per-type field
 // shapes live in the description, and the server validates per type with
 // corrective error messages the agent self-corrects from.
 func toolDescriptors() []map[string]any {
 	return []map[string]any{
-		desc("crm_search",
+		desc(tool("search"),
 			"Filtered, recency-ordered (updated_at DESC) summaries across all entities, or scoped to one 'type'. The first move on almost any request, and the list/paginate verb. 'query' substring-matches the entity's key text (LIKE). 'type' is one of organization|contact|deal|task|interaction. 'filters' is an object of entity-specific predicates, e.g. {\"subject_id\":\"<id>\"} for interactions, {\"tag\":\"newsletter\"} or {\"lifecycle\":\"customer\"} for contacts, {\"stage\":\"proposal\"} or {\"status\":\"open\"} for deals, {\"status\":\"open\"} for tasks. Use 'after_id' (the returned next_cursor) to paginate.",
 			obj(map[string]any{
 				"query":    typ("string"),
@@ -27,10 +37,10 @@ func toolDescriptors() []map[string]any {
 				"limit":    typ("integer"),
 				"after_id": typ("string"),
 			})),
-		desc("crm_get",
+		desc(tool("get"),
 			"Fetch one entity as a rich card by ULID: a contact comes back with its organization, open deals, recent interactions, and open tasks already attached — one call, full context. The type is resolved from the id automatically.",
 			obj(map[string]any{"id": typ("string")}, "id")),
-		desc("crm_save",
+		desc(tool("save"),
 			saveDescription,
 			obj(map[string]any{
 				"type":   enumTyp("string", "organization", "contact", "deal", "task"),
@@ -38,22 +48,22 @@ func toolDescriptors() []map[string]any {
 				"fields": descTyp("object", "entity-specific; see this tool's description"),
 				"force":  descTyp("boolean", "override a duplicate match on create"),
 			}, "type")),
-		desc("crm_delete",
+		desc(tool("delete"),
 			"Shallow soft-delete of any entity by type and id (type is one of organization|contact|deal|task|interaction). Owned children (a contact's emails/phones/tags) are soft-deleted too; references from other entities are left intact and simply hidden from reads.",
 			obj(map[string]any{
 				"type": enumTyp("string", "organization", "contact", "deal", "task", "interaction"),
 				"id":   typ("string"),
 			}, "type", "id")),
-		desc("crm_log",
-			"Append an interaction to a subject's timeline (the most frequent CRM write). 'subject_id' is the id of the contact, organization, or deal the interaction is about (resolved automatically). 'kind' is one of note|call|email|meeting. 'occurred_at' is optional (RFC3339; defaults to now). Append-only — to correct an entry, delete it (crm_delete type:interaction) and log a new one.",
+		desc(tool("log"),
+			"Append an interaction to a subject's timeline (the most frequent CRM write). 'subject_id' is the id of the contact, organization, or deal the interaction is about (resolved automatically). 'kind' is one of note|call|email|meeting. 'occurred_at' is optional (RFC3339; defaults to now). Append-only — to correct an entry, delete it (ikigenba_crm_delete type:interaction) and log a new one.",
 			obj(map[string]any{
 				"subject_id":  typ("string"),
 				"kind":        enumTyp("string", "note", "call", "email", "meeting"),
 				"body":        typ("string"),
 				"occurred_at": typ("string"),
 			}, "subject_id", "kind")),
-		desc("crm_whoami",
-			"Return the authenticated caller's identity (owner email and client id) as established by the platform's auth gate. Takes no inputs; the end-to-end auth proof.",
+		desc(tool("health"),
+			"Health + diagnostics for the crm service. Returns the fixed envelope (status, version, service, details) plus the authenticated caller's identity (owner_email, client_id) as established by the platform's auth gate — the end-to-end auth-chain proof. Takes no inputs.",
 			obj(map[string]any{})),
 	}
 }
@@ -68,7 +78,7 @@ Fields by type:
 - deal: name (required on create), org_id, stage (lead|qualified|proposal|negotiation|won|lost; default lead), amount_cents (integer), currency (default USD), close_date (RFC3339 date), contacts [{id,role}] participants. Note: a deal's status (open|won|lost) is derived from stage and is read-only — do not set it.
 - task: title (required on create), status (open|done; default open), due_at, done_at, contact_id, org_id, deal_id (optional subject). Complete a task with fields:{status:"done"}.
 
-Interactions are not saved here — use crm_log.`
+Interactions are not saved here — use ikigenba_crm_log.`
 
 func desc(name, description string, schema map[string]any) map[string]any {
 	return map[string]any{"name": name, "description": description, "inputSchema": schema}
@@ -115,18 +125,18 @@ func (h *Handler) handleToolCall(ctx context.Context, w http.ResponseWriter, req
 
 func (h *Handler) dispatchTool(ctx context.Context, name string, argsRaw json.RawMessage, id Identity) (map[string]any, error) {
 	switch name {
-	case "crm_search":
+	case tool("search"):
 		return h.toolSearch(ctx, argsRaw)
-	case "crm_get":
+	case tool("get"):
 		return h.toolGet(ctx, argsRaw)
-	case "crm_save":
+	case tool("save"):
 		return h.toolSave(ctx, argsRaw)
-	case "crm_delete":
+	case tool("delete"):
 		return h.toolDelete(ctx, argsRaw)
-	case "crm_log":
+	case tool("log"):
 		return h.toolLog(ctx, argsRaw)
-	case "crm_whoami":
-		return toolWhoami(id)
+	case tool("health"):
+		return h.toolHealth(ctx, id)
 	default:
 		return nil, errors.New("unknown tool: " + name)
 	}
@@ -134,11 +144,24 @@ func (h *Handler) dispatchTool(ctx context.Context, name string, argsRaw json.Ra
 
 // ── tool implementations ─────────────────────────────────────────────────
 
-func toolWhoami(id Identity) (map[string]any, error) {
-	return toolResultJSON(map[string]any{
-		"owner_email": id.OwnerEmail,
-		"client_id":   id.ClientID,
-	})
+// toolHealth renders the shared health envelope (status/version/service/details)
+// via appkit.Envelope and then adds the authenticated caller's identity — the
+// gated, MCP-side variant of the health surface (DECISIONS §6). crm supplies no
+// reporter, so details renders as {}.
+func (h *Handler) toolHealth(ctx context.Context, id Identity) (map[string]any, error) {
+	details := map[string]any{}
+	if h.health != nil {
+		d, err := h.health(ctx)
+		if err != nil {
+			details = map[string]any{"error": err.Error()}
+		} else if d != nil {
+			details = d
+		}
+	}
+	env := appkit.Envelope(h.version, h.service, details) // status/version/service/details
+	env["owner_email"] = id.OwnerEmail
+	env["client_id"] = id.ClientID
+	return toolResultJSON(env)
 }
 
 func (h *Handler) toolSearch(ctx context.Context, raw json.RawMessage) (map[string]any, error) {

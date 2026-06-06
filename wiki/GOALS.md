@@ -44,7 +44,7 @@ bookkeeping humans abandon; the human curates sources and asks questions.
 | loopback port | **3006** (crm 3001, ledger 3002, notify 3003, ralph 3004, dropbox 3005) |
 | manifest | `etc/manifest.env`: `MOUNT=/srv/wiki/`, `PORT=3006`, `MCP=true` |
 | trust | nginx introspects against dashboard `/internal/authn`; service trusts injected `X-Owner-Email` / `X-Client-Id` blindly; **owner-scoped** everywhere |
-| identity proof | `wiki_whoami` MCP tool |
+| identity proof | `ikigenba_wiki_health` MCP tool |
 | registration | manifest-driven via `bin/registry` (`MCP=true` auto-surfaces); confirm dashboard `DASHBOARD_RESOURCES` wiring (now likely registry-derived) |
 | also | an **eventplane consumer** (notify-shaped) — see Ingest phase 2 |
 
@@ -172,9 +172,10 @@ compounding (layers on with zero rework).
 
 ## MCP tool surface (sketch)
 
-Phase 1: `wiki_whoami`, `wiki_ingest_text`, `wiki_ingest_url`, `wiki_search`,
-plus an ingest job-status read (reuse agentkit's run/output verbs).
-Later: `wiki_ask`, and whatever the dropbox consumer needs internally.
+Phase 1: `ikigenba_wiki_health`, `ikigenba_wiki_ingest_text`,
+`ikigenba_wiki_ingest_url`, `ikigenba_wiki_search`, plus an ingest job-status read
+(reuse agentkit's run/output verbs).
+Later: `ikigenba_wiki_ask`, and whatever the dropbox consumer needs internally.
 
 ## Phasing
 

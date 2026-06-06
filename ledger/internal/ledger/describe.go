@@ -43,12 +43,12 @@ var reconciliationStates = []StatusInfo{
 }
 
 var reportRecipes = []Recipe{
-	{"balance_sheet", "assets, liabilities & equity at an instant: ledger_balance(query:\"Assets\"), ledger_balance(query:\"Liabilities\"), ledger_balance(query:\"Equity\") — omit period for 'now' or pass {to:DATE} for a point in time. Sums are raw signed: Assets positive, Liabilities/Equity negative."},
-	{"income_statement", "profit & loss over a period: ledger_balance(query:\"Income\", period:P) and ledger_balance(query:\"Expenses\", period:P). Income is credit-normal (negative), Expenses debit-normal (positive); net income = -(Income+Expenses)."},
-	{"net_worth", "ledger_balance(depth:1) for the roots, then Assets + Liabilities + Equity (raw signed, so simply their sum)."},
-	{"customer_statement", "ledger_register(query:\"Assets:Receivable:<customer>\") — chronological charges, payments, and running A/R balance for one customer."},
-	{"open_receivables", "ledger_balance(query:\"Assets:Receivable\") — outstanding balance per customer sub-account."},
-	{"bank_reconciliation", "ledger_balance(query:\"Assets:Bank\", status:\"cleared\") vs. the same without a status filter; the difference is the uncleared items."},
+	{"balance_sheet", "assets, liabilities & equity at an instant: ikigenba_ledger_balance(query:\"Assets\"), ikigenba_ledger_balance(query:\"Liabilities\"), ikigenba_ledger_balance(query:\"Equity\") — omit period for 'now' or pass {to:DATE} for a point in time. Sums are raw signed: Assets positive, Liabilities/Equity negative."},
+	{"income_statement", "profit & loss over a period: ikigenba_ledger_balance(query:\"Income\", period:P) and ikigenba_ledger_balance(query:\"Expenses\", period:P). Income is credit-normal (negative), Expenses debit-normal (positive); net income = -(Income+Expenses)."},
+	{"net_worth", "ikigenba_ledger_balance(depth:1) for the roots, then Assets + Liabilities + Equity (raw signed, so simply their sum)."},
+	{"customer_statement", "ikigenba_ledger_register(query:\"Assets:Receivable:<customer>\") — chronological charges, payments, and running A/R balance for one customer."},
+	{"open_receivables", "ikigenba_ledger_balance(query:\"Assets:Receivable\") — outstanding balance per customer sub-account."},
+	{"bank_reconciliation", "ikigenba_ledger_balance(query:\"Assets:Bank\", status:\"cleared\") vs. the same without a status filter; the difference is the uncleared items."},
 }
 
 // Describe returns the static conventions merged with the live account tree. It

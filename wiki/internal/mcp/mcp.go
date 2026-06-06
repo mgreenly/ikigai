@@ -1,10 +1,11 @@
 // Package mcp implements a minimal MCP transport for the /mcp endpoint and the
-// wiki_* tool surface.
+// ikigenba_wiki_* tool surface.
 //
-// This is the scaffold wiki service (Task 2.1): the only tool is wiki_whoami,
-// the end-to-end auth proof. The real wiki domain tools (wiki_ingest_text,
-// wiki_ingest_url, wiki_search, …) are added here in later phases, wired to a
-// domain service the same way crm wires internal/contacts.
+// This is the scaffold wiki service (Task 2.1): the only tool is
+// ikigenba_wiki_health, the end-to-end auth proof. The real wiki domain tools
+// (ikigenba_wiki_ingest_text, ikigenba_wiki_ingest_url, ikigenba_wiki_search, …)
+// are added here in later phases, wired to a domain service the same way crm
+// wires internal/contacts.
 //
 // The transport speaks JSON-RPC 2.0 over plain HTTP POST (no SSE/streaming),
 // responding with Content-Type: application/json. It carries NO token logic:
@@ -65,11 +66,12 @@ type Searcher interface {
 }
 
 // Asker is the MCP surface's dependency on the agentic synthesis pass (Task 6.2 —
-// wiki_ask). The handler holds the interface, not the concrete *ask.Asker, so the
-// verb tests can drive a stub and main.go injects the real Asker. Ask is ASYNC
-// (it rides the agentkit job lifecycle like ingest): Ask returns a job id pollable
-// via wiki_job_status, and the synthesized cited answer is filed back as a
-// synthesis page (findable via wiki_search once the job succeeds). Like the other
+// ikigenba_wiki_ask). The handler holds the interface, not the concrete
+// *ask.Asker, so the verb tests can drive a stub and main.go injects the real
+// Asker. Ask is ASYNC (it rides the agentkit job lifecycle like ingest): Ask
+// returns a job id pollable via ikigenba_wiki_job_status, and the synthesized
+// cited answer is filed back as a synthesis page (findable via
+// ikigenba_wiki_search once the job succeeds). Like the other
 // agentic passes it needs ANTHROPIC_API_KEY, so it may be nil when the service
 // boots without an agent backend. Collection is always the default ("") — no
 // collection arg on the verbs yet (PLAN Decision 4).
@@ -81,25 +83,33 @@ type Asker interface {
 }
 
 // Handler is the http.Handler for POST /mcp. It dispatches JSON-RPC methods. It
-// holds the ingest core (backs wiki_ingest_text/_url and wiki_job_status), the
-// search index (backs wiki_search), and the asker (backs wiki_ask); the
-// no-side-effect wiki_whoami needs no dependency. ingest/ask may be nil when the
-// service boots without an agent backend (e.g. ANTHROPIC_API_KEY absent) — those
-// verbs then return a clear "unavailable" tool-error while wiki_whoami,
-// wiki_search, and tools/list keep working. search may be nil only in
-// degenerate/test setups; the wiki_search verb returns a clear "search
+// holds the ingest core (backs ikigenba_wiki_ingest_text/_url and
+// ikigenba_wiki_job_status), the search index (backs ikigenba_wiki_search), and
+// the asker (backs ikigenba_wiki_ask); the no-side-effect ikigenba_wiki_health
+// needs no domain dependency. ingest/ask may be nil when the service boots
+// without an agent backend (e.g. ANTHROPIC_API_KEY absent) — those verbs then
+// return a clear "unavailable" tool-error while ikigenba_wiki_health,
+// ikigenba_wiki_search, and tools/list keep working. search may be nil only in
+// degenerate/test setups; the ikigenba_wiki_search verb returns a clear "search
 // unavailable" tool-error in that case.
 type Handler struct {
-	ingest Ingester
-	search Searcher
-	ask    Asker
+	ingest  Ingester
+	search  Searcher
+	ask     Asker
+	version string
+	service string
+	health  func(context.Context) (map[string]any, error)
 }
 
 // NewHandler builds a Handler over the given ingest core (may be nil to run the
-// non-ingest surface only), search index (may be nil to disable wiki_search), and
-// asker (may be nil to disable wiki_ask).
-func NewHandler(ing Ingester, srch Searcher, asker Asker) *Handler {
-	return &Handler{ingest: ing, search: srch, ask: asker}
+// non-ingest surface only), search index (may be nil to disable
+// ikigenba_wiki_search), and asker (may be nil to disable ikigenba_wiki_ask).
+// version/service/health populate the shared health envelope: version and
+// service fill its required top-level keys, and the optional health reporter (nil
+// → details renders {}) populates its details object.
+func NewHandler(ing Ingester, srch Searcher, asker Asker, version, service string,
+	health func(context.Context) (map[string]any, error)) *Handler {
+	return &Handler{ingest: ing, search: srch, ask: asker, version: version, service: service, health: health}
 }
 
 // ServeHTTP dispatches a single JSON-RPC 2.0 request. Identity is read from the

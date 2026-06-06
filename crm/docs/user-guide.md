@@ -232,7 +232,7 @@ You ask for something by *describing* it, and the assistant goes and finds it �
 
 A couple of honest notes so nothing surprises you. The search matches the words you actually used against the text it can see — a person's name, email, or phone; a deal's name; the wording of a task or a logged note. It's matching text, not reading your mind, so a typo can throw it off. When that happens the agent simply rephrases and tries again; you'll rarely notice. And when there's a long list, it comes back a page at a time — just say *"show me the next page"* and it keeps going.
 
-*(Under the hood: `crm_search`.)*
+*(Under the hood: `ikigenba_crm_search`.)*
 
 #### 2. See everything about one thing — the "card"
 
@@ -245,7 +245,7 @@ Ask about Wile E. and the card brings his contact details, his company, his open
 > • "Show me everything on the Coyote Pursuit deal."
 > • "What's the story with Coyote Pursuit Industries?"
 
-*(Under the hood: `crm_get`.)*
+*(Under the hood: `ikigenba_crm_get`.)*
 
 #### 3. Save or change something — including reminders
 
@@ -268,7 +268,7 @@ A task can stand alone or be pinned to a contact, a company, or a deal — so *"
 
 One friendly thing worth knowing: if you try to add someone who's already in there — say you re-add Wile E. with the same email — the CRM **catches the duplicate** and the assistant offers to update the existing record instead of making a second copy. That's a feature, not a scolding.
 
-*(Under the hood: `crm_save` — a contact, company, deal, and task are all just things you save.)*
+*(Under the hood: `ikigenba_crm_save` — a contact, company, deal, and task are all just things you save.)*
 
 #### 4. Remove something
 
@@ -278,7 +278,7 @@ Ask to *"get rid of that test task"* or *"remove the old company record"* and th
 > • "Get rid of that test task."
 > • "Remove the duplicate company record."
 
-*(Under the hood: `crm_delete`.)*
+*(Under the hood: `ikigenba_crm_delete`.)*
 
 #### 5. Log a touch — write down what happened
 
@@ -291,7 +291,7 @@ Every call, email, meeting, or note becomes one entry on a timeline. This is the
 
 Timeline entries are **write-once** — you don't edit a logged call; if you got one wrong, the agent removes it and logs a fresh, correct one. (You'll see exactly that move in a later act, when a logged call gets pinned to the wrong contact.)
 
-*(Under the hood: `crm_log`.)*
+*(Under the hood: `ikigenba_crm_log`.)*
 
 #### 6. Confirm you're connected
 
@@ -301,7 +301,7 @@ The quick "are we actually wired up?" check. The assistant reports back **who yo
 > • "Am I connected to the CRM?"
 > • "Who am I logged in as?"
 
-*(Under the hood: `crm_whoami`.)*
+*(Under the hood: `ikigenba_crm_health`.)*
 
 ### The agent chains these for you
 
@@ -317,12 +317,12 @@ You'll never need this table to *use* the CRM — you just talk. But if you like
 
 | What you want | Something you might say | Behind the scenes |
 |---|---|---|
-| Find or list things | "Find Wile E." · "Who's on the newsletter?" · "What deals are open?" | `crm_search` |
-| See everything about one thing | "Show me everything on the Coyote Pursuit deal." | `crm_get` |
-| Save or change something (incl. reminders) | "Add Wile E. as a subscriber." · "Bump him up to a lead." · "Remind me to book a discovery call." · "Mark that task done." | `crm_save` |
-| Remove something from view | "Get rid of that test task." | `crm_delete` |
-| Write down what happened | "Log that I demoed the rocket skates today." | `crm_log` |
-| Check you're connected | "Am I connected? Who am I logged in as?" | `crm_whoami` |
+| Find or list things | "Find Wile E." · "Who's on the newsletter?" · "What deals are open?" | `ikigenba_crm_search` |
+| See everything about one thing | "Show me everything on the Coyote Pursuit deal." | `ikigenba_crm_get` |
+| Save or change something (incl. reminders) | "Add Wile E. as a subscriber." · "Bump him up to a lead." · "Remind me to book a discovery call." · "Mark that task done." | `ikigenba_crm_save` |
+| Remove something from view | "Get rid of that test task." | `ikigenba_crm_delete` |
+| Write down what happened | "Log that I demoed the rocket skates today." | `ikigenba_crm_log` |
+| Check you're connected | "Am I connected? Who am I logged in as?" | `ikigenba_crm_health` |
 
 Six verbs. Five kinds of record (you met them in the last section). An endless number of ways to say what you want. That's the entire system — and from here on, the rest of this guide just watches it work, one ACME sale at a time.
 
@@ -340,7 +340,7 @@ You bring the intent. The agent brings the precision. Let's go.
 **You say:**
 > "Am I connected to the CRM? Who does it think I am?"
 
-**What happens:** Your assistant pings the CRM and reports back who you're signed in as — your email and which app is talking to it. Think of it as a handshake: it proves the whole chain (your assistant → the CRM → your sign-in) is wired up before you trust it with real data. Nothing is created or changed. *(Under the hood: `crm_whoami` — the one tool that just confirms the connection.)*
+**What happens:** Your assistant pings the CRM and reports back who you're signed in as — your email and which app is talking to it. Think of it as a handshake: it proves the whole chain (your assistant → the CRM → your sign-in) is wired up before you trust it with real data. Nothing is created or changed. *(Under the hood: `ikigenba_crm_health` — the one tool that just confirms the connection.)*
 
 **You get back:**
 > "You're connected as **you@acme.example**. All set."
@@ -360,7 +360,7 @@ Our story starts the way most sales stories do: someone raises their hand. Wile 
 **You say:**
 > "Add Wile E. Coyote to our newsletter list — his email's wile.e@coyotepursuit.example."
 
-**What happens:** Your assistant creates a new **contact** for Wile E. You gave a name and one email, so that's all it stores for now — it sets his email as the primary, tags him **newsletter**, and — reading "newsletter signup" as exactly that — places him on the bottom rung of the relationship ladder: **subscriber**. You never named that rung; the agent picked it from what you said. *(Under the hood: `crm_save` creating a contact `‹wile-e›`, lifecycle `subscriber`, tag `newsletter`.)*
+**What happens:** Your assistant creates a new **contact** for Wile E. You gave a name and one email, so that's all it stores for now — it sets his email as the primary, tags him **newsletter**, and — reading "newsletter signup" as exactly that — places him on the bottom rung of the relationship ladder: **subscriber**. You never named that rung; the agent picked it from what you said. *(Under the hood: `ikigenba_crm_save` creating a contact `‹wile-e›`, lifecycle `subscriber`, tag `newsletter`.)*
 
 **Say it your way:**
 > • "Put the coyote on the mailing list — wile.e@coyotepursuit.example."
@@ -377,7 +377,7 @@ Before we court Wile E., let's see the crowd he just joined. A subscriber list i
 **You say:**
 > "Show me everyone on the newsletter list."
 
-**What happens:** Your assistant pulls up every contact tagged **newsletter** and hands you a tidy list. It's filtering on that exact tag — not guessing, not ranking — just "give me the people with this label, newest first." *(Under the hood: `crm_search` over contacts, filtered to `tag: newsletter`.)*
+**What happens:** Your assistant pulls up every contact tagged **newsletter** and hands you a tidy list. It's filtering on that exact tag — not guessing, not ranking — just "give me the people with this label, newest first." *(Under the hood: `ikigenba_crm_search` over contacts, filtered to `tag: newsletter`.)*
 
 **You get back:**
 > "6 subscribers, newest first: **Wile E. Coyote**, **Daffy Duck**, **Porky Pig**, **Elmer Fudd**, **Marvin the Martian**, and **Foghorn Leghorn**."
@@ -397,7 +397,7 @@ Wile E. doesn't operate alone — he runs an outfit. Logging the company now mea
 **You say:**
 > "Create a company called Coyote Pursuit Industries — their website's coyotepursuit.example."
 
-**What happens:** Your assistant creates an **organization** named *Coyote Pursuit Industries* with that domain. Before it saves, it quietly checks that you don't already have a company with the same website or name — no accidental duplicates. *(Under the hood: `crm_save` creating an organization `‹coyote-pursuit›`.)*
+**What happens:** Your assistant creates an **organization** named *Coyote Pursuit Industries* with that domain. Before it saves, it quietly checks that you don't already have a company with the same website or name — no accidental duplicates. *(Under the hood: `ikigenba_crm_save` creating an organization `‹coyote-pursuit›`.)*
 
 **Say it your way:**
 > • "Add Coyote Pursuit Industries as an account."
@@ -413,7 +413,7 @@ Here's where the relationship gets real. Wile E. replied to the newsletter askin
 **You say:**
 > "Wile E. is at Coyote Pursuit Industries — he's their Chief Pursuit Officer, reach him at (310) 555-0147. He's a real lead now, not just a newsletter sub."
 
-**What happens:** Your assistant updates Wile E.'s existing contact — it doesn't make a second one. In one go it links him to **Coyote Pursuit Industries**, sets his title to *Chief Pursuit Officer*, stores the phone number, and bumps his lifecycle from **subscriber** up to **lead**. You said "(310) 555-0147"; it saved a clean, fully-qualified number for you. And everything you *didn't* mention — his newsletter tag, his email — stays exactly as it was. *(Under the hood: `crm_save` updating `‹wile-e›`: `org_id` → `‹coyote-pursuit›`, `title`, a phone, lifecycle → `lead`.)*
+**What happens:** Your assistant updates Wile E.'s existing contact — it doesn't make a second one. In one go it links him to **Coyote Pursuit Industries**, sets his title to *Chief Pursuit Officer*, stores the phone number, and bumps his lifecycle from **subscriber** up to **lead**. You said "(310) 555-0147"; it saved a clean, fully-qualified number for you. And everything you *didn't* mention — his newsletter tag, his email — stays exactly as it was. *(Under the hood: `ikigenba_crm_save` updating `‹wile-e›`: `org_id` → `‹coyote-pursuit›`, `title`, a phone, lifecycle → `lead`.)*
 
 **Say it your way:**
 > • "Link Wile E. to Coyote Pursuit, title Chief Pursuit Officer, phone (310) 555-0147, and move him up to a lead."
@@ -432,7 +432,7 @@ A CRM's most valuable habit is also its simplest: writing down what was said. Wi
 **You say:**
 > "Log that I emailed Wile E. today — he wants a demo of the Rocket-Powered Roller Skates."
 
-**What happens:** Your assistant adds an **email** entry to Wile E.'s timeline with your note, stamped with today's date. From now on, his history shows this first touch — and it'll keep growing as you work the relationship. *(Under the hood: `crm_log` appending an `email` interaction on `‹wile-e›`.)*
+**What happens:** Your assistant adds an **email** entry to Wile E.'s timeline with your note, stamped with today's date. From now on, his history shows this first touch — and it'll keep growing as you work the relationship. *(Under the hood: `ikigenba_crm_log` appending an `email` interaction on `‹wile-e›`.)*
 
 **Say it your way:**
 > • "Note that I reached out to the coyote about a roller-skates demo."
@@ -448,7 +448,7 @@ A lead with no next step is a lead you'll forget. Close out Act II by giving you
 **You say:**
 > "Remind me to book a discovery call with Wile E. — let's say by next Friday."
 
-**What happens:** Your assistant creates a **task** titled "Book discovery call," attaches it to Wile E. so you know who it's about, and sets the due date you described. It starts out **open**; it'll stay on your radar until you mark it done. *(Under the hood: `crm_save` creating a task linked to `‹wile-e›`, with a due date.)*
+**What happens:** Your assistant creates a **task** titled "Book discovery call," attaches it to Wile E. so you know who it's about, and sets the due date you described. It starts out **open**; it'll stay on your radar until you mark it done. *(Under the hood: `ikigenba_crm_save` creating a task linked to `‹wile-e›`, with a due date.)*
 
 **Say it your way:**
 > • "Set a to-do: schedule a discovery call with the coyote, due Friday."
@@ -474,7 +474,7 @@ Same rhythm as before: you say it like a human, your assistant does the bookkeep
 **You say:**
 > "Just got off a great call with Wile E. He demoed the Rocket-Powered Roller Skates and asked whether the Giant Magnet is Road-Runner-rated. Log it."
 
-**What happens:** Your assistant adds a **call** to Wile E.'s timeline, with your notes as the body and the time set to now. His timeline now reads like a little story: newsletter signup, first touch, and now a real discovery call. *(Under the hood: `crm_log` adds a `call` interaction to `‹wile-e›`.)*
+**What happens:** Your assistant adds a **call** to Wile E.'s timeline, with your notes as the body and the time set to now. His timeline now reads like a little story: newsletter signup, first touch, and now a real discovery call. *(Under the hood: `ikigenba_crm_log` adds a `call` interaction to `‹wile-e›`.)*
 
 **Say it your way:**
 > • "Note that I talked to the coyote today — he wants to know if the magnet works on roadrunners."
@@ -489,7 +489,7 @@ A quick reminder from the last act: this is a *logged touch*, not a note you can
 **You say:**
 > "That call was promising — bump Wile E. up to a real opportunity."
 
-**What happens:** Your assistant moves Wile E. one rung up the relationship ladder, from **lead** to **opportunity**. Nothing else about his record changes — same email, same phone, same company, same newsletter tag. You changed one thing, so one thing moved. *(Under the hood: `crm_save` updates the contact `‹wile-e›`, setting `lifecycle` to `opportunity`. On an update, only the fields you mention change; the rest are left exactly as they were.)*
+**What happens:** Your assistant moves Wile E. one rung up the relationship ladder, from **lead** to **opportunity**. Nothing else about his record changes — same email, same phone, same company, same newsletter tag. You changed one thing, so one thing moved. *(Under the hood: `ikigenba_crm_save` updates the contact `‹wile-e›`, setting `lifecycle` to `opportunity`. On an update, only the fields you mention change; the rest are left exactly as they were.)*
 
 Notice you never said the word **"opportunity"** like it was a magic command — you said *"a real opportunity,"* and *"bump him up,"* and the agent knew which rung of the ladder you meant. That ladder, if you want the map: **subscriber → lead → opportunity → customer.** You speak in your own words; the agent picks the exact valid value.
 
@@ -504,7 +504,7 @@ Notice you never said the word **"opportunity"** like it was a magic command —
 **You say:**
 > "I booked that discovery call — actually, I already had it. Mark that task done."
 
-**What happens:** Your assistant finds your open *"book a discovery call"* task and flips it to **done**. It also quietly stamps *when* it was finished, so your history of what-got-done-when stays accurate without you tracking a single date. *(Under the hood: `crm_save` updates the task with `status: done`; `done_at` records the completion time.)*
+**What happens:** Your assistant finds your open *"book a discovery call"* task and flips it to **done**. It also quietly stamps *when* it was finished, so your history of what-got-done-when stays accurate without you tracking a single date. *(Under the hood: `ikigenba_crm_save` updates the task with `status: done`; `done_at` records the completion time.)*
 
 Completing a task really is that small — there's no separate "complete" command to learn. **Finishing something is just saving it as done.** You describe which task ("that discovery call") rather than hunting for an ID; the agent matches it to the open one and closes it out.
 
@@ -517,7 +517,7 @@ Up to now you've been remembering a *relationship.* A **deal** is where you star
 **You say:**
 > "Let's open a deal for Coyote Pursuit Industries — the Rocket-Skates & Anvil Bundle, about $48,000, aiming to close by the end of July. Wile E.'s our champion on it, and it's already qualified."
 
-**What happens:** Your assistant creates a new **deal** named *Coyote Pursuit Industries — Rocket-Skates & Anvil Bundle*, ties it to CPI, sets the amount to **$48,000**, targets a close date of **July 31, 2026** (it read "end of July" and picked the concrete date), opens it at the **qualified** stage, and lists Wile E. as a participant in the role of **champion**. One sentence from you; a fully-formed deal record. *(Under the hood: `crm_save` creates a `deal` linked to org `‹coyote-pursuit›`, with `amount_cents: 4800000`, `currency: USD`, `close_date: 2026-07-31` (a bare date, no time of day), `stage: qualified`, and a participant `{‹wile-e›, role: champion}`. Friendly handle: `‹rocket-skates-deal›`.)*
+**What happens:** Your assistant creates a new **deal** named *Coyote Pursuit Industries — Rocket-Skates & Anvil Bundle*, ties it to CPI, sets the amount to **$48,000**, targets a close date of **July 31, 2026** (it read "end of July" and picked the concrete date), opens it at the **qualified** stage, and lists Wile E. as a participant in the role of **champion**. One sentence from you; a fully-formed deal record. *(Under the hood: `ikigenba_crm_save` creates a `deal` linked to org `‹coyote-pursuit›`, with `amount_cents: 4800000`, `currency: USD`, `close_date: 2026-07-31` (a bare date, no time of day), `stage: qualified`, and a participant `{‹wile-e›, role: champion}`. Friendly handle: `‹rocket-skates-deal›`.)*
 
 **You get back:**
 > *Coyote Pursuit Industries — Rocket-Skates & Anvil Bundle* — **$48,000 USD**, stage **qualified** (status: **open**), closing Jul 31, 2026. Champion: Wile E. Coyote.
@@ -559,7 +559,7 @@ In a real CRM the single most common thing you do is write down that something h
 **You say:**
 > "Log a meeting on the Coyote Pursuit deal: talked to Wile E., he loves the rocket skates but says the budget call isn't his — there's a guy named Sam who signs off on anything that goes *boom*."
 
-**What happens:** Your assistant adds a **meeting** to the *deal's* timeline, with your note as the body and the time set to now. Notice you hung it on the deal, not on a person — and you never had to say "this is a deal, not a contact." You named what it's about; the agent worked out where the note belongs. *(Under the hood: `crm_log`, kind `meeting`, on the deal `‹rocket-skates-deal›`.)*
+**What happens:** Your assistant adds a **meeting** to the *deal's* timeline, with your note as the body and the time set to now. Notice you hung it on the deal, not on a person — and you never had to say "this is a deal, not a contact." You named what it's about; the agent worked out where the note belongs. *(Under the hood: `ikigenba_crm_log`, kind `meeting`, on the deal `‹rocket-skates-deal›`.)*
 
 **Say it your way:**
 > • "Note on the CPI deal: Wile E.'s sold, but Sam holds the purse strings."
@@ -575,7 +575,7 @@ The meeting surfaced a name you don't have yet. A new person is a new **contact*
 **You say:**
 > "Add a contact: Yosemite Sam, the rootinest, tootinest check-signer this side of the Pecos. Email sam@coyotepursuit.example, he's at Coyote Pursuit and his title's VP of Budgets."
 
-**What happens:** Your assistant creates a new **contact** for Sam, links him to **Coyote Pursuit Industries**, records his title, and files his email as the primary one (tidied to lowercase, as always). Because this is a brand-new person, the CRM first makes sure nobody with that email is already on file — no accidental second Sam. *(Under the hood: `crm_save` creating a contact, wired to the company `‹coyote-pursuit›`.)*
+**What happens:** Your assistant creates a new **contact** for Sam, links him to **Coyote Pursuit Industries**, records his title, and files his email as the primary one (tidied to lowercase, as always). Because this is a brand-new person, the CRM first makes sure nobody with that email is already on file — no accidental second Sam. *(Under the hood: `ikigenba_crm_save` creating a contact, wired to the company `‹coyote-pursuit›`.)*
 
 **Say it your way:**
 > • "New contact at CPI: Yosemite Sam, sam@coyotepursuit.example, VP of Budgets."
@@ -591,7 +591,7 @@ This is the move clunkier tools get wrong. You want to *add* Sam to the deal whi
 **You say:**
 > "Put Sam on the Coyote Pursuit deal as the decision maker. Keep Wile E. on as champion."
 
-**What happens:** Your assistant updates the deal so its roster is now both people — **Wile E. Coyote** as champion and **Yosemite Sam** as decision-maker. You said "add Sam"; the agent re-sends the *whole* roster, both names, so nobody falls off. *(Under the hood: `crm_save` updating the deal's participants — the list it sends becomes the complete roster.)*
+**What happens:** Your assistant updates the deal so its roster is now both people — **Wile E. Coyote** as champion and **Yosemite Sam** as decision-maker. You said "add Sam"; the agent re-sends the *whole* roster, both names, so nobody falls off. *(Under the hood: `ikigenba_crm_save` updating the deal's participants — the list it sends becomes the complete roster.)*
 
 **Say it your way:**
 > • "Add Sam as the money guy, leave Wile E. where he is."
@@ -607,7 +607,7 @@ Sam's at the table and the meeting went well. Time to move the deal forward. A d
 **You say:**
 > "Move the Coyote Pursuit deal to the proposal stage."
 
-**What happens:** Your assistant advances the deal from **qualified** to **proposal**. *Only* the stage changes — the roster from the last beat, the amount, the close date, all stay exactly as they were, because that's all you mentioned. And you didn't touch the deal's *status*: it's still **open** (neither won nor lost), and it stays that way on its own until the stage becomes won or lost. *(Under the hood: `crm_save`, setting the deal's `stage` to `proposal`.)*
+**What happens:** Your assistant advances the deal from **qualified** to **proposal**. *Only* the stage changes — the roster from the last beat, the amount, the close date, all stay exactly as they were, because that's all you mentioned. And you didn't touch the deal's *status*: it's still **open** (neither won nor lost), and it stays that way on its own until the stage becomes won or lost. *(Under the hood: `ikigenba_crm_save`, setting the deal's `stage` to `proposal`.)*
 
 **Say it your way:**
 > • "Bump the rocket-skates deal to proposal."
@@ -623,7 +623,7 @@ A stage change is a promise to do something. The thing here is *send the proposa
 **You say:**
 > "Remind me to send Coyote Pursuit the proposal by next Friday."
 
-**What happens:** Your assistant creates a **task** titled "Send proposal to Coyote Pursuit Industries," attaches it to the deal, and sets the due date. It starts out **open**, so it rides along on the deal until you close it. *(Under the hood: `crm_save` creating a task linked to `‹rocket-skates-deal›`, with a due date.)*
+**What happens:** Your assistant creates a **task** titled "Send proposal to Coyote Pursuit Industries," attaches it to the deal, and sets the due date. It starts out **open**, so it rides along on the deal until you close it. *(Under the hood: `ikigenba_crm_save` creating a task linked to `‹rocket-skates-deal›`, with a due date.)*
 
 **Say it your way:**
 > • "To-do: get the proposal out to CPI by Friday, and tie it to the deal."
@@ -639,7 +639,7 @@ Five small updates. Now collect the interest. Ask for the deal — by name, not 
 **You say:**
 > "Pull up the Coyote Pursuit deal."
 
-**What happens:** Your assistant looks up the deal and returns its full **card** — the deal plus all its context, assembled in a single call. *(Under the hood: `crm_get` on `‹rocket-skates-deal›`.)*
+**What happens:** Your assistant looks up the deal and returns its full **card** — the deal plus all its context, assembled in a single call. *(Under the hood: `ikigenba_crm_get` on `‹rocket-skates-deal›`.)*
 
 **You get back** — one card, fully composed:
 
@@ -671,7 +671,7 @@ When we left off, the Rocket-Skates & Anvil Bundle was sitting at stage **propos
 **You say:**
 > "Log a call on the Rocket-Skates deal: Sam wants a volume discount on the anvils before he'll sign off. He's pushing hard."
 
-**What happens:** Your assistant adds a **call** to the deal's timeline, with your note about the discount written into the body. Notice you put this one on the *deal*, not on a person — the negotiation is about the deal as a whole, so that's where it belongs. *(Under the hood: `crm_log`, kind `call`, subject `‹rocket-skates-deal›`.)*
+**What happens:** Your assistant adds a **call** to the deal's timeline, with your note about the discount written into the body. Notice you put this one on the *deal*, not on a person — the negotiation is about the deal as a whole, so that's where it belongs. *(Under the hood: `ikigenba_crm_log`, kind `call`, subject `‹rocket-skates-deal›`.)*
 
 **Say it your way:**
 > • "Add a call to the Coyote Pursuit deal — Sam's holding out for a bulk anvil discount."
@@ -684,7 +684,7 @@ When we left off, the Rocket-Skates & Anvil Bundle was sitting at stage **propos
 **You say:**
 > "We're officially negotiating now — move the deal to the negotiation stage."
 
-**What happens:** Your assistant advances the deal one rung up the stage ladder, from **proposal** to **negotiation**. The deal's *status* stays **open** — it's still in play, neither won nor lost — and you didn't have to touch the status at all, because status follows the stage automatically. *(Under the hood: `crm_save`, updating the deal's `stage` to `negotiation`.)*
+**What happens:** Your assistant advances the deal one rung up the stage ladder, from **proposal** to **negotiation**. The deal's *status* stays **open** — it's still in play, neither won nor lost — and you didn't have to touch the status at all, because status follows the stage automatically. *(Under the hood: `ikigenba_crm_save`, updating the deal's `stage` to `negotiation`.)*
 
 **Say it your way:**
 > • "Bump the deal to negotiation."
@@ -703,14 +703,14 @@ First, what went wrong:
 **You say:**
 > "Log a call on Daffy: Wile E. checked in to see if Sam's warming up to the discount."
 
-**What happens:** Your assistant dutifully adds that **call** to **Daffy Duck's** timeline — exactly as asked. The trouble is, that note belongs on Wile E., not Daffy. *(Under the hood: `crm_log`, kind `call`, subject `‹daffy-duck›` — the wrong subject.)*
+**What happens:** Your assistant dutifully adds that **call** to **Daffy Duck's** timeline — exactly as asked. The trouble is, that note belongs on Wile E., not Daffy. *(Under the hood: `ikigenba_crm_log`, kind `call`, subject `‹daffy-duck›` — the wrong subject.)*
 
 Now you catch it. Here's the important part: **a logged touch can't be edited.** You can't reach in and "move" it or "fix the name." Interactions are *append-only* — once written, the entry itself never changes. That sounds restrictive, but it's exactly what makes a timeline trustworthy: a history that can be quietly rewritten isn't really a history. So the way you correct a logged touch is to **remove the wrong one and log a fresh one** on the right subject.
 
 **You say:**
 > "That call should've been on Wile E., not Daffy. Remove it from Daffy and put it on the coyote instead."
 
-**What happens:** Your assistant does two things in sequence. First it **removes the mistaken call from Daffy's timeline** — that entry disappears from view. Then it **logs the call again**, this time on Wile E. Coyote, with the same note. Daffy's timeline is clean, Wile E.'s timeline is correct, and you described the fix in one plain sentence. *(Under the hood: `crm_delete` with type `interaction` on the mistaken entry, then a brand-new `crm_log` on `‹wile-e›`. There's no "edit interaction" — correcting one is always delete-then-re-log.)*
+**What happens:** Your assistant does two things in sequence. First it **removes the mistaken call from Daffy's timeline** — that entry disappears from view. Then it **logs the call again**, this time on Wile E. Coyote, with the same note. Daffy's timeline is clean, Wile E.'s timeline is correct, and you described the fix in one plain sentence. *(Under the hood: `ikigenba_crm_delete` with type `interaction` on the mistaken entry, then a brand-new `ikigenba_crm_log` on `‹wile-e›`. There's no "edit interaction" — correcting one is always delete-then-re-log.)*
 
 **Say it your way:**
 > • "Wrong contact — kill that call on Daffy and re-log it under Wile E."
@@ -729,14 +729,14 @@ Before you close, sanity-check the numbers:
 **You say:**
 > "Make sure the amount's still $48,000 and the close date is the end of July."
 
-**What happens:** Your assistant confirms — or sets — the deal's amount and close date. You say "$48,000" and "end of July"; the agent stores the amount as exact cents and the date in its standard format. Everything else on the deal stays put, because an update only changes the fields you mention. *(Under the hood: `crm_save` on the deal, confirming `amount_cents` 4800000 and `close_date` 2026-07-31; untouched fields are left alone.)*
+**What happens:** Your assistant confirms — or sets — the deal's amount and close date. You say "$48,000" and "end of July"; the agent stores the amount as exact cents and the date in its standard format. Everything else on the deal stays put, because an update only changes the fields you mention. *(Under the hood: `ikigenba_crm_save` on the deal, confirming `amount_cents` 4800000 and `close_date` 2026-07-31; untouched fields are left alone.)*
 
 Numbers confirmed — now close it.
 
 **You say:**
 > "We got it! Mark the Rocket-Skates deal as won."
 
-**What happens:** Your assistant sets the deal to its closing stage — **won** — the outcome that ends the deal. (Every deal finishes one of two ways: **won** or **lost**.) Because a deal's *status* is derived from its stage, the status flips from **open** to **won** on its own — you named the stage; the status updated itself. *(Under the hood: `crm_save`, updating the deal's `stage` to `won`; `status` becomes `won` on its own.)*
+**What happens:** Your assistant sets the deal to its closing stage — **won** — the outcome that ends the deal. (Every deal finishes one of two ways: **won** or **lost**.) Because a deal's *status* is derived from its stage, the status flips from **open** to **won** on its own — you named the stage; the status updated itself. *(Under the hood: `ikigenba_crm_save`, updating the deal's `stage` to `won`; `status` becomes `won` on its own.)*
 
 **Say it your way:**
 > • "Close it out as a win."
@@ -757,14 +757,14 @@ A won deal is the headline, but there's one more thing that should change: Wile 
 **You say:**
 > "Wile E.'s a real customer now — bump him up."
 
-**What happens:** Your assistant moves Wile E.'s lifecycle from **opportunity** to **customer**, the top of the ladder. Nothing else about him changes — same email, same phone, same newsletter tag, same company. You just say "he's a customer now"; the agent knows that's a lifecycle move and picks the exact value. *(Under the hood: `crm_save` on `‹wile-e›`, setting `lifecycle` to `customer`.)*
+**What happens:** Your assistant moves Wile E.'s lifecycle from **opportunity** to **customer**, the top of the ladder. Nothing else about him changes — same email, same phone, same newsletter tag, same company. You just say "he's a customer now"; the agent knows that's a lifecycle move and picks the exact value. *(Under the hood: `ikigenba_crm_save` on `‹wile-e›`, setting `lifecycle` to `customer`.)*
 
 **Say it your way:**
 > • "Promote the coyote to customer."
 > • "Wile E. went from prospect to paying customer — update him."
 > • "Mark Wile E. as a customer."
 
-Sam earned the same upgrade — he's a contact on a won deal too. Just say "Sam's a customer now as well" and the agent promotes him the same way *(`crm_save` on `‹yosemite-sam›`, `lifecycle` to `customer`)*. Two contacts, one closed deal, both now on the books as customers.
+Sam earned the same upgrade — he's a contact on a won deal too. Just say "Sam's a customer now as well" and the agent promotes him the same way *(`ikigenba_crm_save` on `‹yosemite-sam›`, `lifecycle` to `customer`)*. Two contacts, one closed deal, both now on the books as customers.
 
 ---
 
@@ -786,7 +786,7 @@ You're tidying up the morning's inbox and you go to add a contact for Wile E. Co
 **You say:**
 > "Add a contact — Wile E. Coyote, wile.e@coyotepursuit.example."
 
-**What happens:** Nothing gets created — and that's the CRM doing you a favor. Before making a new contact, it checks whether that email is already on file, finds it belongs to the Wile E. you've been working all along, and stops. Instead of quietly minting a second coyote, your assistant comes back with: "looks like he's already in here — want me to update the existing record, or make a separate one anyway?" *(Under the hood: `crm_save` tried to create, the duplicate check matched his primary email, and it handed back the existing contact instead of a twin.)*
+**What happens:** Nothing gets created — and that's the CRM doing you a favor. Before making a new contact, it checks whether that email is already on file, finds it belongs to the Wile E. you've been working all along, and stops. Instead of quietly minting a second coyote, your assistant comes back with: "looks like he's already in here — want me to update the existing record, or make a separate one anyway?" *(Under the hood: `ikigenba_crm_save` tried to create, the duplicate check matched his primary email, and it handed back the existing contact instead of a twin.)*
 
 This is the CRM catching the second purchase before it ships — a courtesy it manages for you that it never quite manages for the coyote.
 
@@ -810,21 +810,21 @@ Standup time. You want to know where the money is. Start broad — everything st
 **You say:**
 > "What deals are still open?"
 
-**What happens:** Your assistant lists every deal that hasn't been won or lost yet — the live pipeline, most-recently-touched first. *(Under the hood: `crm_search` over deals, filtered to status **open**.)*
+**What happens:** Your assistant lists every deal that hasn't been won or lost yet — the live pipeline, most-recently-touched first. *(Under the hood: `ikigenba_crm_search` over deals, filtered to status **open**.)*
 
 Then zoom into a single rung of the ladder — say, the deals stuck in proposal, where things tend to stall like the coyote mid-air, briefly weightless, holding a small sign:
 
 **You say:**
 > "Show me the deals sitting in proposal."
 
-**What happens:** You get just the deals at the **proposal** stage. *(Under the hood: `crm_search` over deals, filtered to stage **proposal**.)*
+**What happens:** You get just the deals at the **proposal** stage. *(Under the hood: `ikigenba_crm_search` over deals, filtered to stage **proposal**.)*
 
 And the part you actually look forward to:
 
 **You say:**
 > "What have we won this quarter?"
 
-**What happens:** Your assistant returns the closed-won list — every deal where the boulder, for once, landed on the *target*. *(Under the hood: `crm_search` over deals, filtered to status **won**.)*
+**What happens:** Your assistant returns the closed-won list — every deal where the boulder, for once, landed on the *target*. *(Under the hood: `ikigenba_crm_search` over deals, filtered to status **won**.)*
 
 > **Status and stage are two zoom levels on the same pipeline.** "Open / won / lost" is the three-bucket executive view; the stage — lead → qualified → proposal → negotiation → won/lost — is the fine-grained one. You don't maintain both: you set the *stage*, and the status follows. Ask in whichever terms you happen to think in; the agent reaches for the matching filter.
 
@@ -841,14 +841,14 @@ A card shows a deal's or a contact's *recent* history — the last 20 entries, w
 **You say:**
 > "Show me everything that's ever happened on the Coyote Pursuit deal."
 
-**What happens:** Your assistant pulls the deal's complete timeline — every logged interaction about it, newest first — instead of just the recent slice a card carries. *(Under the hood: `crm_search` over interactions, filtered to that deal as the subject.)*
+**What happens:** Your assistant pulls the deal's complete timeline — every logged interaction about it, newest first — instead of just the recent slice a card carries. *(Under the hood: `ikigenba_crm_search` over interactions, filtered to that deal as the subject.)*
 
 If the history is long, it comes back a page at a time. You don't manage any of that — you just say:
 
 **You say:**
 > "Keep going — show me the next page."
 
-**What happens:** Your assistant fetches the next batch, picking up exactly where the last one left off, and keeps going until you reach the start of the story — the coyote's very first ACME order. *(Under the hood: `crm_search` continues from the last entry it saw.)*
+**What happens:** Your assistant fetches the next batch, picking up exactly where the last one left off, and keeps going until you reach the start of the story — the coyote's very first ACME order. *(Under the hood: `ikigenba_crm_search` continues from the last entry it saw.)*
 
 > **The card is a preview; this is the archive.** "Recent interactions" on a card is the highlight reel; asking for the full timeline is the director's cut. And notice there's no special "timeline" tool — reading a full history is just a search with the right filter, and "next page" is just one more part of the same ask. Six moves, still no seventh.
 
@@ -860,7 +860,7 @@ Pipeline reviewed, history read — now the quarterly question: who actually *bo
 **You say:**
 > "List all our customers."
 
-**What happens:** Your assistant returns every contact whose lifecycle is **customer** — the people who, unlike a certain coyote, eventually caught what they were chasing. *(Under the hood: `crm_search` over contacts, filtered to lifecycle **customer**.)*
+**What happens:** Your assistant returns every contact whose lifecycle is **customer** — the people who, unlike a certain coyote, eventually caught what they were chasing. *(Under the hood: `ikigenba_crm_search` over contacts, filtered to lifecycle **customer**.)*
 
 The same ask answers the neighboring questions just by swapping the rung: "show me our leads," "who are the active opportunities," "list the newsletter subscribers." One move, four rosters.
 
@@ -879,7 +879,7 @@ Last chore. There's a task from three sprints ago — *"Follow up re: Spring-Pow
 **You say:**
 > "Delete that stale boxing-glove follow-up task."
 
-**What happens:** Your assistant removes the task. It vanishes from the coyote's card and won't surface in searches — gone from every view you'll ever use. *(Under the hood: `crm_delete` on the task.)*
+**What happens:** Your assistant removes the task. It vanishes from the coyote's card and won't surface in searches — gone from every view you'll ever use. *(Under the hood: `ikigenba_crm_delete` on the task.)*
 
 **Say it your way:**
 > • "Drop that old boxing-glove to-do."
@@ -903,7 +903,7 @@ Two things are worth knowing about what "delete" really means here:
 
 Here's the secret the whole CRM is built around: **you never have to learn its words.** There are exactly six things this service can do, and your assistant's job is to map whatever you actually said onto one of them. You bring the human sentence; it brings the verb.
 
-So this section is a phrasebook. Same intent, twenty ways to say it — all of them work, because they all land on the same six tools underneath: `crm_search`, `crm_get`, `crm_save`, `crm_delete`, `crm_log`, and `crm_whoami`. Say it your way; the translation is on the house.
+So this section is a phrasebook. Same intent, twenty ways to say it — all of them work, because they all land on the same six tools underneath: `ikigenba_crm_search`, `ikigenba_crm_get`, `ikigenba_crm_save`, `ikigenba_crm_delete`, `ikigenba_crm_log`, and `ikigenba_crm_health`. Say it your way; the translation is on the house.
 
 ### The one rule that makes this work
 
@@ -913,7 +913,7 @@ That's the deal. Be casual; the guardrails are downstream.
 
 ### Finding things
 
-This is the opening move on almost any request. If you're not sure what exists yet, you're searching (the assistant reaches for `crm_search`).
+This is the opening move on almost any request. If you're not sure what exists yet, you're searching (the assistant reaches for `ikigenba_crm_search`).
 
 - "Who do we know at Coyote Pursuit Industries?"
 - "Pull up the deals stuck in proposal."
@@ -923,7 +923,7 @@ This is the opening move on almost any request. If you're not sure what exists y
 
 All of those become a search — a recency-ordered list of skinny summaries (newest-touched first). Notice the last three: "tagged newsletter," "stuck in proposal," "open tasks" are *filters*, and the service knows them by name (`tag`, `stage`, `status`). You don't say `filters:{stage:"proposal"}` — you say "stuck in proposal" and let the robot type the JSON.
 
-When you want the *full picture* of one specific record, that's a different move (the assistant reaches for `crm_get`):
+When you want the *full picture* of one specific record, that's a different move (the assistant reaches for `ikigenba_crm_get`):
 
 - "Open up Wile's card."
 - "Give me everything on the rocket-skates deal."
@@ -935,7 +935,7 @@ You don't have to know an ID to start. "Find Wile" then "open his card" is two s
 
 ### Creating and changing things
 
-One verb covers organizations, contacts, deals, and tasks. Create, update, doesn't matter — it's all `crm_save`. (Interactions are the exception; those get their own verb, below.)
+One verb covers organizations, contacts, deals, and tasks. Create, update, doesn't matter — it's all `ikigenba_crm_save`. (Interactions are the exception; those get their own verb, below.)
 
 | You say… | What it does |
 |---|---|
@@ -964,7 +964,7 @@ This is a gift, not a wall. Ninety-nine times out of a hundred you meant "update
 
 ### Logging what happened
 
-The single most frequent thing you'll do: write down that something occurred. That's `crm_log`, and it's append-only — a timeline, not a whiteboard.
+The single most frequent thing you'll do: write down that something occurred. That's `ikigenba_crm_log`, and it's append-only — a timeline, not a whiteboard.
 
 - "Log a call with Wile — he's in for the rocket-skates bundle."
 - "Note: emailed Coyote Pursuit the proposal."
@@ -990,18 +990,18 @@ Every delete here is a **soft, shallow** delete: the record is removed from view
 - "Is this thing actually authenticated?"
 - "Confirm the connection works."
 
-`crm_whoami` takes no input and just reports the identity the platform established for you — your owner email and client id. It changes nothing. It's the verb you reach for once, right after setup, to prove the whole chain lit up — the handshake at the end of the wiring, not part of your daily work.
+`ikigenba_crm_health` takes no input and just reports the identity the platform established for you — your owner email and client id (alongside the shared health envelope). It changes nothing. It's the verb you reach for once, right after setup, to prove the whole chain lit up — the handshake at the end of the wiring, not part of your daily work.
 
 ### The cheat sheet
 
 | What you want | Say something like… | Verb underneath |
 |---|---|---|
-| See what exists / a list | "find," "who do we know," "show me all," "list the…" | `crm_search` |
-| The full story on one record | "open," "pull up," "everything on…" | `crm_get` |
-| Make or change a record | "add," "create," "set," "update," "tag," "remind me to…" | `crm_save` |
-| Write down what happened | "log," "note," "had a call/meeting/email…" | `crm_log` |
-| Make something go away | "delete," "remove," "drop," "get rid of…" | `crm_delete` |
-| Check who you're connected as | "who am I," "is this authenticated" | `crm_whoami` |
+| See what exists / a list | "find," "who do we know," "show me all," "list the…" | `ikigenba_crm_search` |
+| The full story on one record | "open," "pull up," "everything on…" | `ikigenba_crm_get` |
+| Make or change a record | "add," "create," "set," "update," "tag," "remind me to…" | `ikigenba_crm_save` |
+| Write down what happened | "log," "note," "had a call/meeting/email…" | `ikigenba_crm_log` |
+| Make something go away | "delete," "remove," "drop," "get rid of…" | `ikigenba_crm_delete` |
+| Check who you're connected as | "who am I," "is this authenticated" | `ikigenba_crm_health` |
 
 You don't memorize this table — your assistant does. You just keep talking. Say it your way; the six verbs will be waiting.
 

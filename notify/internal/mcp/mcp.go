@@ -1,9 +1,9 @@
 // Package mcp implements a minimal MCP transport for the /mcp endpoint and the
-// notify_* tool surface.
+// ikigenba_notify_* tool surface.
 //
-// This is the skeleton notify service: the only tool is notify_whoami, the
-// end-to-end auth proof. Real notify domain tools are added here later, wired to
-// a domain service the same way crm wires internal/contacts.
+// This is the skeleton notify service: the only tool is ikigenba_notify_health,
+// the end-to-end auth proof. Real notify domain tools are added here later, wired
+// to a domain service the same way crm wires internal/contacts.
 //
 // The transport speaks JSON-RPC 2.0 over plain HTTP POST (no SSE/streaming),
 // responding with Content-Type: application/json. It carries NO token logic:
@@ -17,6 +17,7 @@
 package mcp
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 )
@@ -28,14 +29,23 @@ type Identity struct {
 	ClientID   string
 }
 
-// Handler is the http.Handler for POST /mcp. It dispatches JSON-RPC methods.
-// The skeleton holds no domain service; a future notify domain service is
-// injected here (see NewHandler) the same way crm injects internal/contacts.
-type Handler struct{}
+// Handler is the http.Handler for POST /mcp. It is constructed at wiring time
+// with the health-envelope inputs (version, service, optional reporter) threaded
+// from appkit's Router accessors, and dispatches JSON-RPC methods. The skeleton
+// holds no domain service; a future notify domain service is injected here (see
+// NewHandler) the same way crm injects internal/contacts.
+type Handler struct {
+	version string
+	service string
+	health  func(context.Context) (map[string]any, error)
+}
 
-// NewHandler builds a Handler.
-func NewHandler() *Handler {
-	return &Handler{}
+// NewHandler builds a Handler. version/service/health populate the
+// ikigenba_notify_health envelope; health is the optional per-service reporter
+// (nil → details is {}).
+func NewHandler(version, service string,
+	health func(context.Context) (map[string]any, error)) *Handler {
+	return &Handler{version: version, service: service, health: health}
 }
 
 // ServeHTTP dispatches a single JSON-RPC 2.0 request. Identity is read from the
@@ -63,7 +73,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case "tools/list":
 		writeJSONRPCResult(w, req.ID, map[string]any{"tools": toolDescriptors()})
 	case "tools/call":
-		h.handleToolCall(w, req, id)
+		h.handleToolCall(r.Context(), w, req, id)
 	default:
 		writeJSONRPCError(w, req.ID, -32601, "method not found")
 	}

@@ -30,15 +30,43 @@ func (a *appHandler) handlePRMetadata() http.HandlerFunc {
 	}
 }
 
-// handleWhoami is the <app>_whoami proof the dashboard's connect skill uses to
-// verify the full auth chain end to end. It is behind requireIdentityHeaders, so
-// the identity is always present on the context. No side effects.
-func (a *appHandler) handleWhoami() http.HandlerFunc {
+// Envelope is the fixed health envelope rendered by BOTH the HTTP /health route
+// and every service's ikigenba_<svc>_health MCP tool, so the two cannot diverge
+// (DECISIONS §4). Required top-level keys are appkit-owned and identical for
+// every service; per-service telemetry is namespaced under details, which is
+// ALWAYS present (empty {} when a service supplies no reporter) so consumers
+// never branch on it. Required keys are reserved — a reporter contributes only
+// to details.
+func Envelope(version, service string, details map[string]any) map[string]any {
+	if details == nil {
+		details = map[string]any{}
+	}
+	return map[string]any{
+		"status":  "ok",
+		"version": version,
+		"service": service,
+		"details": details,
+	}
+}
+
+// handleHealth is the ungated liveness route (DECISIONS §5): a 200 OK is the
+// dashboard's "service up" signal, and it survives an auth outage because it
+// joins PRM and /feed as an unauthenticated route. Body: {status,version,
+// service,details} — NO identity. Renders through the shared server.Envelope so
+// it cannot drift from the MCP health tool.
+func (a *appHandler) handleHealth() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id, _ := IdentityFrom(r.Context())
-		writeJSON(w, http.StatusOK, map[string]any{
-			"owner_email": id.OwnerEmail,
-			"client_id":   id.ClientID,
-		})
+		details := map[string]any{}
+		if a.health != nil {
+			d, err := a.health(r.Context())
+			if err != nil {
+				// a reporter failure is a degraded signal, not a dead one: still
+				// 200 (liveness), surface the failure inside details.
+				details = map[string]any{"error": err.Error()}
+			} else if d != nil {
+				details = d
+			}
+		}
+		writeJSON(w, http.StatusOK, Envelope(a.version, a.service, details))
 	}
 }

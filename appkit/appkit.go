@@ -56,6 +56,12 @@ type Identity = server.Identity
 // Router.RequireIdentity).
 var IdentityFrom = server.IdentityFrom
 
+// Envelope is the single health-envelope builder both transports render through
+// (the HTTP /health route and every service's ikigenba_<svc>_health MCP tool),
+// re-exported from appkit/server so service MCP packages call appkit.Envelope(…)
+// without importing appkit/server directly (DECISIONS §4).
+var Envelope = server.Envelope
+
 // BackupReq / RestoreReq carry the resolved paths a Backup/Restore hook needs.
 // The default verbs do a minimal consistent SQLite snapshot/restore of DBPath;
 // a service overrides Spec.Backup/Spec.Restore for richer behavior (the
@@ -161,6 +167,12 @@ type Spec struct {
 	// Handler stay app-side: appkit owns the lifecycle, not the event semantics
 	// (PLAN §B1 map §3 risk 2 — appkit emits CONSUMES=, the loop is wired here).
 	Workers []func(ctx context.Context) error
+	// Health is the optional per-service telemetry reporter. When set, appkit calls
+	// it to populate the `details` object of the health envelope on BOTH the HTTP
+	// /health route and the ikigenba_<svc>_health MCP tool. Nil → details is {}.
+	// The reporter contributes ONLY to details; the required top-level keys
+	// (status/version/service) are appkit-owned and reserved (DECISIONS §3).
+	Health func(ctx context.Context) (map[string]any, error)
 	// Backup overrides the backup verb (nil = appkit's default SQLite snapshot).
 	Backup func(ctx context.Context, req BackupReq) error
 	// Restore overrides the restore verb (nil = appkit's default SQLite restore).

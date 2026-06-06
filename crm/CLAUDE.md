@@ -24,7 +24,7 @@ A loopback-only domain service. nginx (owned by the dashboard) terminates TLS,
 introspects every request via `auth_request` against the dashboard, and injects
 `X-Owner-Email` / `X-Client-Id`. This service **trusts those headers** and does
 no token validation of its own. nginx strips the `/srv/crm/` prefix, so internally
-your routes stay `/mcp`, `/whoami`, etc. Small business, ≤100 users: SQLite,
+your routes stay `/mcp`, `/health`, etc. Small business, ≤100 users: SQLite,
 single instance, is correct and deliberate.
 
 ## The domain — a polymorphic CRM (5 entities, 6 verbs)
@@ -39,9 +39,10 @@ The service is a real **sales CRM**, not an address book, and it is **MCP-only**
   **derived** from `stage`, never client-set), **task**, **interaction**
   (append-only timeline).
 - **Six fixed MCP verbs** — the surface is a function of *verbs*, not entities:
-  `crm_search`, `crm_get`, `crm_save` (loose polymorphic upsert over org/contact/
-  deal/task), `crm_delete` (shallow soft-delete), `crm_log` (append an
-  interaction), `crm_whoami`. Adding entities/fields later must **not** add tools.
+  `ikigenba_crm_search`, `ikigenba_crm_get`, `ikigenba_crm_save` (loose
+  polymorphic upsert over org/contact/deal/task), `ikigenba_crm_delete` (shallow
+  soft-delete), `ikigenba_crm_log` (append an interaction),
+  `ikigenba_crm_health`. Adding entities/fields later must **not** add tools.
 - **`internal/crm/`** is the domain package, one file per entity (each a stateless
   `<entity>Store` of pure-SQL methods on a Service-owned `*sql.Tx`), plus
   `service.go` (the dispatcher seam) and `events.go`.
@@ -66,7 +67,7 @@ The service is a real **sales CRM**, not an address book, and it is **MCP-only**
 ## Keep / port from `../crm.bak`
 
 The platform scaffolding (`db` + migration runner/WAL pragma, `ids`, `logging`,
-`server` routing/PRM/`requireIdentityHeaders`/whoami, the `mcp.go` JSON-RPC
+`server` routing/PRM/`requireIdentityHeaders`/health, the `mcp.go` JSON-RPC
 transport, the `/mcp` + `/feed` endpoints, eventplane wiring) and the audit store
 (domain mutations keyed by the header identity). The contact identity model
 (multi-email/phone normalization, primary discipline, `phonenumbers`) was ported
@@ -91,9 +92,10 @@ of `ui/`. No login, no token store, no OAuth endpoints.
 - **Redesigned the whole domain (greenfield).** The reference's contacts-only
   address book and its ~12 fine-grained `lr_crm_*` tools were dropped and
   replaced by the 5-entity CRM behind the fixed 6-verb polymorphic surface
-  (`crm_*`) described above. No REST `/contacts` routes exist or are added.
-- The no-side-effect **`crm_whoami`** tool returns the authenticated owner email —
-  the dashboard's connect skill uses it to verify the chain.
+  (`ikigenba_crm_*`) described above. No REST `/contacts` routes exist or are added.
+- The no-side-effect **`ikigenba_crm_health`** tool returns the shared health
+  envelope plus the authenticated owner email / client id — the dashboard's
+  connect skill uses it to verify the chain.
 
 ## nginx fragment (not a vhost)
 

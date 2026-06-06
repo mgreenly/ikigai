@@ -1,24 +1,32 @@
 package mcp
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
+
+	"appkit"
 )
 
-// toolDescriptors returns the fixed two-tool dropbox surface (PLAN.md §3).
+// toolPrefix brands every MCP tool name (DECISIONS §1). It is the suite name
+// ikigenba + the service name; HTTP route paths are NOT branded.
+const toolPrefix = "ikigenba_dropbox_"
+
+// tool returns the branded, fully-qualified MCP tool name. Used by BOTH
+// toolDescriptors and dispatchTool so the two sites cannot drift.
+func tool(verb string) string { return toolPrefix + verb }
+
+// toolDescriptors returns the single-tool dropbox surface (DECISIONS §7).
 // dropbox is a daemon: the service side is read-only, so there are no write
-// verbs. dropbox_whoami is the kept identity probe; dropbox_health is the
-// forward-looking status tool that returns the same identity content in v1 and
-// supersedes whoami later (the migration is additive). Both take no inputs.
+// verbs. The former dropbox_whoami identity probe and the richer dropbox_health
+// status tool have been folded into the one branded ikigenba_dropbox_health
+// tool — its sync/mirror telemetry lives under the envelope's details, supplied
+// by dropbox's Spec.Health reporter. Takes no inputs.
 func toolDescriptors() []map[string]any {
 	return []map[string]any{
-		desc("dropbox_whoami",
-			"Return the authenticated caller's identity (owner email and client id) as established by the platform's auth gate. Takes no inputs; the end-to-end auth proof. Slated to be superseded by dropbox_health.",
-			obj(map[string]any{})),
-
-		desc("dropbox_health",
-			"Health/status probe for the dropbox mirror daemon. Returns the caller's identity (owner email and client id, identical to dropbox_whoami) plus telemetry: mirror_bytes (indexed logical size), disk_free_bytes / disk_total_bytes (mirror filesystem), and failed_files (count of files the sync engine could not download). Takes no inputs.",
+		desc(tool("health"),
+			"Health + diagnostics for the dropbox service. Returns the fixed envelope (status, version, service, details) plus the authenticated caller's identity (owner_email, client_id) as established by the platform's auth gate — the end-to-end auth-chain proof. The details object carries the mirror daemon's telemetry: mirror_bytes (indexed logical size), disk_free_bytes / disk_total_bytes (mirror filesystem), and failed_files (count of files the sync engine could not download). Takes no inputs.",
 			obj(map[string]any{})),
 	}
 }
@@ -44,13 +52,13 @@ type toolCallParams struct {
 	Arguments json.RawMessage `json:"arguments"`
 }
 
-func (h *Handler) handleToolCall(w http.ResponseWriter, req jsonRPCRequest, id Identity) {
+func (h *Handler) handleToolCall(ctx context.Context, w http.ResponseWriter, req jsonRPCRequest, id Identity) {
 	var p toolCallParams
 	if err := json.Unmarshal(req.Params, &p); err != nil {
 		writeJSONRPCError(w, req.ID, -32602, "invalid params")
 		return
 	}
-	res, err := h.dispatchTool(p.Name, id)
+	res, err := h.dispatchTool(ctx, p.Name, id)
 	if err != nil {
 		writeJSONRPCResult(w, req.ID, toolResultErr(err.Error()))
 		return
@@ -58,12 +66,10 @@ func (h *Handler) handleToolCall(w http.ResponseWriter, req jsonRPCRequest, id I
 	writeJSONRPCResult(w, req.ID, res)
 }
 
-func (h *Handler) dispatchTool(name string, id Identity) (map[string]any, error) {
+func (h *Handler) dispatchTool(ctx context.Context, name string, id Identity) (map[string]any, error) {
 	switch name {
-	case "dropbox_whoami":
-		return h.toolWhoami(id)
-	case "dropbox_health":
-		return h.toolHealth(id)
+	case tool("health"):
+		return h.toolHealth(ctx, id)
 	default:
 		return nil, errors.New("unknown tool: " + name)
 	}
@@ -71,34 +77,26 @@ func (h *Handler) dispatchTool(name string, id Identity) (map[string]any, error)
 
 // ── tool implementations ─────────────────────────────────────────────────
 
-func (h *Handler) toolWhoami(id Identity) (map[string]any, error) {
-	info, err := h.svc.Whoami(id.OwnerEmail, id.ClientID)
-	if err != nil {
-		return toolResultErr(err.Error()), nil
+// toolHealth renders the shared health envelope (status/version/service/details)
+// via appkit.Envelope and then adds the authenticated caller's identity — the
+// end-to-end auth-chain proof (DECISIONS §6). dropbox supplies a reporter
+// (Spec.Health), so details carries the mirror/disk telemetry (mirror_bytes,
+// disk_free_bytes, disk_total_bytes, failed_files) — namespaced under details,
+// never splatted at the top level (DECISIONS §3).
+func (h *Handler) toolHealth(ctx context.Context, id Identity) (map[string]any, error) {
+	details := map[string]any{}
+	if h.health != nil {
+		d, err := h.health(ctx)
+		if err != nil {
+			details = map[string]any{"error": err.Error()}
+		} else if d != nil {
+			details = d
+		}
 	}
-	return toolResultJSON(map[string]any{
-		"owner_email": info.OwnerEmail,
-		"client_id":   info.ClientID,
-	})
-}
-
-func (h *Handler) toolHealth(id Identity) (map[string]any, error) {
-	info, err := h.svc.Health(id.OwnerEmail, id.ClientID)
-	if err != nil {
-		return toolResultErr(err.Error()), nil
-	}
-	// Identity (the auth proof, identical to dropbox_whoami) plus mirror/disk
-	// telemetry (PLAN.md §3): mirror_bytes = SUM(size) over the index,
-	// disk_free/total_bytes from a statfs on the mirror, failed_files = count of
-	// poison rows the engine advanced past.
-	return toolResultJSON(map[string]any{
-		"owner_email":      info.OwnerEmail,
-		"client_id":        info.ClientID,
-		"mirror_bytes":     info.MirrorBytes,
-		"disk_free_bytes":  info.DiskFreeBytes,
-		"disk_total_bytes": info.DiskTotalBytes,
-		"failed_files":     info.FailedFiles,
-	})
+	env := appkit.Envelope(h.version, h.service, details) // status/version/service/details
+	env["owner_email"] = id.OwnerEmail
+	env["client_id"] = id.ClientID
+	return toolResultJSON(env)
 }
 
 // ── shared helpers ──────────────────────────────────────────────────────

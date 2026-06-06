@@ -6,33 +6,44 @@ import (
 	"errors"
 	"net/http"
 
+	"appkit"
+
 	"ralph/internal/session"
 )
 
-// toolDescriptors returns the full ralph_* tool set: ralph_whoami (the
-// end-to-end auth proof) plus the ten session/run/fs tools, each mapped to a
-// session.Service method in dispatchTool. Schemas are hand-coded JSON Schema;
-// required fields are marked so MCP clients prompt for them.
+// toolPrefix brands every MCP tool name (DECISIONS §1). It is the suite name
+// `ikigenba` plus the service name, defined once and used in BOTH the descriptor
+// list and the dispatch switch so the two sites cannot drift.
+const toolPrefix = "ikigenba_ralph_"
+
+// tool returns the branded MCP tool name for a verb.
+func tool(verb string) string { return toolPrefix + verb }
+
+// toolDescriptors returns the full ikigenba_ralph_* tool set:
+// ikigenba_ralph_health (the auth proof + diagnostics) plus the ten
+// session/run/fs tools, each mapped to a session.Service method in dispatchTool.
+// Schemas are hand-coded JSON Schema; required fields are marked so MCP clients
+// prompt for them.
 func toolDescriptors() []map[string]any {
 	return []map[string]any{
-		desc("ralph_describe", "Return a detailed overview of ralph: what a session is, the create→run→poll→read lifecycle, the stream-json output format, the sandbox model, and a worked example. Call this first if you're unfamiliar with ralph. Takes no inputs.", obj(map[string]any{})),
+		desc(tool("describe"), "Return a detailed overview of ralph: what a session is, the create→run→poll→read lifecycle, the stream-json output format, the sandbox model, and a worked example. Call this first if you're unfamiliar with ralph. Takes no inputs.", obj(map[string]any{})),
 
-		desc("ralph_whoami", "Return the authenticated caller's identity (owner email and client id) as established by the platform's auth gate. Takes no inputs; the end-to-end auth proof.", obj(map[string]any{})),
+		desc(tool("health"), "Health + diagnostics for the ralph service. Returns the fixed envelope (status, version, service, details) plus the authenticated caller's identity (owner_email, client_id) as established by the platform's auth gate — the end-to-end auth-chain proof. Takes no inputs.", obj(map[string]any{})),
 
-		desc("ralph_session_create", "Create a new idle agent session for the caller. Returns the new session_id and its status.", obj(map[string]any{
+		desc(tool("session_create"), "Create a new idle agent session for the caller. Returns the new session_id and its status.", obj(map[string]any{
 			"prompt":        typ("string"),
 			"config":        configSchema(),
 			"name":          typ("string"),
 			"system_prompt": typ("string"),
 		}, "prompt", "config")),
 
-		desc("ralph_session_list", "List the caller's sessions.", obj(map[string]any{})),
+		desc(tool("session_list"), "List the caller's sessions.", obj(map[string]any{})),
 
-		desc("ralph_session_get", "Get one of the caller's sessions, including its latest run (last_run).", obj(map[string]any{
+		desc(tool("session_get"), "Get one of the caller's sessions, including its latest run (last_run).", obj(map[string]any{
 			"session_id": typ("string"),
 		}, "session_id")),
 
-		desc("ralph_session_update", "Update a session's name, prompt, system_prompt, and config. Rejected while the session is running.", obj(map[string]any{
+		desc(tool("session_update"), "Update a session's name, prompt, system_prompt, and config. Rejected while the session is running.", obj(map[string]any{
 			"session_id":    typ("string"),
 			"prompt":        typ("string"),
 			"system_prompt": typ("string"),
@@ -40,30 +51,30 @@ func toolDescriptors() []map[string]any {
 			"name":          typ("string"),
 		}, "session_id")),
 
-		desc("ralph_session_delete", "Delete one of the caller's sessions (and its sandbox + run logs). Rejected while running.", obj(map[string]any{
+		desc(tool("session_delete"), "Delete one of the caller's sessions (and its sandbox + run logs). Rejected while running.", obj(map[string]any{
 			"session_id": typ("string"),
 		}, "session_id")),
 
-		desc("ralph_session_run", "Start a run for one of the caller's sessions. Rejected if a run is already in flight. Returns the run status and start time.", obj(map[string]any{
+		desc(tool("session_run"), "Start a run for one of the caller's sessions. Rejected if a run is already in flight. Returns the run status and start time.", obj(map[string]any{
 			"session_id": typ("string"),
 		}, "session_id")),
 
-		desc("ralph_session_cancel", "Cancel the in-flight run for one of the caller's sessions. Idempotent.", obj(map[string]any{
+		desc(tool("session_cancel"), "Cancel the in-flight run for one of the caller's sessions. Idempotent.", obj(map[string]any{
 			"session_id": typ("string"),
 		}, "session_id")),
 
-		desc("ralph_session_output", "Read the latest run's output log (append-only stream-json, one event per line). offset is 1-based; limit caps the number of lines (<=0 means from start / no limit).", obj(map[string]any{
+		desc(tool("session_output"), "Read the latest run's output log (append-only stream-json, one event per line). offset is 1-based; limit caps the number of lines (<=0 means from start / no limit).", obj(map[string]any{
 			"session_id": typ("string"),
 			"offset":     typ("integer"),
 			"limit":      typ("integer"),
 		}, "session_id")),
 
-		desc("ralph_session_fs_list", "List entries under path within a session's sandbox folder (path defaults to the session root).", obj(map[string]any{
+		desc(tool("session_fs_list"), "List entries under path within a session's sandbox folder (path defaults to the session root).", obj(map[string]any{
 			"session_id": typ("string"),
 			"path":       typ("string"),
 		}, "session_id")),
 
-		desc("ralph_session_fs_read", "Read a file within a session's sandbox folder. offset is 1-based; limit caps the number of lines (<=0 means from start / no limit).", obj(map[string]any{
+		desc(tool("session_fs_read"), "Read a file within a session's sandbox folder. offset is 1-based; limit caps the number of lines (<=0 means from start / no limit).", obj(map[string]any{
 			"session_id": typ("string"),
 			"path":       typ("string"),
 			"offset":     typ("integer"),
@@ -109,7 +120,7 @@ func (h *Handler) handleToolCall(ctx context.Context, w http.ResponseWriter, req
 		writeJSONRPCError(w, req.ID, -32602, "invalid params")
 		return
 	}
-	res, err := dispatchTool(ctx, h.svc, p.Name, id, p.Arguments)
+	res, err := h.dispatchTool(ctx, p.Name, id, p.Arguments)
 	if err != nil {
 		// Domain/validation/sandbox errors surface as MCP tool errors
 		// (isError:true content), per the MCP convention — not JSON-RPC
@@ -159,16 +170,17 @@ func (c configInput) toConfig() session.Config {
 	}
 }
 
-func dispatchTool(ctx context.Context, svc *session.Service, name string, id Identity, args json.RawMessage) (map[string]any, error) {
+func (h *Handler) dispatchTool(ctx context.Context, name string, id Identity, args json.RawMessage) (map[string]any, error) {
+	svc := h.svc
 	owner := id.OwnerEmail
 	switch name {
-	case "ralph_describe":
+	case tool("describe"):
 		return toolDescribe()
 
-	case "ralph_whoami":
-		return toolWhoami(id)
+	case tool("health"):
+		return h.toolHealth(ctx, id)
 
-	case "ralph_session_create":
+	case tool("session_create"):
 		var in struct {
 			Prompt       string      `json:"prompt"`
 			Config       configInput `json:"config"`
@@ -189,14 +201,14 @@ func dispatchTool(ctx context.Context, svc *session.Service, name string, id Ide
 		}
 		return toolResultJSON(map[string]any{"session_id": sess.ID, "status": sess.Status})
 
-	case "ralph_session_list":
+	case tool("session_list"):
 		sessions, err := svc.List(ctx, owner)
 		if err != nil {
 			return nil, err
 		}
 		return toolResultJSON(map[string]any{"sessions": sessions})
 
-	case "ralph_session_get":
+	case tool("session_get"):
 		var in struct {
 			SessionID string `json:"session_id"`
 		}
@@ -209,7 +221,7 @@ func dispatchTool(ctx context.Context, svc *session.Service, name string, id Ide
 		}
 		return toolResultJSON(detail)
 
-	case "ralph_session_update":
+	case tool("session_update"):
 		var in struct {
 			SessionID    string      `json:"session_id"`
 			Prompt       string      `json:"prompt"`
@@ -231,7 +243,7 @@ func dispatchTool(ctx context.Context, svc *session.Service, name string, id Ide
 		}
 		return toolResultJSON(sess)
 
-	case "ralph_session_delete":
+	case tool("session_delete"):
 		var in struct {
 			SessionID string `json:"session_id"`
 		}
@@ -243,7 +255,7 @@ func dispatchTool(ctx context.Context, svc *session.Service, name string, id Ide
 		}
 		return toolResultJSON(map[string]any{"deleted": in.SessionID})
 
-	case "ralph_session_run":
+	case tool("session_run"):
 		var in struct {
 			SessionID string `json:"session_id"`
 		}
@@ -256,7 +268,7 @@ func dispatchTool(ctx context.Context, svc *session.Service, name string, id Ide
 		}
 		return toolResultJSON(map[string]any{"status": "running", "started_at": run.StartedAt, "run_id": run.ID})
 
-	case "ralph_session_cancel":
+	case tool("session_cancel"):
 		var in struct {
 			SessionID string `json:"session_id"`
 		}
@@ -268,7 +280,7 @@ func dispatchTool(ctx context.Context, svc *session.Service, name string, id Ide
 		}
 		return toolResultJSON(map[string]any{"cancelled": in.SessionID})
 
-	case "ralph_session_output":
+	case tool("session_output"):
 		var in struct {
 			SessionID string `json:"session_id"`
 			Offset    int    `json:"offset"`
@@ -283,7 +295,7 @@ func dispatchTool(ctx context.Context, svc *session.Service, name string, id Ide
 		}
 		return toolResultText(out), nil
 
-	case "ralph_session_fs_list":
+	case tool("session_fs_list"):
 		var in struct {
 			SessionID string `json:"session_id"`
 			Path      string `json:"path"`
@@ -297,7 +309,7 @@ func dispatchTool(ctx context.Context, svc *session.Service, name string, id Ide
 		}
 		return toolResultJSON(map[string]any{"entries": entries})
 
-	case "ralph_session_fs_read":
+	case tool("session_fs_read"):
 		var in struct {
 			SessionID string `json:"session_id"`
 			Path      string `json:"path"`
@@ -320,11 +332,24 @@ func dispatchTool(ctx context.Context, svc *session.Service, name string, id Ide
 
 // ── tool implementations ─────────────────────────────────────────────────
 
-func toolWhoami(id Identity) (map[string]any, error) {
-	return toolResultJSON(map[string]any{
-		"owner_email": id.OwnerEmail,
-		"client_id":   id.ClientID,
-	})
+// toolHealth renders the shared health envelope (status/version/service/details)
+// and adds the injected caller identity (owner_email/client_id) — the gated MCP
+// diagnostics surface and end-to-end auth-chain proof. details comes from the
+// optional per-service reporter (nil → {}); ralph supplies none, so details is {}.
+func (h *Handler) toolHealth(ctx context.Context, id Identity) (map[string]any, error) {
+	details := map[string]any{}
+	if h.health != nil {
+		d, err := h.health(ctx)
+		if err != nil {
+			details = map[string]any{"error": err.Error()}
+		} else if d != nil {
+			details = d
+		}
+	}
+	env := appkit.Envelope(h.version, h.service, details)
+	env["owner_email"] = id.OwnerEmail
+	env["client_id"] = id.ClientID
+	return toolResultJSON(env)
 }
 
 // ── shared helpers ──────────────────────────────────────────────────────

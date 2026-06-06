@@ -1,7 +1,7 @@
 // Package mcp implements a minimal MCP transport for the /mcp endpoint and the
-// ralph_* tool surface.
+// ikigenba_ralph_* tool surface.
 //
-// This is the skeleton ralph service: the only tool is ralph_whoami, the
+// This is the skeleton ralph service: the only tool is ikigenba_ralph_health, the
 // end-to-end auth proof. Real ralph domain tools are added here later, wired to
 // a domain service the same way crm wires internal/contacts.
 //
@@ -17,6 +17,7 @@
 package mcp
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
@@ -34,11 +35,20 @@ type Identity struct {
 // routing tools/call to the injected session.Service — the handler talks only
 // to Service, never to the store/sandbox directly, so ownership is enforced in
 // one place.
-type Handler struct{ svc *session.Service }
+type Handler struct {
+	svc     *session.Service
+	version string
+	service string
+	health  func(context.Context) (map[string]any, error)
+}
 
-// NewHandler builds a Handler over the session domain service.
-func NewHandler(svc *session.Service) *Handler {
-	return &Handler{svc: svc}
+// NewHandler builds a Handler over the session domain service. version/service/
+// health populate the shared health envelope: version and service fill its
+// required top-level keys, and the optional health reporter (nil → details
+// renders {}) populates its details object. ralph supplies no reporter.
+func NewHandler(svc *session.Service, version, service string,
+	health func(context.Context) (map[string]any, error)) *Handler {
+	return &Handler{svc: svc, version: version, service: service, health: health}
 }
 
 // ServeHTTP dispatches a single JSON-RPC 2.0 request. Identity is read from the
@@ -63,7 +73,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			// connection. The depth lives in the ralph_describe tool, paid
 			// only when an agent actually calls it.
 			"instructions": "Ralph runs sandboxed Claude agent sessions on your behalf. " +
-				"If you haven't used ralph before, call ralph_describe first — it explains " +
+				"If you haven't used ralph before, call ikigenba_ralph_describe first — it explains " +
 				"what a session is, the create→run→poll→read lifecycle, and the output " +
 				"format — then use the other tools.",
 		})

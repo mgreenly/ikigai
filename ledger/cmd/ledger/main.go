@@ -63,7 +63,8 @@ func main() {
 				return fmt.Errorf("ledger: no DB handle on router")
 			}
 			svc = ledger.NewService(conn)
-			rt.Handle("POST /mcp", rt.RequireIdentity(mcp.NewHandler(svc)))
+			rt.Handle("POST /mcp", rt.RequireIdentity(
+				mcp.NewHandler(svc, rt.Version(), rt.Service(), rt.Health())))
 			return nil
 		},
 	})

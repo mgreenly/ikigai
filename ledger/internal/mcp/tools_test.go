@@ -28,7 +28,7 @@ func newHandler(t *testing.T) *Handler {
 	if err := db.Migrate(context.Background(), conn); err != nil {
 		t.Fatalf("migrate: %v", err)
 	}
-	return NewHandler(ledger.NewService(conn))
+	return NewHandler(ledger.NewService(conn), "test-version", "ledger", nil)
 }
 
 // rpc drives one JSON-RPC call through ServeHTTP and returns the decoded result
@@ -87,8 +87,9 @@ func TestToolsList_HasEight(t *testing.T) {
 		names[tl.(map[string]any)["name"].(string)] = true
 	}
 	for _, want := range []string{
-		"ledger_record", "ledger_reverse", "ledger_reconcile", "ledger_balance",
-		"ledger_register", "ledger_get", "ledger_describe", "ledger_whoami",
+		"ikigenba_ledger_record", "ikigenba_ledger_reverse", "ikigenba_ledger_reconcile",
+		"ikigenba_ledger_balance", "ikigenba_ledger_register", "ikigenba_ledger_get",
+		"ikigenba_ledger_describe", "ikigenba_ledger_health",
 	} {
 		if !names[want] {
 			t.Errorf("tools/list missing %s", want)
@@ -96,14 +97,21 @@ func TestToolsList_HasEight(t *testing.T) {
 	}
 }
 
-func TestWhoami(t *testing.T) {
+func TestHealth(t *testing.T) {
 	h := newHandler(t)
-	p, isErr := callTool(t, h, "ledger_whoami", `{}`)
+	p, isErr := callTool(t, h, "ikigenba_ledger_health", `{}`)
 	if isErr {
-		t.Fatal("whoami isError")
+		t.Fatal("health isError")
+	}
+	if p["status"] != "ok" || p["version"] != "test-version" || p["service"] != "ledger" {
+		t.Errorf("health envelope = %v", p)
 	}
 	if p["owner_email"] != "me@example.com" || p["client_id"] != "client-123" {
-		t.Errorf("whoami = %v", p)
+		t.Errorf("health identity = %v", p)
+	}
+	details, ok := p["details"].(map[string]any)
+	if !ok || len(details) != 0 {
+		t.Errorf("health details = %v, want present and empty", p["details"])
 	}
 }
 
@@ -111,13 +119,13 @@ func TestRecordGetReverseReconcile_EndToEnd(t *testing.T) {
 	h := newHandler(t)
 
 	// describe first (the recommended first call).
-	d, _ := callTool(t, h, "ledger_describe", `{}`)
+	d, _ := callTool(t, h, "ikigenba_ledger_describe", `{}`)
 	if roots, _ := d["roots"].([]any); len(roots) != 5 {
 		t.Fatalf("describe roots = %v", d["roots"])
 	}
 
 	// record with an elided residual.
-	rec, isErr := callTool(t, h, "ledger_record", `{
+	rec, isErr := callTool(t, h, "ikigenba_ledger_record", `{
 		"date":"2026-06-01","description":"Acme — June hosting",
 		"postings":[
 			{"account":"Assets:Receivable:Acme","amount_cents":5000},
@@ -142,13 +150,13 @@ func TestRecordGetReverseReconcile_EndToEnd(t *testing.T) {
 	bankPosting := postings[0].(map[string]any)["id"].(string)
 
 	// get round-trips.
-	got, _ := callTool(t, h, "ledger_get", `{"id":"`+txnID+`"}`)
+	got, _ := callTool(t, h, "ikigenba_ledger_get", `{"id":"`+txnID+`"}`)
 	if got["id"] != txnID {
 		t.Errorf("get id = %v", got["id"])
 	}
 
 	// reconcile the first leg to cleared.
-	rc, isErr := callTool(t, h, "ledger_reconcile", `{"posting_ids":["`+bankPosting+`"],"status":"cleared"}`)
+	rc, isErr := callTool(t, h, "ikigenba_ledger_reconcile", `{"posting_ids":["`+bankPosting+`"],"status":"cleared"}`)
 	if isErr {
 		t.Fatalf("reconcile isError: %v", rc)
 	}
@@ -158,19 +166,19 @@ func TestRecordGetReverseReconcile_EndToEnd(t *testing.T) {
 	}
 
 	// balance: whole ledger sums to zero.
-	bal, _ := callTool(t, h, "ledger_balance", `{}`)
+	bal, _ := callTool(t, h, "ikigenba_ledger_balance", `{}`)
 	if bal["total"].(float64) != 0 {
 		t.Errorf("whole-ledger total = %v, want 0", bal["total"])
 	}
 
 	// register for the customer.
-	reg, _ := callTool(t, h, "ledger_register", `{"query":"Assets:Receivable:Acme"}`)
+	reg, _ := callTool(t, h, "ikigenba_ledger_register", `{"query":"Assets:Receivable:Acme"}`)
 	if lines := reg["lines"].([]any); len(lines) != 1 {
 		t.Errorf("register lines = %v", lines)
 	}
 
 	// reverse the transaction.
-	rev, isErr := callTool(t, h, "ledger_reverse", `{"id":"`+txnID+`"}`)
+	rev, isErr := callTool(t, h, "ikigenba_ledger_reverse", `{"id":"`+txnID+`"}`)
 	if isErr {
 		t.Fatalf("reverse isError: %v", rev)
 	}
@@ -178,7 +186,7 @@ func TestRecordGetReverseReconcile_EndToEnd(t *testing.T) {
 		t.Errorf("reverse reverses_id = %v", rev["reverses_id"])
 	}
 	// Double reverse blocked.
-	_, isErr = callTool(t, h, "ledger_reverse", `{"id":"`+txnID+`"}`)
+	_, isErr = callTool(t, h, "ikigenba_ledger_reverse", `{"id":"`+txnID+`"}`)
 	if !isErr {
 		t.Error("expected already_reversed error on double reverse")
 	}
@@ -188,31 +196,31 @@ func TestRecord_ErrorsSurfaceAsToolErrors(t *testing.T) {
 	h := newHandler(t)
 
 	// Unknown root → bad_root.
-	p, isErr := callTool(t, h, "ledger_record", `{"date":"2026-06-01","description":"x","postings":[{"account":"Bogus:Acct","amount_cents":1},{"account":"Assets:Bank","amount_cents":-1}]}`)
+	p, isErr := callTool(t, h, "ikigenba_ledger_record", `{"date":"2026-06-01","description":"x","postings":[{"account":"Bogus:Acct","amount_cents":1},{"account":"Assets:Bank","amount_cents":-1}]}`)
 	if !isErr || errCode(p) != "bad_root" {
 		t.Errorf("bad root: isErr=%v payload=%v", isErr, p)
 	}
 
 	// Unbalanced explicit postings → unbalanced.
-	p, isErr = callTool(t, h, "ledger_record", `{"date":"2026-06-01","description":"x","postings":[{"account":"Assets:Bank","amount_cents":5000},{"account":"Income:Hosting","amount_cents":-4000}]}`)
+	p, isErr = callTool(t, h, "ikigenba_ledger_record", `{"date":"2026-06-01","description":"x","postings":[{"account":"Assets:Bank","amount_cents":5000},{"account":"Income:Hosting","amount_cents":-4000}]}`)
 	if !isErr || errCode(p) != "unbalanced" {
 		t.Errorf("unbalanced: isErr=%v payload=%v", isErr, p)
 	}
 
 	// Fewer than two postings → validation.
-	p, isErr = callTool(t, h, "ledger_record", `{"date":"2026-06-01","description":"x","postings":[{"account":"Assets:Bank","amount_cents":0}]}`)
+	p, isErr = callTool(t, h, "ikigenba_ledger_record", `{"date":"2026-06-01","description":"x","postings":[{"account":"Assets:Bank","amount_cents":0}]}`)
 	if !isErr || errCode(p) != "validation" {
 		t.Errorf("one-posting: isErr=%v payload=%v", isErr, p)
 	}
 
 	// Bad date → validation.
-	p, isErr = callTool(t, h, "ledger_record", `{"date":"2026-6-1","description":"x","postings":[{"account":"Assets:Bank","amount_cents":1},{"account":"Income:Hosting","amount_cents":-1}]}`)
+	p, isErr = callTool(t, h, "ikigenba_ledger_record", `{"date":"2026-6-1","description":"x","postings":[{"account":"Assets:Bank","amount_cents":1},{"account":"Income:Hosting","amount_cents":-1}]}`)
 	if !isErr || errCode(p) != "validation" {
 		t.Errorf("bad date: isErr=%v payload=%v", isErr, p)
 	}
 
 	// Get of a missing id → not_found.
-	p, isErr = callTool(t, h, "ledger_get", `{"id":"NOPE"}`)
+	p, isErr = callTool(t, h, "ikigenba_ledger_get", `{"id":"NOPE"}`)
 	if !isErr || errCode(p) != "not_found" {
 		t.Errorf("not_found: isErr=%v payload=%v", isErr, p)
 	}
@@ -224,12 +232,12 @@ func TestBalance_PeriodBucketAndRange(t *testing.T) {
 	mustRecord(t, h, `{"date":"2026-07-15","description":"july","postings":[{"account":"Expenses:Office","amount_cents":2000},{"account":"Assets:Bank","amount_cents":-2000}]}`)
 
 	// Bucket "2026-06" → only June's 1000.
-	bal, _ := callTool(t, h, "ledger_balance", `{"query":"Expenses","period":"2026-06"}`)
+	bal, _ := callTool(t, h, "ikigenba_ledger_balance", `{"query":"Expenses","period":"2026-06"}`)
 	if total := bal["total"].(float64); total != 1000 {
 		t.Errorf("June expenses total = %v, want 1000", total)
 	}
 	// Range covering both months.
-	bal, _ = callTool(t, h, "ledger_balance", `{"query":"Expenses","period":{"from":"2026-06-01","to":"2026-07-31"}}`)
+	bal, _ = callTool(t, h, "ikigenba_ledger_balance", `{"query":"Expenses","period":{"from":"2026-06-01","to":"2026-07-31"}}`)
 	if total := bal["total"].(float64); total != 3000 {
 		t.Errorf("range expenses total = %v, want 3000", total)
 	}
@@ -237,7 +245,7 @@ func TestBalance_PeriodBucketAndRange(t *testing.T) {
 
 func mustRecord(t *testing.T, h *Handler, args string) {
 	t.Helper()
-	if _, isErr := callTool(t, h, "ledger_record", args); isErr {
+	if _, isErr := callTool(t, h, "ikigenba_ledger_record", args); isErr {
 		t.Fatalf("record failed: %s", args)
 	}
 }
