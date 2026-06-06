@@ -27,6 +27,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 
 	"appkit"
@@ -114,10 +115,21 @@ func main() {
 			ip := config.EnvOr(os.Getenv, "DROPBOX_IP", "127.0.0.1")
 			contentBase = "http://" + ip + ":" + strconv.Itoa(port)
 
-			// The private local mirror (PLAN.md §4): a 0750 subdir of data/. Dev
-			// default ./tmp/mirror; the box sets DROPBOX_MIRROR_PATH=/opt/dropbox/data/
-			// mirror.
-			mirrorPath := config.EnvOr(os.Getenv, "DROPBOX_MIRROR_PATH", "./tmp/mirror")
+			// The private local mirror (PLAN.md §4): a 0750 subdir of data/. An
+			// explicit DROPBOX_MIRROR_PATH always wins. Otherwise derive it from the
+			// data dir: on the box opsctl stamps DROPBOX_DB_PATH=/opt/dropbox/data/
+			// dropbox.db, so the mirror lands at /opt/dropbox/data/mirror (a writable
+			// subdir of data/, owned by the service user) rather than the cwd-relative
+			// ./tmp default which is unwritable under /opt/dropbox. Falls back to the
+			// dev default ./tmp/mirror when neither env var is set.
+			mirrorPath := os.Getenv("DROPBOX_MIRROR_PATH")
+			if mirrorPath == "" {
+				if dbPath := os.Getenv("DROPBOX_DB_PATH"); dbPath != "" {
+					mirrorPath = filepath.Join(filepath.Dir(dbPath), "mirror")
+				} else {
+					mirrorPath = "./tmp/mirror"
+				}
+			}
 			mirror, err := dropbox.NewMirror(mirrorPath)
 			if err != nil {
 				return fmt.Errorf("mirror: %w", err)
