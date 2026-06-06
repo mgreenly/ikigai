@@ -132,8 +132,9 @@ into the binary at E6 — bare invocation = the operator cert+S3+DB snapshot;
 `dashboard manifest`. The dashboard **derives** its OAuth-AS resource list at
 startup from the on-box service manifests (`/opt/*/etc/manifest.env`, `MCP=true`,
 via `DASHBOARD_MANIFEST_ROOT`) — there is **no** hardcoded env resource list.
-Shipping is the shared repo-root `bin/deploy dashboard [version]` → `optctl
-install`; provisioning is `optctl init-box` (box-global) + `optctl setup
+Shipping is the shared repo-root `bin/deploy dashboard` (no version arg; version is
+the committed `dashboard/VERSION`, advanced by `bin/bump dashboard <field>`) →
+`optctl install`; provisioning is `optctl init-box` (box-global) + `optctl setup
 dashboard` (per-app). The only `bin/*` scripts it still carries are `start`/`stop`
 (systemd control), `secrets` (SSM seeding), and `teardown` (box removal — no
 optctl verb yet). Drop everything `contacts`/`mcp-crm` from the port — that is the

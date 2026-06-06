@@ -116,13 +116,31 @@ the verb dispatcher) lives in the shared `appkit` library, consumed via a
 committed `replace appkit => ../appkit` (like `eventplane`/`agentkit`); **libs are
 never tagged.**
 
-**Build + ship is the *shared* repo-root `bin/deploy <app> [version]`.** It owns
-the off-box build half only: it builds the **tagged commit** (`<app>/vX.Y.Z`) in a
-throwaway `git worktree` (`CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GOWORK=off
--trimpath -buildvcs=false`, ldflags stamping `appkit.version`/`appkit.commit`),
-`scp`s the single artifact to the box `/tmp`, then runs `ssh sudo optctl install
-<app> <version> --artifact …`. No install logic runs on the laptop. With no
-version it builds the latest `<app>/*` tag.
+**Versioning lives in a committed `<app>/VERSION` file, not git tags.** Each of
+the seven deployable services carries a committed `<app>/VERSION` — a **bare**
+SemVer number (e.g. `0.1.1`, no leading `v`), one line, the single source of
+truth. `bin/bump <app> <major|minor|patch>` advances it: it reads the file,
+increments the field, writes the new bare number back, makes a **path-limited**
+commit of only that file directly to `main`, then `git push origin main`. Libraries
+(`appkit`/`eventplane`/`agentkit`) and `optctl` are **not** versioned. **Git tags
+are no longer the version mechanism** — no `git tag <app>/vX.Y.Z`, no
+`git describe`; any surviving release tags are vestigial and drive nothing. The
+version state lives in `main`'s commit history, made durable/immutable by branch
+protection (a GitHub ruleset blocking force-push + branch deletion, requiring
+linear history). The full how-to is `docs/versioning.md`.
+
+**Build + ship is the *shared* repo-root `bin/deploy <app>`** (no version arg). It
+owns the off-box build half only: it builds **current `main` (HEAD)** in a
+throwaway detached `git worktree` (`CGO_ENABLED=0 GOOS=linux GOARCH=amd64
+GOWORK=off -trimpath -buildvcs=false`, ldflags stamping
+`appkit.version`/`appkit.commit`), reads the version from **that worktree's**
+`<app>/VERSION` and prepends `v`, `scp`s the single artifact to the box `/tmp`,
+then runs `ssh sudo optctl install <app> v<version> --artifact …`. No install logic
+runs on the laptop. The commit SHA stamped into the binary (`appkit.commit`) pins
+the app code and its committed `replace … => ../<lib>` library trees together —
+one commit = one reproducible build (the job a tag used to do). `-buildvcs=false`
+stays mandatory (the module is a subdir of a bare mono-repo `.git`, so Go's auto
+VCS stamp would abort) and `GOWORK=off` keeps the prod build deterministic.
 
 **`optctl` (on-box, `/usr/local/bin/optctl`, run via `sudo`) owns everything on
 the box** — release dirs, atomic swap, migrate, restart, rollback, prune, and
@@ -230,7 +248,8 @@ seconds.) Until that restart, the new service's `/srv/<svc>/mcp` 401 omits
 2. deploy any **producer it consumes first** (e.g. crm's `/feed`) so it's live,
 3. `optctl setup <svc>` (provision) — `optctl init-box` first only on a brand-new
    box,
-4. tag `<svc>/vX.Y.Z`, then `bin/deploy <svc> vX.Y.Z` (build off-box → `optctl
+4. `bin/bump <svc> <major|minor|patch>` (advance the committed `<svc>/VERSION` on
+   `main`), then `bin/deploy <svc>` (build current `main` off-box → `optctl
    install` → migrate → atomic swap → start),
 5. restart the dashboard so it re-reads the manifests (picks up the new
    `MCP=true` service automatically),

@@ -73,9 +73,11 @@ and secrets never land on the box or in a log.
 
 Replace the model with a **uniform app contract** (`appkit`), an **on-box
 platform CLI** (`optctl`), **versioned release directories with atomic symlink
-swap and rollback**, **per-service `<app>/vX.Y.Z` tags**, and a **single thin
-shared `deploy` wrapper**. Five forks resolved in `PLAN.md` §4 are folded in
-(see *Resolved decisions* at the end of this section).
+swap and rollback**, **per-service committed `<app>/VERSION` files** (the version
+source of truth — superseding the originally-planned per-service `<app>/vX.Y.Z`
+tags), and a **single thin shared `deploy` wrapper** (plus its `bin/bump`
+companion). Five forks resolved in `PLAN.md` §4 are folded in (see *Resolved
+decisions* at the end of this section).
 
 ### 1. The App Contract — "an ikigai app is exactly this"
 
@@ -199,47 +201,71 @@ Verbs: `install · rollback · backup · restore · setup · init-box · prune`
   data/<app>.db                   # state — NEVER touched by deploy
 ```
 
-The release dir on the box **strips the `<app>/` tag prefix** → a tag
-`ledger/v1.4.0` becomes `releases/v1.4.0/`. `/opt/<app>/bin/run` and
-`/opt/<app>/etc/manifest.env` stay as stable paths at all times (the symlink and
+The release dir on the box is named `v<version>` → `ledger/VERSION` of `1.4.0`
+becomes `releases/v1.4.0/` (`bin/deploy` prepends the `v`). `/opt/<app>/bin/run`
+and `/opt/<app>/etc/manifest.env` stay as stable paths at all times (the symlink
+and
 the regenerated file), so the baked `metaspot-launch`, `bin/registry`, and the
 dashboard's manifest-derived resource list are all untouched and remain valid
 mid-swap.
 
-### 5. `deploy <app> [version]` — the thin local wrapper
+### 5. `deploy <app>` — the thin local wrapper (+ `bump`)
 
 **One shared script** (repo-root `bin/deploy`) replaces the seven cloned
-`*/bin/deploy`. Its body: source the app's `deploy.env` → off-box `go build`
-(`CGO_ENABLED=0 GOOS=linux GOARCH=amd64 -trimpath -buildvcs=false GOWORK=off`,
-ldflags version stamp) → `scp` the single artifact to the box `/tmp` →
-`ssh sudo optctl install <app> <version> --artifact /tmp/…`. **No install logic
-runs on the laptop** — the box-side install is entirely `optctl`'s job. The
-build is from the **tagged commit** via a throwaway `git worktree` (reproducible,
-doesn't disturb the operator's working tree). `deploy <app>` with no version
-defaults to the latest `<app>/*` tag.
+`*/bin/deploy`. It takes **no version argument**: the version is the committed
+`<app>/VERSION` file. Its body: source the app's `deploy.env` → build **current
+`main` (HEAD)** in a throwaway detached `git worktree` (reproducible, doesn't
+disturb the operator's working tree) → off-box `go build` (`CGO_ENABLED=0
+GOOS=linux GOARCH=amd64 -trimpath -buildvcs=false GOWORK=off`, ldflags version
+stamp) → read the version from **that worktree's** `<app>/VERSION` and prepend
+`v` → `scp` the single artifact to the box `/tmp` → `ssh sudo optctl install
+<app> v<version> --artifact /tmp/…`. **No install logic runs on the laptop** —
+the box-side install is entirely `optctl`'s job.
+
+The companion **`bin/bump <app> <major|minor|patch>`** is how the version is
+advanced: it reads `<app>/VERSION`, increments the requested SemVer field, writes
+the new bare number back, makes a **path-limited** commit of only that file
+directly to `main` (`git commit … -- "<app>/VERSION"`), and pushes. `bump`
+decides the version; `deploy` builds + ships current `main`. The operator-facing
+how-to is [`versioning.md`](./versioning.md).
 
 ### 6. Versioning
 
-> **Operator how-to:** the concrete tag→deploy procedure (cutting a tag, the
-> `git describe` resolution, the SHA+dirty co-stamp, the box release-dir prefix
-> strip) is written up step-by-step in
-> [`versioning-and-tagging.md`](./versioning-and-tagging.md).
+> **Superseded — file, not tags.** This section originally specified per-service
+> `<app>/vX.Y.Z` git tags resolved via `git describe`. The implemented model
+> instead keeps the version in a **committed `<app>/VERSION` file** on `main`; git
+> tags drive nothing (any that survive are vestigial). The section below is the
+> current model.
+
+> **Operator how-to:** the concrete bump→deploy procedure (`bin/bump`, the
+> `<app>/VERSION` source of truth, the SHA+dirty co-stamp, the box release-dir
+> naming) is written up step-by-step in [`versioning.md`](./versioning.md).
 
 - **Independent per-service.** The suite has **no global version**.
-- Tags `<app>/vX.Y.Z` on the **one** mono-repo — a single shared tag namespace;
-  the slash is a naming convention, not a directory boundary. A tag pins the
-  app's code **and** its library source (via `replace`) atomically.
-- **Libraries (`eventplane`, `agentkit`, `appkit`) are NOT tagged** — consumed
-  at HEAD via `replace` + `require … v0.0.0`. **HARD RULE: never convert an
-  internal `replace` into a versioned `require`** (it drags in the proxy +
-  subdir-tag machinery this design routes around).
+- The version source of truth is the committed file **`<app>/VERSION`** — a bare
+  SemVer number (no leading `v`), one per deployable service, on the **one**
+  mono-repo's `main`. The **commit** that lands a `VERSION` change pins the app's
+  code **and** its library source (via the committed `replace` directives)
+  atomically — the job a tag used to do. `bin/bump <app> <field>` advances it
+  (path-limited commit to `main` + push); `bin/deploy <app>` builds current `main`
+  and ships that committed version. **Git tags are NOT the version mechanism**
+  (no `git tag <app>/vX.Y.Z`, no `git describe`); the `v` is a deploy-time
+  display prefix only.
+- **Libraries (`eventplane`, `agentkit`, `appkit`) and `optctl` are NOT
+  versioned** — the libs are consumed at HEAD via `replace` + `require … v0.0.0`,
+  carry no `VERSION` file. **HARD RULE: never convert an internal `replace` into a
+  versioned `require`** (it drags in the proxy + subdir machinery this design
+  routes around).
 - Always **co-stamp git SHA + dirty** alongside the version (because
   `-buildvcs=false` drops the auto VCS stamp, the SHA is re-added via ldflags).
-- **"What's deployed" is answered three ways:** the binary self-reports
-  (`<app> version`) — the box can't lie; git tags = history; `releases/` +
-  `current` = the on-box ledger.
-- **No release tooling now** — git tags + `git describe --match '<app>/*'` +
-  ldflags. GoReleaser / release-please only if/when GitHub Actions arrives.
+  The stamped commit SHA (`appkit.commit`) is what answers "what built this".
+- **"What's deployed" is answered two ways:** the binary self-reports
+  (`<app> version` → `v<x.y.z> (<sha>)`) — the box can't lie; `releases/` +
+  `current` = the on-box ledger. The version history itself lives in `main`'s
+  commits (the `<app>/VERSION` ledger), made immutable by branch protection.
+- **No release tooling now** — `bin/bump` (file edit + commit) + `bin/deploy`
+  (build current `main`) + ldflags. GoReleaser / release-please only if/when
+  GitHub Actions arrives.
 
 ### `optctl` — per-verb internals
 
@@ -348,22 +374,28 @@ file and nginx fragment it emits match what the old `bin/setup` produced.
 
 ### Resolved decisions (PLAN.md §4 — ratified leans, subject to user sign-off)
 
-1. **Version scheme: loose SemVer** (`<app>/vX.Y.Z`) — standard, tooling-friendly
-   (`git describe`, ldflags), no global suite version.
+1. **Version scheme: loose SemVer, per service, no global suite version.** As
+   ratified this was loose SemVer *tags* `<app>/vX.Y.Z` (resolved via
+   `git describe`); **superseded in implementation** by a committed bare-SemVer
+   `<app>/VERSION` file on `main` (advanced by `bin/bump`, stamped into the binary
+   via ldflags). The commit on `main` — not a tag — now pins the build; tags drive
+   nothing.
 2. **`backup`/`restore`: folded into the binary** as fixed subcommands — the
    one-static-binary contract depends on it.
 3. **`metaspot-launch`: additive first** — leave the baked launcher untouched
    (it is a load-bearing stable-path contract); add `optctl launch` later.
-4. **`deploy` build-from-tag: throwaway `git worktree`** — reproducible build of
-   the exact tagged commit without disturbing the working tree.
+4. **`deploy` build source: throwaway `git worktree`** — reproducible build
+   without disturbing the working tree. (Originally a checkout of the *tagged*
+   commit; in the implemented file model it is a detached checkout of **current
+   `main` (HEAD)**, whose committed `<app>/VERSION` supplies the version.)
 5. **On-box grouping: keep `/opt/<app>`** — a move to `/opt/srv/<app>` would
    ripple through the launcher, `bin/registry`, and the dashboard's
    manifest-derived resource list for no P1 benefit.
 
 ### Phasing of capability
 
-- **P1 (this design):** operator pushes tagged builds into versioned release
-  dirs — full versioning + rollback immediately, no new infra.
+- **P1 (this design):** operator ships builds of committed `main` into versioned
+  release dirs — full versioning + rollback immediately, no new infra.
 - **P2 (later):** S3 artifacts bucket + box-pull (`optctl install --artifact
   s3://…`, new IAM) — enables CI, multi-box, dashboard-initiated deploy.
 - **P3 (optional):** GitHub Actions builds+publishes on tag, box pulls. CI must
@@ -383,8 +415,10 @@ appliance ethos), git-pull-build on the box (the box never compiles), Nix
   an `ln -sfn` cutover mean a failed start is one `optctl rollback` from the
   prior version, schema-aware (DB restored when the rolled-back-from release had
   advanced the schema).
-- **"What's deployed" is answerable three ways** — the self-reporting binary
-  (the box can't lie), git tags, and the on-box `releases/`+`current` ledger.
+- **"What's deployed" is answerable two ways** — the self-reporting binary (the
+  box can't lie) and the on-box `releases/`+`current` ledger; the version *history*
+  lives in `main`'s committed `<app>/VERSION` ledger (immutable under branch
+  protection).
 - **One deploy path, not seven.** A single shared `bin/deploy` wrapper + one
   `optctl` replace the seven cloned `bin/build`+`bin/deploy` stacks; the
   artifact shrinks to one static binary (no wrapper, no bundled registry).
@@ -426,8 +460,12 @@ bugs):**
   must be deterministic via each consumer's committed `replace` directives
   (`eventplane`, `agentkit` where present, and `appkit`), with no network fetch
   of the in-repo library trees.
-- `git describe --match '<app>/*'` for the version — without the per-app match,
-  the single shared tag namespace cross-contaminates services.
+- ~~`git describe --match '<app>/*'` for the version — without the per-app match,
+  the single shared tag namespace cross-contaminates services.~~ **Superseded:**
+  there is no `git describe` and no tag namespace. The version is read from the
+  committed `<app>/VERSION` file (per service by construction, so no
+  cross-contamination is possible); `bin/deploy` reads it from the build
+  worktree's copy and stamps it via ldflags.
 - the ldflags `-X` target must be a **`var`**, not a `const` — `-X` against a
   `const` is silently ignored, leaving the `dev` default.
 

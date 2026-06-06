@@ -104,9 +104,10 @@ verbs, no `run` wrapper. `etc/manifest.env` (`APP=notify`, `MOUNT=/srv/notify/`,
 `CONSUMES=crm`) is emitted by `notify manifest`; the public consumer config
 (`NOTIFY_FROM`, `NOTIFY_NTFY_BASE_URL`, the feed URL resolved by name via
 `bin/registry`) is read from env at the composition root, and the ntfy secrets
-flow via app-config only. Shipping is the shared repo-root `bin/deploy notify
-[version]` → `optctl install` (which regenerates the on-box manifest on every
-swap); provisioning is `optctl setup notify`. The only `bin/*` scripts notify
+flow via app-config only. Shipping is the shared repo-root `bin/deploy notify`
+(no version arg; version is the committed `notify/VERSION`, advanced by
+`bin/bump notify <field>`) → `optctl install` (which regenerates the on-box
+manifest on every swap); provisioning is `optctl setup notify`. The only `bin/*` scripts notify
 still carries are `start`/`stop` (systemd control) and `secrets` (SSM seeding). No
 `plugin/` in this repo. notify is a consumer with no generation sidecar, so
 restore is trivial: a consumer restored from an older snapshot simply replays from

@@ -111,7 +111,8 @@ crm is one static appkit binary (the `appkit.Main(appkit.Spec{…})` contract):
 `MOUNT=/srv/crm/`, `DEFAULT=false`, `PORT=3001`, `MCP=true`; producer, so it also
 round-trips `FEED` + the `OUTBOX_RETENTION_*` config) is emitted by `crm manifest`
 and regenerated on the box by `optctl install` on every swap. Shipping is the
-shared repo-root `bin/deploy crm [version]` → `optctl install`; provisioning is
+shared repo-root `bin/deploy crm` (no version arg; version is the committed
+`crm/VERSION`, advanced by `bin/bump crm <field>`) → `optctl install`; provisioning is
 `optctl setup crm`. The only `bin/*` scripts crm still carries are `start`/`stop`
 (systemd control), plus `backup`/`restore` (operator-side S3 tooling — see
 below). No `plugin/` in this repo. **Backup note:** the binary's `backup`/

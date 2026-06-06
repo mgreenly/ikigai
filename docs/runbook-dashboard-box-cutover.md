@@ -20,8 +20,9 @@ the install: the new binary then creates and migrates a fresh DB to v5. That is
 the only difference from a normal `bin/deploy dashboard`.
 
 > **Cutover in one line:** stop → (optional backup) → drop/reset the DB →
-> `bin/deploy dashboard <ver>` (off-box build → `optctl install`) → restart →
-> verify. No bespoke `schema_migrations` rewrite, no data preservation.
+> `bin/deploy dashboard` (no version arg; off-box build of current `main` →
+> `optctl install`) → restart → verify. No bespoke `schema_migrations` rewrite,
+> no data preservation.
 
 ---
 
@@ -184,40 +185,44 @@ ssh … 'ls -l /opt/dashboard/data/ || true'
 
 ---
 
-## 3. Tag + deploy the converted dashboard
+## 3. Bump + deploy the converted dashboard
 
-### 3a. Create the release tag
+### 3a. Set the release version
 
-`bin/deploy` builds from a **git tag** named `dashboard/<version>` (F1 formalized
-tagging + ldflags). Tag the committed, converted `dashboard`. Throughout this
-runbook `vX.Y.Z` is a placeholder — substitute the actual next free version
-(the first cutover shipped `v0.1.0`).
+The version source of truth is the committed file `dashboard/VERSION` (a **bare**
+number, no leading `v`). `bin/bump dashboard <field>` advances it (commits
+`dashboard/VERSION` to `main` + pushes); git tags are no longer the version
+mechanism. Throughout this runbook `vX.Y.Z` is a placeholder — substitute the
+actual version committed in `dashboard/VERSION` (the first cutover shipped
+`v0.1.0`).
 
 ```
-git tag -a dashboard/vX.Y.Z -m 'dashboard vX.Y.Z — appkit/optctl cutover'
-git tag --list 'dashboard/*'
+cat dashboard/VERSION             # -> the bare X.Y.Z that will ship as vX.Y.Z
+# (or, to advance:  bin/bump dashboard patch)
 ```
 
-- Expected: `git tag --list 'dashboard/*'` lists the new `dashboard/vX.Y.Z` tag.
-  (Pick the next free version if it already exists.)
-- Abort/restore: `git tag -d dashboard/vX.Y.Z` (local-only; nothing shipped).
+- Expected: `dashboard/VERSION` holds the bare `X.Y.Z` on `main`.
+- Abort/restore: a version bump is a path-limited commit on `main`; nothing is
+  shipped to the box until `bin/deploy`.
 
 ### 3b. Deploy it (real run)
 
-`bin/deploy <app> [version]` maps the bare `vX.Y.Z` to the tag
-`dashboard/vX.Y.Z`, builds in a throwaway detached worktree
+`bin/deploy <app>` (no version arg) builds current `main` (HEAD) in a throwaway
+detached worktree
 (`CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GOWORK=off -trimpath -buildvcs=false`,
-ldflags-stamped), `scp`s the single artifact, then runs the box half:
+ldflags-stamped), reads the version from that worktree's `dashboard/VERSION`
+(→ `vX.Y.Z`), `scp`s the single artifact, then runs the box half:
 `ssh sudo optctl install dashboard vX.Y.Z --artifact /tmp/dashboard-vX.Y.Z`.
 
 ```
-bin/deploy dashboard vX.Y.Z
+bin/deploy dashboard
 ```
 
 - Expected (workstation side, the `>>` lines from `bin/deploy`):
   ```
-  >> dashboard: tag dashboard/vX.Y.Z -> release vX.Y.Z (commit <sha>)
-  >> git worktree add --detach <tmp> dashboard/vX.Y.Z
+  >> dashboard: building current main (HEAD <sha>)
+  >> git worktree add --detach <tmp> HEAD
+  >> dashboard: release vX.Y.Z (commit <sha>)
   >> build dashboard -> <tmp-artifact>/dashboard
   >> built dashboard (<size>)
   >> scp dashboard vX.Y.Z -> ai.metaspot.org:/tmp/dashboard-vX.Y.Z
@@ -355,8 +360,9 @@ release and restarts. Because this cutover **advanced the schema from a fresh
 DB**, the downgrade-guard/snapshot behavior applies in principle (rolling back to
 a release that embeds fewer migrations would restore the pre-migration snapshot
 first) — but with **no DB-preservation requirement**, rollback here is
-low-stakes: if anything is wrong, the simplest recovery is to fix the cause and
-re-`bin/deploy dashboard <next-ver>` (the artifact is rebuildable from the tag).
+low-stakes: if anything is wrong, the simplest recovery is to fix the cause, bump
+`dashboard/VERSION` (`bin/bump dashboard <field>`), and re-run `bin/deploy
+dashboard` (the artifact is rebuildable from the committed `main` history).
 
 - **On a failed first new-layout install** (no prior new-layout release to roll
   back to): the dashboard is stopped/DB-reset; fix the cause and re-run `bin/deploy
@@ -382,8 +388,9 @@ curl -s -o /dev/null -w '%{http_code}\n' https://ai.metaspot.org/   # 200/302
 
 ## Cleanup (optional, after a successful cutover)
 
-Leave `dashboard` deployed (it is the live apex app) and the `dashboard/vX.Y.Z`
-tag in place. The throwaway `bin/deploy` worktree and `/tmp` artifacts are
-removed automatically (the wrapper's `trap cleanup EXIT`). The optional
+Leave `dashboard` deployed (it is the live apex app); the shipped version stays
+recorded in the committed `dashboard/VERSION` on `main`. The throwaway `bin/deploy`
+worktree and `/tmp` artifacts are removed automatically (the wrapper's `trap
+cleanup EXIT`). The optional
 `/opt/dashboard/data/*.pre-cutover*` snapshot from §2a can be removed once you
 are satisfied — it is not needed (no DB preservation).

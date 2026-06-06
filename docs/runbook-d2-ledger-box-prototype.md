@@ -187,37 +187,42 @@ ssh -i ~/.ssh/id_ed25519_ai4mgreenly ec2-user@ai.metaspot.org \
 
 ---
 
-## 3. Tag + deploy v1
+## 3. Bump + deploy v1
 
-### 3a. Create the release tag
+### 3a. Set the release version
 
-`bin/deploy` builds from a **git tag** named `ledger/<version>` (see `bin/deploy`
-lines 110–134). F1 later formalizes tagging + ldflags; for now a plain annotated
-tag on the current committed `ledger` is sufficient.
+The version source of truth is the committed file `ledger/VERSION` (a **bare**
+number, e.g. `0.1.0`). `bin/bump ledger <field>` advances it (commits `ledger/VERSION`
+to `main` + pushes); for this first release ensure the committed value is `0.1.0`
+(`cat ledger/VERSION`, or `bin/bump ledger patch`/`minor` to land on it). Git tags
+are no longer the version mechanism.
 
 ```
-git tag -a ledger/v0.1.0 -m 'ledger v0.1.0 — D2 box prototype'
-git tag --list 'ledger/*'
+cat ledger/VERSION                # -> 0.1.0
+# (or, to advance:  bin/bump ledger patch)
 ```
 
-- Expected: `git tag --list 'ledger/*'` prints `ledger/v0.1.0`.
-- Abort/restore: `git tag -d ledger/v0.1.0` (local-only; nothing pushed/shipped).
+- Expected: `ledger/VERSION` holds the bare `0.1.0` on `main`.
+- Abort/restore: a version bump is a path-limited commit on `main`; nothing is
+  shipped to the box until `bin/deploy`.
 
 ### 3b. Deploy it (real run — not `--dry-run`)
 
-The wrapper's surface (`bin/deploy`): `bin/deploy <app> [version]`. The version arg
-is the bare `v0.1.0`; `bin/deploy` maps it to the tag `ledger/v0.1.0`, builds in a
-throwaway worktree, `scp`s the artifact, then runs the box half:
+The wrapper's surface (`bin/deploy`): `bin/deploy <app>` — **no version arg**. It
+builds current `main` (HEAD) in a throwaway detached worktree, reads the version
+from that worktree's `ledger/VERSION` (here `0.1.0` → release `v0.1.0`), `scp`s the
+artifact, then runs the box half:
 `ssh sudo optctl install ledger v0.1.0 --artifact /tmp/ledger-v0.1.0`.
 
 ```
-bin/deploy ledger v0.1.0
+bin/deploy ledger
 ```
 
 - Expected (workstation side, the `>>` lines from `bin/deploy`):
   ```
-  >> ledger: tag ledger/v0.1.0 -> release v0.1.0 (commit <sha>)
-  >> git worktree add --detach <tmp> ledger/v0.1.0
+  >> ledger: building current main (HEAD <sha>)
+  >> git worktree add --detach <tmp> HEAD
+  >> ledger: release v0.1.0 (commit <sha>)
   >> build ledger -> <tmp-artifact>/ledger
   >> built ledger (<size>)
   >> scp ledger v0.1.0 -> ai.metaspot.org:/tmp/ledger-v0.1.0
@@ -336,15 +341,17 @@ journalctl -u ledger -n 50 --no-pager
 The goal is to prove the **mechanism**: install a second release, roll back to the
 first, and confirm `current` repoints and the binary self-reports v0.1.0 again.
 
-### 5a. Tag + deploy a second version
+### 5a. Bump + deploy a second version
 
-A second build of the **same commit** with a new version stamp is sufficient to
-exercise the swap/rollback machinery (the binaries differ only by the
-ldflags-stamped version, which is exactly what we assert on).
+A second build with a new version stamp is sufficient to exercise the
+swap/rollback machinery (the binaries differ only by the ldflags-stamped version,
+which is exactly what we assert on). `bin/bump ledger patch` advances
+`ledger/VERSION` 0.1.0 → 0.1.1 (commit to `main` + push); `bin/deploy` then builds
+current `main` and ships `v0.1.1`.
 
 ```
-git tag -a ledger/v0.1.1 -m 'ledger v0.1.1 — D2 rollback drill'
-bin/deploy ledger v0.1.1
+bin/bump ledger patch             # ledger/VERSION 0.1.0 -> 0.1.1, commit to main + push
+bin/deploy ledger
 ```
 
 - Expected (box side): the same `>> preflight … place … regenerate … migrate …
@@ -365,7 +372,7 @@ bin/deploy ledger v0.1.1
 > `applied=3 embedded=4`, logs `schema advances — backup … -> backups/pre-v0.1.1.db`,
 > and the §5c rollback first runs `ledger restore --from …/backups/pre-v0.1.1.db`
 > before the swap. That requires a real migration change in the `ledger` tree and a
-> fresh tag — out of scope for the minimal mechanism proof, but the optctl code
+> fresh version bump — out of scope for the minimal mechanism proof, but the optctl code
 > path is in place (`install.go` step 4, `rollback.go` step 2).
 
 ### 5b. (Confirm pre-rollback state)
@@ -445,9 +452,12 @@ ssh … 'ls /opt/ledger/releases'                  # still v0.1.0 and v0.1.1
   unconditionally), so neither is eligible to drop.
   - **Abort/restore:** prune deletes *non-current, non-predecessor* release dirs
     and their backups; it never touches `current`, the rollback target, or the
-    data DB. If you pruned a release you wanted back, re-`bin/deploy` that tag (the
-    artifact is rebuildable from the tag — the box state is recoverable from git +
-    a redeploy).
+    data DB. Rollback to a kept prior release stays on-box (`optctl rollback`), so
+    you never need to rebuild a past version off-box. If you pruned a release you
+    wanted back, it is still rebuildable from git: `bin/deploy` builds current
+    `main`, so land the desired `<app>/VERSION` on `main` (e.g. `bin/bump`) and
+    redeploy — the box state is recoverable from the committed history + a
+    redeploy.
 
 ---
 
@@ -457,10 +467,10 @@ ssh … 'ls /opt/ledger/releases'                  # still v0.1.0 and v0.1.1
 |---|---|---|
 | 1b install optctl | `/usr/local/bin/optctl` | `sudo rm -f /usr/local/bin/optctl` (inert until invoked) |
 | 2b `optctl setup ledger` | user, `/opt/ledger` tree, unit, nginx fragment | disable unit + `rm` unit/fragment + `daemon-reload` + `nginx -t`/reload + `rm -rf /opt/ledger` (only pre-DB) — see §2b box block |
-| 3b `bin/deploy` v0.1.0 (first install) | `releases/v0.1.0`, `current`, manifest, **creates** data DB on migrate | no prior release to roll back to; fix + re-deploy, or §2b teardown (DB is brand-new) |
-| 5a `bin/deploy` v0.1.1 | `releases/v0.1.1`, repoints `current` | `sudo optctl rollback ledger` → back to v0.1.0 |
+| 3b `bin/deploy` (v0.1.0, first install) | `releases/v0.1.0`, `current`, manifest, **creates** data DB on migrate | no prior release to roll back to; fix + re-deploy, or §2b teardown (DB is brand-new) |
+| 5a `bin/bump` + `bin/deploy` (v0.1.1) | `ledger/VERSION` 0.1.1 committed to `main`; box: `releases/v0.1.1`, repoints `current` | `sudo optctl rollback ledger` → back to v0.1.0 |
 | 5c `optctl rollback` | repoints `current` (+ DB restore only if FROM-release advanced schema) | `sudo optctl rollback ledger v0.1.1` to repoint forward to known-good |
-| 5e `optctl prune` | deletes old release dirs + their backups | re-`bin/deploy <tag>` (rebuildable from git) |
+| 5e `optctl prune` | deletes old release dirs + their backups | re-`bin/deploy ledger` (rebuildable from the committed `main` history) |
 
 **Confirm the box is back to a serving state at the end** (regardless of where you
 stopped):
@@ -481,11 +491,11 @@ matching restore touch it, and only on a schema-advancing install/rollback.
 
 ## Cleanup (optional, after a successful drill)
 
-Leave `ledger` deployed (it is now a real service on the box) and the
-`ledger/v0.1.0` tag in place. The throwaway `bin/deploy` worktree and `/tmp`
-artifacts are removed automatically (the wrapper's `trap cleanup EXIT`). If you do
-NOT want `ledger/v0.1.1` to linger as a tag, `git tag -d ledger/v0.1.1` locally;
-the release dir on the box is governed by prune.
+Leave `ledger` deployed (it is now a real service on the box). The drill's version
+bumps (`ledger/VERSION` 0.1.0 → 0.1.1) are committed on `main` and stay there — the
+version ledger is meant to be append-only. The throwaway `bin/deploy` worktree and
+`/tmp` artifacts are removed automatically (the wrapper's `trap cleanup EXIT`); the
+release dirs on the box are governed by prune.
 
 ---
 
@@ -494,7 +504,7 @@ the release dir on the box is governed by prune.
 - **Version stamp lacks `-dirty`.** `bin/deploy` and appkit's `versionString()`
   emit `<version> (<sha>)` only; the `-dirty` suffix the verify steps reference is
   **not yet** produced (it is F1's job — `bin/deploy` builds from a clean detached
-  worktree so the tagged build is never dirty anyway). The version self-report
+  worktree so the build is never dirty anyway). The version self-report
   checks in §4e/§5d assert the leading `vX.Y.Z` token only, which is what
   `optctl` preflight also keys on — so this gap does not block the loop.
 - **No `optctl status`/`current`-reporting verb.** There is no
