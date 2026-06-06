@@ -3,8 +3,10 @@
 Status: **Phases A–D complete — the suite is LIVE on `int.ikigenba.com`** (200
 over valid TLS; all 7 units active; all 6 MCP services advertised — see the
 "Phase A results" through "Phase D results" blocks). Phase 0 decisions locked
-(§6). **Only Phase E remains** (`ai` teardown — a separate infra-repo hand-off,
-not done this run). This is the execution plan for renaming the project's public
+(§6). **Phase E — `ai` teardown — infra DONE; org-departure pending a manual
+step** (account can't leave the org until standalone-account prereqs are
+completed in-console; see the "Phase E results" block). This is the execution
+plan for renaming the project's public
 identity from **metaspot/ikigai** to **ikigenba**, deployed to
 **int.ikigenba.com**. It spans **two repos**: this one (the per-account suite)
 and the sibling infra repo `../metaspot` (Terraform/AWS/DNS), whose specs are
@@ -477,14 +479,46 @@ re-reads service manifests).
 
 Gate: full suite live and healthy on `int.ikigenba.com`; tests green.
 
-### Phase E — Abandon `ai` — **deferred, separate hand-off (not this run)**
+### Phase E — Abandon `ai` — **infra teardown DONE; org-departure pending a manual step**
 
 Hand off to the infra-repo agent in `~/projects/metaspot`: `terraform destroy`
 the `ai/` root, remove `ai` from `mgmt/accounts.tf`, drop `delegation_ai`, remove
 the now-unused `templates/metaspot-*`. Delete the `ai` `~/.ssh/config` entry
 locally. No data to preserve, no soak required.
 
-Gate: `ai` account/box destroyed; `int` is the sole live deployment.
+> **Phase E results (2026-06-06) — `ai` infra destroyed; account org-departure
+> blocked on one manual step.** Owner confirmed the `ai` data was disposable
+> development data. All teardown commits landed in `~/projects/metaspot`:
+> `4b51197`, `0e41138`, `0b6e31f`, `58897bf`, `825d2ae` (pushed to `origin/main`,
+> confirmed via `git ls-remote`).
+>
+> - **NS delegation removed:** `ai.metaspot.org` NS delegation dropped from
+>   `mgmt/delegations.tf` and applied (`4b51197`).
+> - **Per-account infra destroyed:** `ai` backups bucket
+>   (`ai-metaspot-org-417780655767`, 9 disposable dev objects) emptied; the `ai/`
+>   Terraform root destroyed (**17 resources**: box/EIP/SG/IAM/zone
+>   `ai.metaspot.org`/buckets/SSM); `ai/` dir removed from the repo (`0e41138`).
+> - **Dead templates removed:** `templates/metaspot-*` deleted; `AGENTS.md`
+>   template refs repointed to `ikigenba-*` (`0b6e31f`).
+> - **Bootstrap tfstate destroyed:** the `bootstrap/ai` tfstate bucket
+>   (`metaspot-ai-tfstate-417780655767`) emptied (28 versions/markers) and
+>   destroyed; `bootstrap/ai` dir removed (`58897bf`).
+> - **Org membership — NOT yet removed:** `ai` removed from `mgmt/accounts.tf`
+>   and its SSO admin assignment destroyed (`825d2ae`), **BUT**
+>   `aws_organizations_account.this["ai"]` could **not** be removed from the AWS
+>   Organization — AWS `ConstraintViolationException`: the account is missing the
+>   standalone-account prerequisites. This requires a **MANUAL console step**
+>   (complete the standalone prereqs in the `ai` account, then leave the org)
+>   followed by `terraform -chdir=metaspot/mgmt apply`.
+> - **Local config intentionally LEFT in place:** the `ai` blocks in
+>   `~/.ssh/config` and `~/.aws/config` are **kept** so the owner retains access to
+>   complete the manual org-departure step. Removing them — plus the final
+>   "Phase E complete" mark — are the remaining follow-ups.
+
+Gate: `ai` infra destroyed (**done**); `int` is the sole live deployment.
+Remaining: complete the manual standalone-account prereqs + leave-org for `ai`,
+`terraform -chdir=metaspot/mgmt apply`, then remove the local `~/.ssh/config` /
+`~/.aws/config` `ai` blocks — at which point Phase E is fully complete.
 
 > **Deferred, not in this plan (§2):** GitHub org/repo move + folder rename;
 > `ikigai-onebox`. The Google Workspace domain stays `logic-refinery.com`
