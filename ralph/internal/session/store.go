@@ -71,6 +71,18 @@ func (s *Store) GetSession(ctx context.Context, owner, id string) (Session, erro
 	return scanSession(row)
 }
 
+// GetSessionByID returns a session by id with no owner scoping (for the
+// event-triggered run path, where there is no caller identity). ErrNotFound when
+// the session is gone.
+func (s *Store) GetSessionByID(ctx context.Context, id string) (Session, error) {
+	row := s.db.QueryRowContext(ctx,
+		`SELECT id, owner_email, name, prompt, system_prompt, config_json, status, created_at, updated_at
+		   FROM sessions WHERE id = ?`,
+		id,
+	)
+	return scanSession(row)
+}
+
 // ListSessions returns all of the owner's sessions, newest first.
 func (s *Store) ListSessions(ctx context.Context, owner string) ([]Session, error) {
 	rows, err := s.db.QueryContext(ctx,

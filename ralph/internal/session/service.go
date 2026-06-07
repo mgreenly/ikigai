@@ -223,6 +223,41 @@ func (s *Service) Run(ctx context.Context, ownerEmail, id string) (Run, error) {
 	return run, nil
 }
 
+// RunByID is the event-triggered run path: it starts a run for a session by id
+// WITHOUT owner scoping (the trigger linkage, set by the owner, is the
+// authority — there is no caller identity on a cron tick). It otherwise mirrors
+// Run: it is the single-flight gate (ErrBusy if a run is already in flight,
+// which is how the per-session staleness/serialization guard rides on
+// session.status), inserts the run row, flips the session to running, and hands
+// off to the runner. ErrNotFound if the session is gone.
+func (s *Service) RunByID(ctx context.Context, id string) (Run, error) {
+	sess, err := s.store.GetSessionByID(ctx, id)
+	if err != nil {
+		return Run{}, err
+	}
+	if sess.Status == StatusRunning {
+		return Run{}, ErrBusy
+	}
+
+	runID := ids.NewULID()
+	run := Run{
+		ID:        runID,
+		SessionID: id,
+		Status:    RunRunning,
+		StartedAt: s.nowStr(),
+		LogPath:   filepath.Join(s.runsDir, id, runID+".jsonl"),
+	}
+	if err := s.store.InsertRun(ctx, run); err != nil {
+		return Run{}, err
+	}
+	if err := s.store.SetSessionStatus(ctx, id, StatusRunning); err != nil {
+		return Run{}, err
+	}
+	sess.Status = StatusRunning
+	s.runner.Spawn(sess, run)
+	return run, nil
+}
+
 // Output returns up to limit lines of the owner's session's latest run log,
 // starting at 1-based line offset (offset<=0 means from-start, limit<=0 means
 // no limit — same line-slice semantics as sandbox.Read). The log is the
@@ -301,6 +336,63 @@ func (s *Service) FsRead(ctx context.Context, ownerEmail, id, path string, offse
 		return "", err
 	}
 	return s.sandbox.Read(id, path, offset, limit)
+}
+
+// SetTriggerInput is the set-trigger payload. MaxStalenessSecs / MaxAttempts
+// default (DefaultMaxStalenessSecs / DefaultMaxAttempts) when <= 0.
+type SetTriggerInput struct {
+	TriggerEvent     string
+	MaxStalenessSecs int
+	MaxAttempts      int
+}
+
+// SetTrigger attaches (or replaces — 1:1) the event trigger on the owner's
+// session. Loading the session first enforces ownership (ErrNotFound if not
+// owned). TriggerEvent must be non-empty; the value is stored verbatim and the
+// consumer fan-out matches it literally against incoming cron.<name> types.
+func (s *Service) SetTrigger(ctx context.Context, ownerEmail, id string, in SetTriggerInput) (Trigger, error) {
+	if _, err := s.store.GetSession(ctx, ownerEmail, id); err != nil {
+		return Trigger{}, err
+	}
+	if in.TriggerEvent == "" {
+		return Trigger{}, validationErrf("invalid trigger: trigger_event is required")
+	}
+	staleness := in.MaxStalenessSecs
+	if staleness <= 0 {
+		staleness = DefaultMaxStalenessSecs
+	}
+	attempts := in.MaxAttempts
+	if attempts <= 0 {
+		attempts = DefaultMaxAttempts
+	}
+	t := Trigger{
+		SessionID:        id,
+		TriggerEvent:     in.TriggerEvent,
+		MaxStalenessSecs: staleness,
+		MaxAttempts:      attempts,
+	}
+	if err := s.store.SetTrigger(ctx, t); err != nil {
+		return Trigger{}, err
+	}
+	// Re-read so created_at/updated_at reflect what was persisted.
+	return s.store.GetTrigger(ctx, id)
+}
+
+// TriggersForEvent returns every trigger whose trigger_event matches eventType
+// — the event→sessions fan-out the consumer runs on each cron.<name> arrival.
+// It is not owner-scoped: a cron tick has no caller identity, and the trigger
+// linkage (set by the owner) is the authority. A thin passthrough to the store.
+func (s *Service) TriggersForEvent(ctx context.Context, eventType string) ([]Trigger, error) {
+	return s.store.TriggersForEvent(ctx, eventType)
+}
+
+// ClearTrigger detaches the owner's session's trigger. Loading the session
+// first enforces ownership. A session with no trigger returns ErrNotFound.
+func (s *Service) ClearTrigger(ctx context.Context, ownerEmail, id string) error {
+	if _, err := s.store.GetSession(ctx, ownerEmail, id); err != nil {
+		return err
+	}
+	return s.store.ClearTrigger(ctx, id)
 }
 
 // Cancel signals the in-flight run for the owner's session. It is idempotent:

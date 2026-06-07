@@ -31,6 +31,9 @@ import (
 	"appkit"
 	"appkit/config"
 
+	"eventplane/consumer"
+
+	"ralph/internal/consume"
 	"ralph/internal/db"
 	"ralph/internal/mcp"
 	"ralph/internal/runner"
@@ -38,21 +41,94 @@ import (
 	"ralph/internal/session"
 )
 
+// The event-plane upstream ralph consumes (cron's /feed) and the stable id it
+// presents on every connect (event-protocol.md §7.1). Both are fixed constants —
+// ralph consumes exactly cron's feed, and its X-Consumer-Id is the literal
+// "ralph". CONSUMES=cron in etc/manifest.env mirrors cronSource for the registry.
+const (
+	cronSource = "cron"
+	consumerID = "ralph"
+)
+
+// svcRef carries the session service from the Handlers hook (where appkit has
+// opened + migrated the DB and built the domain) to the consumer Worker, which
+// runs strictly afterward. A package-level capture mirrors notify's `rt` capture.
+var svcRef *session.Service
+
 func main() {
+	var rt *appkit.Router
+
 	appkit.Main(appkit.Spec{
 		App:        "ralph",
 		Mount:      "/srv/ralph/",
 		Port:       3004,
 		MCP:        true,
+		// ralph is now also an event-plane CONSUMER: it consumes cron's /feed and
+		// fires triggered runs (in-memory fire-and-run, event-triggering decisions
+		// §3). CONSUMES=cron mirrors cronSource for the registry.
+		Consumes: []string{cronSource},
+		// Subscriptions is the LIVE provider the reflection tool reports. ralph's
+		// one declared in-edge is the cron.* fan-out — the SAME consume.Subscription()
+		// the consumer Handler matches against, so the runtime filter and reflection
+		// cannot drift.
+		Subscriptions: func() []consumer.Subscription {
+			return []consumer.Subscription{consume.Subscription()}
+		},
 		Migrations: db.FS,
 		// Handlers builds ralph's domain over appkit's shared single-writer DB
 		// handle, runs the boot-time crash-recovery sweep (after migrate, before
-		// serving), and mounts the ralph_* MCP surface gated behind nginx-injected
-		// identity. ralph is neither producer nor consumer, so there is no
-		// Producer/Workers hook — the async runner is spawned per-run by the
-		// session service, not run as a long-lived background worker.
-		Handlers: registerRoutes,
+		// serving), captures the Router + service for the consumer worker, and
+		// mounts the ralph_* MCP surface gated behind nginx-injected identity.
+		Handlers: func(r *appkit.Router) error {
+			rt = r
+			return registerRoutes(r)
+		},
+		// Workers carries ralph's event-plane consumer loop, launched by appkit on
+		// the serve context alongside the HTTP server. The consumer Config + the
+		// fire-and-run Handler stay app-side — appkit owns the lifecycle, not the
+		// event semantics.
+		Workers: []func(context.Context) error{
+			func(ctx context.Context) error {
+				return runConsumer(ctx, rt)
+			},
+		},
 	})
+}
+
+// runConsumer is ralph's event-plane consumer worker. It drives
+// eventplane/consumer.Run over cron's /feed until ctx is cancelled (clean
+// shutdown → nil) or a structural fault escapes (→ error, which appkit
+// propagates to cancel the server too). The handler is the in-memory
+// fire-and-run effect: it never stalls the feed (always returns nil/ErrSkip),
+// so cron being down is the only thing the engine retries.
+func runConsumer(ctx context.Context, rt *appkit.Router) error {
+	logger := rt.Logger()
+	// RALPH_CRON_FEED_URL is cron's loopback feed. The event plane bypasses
+	// nginx, so this is a direct 127.0.0.1 address; the dev fallback is only for
+	// `go run`/tests without env (cron's port is 3007).
+	feedURL := config.EnvOr(os.Getenv, "RALPH_CRON_FEED_URL", "http://127.0.0.1:3007/feed")
+	// RALPH_CRON_FROM is the first-subscription choice; tail by default so a fresh
+	// ralph only reacts to cron events fired from now on, not the entire backlog.
+	from := config.EnvOr(os.Getenv, "RALPH_CRON_FROM", "tail")
+
+	cfg := consumer.Config{
+		FeedURL:    feedURL,
+		From:       from,
+		DB:         rt.DB(),
+		Source:     cronSource,
+		ConsumerID: consumerID,
+		Logger:     logger,
+	}
+	fire := func(ctx context.Context, sessionID string) error {
+		_, err := svcRef.RunByID(ctx, sessionID)
+		return err
+	}
+	lookup := svcRef.TriggersForEvent
+	logger.Info("starting ralph cron consumer", "feed_url", feedURL, "from", from)
+	if err := consumer.Run(ctx, cfg, consume.Handler(fire, lookup, logger)); err != nil {
+		return fmt.Errorf("event-plane consumer: %w", err)
+	}
+	return nil
 }
 
 // registerRoutes wires ralph's domain on appkit's server. It is the seam where
@@ -86,6 +162,8 @@ func registerRoutes(rt *appkit.Router) error {
 	store := session.NewStore(conn)
 	run := runner.New(store, sb, runTTL)
 	svc := session.NewService(store, sb, runsDir, run)
+	// Capture the service for the consumer Worker (runs after Handlers).
+	svcRef = svc
 
 	// Crash-recovery sweep (§5.3): runs left 'running' by a previous process are
 	// orphaned — mark them failed and return their sessions to idle before

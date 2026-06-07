@@ -63,6 +63,17 @@ func toolDescriptors() []map[string]any {
 			"session_id": typ("string"),
 		}, "session_id")),
 
+		desc(tool("session_set_trigger"), "Attach (or replace — one trigger per session) an event trigger on one of the caller's sessions: when the named cron event fires, ralph starts a run for the session. trigger_event is the full cron event type, e.g. \"cron.nightly\" (create it first via the cron service's crontab). max_staleness_secs skips an occurrence older than this (default 300); max_attempts caps the in-memory retry of a failed start (default 3). Both default when omitted or <=0.", obj(map[string]any{
+			"session_id":         typ("string"),
+			"trigger_event":      typ("string"),
+			"max_staleness_secs": typ("integer"),
+			"max_attempts":       typ("integer"),
+		}, "session_id", "trigger_event")),
+
+		desc(tool("session_clear_trigger"), "Remove the event trigger from one of the caller's sessions. The session becomes manual-run only.", obj(map[string]any{
+			"session_id": typ("string"),
+		}, "session_id")),
+
 		desc(tool("session_output"), "Read the latest run's output log (append-only stream-json, one event per line). offset is 1-based; limit caps the number of lines (<=0 means from start / no limit).", obj(map[string]any{
 			"session_id": typ("string"),
 			"offset":     typ("integer"),
@@ -279,6 +290,38 @@ func (h *Handler) dispatchTool(ctx context.Context, name string, id Identity, ar
 			return nil, err
 		}
 		return toolResultJSON(map[string]any{"cancelled": in.SessionID})
+
+	case tool("session_set_trigger"):
+		var in struct {
+			SessionID        string `json:"session_id"`
+			TriggerEvent     string `json:"trigger_event"`
+			MaxStalenessSecs int    `json:"max_staleness_secs"`
+			MaxAttempts      int    `json:"max_attempts"`
+		}
+		if err := parseArgs(args, &in); err != nil {
+			return nil, err
+		}
+		trig, err := svc.SetTrigger(ctx, owner, in.SessionID, session.SetTriggerInput{
+			TriggerEvent:     in.TriggerEvent,
+			MaxStalenessSecs: in.MaxStalenessSecs,
+			MaxAttempts:      in.MaxAttempts,
+		})
+		if err != nil {
+			return nil, err
+		}
+		return toolResultJSON(trig)
+
+	case tool("session_clear_trigger"):
+		var in struct {
+			SessionID string `json:"session_id"`
+		}
+		if err := parseArgs(args, &in); err != nil {
+			return nil, err
+		}
+		if err := svc.ClearTrigger(ctx, owner, in.SessionID); err != nil {
+			return nil, err
+		}
+		return toolResultJSON(map[string]any{"cleared": in.SessionID})
 
 	case tool("session_output"):
 		var in struct {

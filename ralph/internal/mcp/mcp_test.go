@@ -115,7 +115,7 @@ func isError(res map[string]any) bool {
 	return v
 }
 
-func TestToolsListReturns12(t *testing.T) {
+func TestToolsListReturns14(t *testing.T) {
 	h, _ := newTestHandler(t)
 	body, _ := json.Marshal(map[string]any{"jsonrpc": "2.0", "id": 1, "method": "tools/list"})
 	rr := do(t, h, body)
@@ -130,10 +130,10 @@ func TestToolsListReturns12(t *testing.T) {
 	if err := json.Unmarshal(rr.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
-	if len(resp.Result.Tools) != 12 {
-		t.Fatalf("want 12 tools, got %d", len(resp.Result.Tools))
+	if len(resp.Result.Tools) != 14 {
+		t.Fatalf("want 14 tools, got %d", len(resp.Result.Tools))
 	}
-	got := make([]string, 0, 12)
+	got := make([]string, 0, 14)
 	for _, tl := range resp.Result.Tools {
 		got = append(got, tl.Name)
 	}
@@ -142,6 +142,7 @@ func TestToolsListReturns12(t *testing.T) {
 		"ikigenba_ralph_describe",
 		"ikigenba_ralph_health",
 		"ikigenba_ralph_session_cancel",
+		"ikigenba_ralph_session_clear_trigger",
 		"ikigenba_ralph_session_create",
 		"ikigenba_ralph_session_delete",
 		"ikigenba_ralph_session_fs_list",
@@ -150,6 +151,7 @@ func TestToolsListReturns12(t *testing.T) {
 		"ikigenba_ralph_session_list",
 		"ikigenba_ralph_session_output",
 		"ikigenba_ralph_session_run",
+		"ikigenba_ralph_session_set_trigger",
 		"ikigenba_ralph_session_update",
 	}
 	if len(got) != len(want) {
@@ -159,6 +161,49 @@ func TestToolsListReturns12(t *testing.T) {
 		if got[i] != want[i] {
 			t.Fatalf("tool names mismatch:\n got %v\nwant %v", got, want)
 		}
+	}
+}
+
+// TestSetAndClearTrigger drives the two new MCP tools end-to-end: create a
+// session, set a trigger (defaults applied), then clear it.
+func TestSetAndClearTrigger(t *testing.T) {
+	h, _ := newTestHandler(t)
+
+	created := call(t, h, "ikigenba_ralph_session_create", map[string]any{
+		"prompt": "hi",
+		"config": map[string]any{"model": "haiku"},
+	})
+	var cv struct {
+		SessionID string `json:"session_id"`
+	}
+	if err := json.Unmarshal([]byte(resultText(t, created)), &cv); err != nil {
+		t.Fatalf("decode create: %v", err)
+	}
+
+	set := call(t, h, "ikigenba_ralph_session_set_trigger", map[string]any{
+		"session_id":    cv.SessionID,
+		"trigger_event": "cron.nightly",
+	})
+	if isError(set) {
+		t.Fatalf("set_trigger returned isError: %+v", set)
+	}
+	var tv struct {
+		TriggerEvent     string `json:"trigger_event"`
+		MaxStalenessSecs int    `json:"max_staleness_secs"`
+		MaxAttempts      int    `json:"max_attempts"`
+	}
+	if err := json.Unmarshal([]byte(resultText(t, set)), &tv); err != nil {
+		t.Fatalf("decode set: %v", err)
+	}
+	if tv.TriggerEvent != "cron.nightly" || tv.MaxStalenessSecs != 300 || tv.MaxAttempts != 3 {
+		t.Fatalf("unexpected trigger (defaults?): %+v", tv)
+	}
+
+	cleared := call(t, h, "ikigenba_ralph_session_clear_trigger", map[string]any{
+		"session_id": cv.SessionID,
+	})
+	if isError(cleared) {
+		t.Fatalf("clear_trigger returned isError: %+v", cleared)
 	}
 }
 
