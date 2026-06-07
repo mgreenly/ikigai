@@ -42,7 +42,7 @@ func newTestHandler(t *testing.T) (*Handler, *sandbox.Manager) {
 	t.Setenv("ANTHROPIC_API_KEY", "sk-test")
 	ctx := t.Context()
 
-	conn, err := db.Open(filepath.Join(t.TempDir(), "agent.db"))
+	conn, err := db.Open(filepath.Join(t.TempDir(), "prompts.db"))
 	if err != nil {
 		t.Fatalf("db.Open: %v", err)
 	}
@@ -242,7 +242,7 @@ func TestInitializeIncludesInstructions(t *testing.T) {
 		t.Fatal("initialize result missing instructions")
 	}
 	if !strings.Contains(resp.Result.Instructions, "ikigenba_prompts_describe") {
-		t.Fatalf("instructions should point at agent_describe, got: %q", resp.Result.Instructions)
+		t.Fatalf("instructions should point at prompts_describe, got: %q", resp.Result.Instructions)
 	}
 }
 
@@ -266,7 +266,7 @@ func TestHealth(t *testing.T) {
 	if out.OwnerEmail != ownerEmail || out.ClientID != clientID {
 		t.Fatalf("health identity: got %+v", out)
 	}
-	// agent supplies no reporter → details is an empty object, always present.
+	// prompts supplies no reporter → details is an empty object, always present.
 	if out.Details == nil || len(out.Details) != 0 {
 		t.Fatalf("health details: want empty {}, got %+v", out.Details)
 	}

@@ -1,12 +1,12 @@
-// Package consume is agent's event-plane CONSUMER domain: it turns cron's
-// time events into agent runs. It is the mirror of notify's internal/push —
-// where notify reacts to crm's contact.created with a best-effort push, agent
+// Package consume is prompts' event-plane CONSUMER domain: it turns cron's
+// time events into prompts runs. It is the mirror of notify's internal/push —
+// where notify reacts to crm's contact.created with a best-effort push, prompts
 // reacts to cron's cron.<name> by firing a run on every session that declared
 // that trigger.
 //
 // The model is **in-memory fire-and-run** (event-triggering decisions §3, the
 // SIMPLIFIED model — there is deliberately NO run_intents table, no drain
-// worker, no crash-recovery sweep beyond agent's existing orphaned-run sweep).
+// worker, no crash-recovery sweep beyond prompts' existing orphaned-run sweep).
 // On a cron.<name> event the handler:
 //
 //   - looks up every session whose trigger matches the event type (the fan-out),
@@ -62,14 +62,14 @@ type FireFunc func(ctx context.Context, sessionID, triggerEvent, scheduledFor st
 type triggerLookup func(ctx context.Context, eventType string) ([]session.Trigger, error)
 
 // cronPayload is the slice of cron's cron.<name> payload (docs/event-protocol +
-// cron decisions §2) agent needs: scheduled_for drives the staleness guard.
+// cron decisions §2) prompts needs: scheduled_for drives the staleness guard.
 type cronPayload struct {
 	Name         string `json:"name"`
 	ScheduledFor string `json:"scheduled_for"` // UTC RFC3339, the matched slot
 	FiredAt      string `json:"fired_at"`      // UTC RFC3339, the actual emit time
 }
 
-// Subscription is agent's declared event-plane in-edge: it listens to every
+// Subscription is prompts' declared event-plane in-edge: it listens to every
 // cron.* type and fires the matching sessions' runs. The fan-out is per-session
 // (a session's trigger names a specific cron.<name>), so the subscription glob
 // is broad — "cron.*" — and the per-session match is the exact trigger_event in
@@ -82,7 +82,7 @@ func Subscription() consumer.Subscription {
 	}
 }
 
-// Handler returns the consumer.Handler agent hands to the engine. fire starts a
+// Handler returns the consumer.Handler prompts hands to the engine. fire starts a
 // run for a session id; lookup fans an event type out to its matching triggers.
 // The handler ALWAYS returns nil for a matched event (fire-and-forget) and
 // ErrSkip only for a structurally-unprocessable payload — it never returns a

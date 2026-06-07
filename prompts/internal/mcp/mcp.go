@@ -1,8 +1,8 @@
 // Package mcp implements a minimal MCP transport for the /mcp endpoint and the
 // ikigenba_prompts_* tool surface.
 //
-// This is the skeleton agent service: the only tool is ikigenba_prompts_health, the
-// end-to-end auth proof. Real agent domain tools are added here later, wired to
+// This is the skeleton prompts service: the only tool is ikigenba_prompts_health, the
+// end-to-end auth proof. Real prompts domain tools are added here later, wired to
 // a domain service the same way crm wires internal/contacts.
 //
 // The transport speaks JSON-RPC 2.0 over plain HTTP POST (no SSE/streaming),
@@ -45,7 +45,7 @@ type Handler struct {
 // NewHandler builds a Handler over the session domain service. version/service/
 // health populate the shared health envelope: version and service fill its
 // required top-level keys, and the optional health reporter (nil → details
-// renders {}) populates its details object. agent supplies no reporter.
+// renders {}) populates its details object. prompts supplies no reporter.
 func NewHandler(svc *session.Service, version, service string,
 	health func(context.Context) (map[string]any, error)) *Handler {
 	return &Handler{svc: svc, version: version, service: service, health: health}
@@ -68,12 +68,12 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		writeJSONRPCResult(w, req.ID, map[string]any{
 			"protocolVersion": "2025-03-26",
 			"capabilities":    map[string]any{"tools": map[string]any{}},
-			"serverInfo":      map[string]any{"name": "Agent", "version": "1"},
+			"serverInfo":      map[string]any{"name": "Prompts", "version": "1"},
 			// Kept deliberately short — this rides on every client's every
-			// connection. The depth lives in the agent_describe tool, paid
+			// connection. The depth lives in the prompts_describe tool, paid
 			// only when an agent actually calls it.
-			"instructions": "Agent runs sandboxed Claude agent sessions on your behalf. " +
-				"If you haven't used agent before, call ikigenba_prompts_describe first — it explains " +
+			"instructions": "Prompts runs sandboxed Claude agent sessions on your behalf. " +
+				"If you haven't used prompts before, call ikigenba_prompts_describe first — it explains " +
 				"what a session is, the create→run→poll→read lifecycle, and the output " +
 				"format — then use the other tools.",
 		})

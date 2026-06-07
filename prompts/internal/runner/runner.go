@@ -1,4 +1,4 @@
-// Package runner drives the async run lifecycle for agent: it borrows the
+// Package runner drives the async run lifecycle for prompts: it borrows the
 // engine (provider + agent loop + wire sink) to execute a session's prompt
 // inside its sandbox, streams the engine's stream-json events to the run's
 // log file, and writes the run's terminal state back to the store, flipping

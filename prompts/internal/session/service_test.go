@@ -44,7 +44,7 @@ func newTestService(t *testing.T) (*Service, *Store, *sandbox.Manager, string) {
 	t.Helper()
 	ctx := context.Background()
 
-	conn, err := db.Open(filepath.Join(t.TempDir(), "agent.db"))
+	conn, err := db.Open(filepath.Join(t.TempDir(), "prompts.db"))
 	if err != nil {
 		t.Fatalf("db.Open: %v", err)
 	}

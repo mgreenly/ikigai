@@ -86,4 +86,4 @@ func TestMigrate_RefusesDowngrade(t *testing.T) {
 
 // (TestLoadMigrations_Order removed: the migration loader/ordering + downgrade
 // runner moved to appkit/db, which owns its own tests for that mechanism. This
-// package now only embeds agent's *.sql and delegates Open/Migrate.)
+// package now only embeds prompts' *.sql and delegates Open/Migrate.)

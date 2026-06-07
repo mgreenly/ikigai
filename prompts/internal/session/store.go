@@ -17,12 +17,12 @@ type Store struct {
 	db  *sql.DB
 	now func() time.Time
 
-	// Outbox, when set, makes agent an event-plane producer: FinishRun appends
+	// Outbox, when set, makes prompts an event-plane producer: FinishRun appends
 	// the run.succeeded / run.failed outcome event on the SAME transaction as the
 	// run's terminal-state write (event-triggering decisions §3 — at-most-once per
 	// run, atomic). nil in tests/builds that do not exercise the producer; the
 	// terminal write still commits, just without an event. Injected by the
-	// Producer hook in cmd/agent after appkit constructs the outbox.
+	// Producer hook in cmd/prompts after appkit constructs the outbox.
 	Outbox *outbox.Outbox
 }
 

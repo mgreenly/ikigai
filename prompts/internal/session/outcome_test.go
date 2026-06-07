@@ -13,14 +13,14 @@ import (
 	"prompts/internal/ids"
 )
 
-// newProducerStore stands up a migrated agent DB (which now includes the outbox
+// newProducerStore stands up a migrated prompts DB (which now includes the outbox
 // table via 005_outbox.sql) with a real outbox wired onto the Store, so FinishRun
 // exercises the SAME-tx terminal-write + outbox.Append path. Events is passed as
 // the registry so an unregistered type would be rejected at Append.
 func newProducerStore(t *testing.T) (*Store, *sql.DB) {
 	t.Helper()
 	ctx := context.Background()
-	conn, err := db.Open(filepath.Join(t.TempDir(), "agent.db"))
+	conn, err := db.Open(filepath.Join(t.TempDir(), "prompts.db"))
 	if err != nil {
 		t.Fatalf("db.Open: %v", err)
 	}

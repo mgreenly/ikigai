@@ -7,10 +7,10 @@ import (
 	"eventplane/consumer"
 )
 
-// TestFeedOffsetMigrationMatchesLibraryDDL guards that agent's 004_feed_offset.sql
+// TestFeedOffsetMigrationMatchesLibraryDDL guards that prompts' 004_feed_offset.sql
 // applies the eventplane library's feed_offset DDL (consumer.SchemaSQL) verbatim.
-// agent is a CONSUMER of cron's /feed; if the migration drifts from the library
-// constant, agent's offset store is no longer the schema the engine reads and
+// prompts is a CONSUMER of cron's /feed; if the migration drifts from the library
+// constant, prompts' offset store is no longer the schema the engine reads and
 // writes. Mirrors notify's migrations_feed_offset_test.go.
 func TestFeedOffsetMigrationMatchesLibraryDDL(t *testing.T) {
 	body, err := migrationsFS.ReadFile("migrations/004_feed_offset.sql")

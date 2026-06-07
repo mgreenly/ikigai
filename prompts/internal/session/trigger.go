@@ -18,7 +18,7 @@ const (
 
 // Trigger mirrors a session_triggers row: a session's 1:1 link to a cron event
 // type. trigger_event is the full event type the session listens for, e.g.
-// "cron.nightly". The linkage lives in agent (cron is subscriber-blind).
+// "cron.nightly". The linkage lives in prompts (cron is subscriber-blind).
 type Trigger struct {
 	SessionID        string `json:"session_id"`
 	TriggerEvent     string `json:"trigger_event"`

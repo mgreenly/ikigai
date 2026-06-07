@@ -7,10 +7,10 @@ import (
 	"eventplane/outbox"
 )
 
-// Outcome event types (event-triggering decisions §3). agent emits exactly two
-// terminal, STATIC, compile-time-known outcome types (source = agent) — two
+// Outcome event types (event-triggering decisions §3). prompts emits exactly two
+// terminal, STATIC, compile-time-known outcome types (source = prompts) — two
 // distinct types, NOT one type with a status field, so a consumer can filter at
-// the type level. They match agent's runs.status vocabulary
+// the type level. They match prompts' runs.status vocabulary
 // (running|succeeded|failed|cancelled): run.succeeded on a clean run,
 // run.failed on a terminal failure. A cancelled run emits NEITHER (it is an
 // operator-initiated stop, not a run outcome a downstream consumer announces).
@@ -19,7 +19,7 @@ const (
 	EventRunFailed    = "run.failed"
 )
 
-// Events is agent's published-event Registry, wired via Spec.Events (STATIC —
+// Events is prompts' published-event Registry, wired via Spec.Events (STATIC —
 // the outcome types are fixed at build time, unlike cron's dynamic Publishes).
 // It is the single source of truth for both the reflection tool and Append-time
 // validation: the runner can only Append a type that appears here. Each entry
@@ -28,12 +28,12 @@ const (
 var Events = outbox.Registry{
 	{
 		Type:        EventRunSucceeded,
-		Description: "A agent run finished successfully. Carries the session identity, the human-readable task name, and the trigger context (the cron event + scheduled slot that started it, empty for a manual run).",
+		Description: "A prompts run finished successfully. Carries the session identity, the human-readable task name, and the trigger context (the cron event + scheduled slot that started it, empty for a manual run).",
 		Sample:      sampleOutcomeSuccess,
 	},
 	{
 		Type:        EventRunFailed,
-		Description: "A agent run terminated in failure. Same shape as run.succeeded plus an error string describing the terminal failure.",
+		Description: "A prompts run terminated in failure. Same shape as run.succeeded plus an error string describing the terminal failure.",
 		Sample:      sampleOutcomeFailure,
 	},
 }
@@ -44,7 +44,7 @@ var Events = outbox.Registry{
 // (trigger_event + scheduled_for — the cron event and matched slot that started
 // the run, both empty/omitted for a manual run). error is present ONLY on
 // run.failed (omitempty drops it on the success path). The full report stays in
-// agent (read via MCP); this is the minimal-for-now outcome shape.
+// prompts (read via MCP); this is the minimal-for-now outcome shape.
 type outcomePayload struct {
 	SessionID    string `json:"session_id"`
 	SessionName  string `json:"session_name"`

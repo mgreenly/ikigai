@@ -1,4 +1,4 @@
-# agent — architecture (draft 1, run-once slice)
+# prompts — architecture (draft 1, run-once slice)
 
 **Status:** high-level architecture, settled in design discussion; not yet built.
 This document is the durable plan the code is written against. It captures the
@@ -16,7 +16,7 @@ push delivery, and real sandbox isolation are all **deferred** (see Deferred).
 
 ## 1. Where the parts come from
 
-agent is assembled from three sources, matching the README's "reuses vs. new":
+prompts is assembled from three sources, matching the README's "reuses vs. new":
 
 | Layer | Source | Disposition |
 |---|---|---|
@@ -27,17 +27,17 @@ agent is assembled from three sources, matching the README's "reuses vs. new":
 Note on the engine reference: the README cites `ikigai-cli`; a sibling project
 `ikigai-tui` also exists but is **C** and is only a conceptual reference. The
 directly-portable Go engine is `ikigai-cli`, and it will be **discarded
-upstream** once borrowed — so agent owns its copy outright (no sync-back).
+upstream** once borrowed — so prompts owns its copy outright (no sync-back).
 
 ---
 
 ## 2. Module layout
 
 ```
-agent/
-├── cmd/agent/main.go              # composition root  (← ledger, renamed)
-├── go.mod   (module agent)        # engine is stdlib-only, so no new deps
-├── Makefile · bin/* · etc/*       # PORT=3004, MOUNT=/srv/agent/, AGENT_* env
+prompts/
+├── cmd/prompts/main.go            # composition root  (← ledger, renamed)
+├── go.mod   (module prompts)      # engine is stdlib-only, so no new deps
+├── Makefile · bin/* · etc/*       # PORT=3004, MOUNT=/srv/prompts/, PROMPTS_* env
 └── internal/
     ├── db/   ids/   logging/   server/    # chassis, ~verbatim from ledger
     ├── mcp/                               # chassis, EXTENDED: holds a Service, 11 tools
@@ -66,10 +66,10 @@ mount `/srv/ledger/`→`/srv/agent/`, tool prefix → `ikigenba_agent_`, db
 
 ## 3. Chassis (from ledger — what carries over unchanged)
 
-- **`cmd/agent/main.go`** — composition root. Reads `AGENT_*` env, opens SQLite
+- **`cmd/prompts/main.go`** — composition root. Reads `PROMPTS_*` env, opens SQLite
   (`db.Open` — WAL, FK, single writer), runs embedded migrations
   (`db.Migrate`), builds the MCP handler, builds the HTTP server
-  (`server.New`), serves with graceful shutdown. agent adds two wiring steps
+  (`server.New`), serves with graceful shutdown. prompts adds two wiring steps
   here: (a) construct the `session.Service` (with store, sandbox root, runner)
   and inject it into the MCP handler; (b) run the **crash-recovery sweep**
   (§5.3) right after migrate.
@@ -77,21 +77,21 @@ mount `/srv/ledger/`→`/srv/agent/`, tool prefix → `ikigenba_agent_`, db
   injected `X-Owner-Email` / `X-Client-Id`, 401 + `WWW-Authenticate` if absent);
   the ungated `GET /health` liveness route and
   `GET /.well-known/oauth-protected-resource` are open. nginx is the sole trust
-  boundary; agent trusts the headers blindly.
+  boundary; prompts trusts the headers blindly.
 - **`internal/db`** — SQLite open + embedded `migrations/NNN_*.sql` runner
-  (idempotent, downgrade-refusing). agent adds `002_agent.sql` (§4).
+  (idempotent, downgrade-refusing). prompts adds `002_prompts.sql` (§4).
 - **`internal/ids`** — ULID generation (session ids, run ids).
 - **`internal/logging`** — slog JSON + request-id middleware.
 - **`internal/mcp`** — JSON-RPC 2.0 dispatch (`initialize`, `tools/list`,
-  `tools/call`). EXTENDED for agent: the skeleton's `Handler struct{}` becomes
+  `tools/call`). EXTENDED for prompts: the skeleton's `Handler struct{}` becomes
   `Handler{ svc *session.Service }`; `toolDescriptors()` lists the 11 tools (§7);
-  `dispatchTool` routes each `ikigenba_agent_*` name to a `Service` method,
-  marshals the result to MCP content. `ikigenba_agent_health` stays as the
+  `dispatchTool` routes each `ikigenba_prompts_*` name to a `Service` method,
+  marshals the result to MCP content. `ikigenba_prompts_health` stays as the
   chassis proof.
 
 ---
 
-## 4. Data model (`002_agent.sql`)
+## 4. Data model (`002_prompts.sql`)
 
 ```sql
 CREATE TABLE sessions (
@@ -128,7 +128,7 @@ CREATE INDEX idx_runs_session ON runs(session_id, started_at);
 On-disk state lives under `data/` (never touched by deploy):
 ```
 data/
-├── agent.db                       # the SQLite file
+├── prompts.db                     # the SQLite file
 ├── sandboxes/<session_id>/        # the agent's persistent work folder
 └── runs/<session_id>/<run_id>.jsonl   # the run's stream-json output log
 ```
@@ -185,12 +185,12 @@ runtime requirement is a `python3` interpreter on the box's `PATH` (§8).
 
 `Spawn(session, sandbox, run)` starts a goroutine and returns. The goroutine:
 
-1. `ctx, cancel := context.WithTimeout(parent, AGENT_RUN_TTL)` — the TTL is the
+1. `ctx, cancel := context.WithTimeout(parent, PROMPTS_RUN_TTL)` — the TTL is the
    runaway-goroutine backstop. (Idle-network watchdog is **deferred**.)
 2. Open the log sink: a file `data/runs/<session>/<run>.jsonl`, wrapped as the
    engine's `wire.Session(writer)`. The engine already emits **stream-json**
    (one JSON event per line: assistant / user / result) — append-only and
-   line-addressable, so `ikigenba_agent_session_output` is a cheap line-slice with no
+   line-addressable, so `ikigenba_prompts_session_output` is a cheap line-slice with no
    transform.
 3. Build the Anthropic client (`anthropic.New(os.Getenv("ANTHROPIC_API_KEY"),
    model)`) and the `provider.Request`: system_prompt + framing, the user
@@ -220,12 +220,12 @@ ikigai-cli's engine lives entirely under `internal/`, which Go forbids importing
 from another module. So we **copy**, not depend:
 
 1. Copy these packages from `~/projects/ikigai-cli/app-root/internal/` into
-   `agent/internal/engine/`: `provider/` (incl. `provider.go` and
+   `prompts/internal/engine/`: `provider/` (incl. `provider.go` and
    `anthropic/`), `agent/`, `tools/`, `model/`, `wire/`, plus whatever small
    support packages they import (e.g. `schema`, `trace` if used by `agent.Run` —
    resolve by compiling).
 2. Rewrite import paths: `github.com/ai4mgreenly/ikigai-cli/internal/… →
-   agent/internal/engine/…` (mechanical sed across the copied tree).
+   prompts/internal/engine/…` (mechanical sed across the copied tree).
 3. **Drop** the non-Anthropic providers (`openai/`, `google/`) — or keep them
    behind the seam, unwired. Draft 1 only constructs the Anthropic client.
    Keeping the `provider.Client` interface intact preserves the seam for later.
@@ -254,30 +254,30 @@ from the foreground. The toolset is **fixed**.
 
 | MCP tool | Service entry | Notes |
 |---|---|---|
-| `ikigenba_agent_health` | (chassis) | identity proof; no side effects |
-| `ikigenba_agent_session_create` | `Service.Create` | validates config; makes sandbox; → `{session_id, status:"idle"}` |
-| `ikigenba_agent_session_list` | `Service.List` | owner-scoped enumeration |
-| `ikigenba_agent_session_get` | `Service.Get` | full detail incl. `last_run` |
-| `ikigenba_agent_session_update` | `Service.Update` | rejected while `running` |
-| `ikigenba_agent_session_delete` | `Service.Delete` | rejected while `running`; removes folder + logs |
-| `ikigenba_agent_session_run` | `Service.Run` | async; `busy` if in-flight; → `{status:"running", started_at}` |
-| `ikigenba_agent_session_cancel` | `Service.Cancel` | terminate in-flight run; folder kept |
-| `ikigenba_agent_session_output` | reads `runs.log_path` | latest run's jsonl, by line range; tailable |
-| `ikigenba_agent_session_fs_list` | `sandbox.List` | path-escape rejected |
-| `ikigenba_agent_session_fs_read` | `sandbox.Read` | path-escape / not-a-file rejected |
+| `ikigenba_prompts_health` | (chassis) | identity proof; no side effects |
+| `ikigenba_prompts_session_create` | `Service.Create` | validates config; makes sandbox; → `{session_id, status:"idle"}` |
+| `ikigenba_prompts_session_list` | `Service.List` | owner-scoped enumeration |
+| `ikigenba_prompts_session_get` | `Service.Get` | full detail incl. `last_run` |
+| `ikigenba_prompts_session_update` | `Service.Update` | rejected while `running` |
+| `ikigenba_prompts_session_delete` | `Service.Delete` | rejected while `running`; removes folder + logs |
+| `ikigenba_prompts_session_run` | `Service.Run` | async; `busy` if in-flight; → `{status:"running", started_at}` |
+| `ikigenba_prompts_session_cancel` | `Service.Cancel` | terminate in-flight run; folder kept |
+| `ikigenba_prompts_session_output` | reads `runs.log_path` | latest run's jsonl, by line range; tailable |
+| `ikigenba_prompts_session_fs_list` | `sandbox.List` | path-escape rejected |
+| `ikigenba_prompts_session_fs_read` | `sandbox.Read` | path-escape / not-a-file rejected |
 
 ---
 
 ## 8. Lifecycle scripts (delta from the ledger skeleton)
 
-agent ships **setup / deploy / start / stop / secrets / backup / restore /
-teardown** (ledger had only build/deploy/setup/start/stop). agent is the first
+prompts ships **setup / deploy / start / stop / secrets / backup / restore /
+teardown** (ledger had only build/deploy/setup/start/stop). prompts is the first
 service whose *runtime*
 shells out beyond its own Go binary — the agent's `bash` tool runs `python3` —
 so the box must have a Python interpreter.
 
 - **`bin/setup`** — adds idempotent Python provisioning after the app-user /
-  `/opt/agent` tree and before the nginx fragment:
+  `/opt/prompts` tree and before the nginx fragment:
   ```sh
   ssh … 'command -v python3 >/dev/null || sudo dnf install -y python3 python3-pip'
   ```
@@ -285,59 +285,59 @@ so the box must have a Python interpreter.
   interpreter + pip — no persistent package set (draft-1 sandboxes aren't
   isolated, and pip installs are meant to evaporate per run).
 - **`bin/secrets`** — new. One secret: `ANTHROPIC_API_KEY`. Non-destructive
-  read-modify-write of agent's own key in SSM `/ikigenba/<account>/app-config`,
+  read-modify-write of prompts' own key in SSM `/ikigenba/<account>/app-config`,
   value from `~/.secrets/ANTHROPIC_API_KEY`. Must be seeded **before first
-  start** (launcher hard-fails if `.["agent"]` is missing). Locally the same
+  start** (launcher hard-fails if `.["prompts"]` is missing). Locally the same
   secret arrives via `.envrc` → env; the engine reads `os.Getenv("ANTHROPIC_API_KEY")`.
-- **`bin/backup` / `bin/restore`** — new. agent holds durable state the run-once
-  slice can lose on box replacement: the SQLite DB (`data/agent.db` — sessions +
+- **`bin/backup` / `bin/restore`** — new. prompts holds durable state the run-once
+  slice can lose on box replacement: the SQLite DB (`data/prompts.db` — sessions +
   run history), the **sandbox folders** (`data/sandboxes/` — the agents' actual
   work product), and the run logs (`data/runs/`). Backup is `aws s3 sync` of
   `data/` to the per-account backup bucket (`--profile ${ACCOUNT} --region
   us-east-2`, live SSO session required); restore syncs back. One wrinkle: the
   WAL-mode DB isn't consistent under a live `sync`, so `backup` takes a
   consistent DB snapshot first (`VACUUM INTO` / the SQLite backup API) and syncs
-  the snapshot alongside the folders, rather than copying the hot `agent.db`.
+  the snapshot alongside the folders, rather than copying the hot `prompts.db`.
   Sandbox/run folders sync as-is (forward-only files).
 - **`bin/teardown`** — new. Reverse of setup: stop+disable the unit, remove
-  `/opt/agent` (incl. `data/` — DB **and** sandbox folders), drop the nginx
+  `/opt/prompts` (incl. `data/` — DB **and** sandbox folders), drop the nginx
   fragment, `nginx -t` + reload. Does **not** uninstall python3 (shared box
-  resource agent didn't exclusively own).
+  resource prompts didn't exclusively own).
 - **`bin/start` / `bin/stop`** (local dev) — add a soft `python3` preflight
-  warning; non-fatal (agent boots fine without it; only the agent toolset needs it).
+  warning; non-fatal (prompts boots fine without it; only the agent toolset needs it).
 - **`bin/build` / `bin/deploy`** — ledger shape, renamed (3002→3004,
   ledger→agent). The launcher injects `ANTHROPIC_API_KEY` from app-config at
-  start; the build wrapper composes `AGENT_*` public config from
+  start; the build wrapper composes `PROMPTS_*` public config from
   `IKIGENBA_DOMAIN` / `PORT`.
 
 **Registering with the dashboard:** add
-`https://${IKIGENBA_DOMAIN}/srv/agent/mcp` to `dashboard/bin/build →
+`https://${IKIGENBA_DOMAIN}/srv/prompts/mcp` to `dashboard/bin/build →
 DASHBOARD_RESOURCES` and redeploy the dashboard, or `/internal/authn` won't
-issue a PRM challenge for agent and connector OAuth can't discover it.
+issue a PRM challenge for prompts and connector OAuth can't discover it.
 
 ---
 
 ## 9. End-to-end flow (the fusion example)
 
-1. `ikigenba_agent_session_create {prompt, config}` → `Service.Create` → validate config
+1. `ikigenba_prompts_session_create {prompt, config}` → `Service.Create` → validate config
    → insert session (`idle`) → `sandbox.Create(id)` → `{session_id, "idle"}`.
-2. `ikigenba_agent_session_run {session_id}` → single-flight check (`busy` if not) →
+2. `ikigenba_prompts_session_run {session_id}` → single-flight check (`busy` if not) →
    insert run (`running`), session→`running` → `runner.Spawn` → return
    `{running, started_at}` immediately.
 3. goroutine: `agent.Run` drives Anthropic; tools confined to the sandbox;
    narration streams into `<run>.jsonl`; on finish → run `succeeded`,
    session→`idle`.
-4. `ikigenba_agent_session_output {session_id, offset, limit}` → slice the jsonl.
-   `ikigenba_agent_session_fs_list` / `_read` → confined sandbox reads. status/usage ride
-   on `ikigenba_agent_session_get.last_run`.
+4. `ikigenba_prompts_session_output {session_id, offset, limit}` → slice the jsonl.
+   `ikigenba_prompts_session_fs_list` / `_read` → confined sandbox reads. status/usage ride
+   on `ikigenba_prompts_session_get.last_run`.
 
 ---
 
 ## 10. Config & secrets
 
-- **Public config** (`AGENT_*` env, composed by the build wrapper from
+- **Public config** (`PROMPTS_*` env, composed by the build wrapper from
   `IKIGENBA_DOMAIN`/`PORT`): port 3004, resource id, auth server, db path, log
-  level, plus `AGENT_RUN_TTL` (the run backstop, e.g. `30m`).
+  level, plus `PROMPTS_RUN_TTL` (the run backstop, e.g. `30m`).
 - **Secret**: `ANTHROPIC_API_KEY` — the only one. On the box: SSM app-config →
   launcher → process env. Locally: `~/.secrets/ANTHROPIC_API_KEY` → `.envrc` →
   env. Read once via `os.Getenv` in the runner's client construction; never on

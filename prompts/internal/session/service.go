@@ -33,7 +33,7 @@ type Runner interface {
 	Cancel(sessionID string) bool
 }
 
-// Service is agent's domain service — the only mutator of session/run state
+// Service is prompts' domain service — the only mutator of session/run state
 // and the holder of the single-flight gate. The MCP handler talks only to it.
 type Service struct {
 	store   *Store

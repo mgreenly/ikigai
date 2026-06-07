@@ -1,4 +1,4 @@
-// Package session is agent's domain: the sessions + runs state machine and
+// Package session is prompts' domain: the sessions + runs state machine and
 // the single-flight gate that fronts the async run lifecycle. The MCP handler
 // talks only to Service; Service is the only thing that mutates session/run
 // rows. See ARCHITECTURE.md §4 (data model), §5.1 (responsibilities), §7

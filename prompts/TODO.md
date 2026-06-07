@@ -1,4 +1,4 @@
-# agent — UX / roadmap notes
+# prompts — UX / roadmap notes
 
 Running, observed pain points and ideas for making sandboxed agent sessions
 pleasant to drive. Captured 2026-06 after the first real end-to-end runs (the
@@ -6,7 +6,7 @@ go-vs-rust comparison test). Ordered roughly by impact, not commitment.
 
 Context for everything below: a *session* is a prompt + config + a persistent
 sandbox folder; a *run* executes the prompt and leaves files behind. The caller
-drives it through MCP (`ikigenba_agent_session_*`). The friction is concentrated at the
+drives it through MCP (`ikigenba_prompts_session_*`). The friction is concentrated at the
 two seams: (1) telling the agent enough about its world to do the right thing,
 and (2) getting the results back out without babysitting.
 
@@ -25,12 +25,12 @@ where it is or how its tools resolve paths.
 **What the agent should be told up front:**
 - Its **absolute sandbox root**, and that it is the only writable location.
 - The **path convention**: relative paths resolve against the sandbox root; an
-  absolute path outside the root is rejected by confinement. (The `ikigenba_agent_describe`
+  absolute path outside the root is rejected by confinement. (The `ikigenba_prompts_describe`
   example already models relative paths like `report.md` — the agent prompt should
   make that the explicit rule, not folklore.)
 - That it has **no network**, so it shouldn't try to fetch/install anything.
 - The **deliverable contract**: the answer is the file(s) it leaves behind, not
-  its final chat message. (We already tell callers this in `ikigenba_agent_describe`; the
+  its final chat message. (We already tell callers this in `ikigenba_prompts_describe`; the
   agent should hear the mirror image.)
 - Its toolset and any per-tool limits (e.g. bash output is capped at 30 KB —
   `tools/bash/bash.go`; grep/read caps too) so it can plan around them.
@@ -46,9 +46,9 @@ where it is or how its tools resolve paths.
 
 ## 2. Getting large files out — a download / fetch story
 
-**Problem.** Today the only way to read a deliverable is `ikigenba_agent_session_fs_read`,
+**Problem.** Today the only way to read a deliverable is `ikigenba_prompts_session_fs_read`,
 which streams the file back **through the MCP tool result** as text. We already
-hit the ceiling: the go-vs-rust run's `ikigenba_agent_session_output` log (~72 KB) blew the
+hit the ceiling: the go-vs-rust run's `ikigenba_prompts_session_output` log (~72 KB) blew the
 tool-result token limit and had to be spilled to a temp file and chunked. A 29 KB
 markdown file is fine; a multi-MB artifact (a generated dataset, an image, a zip,
 a binary) is not — and `fs_read` is line/text oriented, so binaries are a
@@ -59,7 +59,7 @@ non-starter.
   callers/agents chunk by default for anything large. Document a recommended
   chunk size.
 - **A real download channel**: a short-lived, authenticated HTTP GET for a
-  sandbox file (`GET /srv/agent/sessions/{id}/fs/{path}`) that streams bytes
+  sandbox file (`GET /srv/prompts/sessions/{id}/fs/{path}`) that streams bytes
   directly, bypassing the MCP text-result envelope entirely. This is the clean
   answer for big or binary outputs.
 - **Manifests**: `fs_list` could carry size + a content-type guess so a caller
@@ -69,7 +69,7 @@ non-starter.
   the per-account bucket (the platform already has per-account backup buckets)
   and hand back a URL. Keeps huge results out of the request path.
 - Decide the **retention / cleanup** policy for sandbox files and run logs so the
-  box doesn't fill up (`/opt/agent/data/...`).
+  box doesn't fill up (`/opt/prompts/data/...`).
 
 ---
 
@@ -81,7 +81,7 @@ That's wasteful for the caller and gives no signal mid-run.
 
 **Ideas to think through:**
 - **Reuse the event plane.** The suite already has an outbox/SSE event-plane
-  (`eventplane/`, crm is a producer, notify is a consumer + push). Agent emitting
+  (`eventplane/`, crm is a producer, notify is a consumer + push). Prompts emitting
   `run.started` / `run.succeeded` / `run.failed` events onto that plane would let
   `notify` push a completion notification with zero polling — and it's the
   blessed pattern, not a bespoke one.
@@ -117,7 +117,7 @@ tell "finished" from "ran out of room." Pairs naturally with exposing
 ## 5. Smaller papercuts / things to decide
 
 - **`max_tokens` semantics are now "model max by default."** Good, but document
-  it (in `ikigenba_agent_describe` config notes) so callers know an unset value isn't a
+  it (in `ikigenba_prompts_describe` config notes) so callers know an unset value isn't a
   small cap. Consider whether a per-session hard ceiling is ever wanted for cost
   control.
 - **Cost visibility.** `usage_json` already carries `total_cost_usd` — consider
@@ -132,7 +132,7 @@ tell "finished" from "ran out of room." Pairs naturally with exposing
   only memory). Document what a second `run` sees, and whether callers should
   expect to clean the sandbox between unrelated tasks.
 - **Observability for the operator.** Trace logging exists (`engine/trace`);
-  make sure run failures land somewhere greppable (`journalctl -u agent`) with
+  make sure run failures land somewhere greppable (`journalctl -u prompts`) with
   enough context to diagnose without re-running.
 
 ---

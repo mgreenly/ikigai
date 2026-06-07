@@ -2,14 +2,14 @@ package mcp
 
 // describeText is the on-demand deep overview returned by the ikigenba_prompts_describe
 // tool. It is intentionally NOT loaded into the initialize `instructions`
-// field (which every client pays on every connection) — agents load it only
+// field (which every client pays on every connection) — callers load it only
 // when they choose to call ikigenba_prompts_describe, conserving context for callers that
 // already know the surface.
 //
 // Source of truth for the concepts below is README.md / ARCHITECTURE.md in this
 // module; this is a concise restatement, not a substitute. Keep it conceptual —
 // do not re-list every tool's schema here (that is what tools/list is for).
-const describeText = `Agent runs sandboxed Claude agent sessions on your behalf.
+const describeText = `Prompts runs sandboxed Claude agent sessions on your behalf.
 
 WHAT IT IS
 - A *session* is a durable object: a prompt, a model config, and a persistent

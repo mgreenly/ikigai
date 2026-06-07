@@ -26,9 +26,9 @@ func tool(verb string) string { return toolPrefix + verb }
 // prompt for them.
 func toolDescriptors() []map[string]any {
 	return []map[string]any{
-		desc(tool("describe"), "Return a detailed overview of agent: what a session is, the create→run→poll→read lifecycle, the stream-json output format, the sandbox model, and a worked example. Call this first if you're unfamiliar with agent. Takes no inputs.", obj(map[string]any{})),
+		desc(tool("describe"), "Return a detailed overview of prompts: what a session is, the create→run→poll→read lifecycle, the stream-json output format, the sandbox model, and a worked example. Call this first if you're unfamiliar with prompts. Takes no inputs.", obj(map[string]any{})),
 
-		desc(tool("health"), "Health + diagnostics for the agent service. Returns the fixed envelope (status, version, service, details) plus the authenticated caller's identity (owner_email, client_id) as established by the platform's auth gate — the end-to-end auth-chain proof. Takes no inputs.", obj(map[string]any{})),
+		desc(tool("health"), "Health + diagnostics for the prompts service. Returns the fixed envelope (status, version, service, details) plus the authenticated caller's identity (owner_email, client_id) as established by the platform's auth gate — the end-to-end auth-chain proof. Takes no inputs.", obj(map[string]any{})),
 
 		desc(tool("session_create"), "Create a new idle agent session for the caller. Returns the new session_id and its status.", obj(map[string]any{
 			"prompt":        typ("string"),
@@ -63,7 +63,7 @@ func toolDescriptors() []map[string]any {
 			"session_id": typ("string"),
 		}, "session_id")),
 
-		desc(tool("session_set_trigger"), "Attach (or replace — one trigger per session) an event trigger on one of the caller's sessions: when the named cron event fires, agent starts a run for the session. trigger_event is the full cron event type, e.g. \"cron.nightly\" (create it first via the cron service's crontab). max_staleness_secs skips an occurrence older than this (default 300); max_attempts caps the in-memory retry of a failed start (default 3). Both default when omitted or <=0.", obj(map[string]any{
+		desc(tool("session_set_trigger"), "Attach (or replace — one trigger per session) an event trigger on one of the caller's sessions: when the named cron event fires, prompts starts a run for the session. trigger_event is the full cron event type, e.g. \"cron.nightly\" (create it first via the cron service's crontab). max_staleness_secs skips an occurrence older than this (default 300); max_attempts caps the in-memory retry of a failed start (default 3). Both default when omitted or <=0.", obj(map[string]any{
 			"session_id":         typ("string"),
 			"trigger_event":      typ("string"),
 			"max_staleness_secs": typ("integer"),
@@ -378,7 +378,7 @@ func (h *Handler) dispatchTool(ctx context.Context, name string, id Identity, ar
 // toolHealth renders the shared health envelope (status/version/service/details)
 // and adds the injected caller identity (owner_email/client_id) — the gated MCP
 // diagnostics surface and end-to-end auth-chain proof. details comes from the
-// optional per-service reporter (nil → {}); agent supplies none, so details is {}.
+// optional per-service reporter (nil → {}); prompts supplies none, so details is {}.
 func (h *Handler) toolHealth(ctx context.Context, id Identity) (map[string]any, error) {
 	details := map[string]any{}
 	if h.health != nil {

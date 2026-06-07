@@ -47,7 +47,7 @@ func (f *fakeClient) Stream(ctx context.Context, req provider.Request) (<-chan p
 func newTestRunner(t *testing.T, ttl time.Duration, fc provider.Client) (*Runner, *session.Store) {
 	t.Helper()
 	ctx := context.Background()
-	conn, err := db.Open(filepath.Join(t.TempDir(), "agent.db"))
+	conn, err := db.Open(filepath.Join(t.TempDir(), "prompts.db"))
 	if err != nil {
 		t.Fatalf("db.Open: %v", err)
 	}

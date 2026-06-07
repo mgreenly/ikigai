@@ -13,7 +13,7 @@ import (
 func newTestStore(t *testing.T) *Store {
 	t.Helper()
 	ctx := context.Background()
-	conn, err := db.Open(filepath.Join(t.TempDir(), "agent.db"))
+	conn, err := db.Open(filepath.Join(t.TempDir(), "prompts.db"))
 	if err != nil {
 		t.Fatalf("db.Open: %v", err)
 	}

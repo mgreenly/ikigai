@@ -8,10 +8,10 @@ import (
 )
 
 // TestOutboxMigrationMatchesLibraryDDL guards the producer invariant: the outbox
-// table DDL is OWNED by the eventplane library (outbox.SchemaSQL); agent's
-// 005_outbox.sql migration only applies it. If the two drift, agent's outbox is
+// table DDL is OWNED by the eventplane library (outbox.SchemaSQL); prompts'
+// 005_outbox.sql migration only applies it. If the two drift, prompts' outbox is
 // no longer identical to every other producer's — so this test fails loudly the
-// moment they diverge (mirrors crm/ledger/cron). agent is the event-plane
+// moment they diverge (mirrors crm/ledger/cron). prompts is the event-plane
 // producer of the static run.succeeded / run.failed outcome types
 // (event-triggering decisions §3).
 func TestOutboxMigrationMatchesLibraryDDL(t *testing.T) {

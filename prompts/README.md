@@ -1,4 +1,4 @@
-# agent
+# prompts
 
 **Status: draft 1 — design settled for the run-once slice; not yet built.** This
 folder holds the design note. The architecture below is the outcome of an
@@ -7,30 +7,30 @@ single end-to-end slice (create a session, set its prompt, run it once, read the
 result). Loop/schedule/event-driven triggers and the event-plane work are
 designed-for but **deferred** — see Deferred.
 
-## What agent is
+## What prompts is
 
-agent is a ikigenba suite **service** (path-routed under `/srv/agent/`, loopback,
+prompts is a ikigenba suite **service** (path-routed under `/srv/prompts/`, loopback,
 behind the dashboard's nginx auth — same chassis as every other service) whose
 **domain is agentic tasks**. It is a *meta-service*: a deterministic outer MCP
 service that lets the owner create, configure, run, and supervise **agent
 sessions**, where each session is a custom-built agent driven directly against a
 model provider's API, working inside its own persistent sandbox.
 
-agent is the **deterministic** part. The non-determinism lives *inside* a run
-(what the agent decides to do, given a prompt, a toolset, and its sandbox). agent
+prompts is the **deterministic** part. The non-determinism lives *inside* a run
+(what the agent decides to do, given a prompt, a toolset, and its sandbox). prompts
 owns only *that* a run happens and *when* — storage, lifecycle, the run's
 toolset, the sandbox, output collection, and audit.
 
-agent is **non-interactive background work.** Interactivity lives in the calling
-harness (Claude web / Cowork / Claude Code) that connects to agent over MCP. You
-*delegate* a job to agent and poll for its status and output; you do not chat
+prompts is **non-interactive background work.** Interactivity lives in the calling
+harness (Claude web / Cowork / Claude Code) that connects to prompts over MCP. You
+*delegate* a job to prompts and poll for its status and output; you do not chat
 with a run.
 
 ## Core concepts
 
 - **Session** — a durable, owner-created unit: a prompt, a run config
   (`provider, model, effort, max_tokens, temperature, tools, …`), and its own
-  **persistent sandbox folder**. Lives in agent's DB (and on disk) until deleted.
+  **persistent sandbox folder**. Lives in prompts' DB (and on disk) until deleted.
   The prompt and config are editable after creation.
 - **Run** — one episodic execution of a session: a self-contained agent tool-use
   loop, started by a trigger, that runs to a terminal state and exits. A run is
@@ -42,7 +42,7 @@ with a run.
 - **Trigger** — what starts a run. Draft 1 ships exactly one: **`run` (one-shot,
   ad-hoc)**. Loop, schedule, and event-subscribe are designed as additional
   *bindings* on the same session (see Deferred).
-- **Run engine** — agent's own Go agent loop driving a provider API directly
+- **Run engine** — prompts' own Go agent loop driving a provider API directly
   (stream → on `tool_use`, dispatch tools, append turns, re-invoke → until a
   non-tool stop). Multi-provider behind a provider seam, borrowed from
   `ikigai-cli`. Tools are plain Go functions in a registry, **not** a second MCP
@@ -58,9 +58,9 @@ that session executes *inside* it.
     folder. `python` is available. bash is **confined to the folder** and has
     **no network access**.
   - *Agent-mediated* — `websearch, webfetch` (and later `publish_event`) — run in
-    agent's own Go process, which *does* have network, and hand results back in.
+    prompts' own Go process, which *does* have network, and hand results back in.
 - **The agent's only path to the network is the agent-mediated tools.** bash
-  cannot call out. agent brokers every external interaction — an enforced
+  cannot call out. prompts brokers every external interaction — an enforced
   blast-radius boundary, not merely an omitted capability.
 - **The folder persists; the execution sandbox is ephemeral per run.** The only
   thing that survives between runs is what was written to disk. Anything else
@@ -125,10 +125,10 @@ arrive with their triggers).
 Goal: the fusion example end-to-end — *create a session → set its prompt → run it
 once → poll status → read the output / the file it wrote.*
 
-- **Chassis** cloned from `../ledger` — loopback (**:3004**), `/srv/agent/` nginx
-  fragment, identity gate, PRM doc, `ikigenba_agent_health`, `bin/*` lifecycle,
-  SQLite + migrations, MCP JSON-RPC. Tool prefix → `ikigenba_agent_`.
-- **Session CRUD** — `ikigenba_agent_session_create` (prompt + config) / `_list` / `_get`
+- **Chassis** cloned from `../ledger` — loopback (**:3004**), `/srv/prompts/` nginx
+  fragment, identity gate, PRM doc, `ikigenba_prompts_health`, `bin/*` lifecycle,
+  SQLite + migrations, MCP JSON-RPC. Tool prefix → `ikigenba_prompts_`.
+- **Session CRUD** — `ikigenba_prompts_session_create` (prompt + config) / `_list` / `_get`
   (incl. status) / `_update` (edit prompt/config — the "edit" tool) / `_delete`.
   Config is a normalized blob, validated at create time; provider keys are
   deployment secrets via the `.envrc` → env pattern, validated **per session**.
@@ -139,10 +139,10 @@ once → poll status → read the output / the file it wrote.*
   ikigenba **platform** concern since it owns the box.
 - **Run engine** — borrow the `ikigai-cli` provider seam (Anthropic reference
   adapter) + agent loop + tool registry (`bash/read/write/edit/grep/glob` +
-  `websearch/webfetch`). `ikigenba_agent_session_run` (one-shot) spawns a run, collects
+  `websearch/webfetch`). `ikigenba_prompts_session_run` (one-shot) spawns a run, collects
   output to a run record.
-- **Read surface** — `ikigenba_agent_session_output`, `ikigenba_agent_session_fs_list`,
-  `ikigenba_agent_session_fs_read` (status/usage ride on `ikigenba_agent_session_get.last_run`). See
+- **Read surface** — `ikigenba_prompts_session_output`, `ikigenba_prompts_session_fs_list`,
+  `ikigenba_prompts_session_fs_read` (status/usage ride on `ikigenba_prompts_session_get.last_run`). See
   the full MCP tool surface below.
 
 ## MCP tool surface (draft 1 — 11 tools, run-once only)
@@ -153,43 +153,43 @@ the sandbox is **read-only** from the foreground; the toolset is **fixed**.
 
 **Identity (chassis)**
 
-- `ikigenba_agent_health` — prove the connector → OAuth → service chain; no side effects.
+- `ikigenba_prompts_health` — prove the connector → OAuth → service chain; no side effects.
   *in:* none · *out:* `{status, version, service, owner_email, client_id, details}`.
 
 **Session lifecycle**
 
-- `ikigenba_agent_session_create` — create a durable session + its empty sandbox folder.
+- `ikigenba_prompts_session_create` — create a durable session + its empty sandbox folder.
   *in:* `{name?, prompt, system_prompt?, config:{provider, model, effort?, max_tokens?, temperature?}}` ·
   *out:* `{session_id, status:"idle"}` ·
   *errors:* unknown provider/model; **missing provider key** (validated per-session); bad config.
-- `ikigenba_agent_session_list` — enumerate the owner's sessions.
+- `ikigenba_prompts_session_list` — enumerate the owner's sessions.
   *in:* none · *out:* `[{session_id, name, status, created_at, last_run:{status, ended_at}}]`.
-- `ikigenba_agent_session_get` — full detail of one session.
+- `ikigenba_prompts_session_get` — full detail of one session.
   *in:* `{session_id}` · *out:* `{prompt, system_prompt, config, status, created_at, updated_at, last_run:{status, started_at, ended_at, usage, error?}}`.
-- `ikigenba_agent_session_update` — the "edit" tool: change prompt/system_prompt/config/name.
+- `ikigenba_prompts_session_update` — the "edit" tool: change prompt/system_prompt/config/name.
   *in:* `{session_id, name?, prompt?, system_prompt?, config?}` · *out:* updated session ·
   *errors:* **rejected while `running`**.
-- `ikigenba_agent_session_delete` — remove the session, its folder, and its run history.
+- `ikigenba_prompts_session_delete` — remove the session, its folder, and its run history.
   *in:* `{session_id}` · *out:* `{ok}` · *errors:* **rejected while `running`** (cancel first).
 
 **Run (one-shot)**
 
-- `ikigenba_agent_session_run` — start one run. **Async** — returns immediately, does not block.
+- `ikigenba_prompts_session_run` — start one run. **Async** — returns immediately, does not block.
   *in:* `{session_id}` · *out:* `{status:"running", started_at}` ·
   *errors:* **`busy`** if a run is already in flight (single-flight invariant) ·
   *side effect:* spawns the run engine over the session's folder.
-- `ikigenba_agent_session_cancel` — terminate the in-flight run; the **folder is kept**.
+- `ikigenba_prompts_session_cancel` — terminate the in-flight run; the **folder is kept**.
   *in:* `{session_id}` · *out:* `{status:"cancelled"}` · *errors:* no run in flight.
 
 **Read surfaces (pull, on demand)**
 
-- `ikigenba_agent_session_output` — read the **latest run's output log** by line range (the narrated
+- `ikigenba_prompts_session_output` — read the **latest run's output log** by line range (the narrated
   "what the agent did"); tailable while running.
   *in:* `{session_id, offset?=0, limit?=200}` · *out:* `{lines[], total_lines, run_status}`.
-- `ikigenba_agent_session_fs_list` — list the sandbox folder.
+- `ikigenba_prompts_session_fs_list` — list the sandbox folder.
   *in:* `{session_id, path?="."}` · *out:* `[{name, type:"file"|"dir", size, modified}]` ·
   *errors:* path escaping the folder is rejected.
-- `ikigenba_agent_session_fs_read` — read a sandbox file by line range (the deliverable, e.g. `report.md`).
+- `ikigenba_prompts_session_fs_read` — read a sandbox file by line range (the deliverable, e.g. `report.md`).
   *in:* `{session_id, path, offset?=0, limit?=200}` · *out:* `{lines[], total_lines, truncated}` ·
   *errors:* path-escape; not-a-file.
 
@@ -223,7 +223,7 @@ subscribe trigger verbs.
 - **event plane** library `../eventplane` (producer `outbox` + consumer engine) —
   *only when the deferred event work lands; it needs multi-tenant changes first.*
 
-**New (what agent forces on the system):**
+**New (what prompts forces on the system):**
 - **The sandbox** — a persistent, confined, per-session work folder with a
   network-isolated bash + a curated toolset. No other service has one; the
   isolation enforcement is genuinely new infra (and likely platform-level).
@@ -255,7 +255,7 @@ subscribe trigger verbs.
 
 **Run-engine reference (external, not in this repo):**
 - `~/projects/ikigai-cli` (Go) — api-direct, multi-provider agent CLI; the
-  settled architecture to borrow agent's run engine from. Key files:
+  settled architecture to borrow prompts' run engine from. Key files:
   `app-root/internal/provider/provider.go` (the seam: `Client.Stream`, neutral
   `Request`/`Block`/`Event`), `app-root/internal/provider/{anthropic,openai,google}/`,
   `app-root/internal/agent/loop.go` (the iteration loop), `app-root/internal/tools/`

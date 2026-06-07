@@ -1,19 +1,19 @@
-// Command agent is the loopback-only domain service behind nginx. It trusts the
+// Command prompts is the loopback-only domain service behind nginx. It trusts the
 // X-Owner-Email / X-Client-Id headers nginx injects after a successful
 // auth_request against the dashboard's authorization server, and performs no
 // token logic of its own.
 //
 // The uniform chassis — the fixed subcommands (serve/version/manifest/migrate/
 // backup/restore), config-from-env, the migration runner + downgrade guard, the
-// loopback HTTP server + PRM + identity gate (ikigenba_agent_health), and graceful
-// shutdown — is owned by appkit. main.go declares only agent's identity (the
+// loopback HTTP server + PRM + identity gate (ikigenba_prompts_health), and graceful
+// shutdown — is owned by appkit. main.go declares only prompts' identity (the
 // Spec) and wires its domain surface through the Handlers hook: the session
 // store, per-session sandbox tree, async runner, the boot-time crash-recovery
-// sweep, and the agent_* MCP surface. RESOURCE_ID / AUTH_SERVER are composed
+// sweep, and the prompts_* MCP surface. RESOURCE_ID / AUTH_SERVER are composed
 // in-binary by appkit/config from IKIGENBA_DOMAIN + MOUNT (was the deleted
 // bin/build run-wrapper's job).
 //
-// agent is an LLM service: it uses agentkit (the LLM engine + tool surface) for
+// prompts is an LLM service: it uses agentkit (the LLM engine + tool surface) for
 // the agent loop, kept strictly separate from appkit (the deploy/serve chassis).
 // It is neither an event-plane producer nor a consumer — no /feed, no consumer
 // loop, no background worker; the async runner is spawned per-run, not a
@@ -42,10 +42,10 @@ import (
 	"prompts/internal/session"
 )
 
-// The event-plane upstream agent consumes (cron's /feed) and the stable id it
+// The event-plane upstream prompts consumes (cron's /feed) and the stable id it
 // presents on every connect (event-protocol.md §7.1). Both are fixed constants —
-// agent consumes exactly cron's feed, and its X-Consumer-Id is the literal
-// "agent". CONSUMES=cron in etc/manifest.env mirrors cronSource for the registry.
+// prompts consumes exactly cron's feed, and its X-Consumer-Id is the literal
+// "prompts". CONSUMES=cron in etc/manifest.env mirrors cronSource for the registry.
 const (
 	cronSource = "cron"
 	consumerID = "prompts"
@@ -71,18 +71,18 @@ func main() {
 		Mount:      "/srv/prompts/",
 		Port:       3004,
 		MCP:        true,
-		// agent is now also an event-plane CONSUMER: it consumes cron's /feed and
+		// prompts is now also an event-plane CONSUMER: it consumes cron's /feed and
 		// fires triggered runs (in-memory fire-and-run, event-triggering decisions
 		// §3). CONSUMES=cron mirrors cronSource for the registry.
 		Consumes: []string{cronSource},
-		// Subscriptions is the LIVE provider the reflection tool reports. agent's
+		// Subscriptions is the LIVE provider the reflection tool reports. prompts'
 		// one declared in-edge is the cron.* fan-out — the SAME consume.Subscription()
 		// the consumer Handler matches against, so the runtime filter and reflection
 		// cannot drift.
 		Subscriptions: func() []consumer.Subscription {
 			return []consumer.Subscription{consume.Subscription()}
 		},
-		// agent is ALSO an event-plane PRODUCER of two STATIC outcome types
+		// prompts is ALSO an event-plane PRODUCER of two STATIC outcome types
 		// (event-triggering decisions §3): run.succeeded / run.failed, emitted in
 		// the SAME tx as a run's terminal-state write. Feed mounts the /feed
 		// producer; Events is the static registry (NOT a dynamic Publishes provider
@@ -97,21 +97,21 @@ func main() {
 		},
 		Producer: func(ob *outbox.Outbox) error {
 			if storeRef == nil {
-				return fmt.Errorf("agent: Producer called before Handlers built the Store")
+				return fmt.Errorf("prompts: Producer called before Handlers built the Store")
 			}
 			storeRef.Outbox = ob
 			return nil
 		},
 		Migrations: db.FS,
-		// Handlers builds agent's domain over appkit's shared single-writer DB
+		// Handlers builds prompts' domain over appkit's shared single-writer DB
 		// handle, runs the boot-time crash-recovery sweep (after migrate, before
 		// serving), captures the Router + service for the consumer worker, and
-		// mounts the agent_* MCP surface gated behind nginx-injected identity.
+		// mounts the prompts_* MCP surface gated behind nginx-injected identity.
 		Handlers: func(r *appkit.Router) error {
 			rt = r
 			return registerRoutes(r)
 		},
-		// Workers carries agent's event-plane consumer loop, launched by appkit on
+		// Workers carries prompts' event-plane consumer loop, launched by appkit on
 		// the serve context alongside the HTTP server. The consumer Config + the
 		// fire-and-run Handler stay app-side — appkit owns the lifecycle, not the
 		// event semantics.
@@ -123,7 +123,7 @@ func main() {
 	})
 }
 
-// runConsumer is agent's event-plane consumer worker. It drives
+// runConsumer is prompts' event-plane consumer worker. It drives
 // eventplane/consumer.Run over cron's /feed until ctx is cancelled (clean
 // shutdown → nil) or a structural fault escapes (→ error, which appkit
 // propagates to cancel the server too). The handler is the in-memory
@@ -136,7 +136,7 @@ func runConsumer(ctx context.Context, rt *appkit.Router) error {
 	// `go run`/tests without env (cron's port is 3007).
 	feedURL := config.EnvOr(os.Getenv, "PROMPTS_CRON_FEED_URL", "http://127.0.0.1:3007/feed")
 	// PROMPTS_CRON_FROM is the first-subscription choice; tail by default so a fresh
-	// agent only reacts to cron events fired from now on, not the entire backlog.
+	// prompts only reacts to cron events fired from now on, not the entire backlog.
 	from := config.EnvOr(os.Getenv, "PROMPTS_CRON_FROM", "tail")
 
 	cfg := consumer.Config{
@@ -152,20 +152,20 @@ func runConsumer(ctx context.Context, rt *appkit.Router) error {
 		return err
 	}
 	lookup := svcRef.TriggersForEvent
-	logger.Info("starting agent cron consumer", "feed_url", feedURL, "from", from)
+	logger.Info("starting prompts cron consumer", "feed_url", feedURL, "from", from)
 	if err := consumer.Run(ctx, cfg, consume.Handler(fire, lookup, logger)); err != nil {
 		return fmt.Errorf("event-plane consumer: %w", err)
 	}
 	return nil
 }
 
-// registerRoutes wires agent's domain on appkit's server. It is the seam where
+// registerRoutes wires prompts' domain on appkit's server. It is the seam where
 // the chassis (appkit) hands off to the domain: appkit has already resolved
 // config, opened, and migrated the shared single-writer DB before calling this.
 func registerRoutes(rt *appkit.Router) error {
 	conn := rt.DB()
 	if conn == nil {
-		return fmt.Errorf("agent: no DB handle on router")
+		return fmt.Errorf("prompts: no DB handle on router")
 	}
 
 	// PROMPTS_RUN_TTL bounds each run's wall-clock — the runaway-goroutine backstop
@@ -183,7 +183,7 @@ func registerRoutes(rt *appkit.Router) error {
 	dataDir := filepath.Join(filepath.Dir(dbPath), "data")
 	sb, err := sandbox.New(filepath.Join(dataDir, "sandboxes"))
 	if err != nil {
-		return fmt.Errorf("agent: sandbox: %w", err)
+		return fmt.Errorf("prompts: sandbox: %w", err)
 	}
 	runsDir := filepath.Join(dataDir, "runs")
 
@@ -201,7 +201,7 @@ func registerRoutes(rt *appkit.Router) error {
 	// migrated the shared conn before calling Handlers) and before the server
 	// begins listening.
 	if swept, err := run.Recover(context.Background()); err != nil {
-		return fmt.Errorf("agent: crash-recovery sweep: %w", err)
+		return fmt.Errorf("prompts: crash-recovery sweep: %w", err)
 	} else if swept > 0 {
 		rt.Logger().Warn("crash-recovery: swept orphaned runs", "count", swept)
 	}
