@@ -6,6 +6,8 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -406,4 +408,146 @@ func (r *recordingIngester) Ingest(_ context.Context, owner, _ string, content [
 	r.lastContent = content
 	r.lastMeta = meta
 	return ingest.Result{JobID: "stub-job", Sha256: sha256Hex(string(content))}, nil
+}
+
+// failingIngester is a stub consume.Ingester whose Ingest always fails — used to
+// assert the latent-bug fix: an Ingest failure is a transient error that must
+// STALL (plain error, NOT ErrSkip) so the work is retried, not silently dropped.
+type failingIngester struct{ calls int }
+
+func (f *failingIngester) Ingest(context.Context, string, string, []byte, store.RawMeta) (ingest.Result, error) {
+	f.calls++
+	return ingest.Result{}, fmt.Errorf("simulated transient ingest failure (disk full)")
+}
+
+// ── P2 failure-classification tests ─────────────────────────────────────────────
+
+// TestHandlerMalformedPayloadSkips: an undecodable payload is poison → ErrSkip
+// (log loud + advance), never a stall and never an ingest.
+func TestHandlerMalformedPayloadSkips(t *testing.T) {
+	ing := &recordingIngester{}
+	fetch := func(context.Context, string) ([]byte, error) { return []byte("x"), nil }
+	h := handlerWith(boxOwner, ing, fetch, nil)
+	// A file.created event whose payload is not valid JSON for dropboxFilePayload.
+	ev := consumer.Event{Type: eventFileCreated, ID: "01JBAD", Source: "dropbox", Payload: json.RawMessage(`{"path": `)}
+	err := h(context.Background(), ev)
+	if err == nil {
+		t.Fatal("malformed payload returned nil, want an ErrSkip-wrapped error")
+	}
+	if !errors.Is(err, consumer.ErrSkip) {
+		t.Fatalf("malformed payload error does not satisfy errors.Is(err, ErrSkip): %v", err)
+	}
+	if ing.calls != 0 {
+		t.Fatalf("malformed payload triggered %d ingests, want 0", ing.calls)
+	}
+}
+
+// TestHandlerFetchGoneSkips: a 404/410/409 fetch ("gone") propagates ErrSkip
+// (permanently unprocessable → advance), no ingest.
+func TestHandlerFetchGoneSkips(t *testing.T) {
+	for _, status := range []int{http.StatusNotFound, http.StatusGone, http.StatusConflict} {
+		t.Run(fmt.Sprintf("%d", status), func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(status)
+			}))
+			defer srv.Close()
+			ing := &recordingIngester{}
+			h := Handler(Config{Owner: boxOwner, Ingester: ing})
+			ev := dropboxEvent(t, eventFileCreated, "/wiki/ingest/gone.md", srv.URL+"/content?path=gone")
+			err := h(context.Background(), ev)
+			if err == nil {
+				t.Fatalf("status %d returned nil, want ErrSkip", status)
+			}
+			if !errors.Is(err, consumer.ErrSkip) {
+				t.Fatalf("status %d does not satisfy errors.Is(err, ErrSkip): %v", status, err)
+			}
+			if ing.calls != 0 {
+				t.Fatalf("status %d triggered %d ingests, want 0", status, ing.calls)
+			}
+		})
+	}
+}
+
+// TestHandlerFetch5xxStalls: a 5xx fetch is transient → a PLAIN error (stall +
+// retry), explicitly NOT ErrSkip, and no ingest.
+func TestHandlerFetch5xxStalls(t *testing.T) {
+	for _, status := range []int{http.StatusInternalServerError, http.StatusBadGateway, http.StatusServiceUnavailable} {
+		t.Run(fmt.Sprintf("%d", status), func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(status)
+			}))
+			defer srv.Close()
+			ing := &recordingIngester{}
+			h := Handler(Config{Owner: boxOwner, Ingester: ing})
+			ev := dropboxEvent(t, eventFileCreated, "/wiki/ingest/flaky.md", srv.URL+"/content?path=flaky")
+			err := h(context.Background(), ev)
+			if err == nil {
+				t.Fatalf("status %d returned nil, want a stalling plain error", status)
+			}
+			if errors.Is(err, consumer.ErrSkip) {
+				t.Fatalf("status %d wrongly classified as ErrSkip (must stall): %v", status, err)
+			}
+			if ing.calls != 0 {
+				t.Fatalf("status %d triggered %d ingests, want 0", status, ing.calls)
+			}
+		})
+	}
+}
+
+// TestHandlerFetchTransportErrorStalls: a transport error (unreachable URL) is
+// transient → a PLAIN error (stall), not ErrSkip.
+func TestHandlerFetchTransportErrorStalls(t *testing.T) {
+	ing := &recordingIngester{}
+	// A non-routable / closed port content_url to force a transport-layer failure.
+	h := Handler(Config{
+		Owner:      boxOwner,
+		Ingester:   ing,
+		HTTPClient: &http.Client{Timeout: 200 * time.Millisecond},
+	})
+	ev := dropboxEvent(t, eventFileCreated, "/wiki/ingest/dead.md", "http://127.0.0.1:1/content?path=dead")
+	err := h(context.Background(), ev)
+	if err == nil {
+		t.Fatal("transport error returned nil, want a stalling plain error")
+	}
+	if errors.Is(err, consumer.ErrSkip) {
+		t.Fatalf("transport error wrongly classified as ErrSkip (must stall): %v", err)
+	}
+	if ing.calls != 0 {
+		t.Fatalf("transport error triggered %d ingests, want 0", ing.calls)
+	}
+}
+
+// TestHandlerIngestFailureStalls is the latent-bug-fix assertion: an Ingest
+// failure must return a PLAIN error so the engine STALLS and replays the event —
+// NOT ErrSkip and NOT nil (the old commit-regardless engine silently dropped it).
+func TestHandlerIngestFailureStalls(t *testing.T) {
+	ing := &failingIngester{}
+	fetch := func(context.Context, string) ([]byte, error) { return []byte("real content bytes"), nil }
+	h := handlerWith(boxOwner, ing, fetch, nil)
+	ev := dropboxEvent(t, eventFileCreated, "/wiki/ingest/notes.md", "http://127.0.0.1:3005/content?path=notes")
+	err := h(context.Background(), ev)
+	if err == nil {
+		t.Fatal("ingest failure returned nil — the latent bug (silent drop) is NOT fixed")
+	}
+	if errors.Is(err, consumer.ErrSkip) {
+		t.Fatalf("ingest failure wrongly classified as ErrSkip (must stall + retry): %v", err)
+	}
+	if ing.calls != 1 {
+		t.Fatalf("ingest was attempted %d times, want exactly 1", ing.calls)
+	}
+}
+
+// TestHandlerEmptyContentAdvances: an empty fetched body is nothing to do →
+// nil (advance), with no ingest and no error.
+func TestHandlerEmptyContentAdvances(t *testing.T) {
+	ing := &recordingIngester{}
+	fetch := func(context.Context, string) ([]byte, error) { return []byte{}, nil }
+	h := handlerWith(boxOwner, ing, fetch, nil)
+	ev := dropboxEvent(t, eventFileCreated, "/wiki/ingest/empty.md", "http://127.0.0.1:3005/content?path=empty")
+	if err := h(context.Background(), ev); err != nil {
+		t.Fatalf("empty content returned %v, want nil (advance)", err)
+	}
+	if ing.calls != 0 {
+		t.Fatalf("empty content triggered %d ingests, want 0", ing.calls)
+	}
 }

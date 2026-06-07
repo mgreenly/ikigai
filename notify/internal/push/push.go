@@ -5,11 +5,14 @@
 //
 // The effect is a **best-effort external hop** (event-protocol.md §11.2): notify
 // attempts the ntfy POST once, fire-and-forget, logs the result, and never
-// retries. The eventplane consumer engine commits the cursor regardless (decision
-// 1, 8), so the controlled leg (crm → notify) stays at-least-once while end-user
-// delivery is intentionally unreliable. There is no pending table, no retry
-// state, and no dedup — duplicate pushes on reconnect are expected and acceptable
-// (decision 2).
+// retries. Best-effort is a HANDLER choice, not an engine policy (event-triggering
+// decisions §1): the push runs in a detached goroutine and the handler returns nil
+// so the engine advances the cursor regardless of the push outcome — the
+// controlled leg (crm → notify) stays at-least-once while end-user delivery is
+// intentionally unreliable. The one error the handler returns is ErrSkip for a
+// malformed payload (semantic poison → log loud + advance), never a stalling
+// error. There is no pending table, no retry state, and no dedup — duplicate
+// pushes on reconnect are expected and acceptable (decision 2).
 package push
 
 import (
@@ -131,9 +134,10 @@ func Handler(c *Client, logger *slog.Logger) consumer.Handler {
 		}
 		var p contactCreated
 		if err := json.Unmarshal(ev.Payload, &p); err != nil {
-			// A malformed payload is logged and dropped; best-effort tolerates the
-			// loss and the engine still advances the cursor (decision 8).
-			return fmt.Errorf("push: decode contact.created %s: %w", ev.ID, err)
+			// A malformed payload is semantic poison: it can never decode, so retrying
+			// it would stall the feed forever. Wrap ErrSkip so the engine logs it loud
+			// and advances the cursor past it (event-triggering decisions §1).
+			return fmt.Errorf("push: decode contact.created %s: %w: %w", ev.ID, err, consumer.ErrSkip)
 		}
 		go func(displayName string) {
 			// Detached from the engine's request context (the handler has already

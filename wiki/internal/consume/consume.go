@@ -119,11 +119,20 @@ type dropboxFilePayload struct {
 // Dropbox does not un-file what was already integrated. We log it at Info so the
 // decision is observable, then advance the cursor.
 //
+// Failure classification (event-triggering decisions §1): the handler stays dumb
+// and just returns what each step yields. Malformed payload → ErrSkip (poison →
+// log loud + advance). Fetch → propagated: httpFetch wraps ErrSkip for a 404/410/
+// 409 ("gone") and returns a plain error for 5xx/transport (→ stall + retry).
+// Empty content → nil (a valid empty file is nothing to do, not poison). Ingest
+// failure → plain error → STALL so the work is retried (the latent-bug fix —
+// under the old commit-regardless engine it silently dropped the file).
+//
 // Idempotency / at-least-once: a re-delivered identical event is a safe no-op —
 // WriteRaw is idempotent on the content sha256 (AlreadyHad=true), and re-running
 // the integration over the same raw doc is safe by design (the agent reads
 // index-first and updates rather than duplicates). The consumer therefore needs
-// no dedup table (003_feed_offset.sql ships none).
+// no dedup table (003_feed_offset.sql ships none). The stall+retry above relies on
+// this: replaying a stalled event after a transient failure cannot duplicate state.
 func Handler(cfg Config) consumer.Handler {
 	logger := cfg.Logger
 	if logger == nil {
@@ -161,9 +170,10 @@ func handlerWith(owner string, ing Ingester, fetch fetchFunc, logger *slog.Logge
 
 		var p dropboxFilePayload
 		if err := json.Unmarshal(ev.Payload, &p); err != nil {
-			// A malformed payload is logged and dropped; the engine still advances the
-			// cursor (best-effort, §7.3, decision 8) so it does not re-arrive forever.
-			return fmt.Errorf("consume: decode %s %s: %w", ev.Type, ev.ID, err)
+			// A malformed payload is semantic poison — it can never decode, so wrap
+			// ErrSkip: the engine logs it loud and advances past it rather than
+			// stalling the feed forever (event-triggering decisions §1).
+			return fmt.Errorf("consume: decode %s %s: %w: %w", ev.Type, ev.ID, err, consumer.ErrSkip)
 		}
 
 		// Filter 2: only the hardcoded wiki/ingest folder. A path outside it is
@@ -175,15 +185,18 @@ func handlerWith(owner string, ing Ingester, fetch fetchFunc, logger *slog.Logge
 		}
 
 		// Fetch the bytes by reference over the loopback /content endpoint
-		// (dropbox is fetch-by-reference, never bytes-inline). A fetch failure is
-		// surfaced as a handler error: the engine logs it and advances the cursor
-		// anyway (best-effort, §11.2) — a 409 (the file already moved on) or a 404
-		// (deleted before we fetched) is an expected, tolerable loss, not a crash.
+		// (dropbox is fetch-by-reference, never bytes-inline). The handler stays dumb
+		// and just PROPAGATES whatever fetch returns (event-triggering decisions §1):
+		// httpFetch wraps ErrSkip for a 404/410/409 ("gone" → log loud + advance) and
+		// returns a plain error for 5xx/transport faults (→ stall + retry from the
+		// committed cursor). The %w preserves the ErrSkip wrap for errors.Is.
 		data, err := fetch(ctx, p.ContentURL)
 		if err != nil {
 			return fmt.Errorf("consume: fetch %s for %s: %w", p.ContentURL, ev.ID, err)
 		}
 		if len(data) == 0 {
+			// A valid empty file is not poison and not a failure: there is simply
+			// nothing to ingest. Advance the cursor (silent nil), do not stall.
 			logger.Warn("consume: fetched empty content, skipping ingest",
 				"path", p.Path, "event_id", ev.ID)
 			return nil
@@ -197,6 +210,12 @@ func handlerWith(owner string, ing Ingester, fetch fetchFunc, logger *slog.Logge
 			Source: "dropbox:" + p.Path,
 		})
 		if err != nil {
+			// An Ingest failure is transient (it persists the immutable raw doc and
+			// spawns the async job; a failure here means that write did not land).
+			// Return a PLAIN error so the engine STALLS and replays the event from the
+			// committed cursor — the work is retried, not lost. This is the latent-bug
+			// fix: under the old commit-regardless engine this same error silently
+			// dropped the file from the index (event-triggering decisions §1).
 			return fmt.Errorf("consume: ingest %s (event %s): %w", p.Path, ev.ID, err)
 		}
 		logger.Info("consume: filed dropbox file",
@@ -229,8 +248,15 @@ func underIngestFolder(p string) bool {
 
 // httpFetch builds the production fetchFunc: an HTTP GET of the content_url. The
 // dropbox /content endpoint is loopback-only and unauthenticated (the perimeter
-// is "it's on 127.0.0.1"), so no auth headers are sent. A non-2xx is an error
-// (the handler treats it as a tolerable best-effort loss).
+// is "it's on 127.0.0.1"), so no auth headers are sent.
+//
+// The fetch layer owns the transient-vs-terminal split, because that is where the
+// HTTP status is in scope (event-triggering decisions §1):
+//   - 404 / 410 / 409 ("gone": the file moved/was deleted before we fetched) is a
+//     permanently-unprocessable fetch → wrap consumer.ErrSkip so the handler
+//     propagates a skip (log loud + advance, never retry a 404 forever).
+//   - 5xx, transport errors, and everything else stay a PLAIN error → the handler
+//     propagates a stall and the engine retries from the committed cursor.
 func httpFetch(client *http.Client) fetchFunc {
 	return func(ctx context.Context, contentURL string) ([]byte, error) {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, contentURL, nil)
@@ -239,12 +265,20 @@ func httpFetch(client *http.Client) fetchFunc {
 		}
 		resp, err := client.Do(req)
 		if err != nil {
+			// Transport error (dial/reset/timeout): transient → plain error → stall.
 			return nil, err
 		}
 		defer resp.Body.Close()
 		if resp.StatusCode/100 != 2 {
 			io.Copy(io.Discard, resp.Body) //nolint:errcheck // drain for connection reuse
-			return nil, fmt.Errorf("content fetch returned %d", resp.StatusCode)
+			switch resp.StatusCode {
+			case http.StatusNotFound, http.StatusGone, http.StatusConflict:
+				// Gone: permanently unprocessable → skip past it.
+				return nil, fmt.Errorf("content fetch returned %d (gone): %w", resp.StatusCode, consumer.ErrSkip)
+			default:
+				// 5xx and any other non-2xx: transient → plain error → stall+retry.
+				return nil, fmt.Errorf("content fetch returned %d", resp.StatusCode)
+			}
 		}
 		return io.ReadAll(resp.Body)
 	}

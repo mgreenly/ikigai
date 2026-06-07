@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -21,6 +22,55 @@ import (
 
 	_ "modernc.org/sqlite"
 )
+
+// TestHandlerMalformedPayloadSkips asserts the P2 classification: a
+// contact.created event with an undecodable payload is permanently unprocessable
+// poison, so the handler returns an error satisfying errors.Is(err,
+// consumer.ErrSkip) — the engine logs it loud and advances the cursor rather than
+// stalling the feed forever. No push is fired.
+func TestHandlerMalformedPayloadSkips(t *testing.T) {
+	ntfy := newNtfyMock(t)
+	discard := slog.New(slog.NewJSONHandler(io.Discard, nil))
+	client := push.NewClient(ntfy.srv.URL, "topic", "tok", discard)
+	h := push.Handler(client, discard)
+
+	ev := consumer.Event{
+		Type:    "contact.created",
+		ID:      "01JBADPAYLOAD",
+		Source:  "crm",
+		Payload: json.RawMessage(`{"display_name": `), // truncated JSON
+	}
+	err := h(context.Background(), ev)
+	if err == nil {
+		t.Fatal("malformed payload returned nil, want an ErrSkip-wrapped error")
+	}
+	if !errors.Is(err, consumer.ErrSkip) {
+		t.Fatalf("malformed payload error does not satisfy errors.Is(err, ErrSkip): %v", err)
+	}
+	// Give any (incorrect) async push a moment; there must be none.
+	time.Sleep(20 * time.Millisecond)
+	if got := ntfy.snapshot(); len(got) != 0 {
+		t.Fatalf("malformed payload fired %d pushes, want 0", len(got))
+	}
+}
+
+// TestHandlerNonMatchingTypeAdvances asserts a non-contact.created event returns
+// nil (the engine advances; it is not ours), with no push.
+func TestHandlerNonMatchingTypeAdvances(t *testing.T) {
+	ntfy := newNtfyMock(t)
+	discard := slog.New(slog.NewJSONHandler(io.Discard, nil))
+	client := push.NewClient(ntfy.srv.URL, "topic", "tok", discard)
+	h := push.Handler(client, discard)
+
+	ev := consumer.Event{Type: "contact.updated", ID: "01JOTHER", Source: "crm", Payload: json.RawMessage(`{}`)}
+	if err := h(context.Background(), ev); err != nil {
+		t.Fatalf("non-matching type returned %v, want nil", err)
+	}
+	time.Sleep(20 * time.Millisecond)
+	if got := ntfy.snapshot(); len(got) != 0 {
+		t.Fatalf("non-matching type fired %d pushes, want 0", len(got))
+	}
+}
 
 // capturedPush is one request the mock ntfy server received.
 type capturedPush struct {
