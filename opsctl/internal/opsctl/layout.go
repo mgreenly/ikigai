@@ -103,6 +103,24 @@ func (l Layout) DBPath() string { return filepath.Join(l.DataDir(), l.App+".db")
 // GenerationPath is the event-plane epoch sidecar next to the DB.
 func (l Layout) GenerationPath() string { return l.DBPath() + ".generation" }
 
+// WWWRoot is /opt/<app>/www — the SEPARATE world-readable static tree the sites
+// service serves from (default SITES_ROOT). Unlike data/ (0750), this whole
+// subtree is 0755 owned by <app>:<app> so nginx (www-data) can traverse+read it.
+// Only apps that opt in (sites) get this tree; setup creates none otherwise.
+func (l Layout) WWWRoot() string { return filepath.Join(l.AppDir(), "www") }
+
+// WWWWorkingDir is /opt/<app>/www/working — draft site trees authored via MCP.
+func (l Layout) WWWWorkingDir() string { return filepath.Join(l.WWWRoot(), "working") }
+
+// WWWServedDir is /opt/<app>/www/served — the publish surface nginx serves.
+func (l Layout) WWWServedDir() string { return filepath.Join(l.WWWRoot(), "served") }
+
+// WWWPublicDir is /opt/<app>/www/served/public — publish symlinks → working trees.
+func (l Layout) WWWPublicDir() string { return filepath.Join(l.WWWServedDir(), "public") }
+
+// WWWPrivateDir is /opt/<app>/www/served/private — the private served surface.
+func (l Layout) WWWPrivateDir() string { return filepath.Join(l.WWWServedDir(), "private") }
+
 // BackupsDir is /opt/<app>/backups — where install drops the pre-migration DB
 // snapshot keyed by the FROM-version, so the matching rollback can restore it.
 func (l Layout) BackupsDir() string { return filepath.Join(l.AppDir(), "backups") }

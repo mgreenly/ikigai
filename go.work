@@ -19,5 +19,6 @@ use (
 	./notify
 	./opsctl
 	./prompts
+	./sites
 	./wiki
 )

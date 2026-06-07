@@ -49,6 +49,13 @@ func (a *app) register(mux muxer) {
 	// single verb here would 405 every mismatch — which auth_request then turns
 	// into a 500. Introspection is method-independent, so accept any method.
 	mux.Handle("/internal/authn", a.handleAuthn())
+
+	// Loopback-only session-cookie introspection nginx calls via auth_request to
+	// gate the `sites` PRIVATE static tier. Sibling of /internal/authn but
+	// session-based: any valid logged-in dashboard browser session may view any
+	// private site. Same `internal;`/loopback posture and method-independence as
+	// /internal/authn (no method constraint).
+	mux.Handle("/internal/session-authn", a.handleSessionAuthn())
 }
 
 // routes is the standalone handler the in-package tests drive via New(): the

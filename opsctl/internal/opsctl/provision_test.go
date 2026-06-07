@@ -288,6 +288,111 @@ func TestSetup_PathRoutedService(t *testing.T) {
 	}
 }
 
+// TestSetup_WWWTree provisions the sites service: in addition to the standard
+// tree, setup must create the SEPARATE world-readable www/ tree (working/,
+// served/, served/public/, served/private/, and the www/ root) at mode 0755 and
+// `chown -R sites:sites` the www root, so nginx (www-data) can traverse+read it
+// (the stock data/ is 0750 and untraversable). The WWWDirs are derived per-app
+// via WWWDirsFor, so `opsctl setup sites` provisions them with no operator flag.
+func TestSetup_WWWTree(t *testing.T) {
+	root := t.TempDir()
+	sysRoot := t.TempDir()
+	sys := &stubSystem{}
+	o := newProvisioner(t, root, sysRoot, sys)
+	runInitBox(t, o, readRepoFile(t, "../../../dashboard/etc/nginx.conf"))
+	sys.ops = nil
+
+	app := "sites"
+	fragSrc := readRepoFile(t, "../../../ledger/etc/nginx.conf") // any path-routed fragment
+	if err := o.Setup(context.Background(), SetupOptions{
+		App: app, Port: 3010, Fragment: fragSrc,
+		WWWDirs: WWWDirsFor(root, app),
+	}); err != nil {
+		t.Fatalf("setup sites: %v", err)
+	}
+
+	l := NewLayoutSys(root, sysRoot, app)
+
+	// The four served/working dirs plus the www/ root all exist at exactly 0755 —
+	// world-traversable so www-data can reach the served trees.
+	for _, dir := range []string{
+		l.WWWRoot(), l.WWWWorkingDir(), l.WWWServedDir(), l.WWWPublicDir(), l.WWWPrivateDir(),
+	} {
+		fi, err := os.Stat(dir)
+		if err != nil || !fi.IsDir() {
+			t.Fatalf("www dir %s not created: %v", dir, err)
+		}
+		if fi.Mode().Perm() != 0o755 {
+			t.Errorf("www dir %s perm = %o, want 0755", dir, fi.Mode().Perm())
+		}
+	}
+
+	// The www ROOT was handed to the sites user via a recursive chown through the
+	// seam (so the whole subtree ends up sites:sites but 0755-traversable).
+	wantOps := []string{
+		"ensure-user:sites:" + l.AppDir(),
+		"chown:sites:sites:" + l.WWWRoot(),
+		"daemon-reload",
+		"enable:sites.service",
+		"nginx-test",
+		"nginx-reload",
+	}
+	if got := sys.opSeq(); strings.Join(got, "|") != strings.Join(wantOps, "|") {
+		t.Fatalf("setup sites ops = %v, want %v", got, wantOps)
+	}
+}
+
+// TestWWWDirsFor_OnlySites asserts the www tree is derived per-app: sites gets
+// the five-dir tree, every other app gets none — so non-sites setup creates no
+// www dir (no regression). Pairs with the ledger setup test, which never sees a
+// www dir or a chown op.
+func TestWWWDirsFor_OnlySites(t *testing.T) {
+	if got := WWWDirsFor("/opt", "ledger"); got != nil {
+		t.Errorf("WWWDirsFor(ledger) = %v, want nil (non-sites apps get no www tree)", got)
+	}
+	got := WWWDirsFor("/opt", "sites")
+	want := []string{
+		"/opt/sites/www",
+		"/opt/sites/www/working",
+		"/opt/sites/www/served",
+		"/opt/sites/www/served/public",
+		"/opt/sites/www/served/private",
+	}
+	if strings.Join(got, "|") != strings.Join(want, "|") {
+		t.Fatalf("WWWDirsFor(sites) = %v, want %v", got, want)
+	}
+}
+
+// TestSetup_NoWWWTreeForOtherApps proves the non-sites path is unchanged: with no
+// WWWDirs, setup creates no www dir and requests no chown. (The existing ledger
+// setup test asserts the full op sequence has no chown; this guards the dir side.)
+func TestSetup_NoWWWTreeForOtherApps(t *testing.T) {
+	root := t.TempDir()
+	sysRoot := t.TempDir()
+	sys := &stubSystem{}
+	o := newProvisioner(t, root, sysRoot, sys)
+	runInitBox(t, o, readRepoFile(t, "../../../dashboard/etc/nginx.conf"))
+	sys.ops = nil
+
+	app := "ledger"
+	if err := o.Setup(context.Background(), SetupOptions{
+		App: app, Port: 3002,
+		Fragment: readRepoFile(t, "../../../ledger/etc/nginx.conf"),
+		WWWDirs:  WWWDirsFor(root, app), // nil for ledger
+	}); err != nil {
+		t.Fatalf("setup ledger: %v", err)
+	}
+	l := NewLayoutSys(root, sysRoot, app)
+	if _, err := os.Stat(l.WWWRoot()); !os.IsNotExist(err) {
+		t.Errorf("setup created a www tree for ledger, want none (err=%v)", err)
+	}
+	for _, op := range sys.opSeq() {
+		if strings.HasPrefix(op, "chown:") {
+			t.Errorf("setup chowned for a non-sites app: %s", op)
+		}
+	}
+}
+
 // TestSetup_DeferNginx stages the fragment but skips nginx -t/reload — the
 // greenfield path where nginx is not yet serviceable (no apex cert). The
 // fragment is still written; only the validate/reload ops are absent.

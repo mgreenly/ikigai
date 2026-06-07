@@ -408,6 +408,9 @@ func runSetup(ctx context.Context, root, name string, args []string) error {
 		Port:       *port,
 		Fragment:   frag,
 		DeferNginx: *deferNginx,
+		// Derived per-app: sites gets its world-readable www/ tree automatically
+		// (no operator flag); every other app gets none.
+		WWWDirs: opsctl.WWWDirsFor(root, pos[0]),
 	})
 }
 

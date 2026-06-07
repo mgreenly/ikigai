@@ -19,6 +19,17 @@ type SetupOptions struct {
 	// placeholders), exactly the committed etc/nginx.conf body. Empty ⇒ a service
 	// with no public route (worker/batch) — no fragment is dropped.
 
+	// WWWDirs are extra directories (absolute paths) to create at mode 0755 and
+	// hand to the app user via `chown -R <app>:<app>` on the www ROOT. They back
+	// the sites service's SEPARATE world-readable www/ tree (working/, served/,
+	// served/public/, served/private/): the stock per-app data/ is 0750 <app>:<app>
+	// so nginx (www-data) cannot traverse it, so sites serves from this 0755 tree
+	// instead. Apps that need no static tree (every app but sites) pass none — and
+	// then setup creates no www dir at all, leaving their behavior unchanged. The
+	// command layer derives this list per-app (see wwwDirsFor); it is not an
+	// operator flag, so `opsctl setup sites …` provisions the tree automatically.
+	WWWDirs []string
+
 	// DeferNginx stages the fragment file but skips the `nginx -t` + reload. On a
 	// greenfield box nginx is not yet serviceable (the apex 443 cert does not
 	// exist until the apex/dashboard deploy issues it), so `nginx -t` would
@@ -75,6 +86,22 @@ func (o *Opsctl) Setup(ctx context.Context, opts SetupOptions) error {
 		return fmt.Errorf("setup: create data dir: %w", err)
 	}
 
+	// 2b. The OPTIONAL world-readable www/ tree (sites only). data/ is 0750 so
+	//     nginx (www-data) cannot traverse it; sites serves from this 0755 subtree
+	//     instead. Create each requested dir at 0755, then `chown -R <app>:<app>`
+	//     the www ROOT so the tree is owned by the service user but still
+	//     traversable+readable by www-data (/opt/<app> itself is already 0755).
+	//     Apps that request none skip this entirely — behavior unchanged.
+	if len(opts.WWWDirs) > 0 {
+		o.logf("create world-readable www tree for %s", app)
+		if err := mkdirAll755(opts.WWWDirs...); err != nil {
+			return fmt.Errorf("setup: create www tree: %w", err)
+		}
+		if err := o.System.ChownTree(ctx, app, app, l.WWWRoot()); err != nil {
+			return fmt.Errorf("setup: chown www tree: %w", err)
+		}
+	}
+
 	// 3. systemd unit — written to the SysRoot path, then enabled-not-started.
 	o.logf("write systemd unit %s", l.UnitPath())
 	if err := writeFileAtomic(l.UnitPath(), []byte(unitFile(app)), 0o644); err != nil {
@@ -110,6 +137,27 @@ func (o *Opsctl) Setup(ctx context.Context, opts SetupOptions) error {
 
 	o.logf("setup complete for %s — next: opsctl stage %s <version> --artifact …, then opsctl deploy %s <version>", app, app, app)
 	return nil
+}
+
+// WWWDirsFor returns the absolute www-tree dirs setup must create for app under
+// root, or nil for apps that need no static tree. Only `sites` opts in: it serves
+// from a SEPARATE world-readable www/ tree (the stock data/ is 0750 <app>:<app>,
+// untraversable by nginx's www-data). The dirs are ordered parent-first so a
+// single mkdir pass suffices: www/ → working/ → served/ → served/{public,private}/.
+// The command layer calls this to populate SetupOptions.WWWDirs, so the tree is
+// derived per-app — `opsctl setup sites …` provisions it with no operator flag.
+func WWWDirsFor(root, app string) []string {
+	if app != "sites" {
+		return nil
+	}
+	l := NewLayout(root, app)
+	return []string{
+		l.WWWRoot(),
+		l.WWWWorkingDir(),
+		l.WWWServedDir(),
+		l.WWWPublicDir(),
+		l.WWWPrivateDir(),
+	}
 }
 
 // mkdirAll755 creates each dir with 0755 (the app-tree default).

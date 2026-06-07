@@ -1,0 +1,311 @@
+package mcp
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"testing"
+
+	"sites/internal/db"
+	"sites/internal/sites"
+)
+
+const (
+	testOwner    = "owner@example.com"
+	testClientID = "client-123"
+	testVersion  = "test-1.2.3"
+	testService  = "sites"
+)
+
+// newTestHandler stands up a temp DB (migrated) and a temp SITES_ROOT, returning
+// a wired Handler plus the root for filesystem assertions.
+func newTestHandler(t *testing.T) (*Handler, string) {
+	t.Helper()
+	root := t.TempDir()
+	dbPath := filepath.Join(t.TempDir(), "sites.db")
+	conn, err := db.Open(dbPath)
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	t.Cleanup(func() { conn.Close() })
+	if err := db.Migrate(context.Background(), conn); err != nil {
+		t.Fatalf("migrate: %v", err)
+	}
+	layout := sites.NewLayout(root)
+	store := sites.NewStoreWithLayout(conn, layout)
+	return NewHandler(store, layout, testVersion, testService, nil), root
+}
+
+type jsonRPCResponse struct {
+	JSONRPC string          `json:"jsonrpc"`
+	ID      json.RawMessage `json:"id"`
+	Result  json.RawMessage `json:"result"`
+	Error   *struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+	} `json:"error"`
+}
+
+type toolResult struct {
+	IsError bool `json:"isError"`
+	Content []struct {
+		Type string `json:"type"`
+		Text string `json:"text"`
+	} `json:"content"`
+}
+
+func rpc(t *testing.T, h *Handler, method string, params any) jsonRPCResponse {
+	t.Helper()
+	body := map[string]any{"jsonrpc": "2.0", "id": 1, "method": method}
+	if params != nil {
+		body["params"] = params
+	}
+	raw, err := json.Marshal(body)
+	if err != nil {
+		t.Fatalf("marshal request: %v", err)
+	}
+	req := httptest.NewRequest(http.MethodPost, "/mcp", bytes.NewReader(raw))
+	req.Header.Set("X-Owner-Email", testOwner)
+	req.Header.Set("X-Client-Id", testClientID)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	var resp jsonRPCResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("decode response for %s: %v (body=%s)", method, err, rec.Body.String())
+	}
+	if resp.Error != nil {
+		t.Fatalf("%s returned JSON-RPC error: %d %s", method, resp.Error.Code, resp.Error.Message)
+	}
+	return resp
+}
+
+func call(t *testing.T, h *Handler, name string, args any) toolResult {
+	t.Helper()
+	resp := rpc(t, h, "tools/call", map[string]any{"name": name, "arguments": args})
+	var tr toolResult
+	if err := json.Unmarshal(resp.Result, &tr); err != nil {
+		t.Fatalf("decode tool result for %s: %v (result=%s)", name, err, resp.Result)
+	}
+	return tr
+}
+
+func callOK(t *testing.T, h *Handler, name string, args any) map[string]any {
+	t.Helper()
+	tr := call(t, h, name, args)
+	if tr.IsError {
+		t.Fatalf("%s unexpectedly returned an error envelope: %s", name, payloadText(tr))
+	}
+	if len(tr.Content) != 1 || tr.Content[0].Type != "text" {
+		t.Fatalf("%s: expected one text content block, got %+v", name, tr.Content)
+	}
+	var m map[string]any
+	if err := json.Unmarshal([]byte(tr.Content[0].Text), &m); err != nil {
+		t.Fatalf("%s: text payload is not a JSON object: %v (%s)", name, err, tr.Content[0].Text)
+	}
+	return m
+}
+
+func callErr(t *testing.T, h *Handler, name string, args any) map[string]any {
+	t.Helper()
+	tr := call(t, h, name, args)
+	if !tr.IsError {
+		t.Fatalf("%s: expected an error envelope, got success: %s", name, payloadText(tr))
+	}
+	var env struct {
+		Error map[string]any `json:"error"`
+	}
+	if err := json.Unmarshal([]byte(tr.Content[0].Text), &env); err != nil {
+		t.Fatalf("%s: error payload is not the envelope shape: %v (%s)", name, err, tr.Content[0].Text)
+	}
+	if env.Error == nil {
+		t.Fatalf("%s: error envelope missing the top-level \"error\" key: %s", name, tr.Content[0].Text)
+	}
+	return env.Error
+}
+
+func payloadText(tr toolResult) string {
+	if len(tr.Content) == 0 {
+		return "<no content>"
+	}
+	return tr.Content[0].Text
+}
+
+// TestToolsList asserts tools/list returns exactly the lifecycle set with the
+// correct prefixed names and well-formed descriptors.
+func TestToolsList(t *testing.T) {
+	h, _ := newTestHandler(t)
+	resp := rpc(t, h, "tools/list", nil)
+
+	var result struct {
+		Tools []struct {
+			Name        string         `json:"name"`
+			Description string         `json:"description"`
+			InputSchema map[string]any `json:"inputSchema"`
+		} `json:"tools"`
+	}
+	if err := json.Unmarshal(resp.Result, &result); err != nil {
+		t.Fatalf("decode tools/list: %v", err)
+	}
+
+	got := map[string]bool{}
+	for _, tl := range result.Tools {
+		got[tl.Name] = true
+		if tl.Description == "" {
+			t.Errorf("tool %q has an empty description", tl.Name)
+		}
+		if tl.InputSchema == nil || tl.InputSchema["type"] != "object" {
+			t.Errorf("tool %q inputSchema is not an object schema: %v", tl.Name, tl.InputSchema)
+		}
+	}
+
+	want := []string{
+		"ikigenba_sites_health",
+		"ikigenba_sites_describe",
+		"ikigenba_sites_create",
+		"ikigenba_sites_list",
+		"ikigenba_sites_delete",
+		"ikigenba_sites_mkdir",
+		"ikigenba_sites_publish",
+		"ikigenba_sites_unpublish",
+		"ikigenba_sites_write",
+		"ikigenba_sites_read",
+		"ikigenba_sites_edit",
+		"ikigenba_sites_glob",
+		"ikigenba_sites_grep",
+	}
+	for _, name := range want {
+		if !got[name] {
+			t.Errorf("missing expected tool %q: %+v", name, result.Tools)
+		}
+	}
+	if len(result.Tools) != len(want) {
+		t.Errorf("tools/list returned %d tools, want %d: %+v", len(result.Tools), len(want), result.Tools)
+	}
+}
+
+// TestHealth covers the auth-proof envelope: identity from headers + the fixed
+// envelope keys.
+func TestHealth(t *testing.T) {
+	h, _ := newTestHandler(t)
+	env := callOK(t, h, "ikigenba_sites_health", map[string]any{})
+	if env["owner_email"] != testOwner {
+		t.Errorf("owner_email = %v, want %v", env["owner_email"], testOwner)
+	}
+	if env["client_id"] != testClientID {
+		t.Errorf("client_id = %v, want %v", env["client_id"], testClientID)
+	}
+	if env["service"] != testService {
+		t.Errorf("service = %v, want %v", env["service"], testService)
+	}
+}
+
+// TestCreateThenList is the end-to-end-ish happy path: create makes the row + the
+// working dir, list shows it.
+func TestCreateThenList(t *testing.T) {
+	h, root := newTestHandler(t)
+
+	created := callOK(t, h, "ikigenba_sites_create", map[string]any{"name": "demo"})
+	if created["name"] != "demo" {
+		t.Fatalf("create returned %+v", created)
+	}
+	if created["published"] != false {
+		t.Errorf("new site should be unpublished: %+v", created)
+	}
+	wd := filepath.Join(root, sites.WorkingSeg, "demo")
+	if fi, err := os.Stat(wd); err != nil || !fi.IsDir() {
+		t.Fatalf("working dir not created at %s: %v", wd, err)
+	}
+
+	listed := callOK(t, h, "ikigenba_sites_list", map[string]any{})
+	arr, ok := listed["sites"].([]any)
+	if !ok || len(arr) != 1 {
+		t.Fatalf("list should show one site: %+v", listed)
+	}
+	if arr[0].(map[string]any)["name"] != "demo" {
+		t.Errorf("list entry = %+v", arr[0])
+	}
+}
+
+// TestCreateBadSlug asserts an invalid slug yields an MCP error result (not a
+// transport error) with the stable code.
+func TestCreateBadSlug(t *testing.T) {
+	h, _ := newTestHandler(t)
+	e := callErr(t, h, "ikigenba_sites_create", map[string]any{"name": "Bad Slug!"})
+	if e["code"] != "invalid_slug" {
+		t.Fatalf("expected invalid_slug, got %+v", e)
+	}
+}
+
+// TestPublishUnpublish covers the publish/unpublish happy path and the served
+// symlink lifecycle.
+func TestPublishUnpublish(t *testing.T) {
+	h, root := newTestHandler(t)
+	callOK(t, h, "ikigenba_sites_create", map[string]any{"name": "demo"})
+
+	pub := callOK(t, h, "ikigenba_sites_publish", map[string]any{"name": "demo", "tier": "public"})
+	if pub["tier"] != "public" {
+		t.Fatalf("publish returned %+v", pub)
+	}
+	link := filepath.Join(root, sites.ServedSeg, sites.PublicSeg, "demo")
+	if _, err := os.Lstat(link); err != nil {
+		t.Fatalf("served link not created at %s: %v", link, err)
+	}
+
+	callOK(t, h, "ikigenba_sites_unpublish", map[string]any{"name": "demo"})
+	if _, err := os.Lstat(link); !os.IsNotExist(err) {
+		t.Fatalf("served link should be gone after unpublish: %v", err)
+	}
+
+	// invalid tier → clean error.
+	e := callErr(t, h, "ikigenba_sites_publish", map[string]any{"name": "demo", "tier": "secret"})
+	if e["code"] != "invalid_tier" {
+		t.Fatalf("expected invalid_tier, got %+v", e)
+	}
+}
+
+// TestDelete covers the unpublish → remove working tree → drop row ordering.
+func TestDelete(t *testing.T) {
+	h, root := newTestHandler(t)
+	callOK(t, h, "ikigenba_sites_create", map[string]any{"name": "demo"})
+	callOK(t, h, "ikigenba_sites_publish", map[string]any{"name": "demo", "tier": "private"})
+
+	del := callOK(t, h, "ikigenba_sites_delete", map[string]any{"name": "demo"})
+	if del["deleted"] != "demo" {
+		t.Fatalf("delete returned %+v", del)
+	}
+	if _, err := os.Stat(filepath.Join(root, sites.WorkingSeg, "demo")); !os.IsNotExist(err) {
+		t.Errorf("working dir should be removed: %v", err)
+	}
+	if _, err := os.Lstat(filepath.Join(root, sites.ServedSeg, sites.PrivateSeg, "demo")); !os.IsNotExist(err) {
+		t.Errorf("served link should be removed: %v", err)
+	}
+	listed := callOK(t, h, "ikigenba_sites_list", map[string]any{})
+	if arr, _ := listed["sites"].([]any); len(arr) != 0 {
+		t.Errorf("list should be empty after delete: %+v", listed)
+	}
+}
+
+// TestMkdirConfinement covers a valid nested mkdir and rejects an escape.
+func TestMkdirConfinement(t *testing.T) {
+	h, root := newTestHandler(t)
+	callOK(t, h, "ikigenba_sites_create", map[string]any{"name": "demo"})
+
+	callOK(t, h, "ikigenba_sites_mkdir", map[string]any{"name": "demo", "path": "a/b/c"})
+	if fi, err := os.Stat(filepath.Join(root, sites.WorkingSeg, "demo", "a", "b", "c")); err != nil || !fi.IsDir() {
+		t.Fatalf("nested dir not created: %v", err)
+	}
+
+	e := callErr(t, h, "ikigenba_sites_mkdir", map[string]any{"name": "demo", "path": "../../escape"})
+	if e["code"] != "path_escapes_working_dir" {
+		t.Fatalf("expected path_escapes_working_dir, got %+v", e)
+	}
+	e2 := callErr(t, h, "ikigenba_sites_mkdir", map[string]any{"name": "demo", "path": "/etc/evil"})
+	if e2["code"] != "path_escapes_working_dir" {
+		t.Fatalf("expected path_escapes_working_dir for absolute, got %+v", e2)
+	}
+}
