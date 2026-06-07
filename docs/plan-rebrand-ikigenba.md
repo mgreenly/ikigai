@@ -1,11 +1,12 @@
 # Plan — Rebrand to ikigenba
 
-Status: **Phases A–D complete — the suite is LIVE on `int.ikigenba.com`** (200
-over valid TLS; all 7 units active; all 6 MCP services advertised — see the
-"Phase A results" through "Phase D results" blocks). Phase 0 decisions locked
-(§6). **Phase E — `ai` teardown — infra DONE; org-departure pending a manual
-step** (account can't leave the org until standalone-account prereqs are
-completed in-console; see the "Phase E results" block). This is the execution
+Status: **Phases A–E complete — the suite is the sole live deployment on
+`int.ikigenba.com`** (200 over valid TLS; all 7 units active; all 6 MCP services
+advertised — see the "Phase A results" through "Phase E results" blocks). Phase 0
+decisions locked (§6). **Phase E — `ai` teardown — COMPLETE** (account closed via
+`aws organizations close-account` → SUSPENDED; mgmt Terraform plans clean; local
+`ai` ssh/aws config removed; only residual is AWS's ~90-day deletion window, which
+needs no action — see the "Phase E results" block). This is the execution
 plan for renaming the project's public
 identity from **metaspot/ikigai** to **ikigenba**, deployed to
 **int.ikigenba.com**. It spans **two repos**: this one (the per-account suite)
@@ -479,7 +480,7 @@ re-reads service manifests).
 
 Gate: full suite live and healthy on `int.ikigenba.com`; tests green.
 
-### Phase E — Abandon `ai` — **infra teardown DONE; org-departure pending a manual step**
+### Phase E — Abandon `ai` — **COMPLETE**
 
 Hand off to the infra-repo agent in `~/projects/metaspot`: `terraform destroy`
 the `ai/` root, remove `ai` from `mgmt/accounts.tf`, drop `delegation_ai`, remove
@@ -503,22 +504,38 @@ locally. No data to preserve, no soak required.
 > - **Bootstrap tfstate destroyed:** the `bootstrap/ai` tfstate bucket
 >   (`metaspot-ai-tfstate-417780655767`) emptied (28 versions/markers) and
 >   destroyed; `bootstrap/ai` dir removed (`58897bf`).
-> - **Org membership — NOT yet removed:** `ai` removed from `mgmt/accounts.tf`
->   and its SSO admin assignment destroyed (`825d2ae`), **BUT**
->   `aws_organizations_account.this["ai"]` could **not** be removed from the AWS
->   Organization — AWS `ConstraintViolationException`: the account is missing the
->   standalone-account prerequisites. This requires a **MANUAL console step**
->   (complete the standalone prereqs in the `ai` account, then leave the org)
->   followed by `terraform -chdir=metaspot/mgmt apply`.
-> - **Local config intentionally LEFT in place:** the `ai` blocks in
->   `~/.ssh/config` and `~/.aws/config` are **kept** so the owner retains access to
->   complete the manual org-departure step. Removing them — plus the final
->   "Phase E complete" mark — are the remaining follow-ups.
+> - **Org membership — removed via account closure (`825d2ae`):** `ai` removed
+>   from `mgmt/accounts.tf` and its SSO admin assignment destroyed (`825d2ae`).
+>   The earlier standalone-account leave-org route hit AWS
+>   `ConstraintViolationException` (missing standalone prereqs); see the
+>   finalization block below for how it was resolved.
+>
+> **Phase E finalization (2026-06-06) — `ai` account CLOSED; Phase E complete.**
+> Rather than complete the manual standalone-account prereqs (Route 1), the owner
+> confirmed closing the account outright (Route 2):
+>
+> - **Account closed:** `aws organizations close-account --account-id
+>   417780655767` was run from the `mgmt` management account. Account
+>   `417780655767` is now **Status=SUSPENDED** (AWS permanently deletes it after
+>   the ~90-day window).
+> - **Terraform state reconciled:** `terraform -chdir=metaspot/mgmt state rm
+>   'aws_organizations_account.this["ai"]'` dropped the closed account from state;
+>   `mgmt` now **plans clean ("No changes")**.
+> - **Local config cleaned:** removed `Host ai.metaspot.org ai` from
+>   `~/.ssh/config` and `[profile ai]` from `~/.aws/config`. The shared key
+>   `~/.ssh/id_ed25519_ai4mgreenly` is **preserved** (used elsewhere).
+> - **Residual:** the only thing outstanding is AWS's ~90-day deletion window for
+>   the SUSPENDED account — **nothing for anyone to do**; it completes on its own.
 
-Gate: `ai` infra destroyed (**done**); `int` is the sole live deployment.
-Remaining: complete the manual standalone-account prereqs + leave-org for `ai`,
-`terraform -chdir=metaspot/mgmt apply`, then remove the local `~/.ssh/config` /
-`~/.aws/config` `ai` blocks — at which point Phase E is fully complete.
+Gate: **MET.** `ai` infra destroyed and the account closed (SUSPENDED); `int` is
+the sole live deployment; mgmt Terraform plans clean; local `ai` ssh/aws config
+removed. Phase E is **complete** — the only residual is AWS's ~90-day deletion
+window, which requires no action.
+
+> **Unrelated follow-up (doc-drift, not blocking):** `../metaspot/AGENTS.md`
+> prose still references the old `/etc/metaspot/env`, `METASPOT_*`, and
+> `/metaspot/<env>/app-config` names — a minor doc-only cleanup, independent of
+> this rebrand.
 
 > **Deferred, not in this plan (§2):** GitHub org/repo move + folder rename;
 > `ikigai-onebox`. The Google Workspace domain stays `logic-refinery.com`
