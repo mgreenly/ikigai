@@ -27,12 +27,17 @@ func TestMcpInstalls(t *testing.T) {
 	if len(crm.Cards) != 2 {
 		t.Fatalf("crm has %d cards, want 2 (Claude Code, Codex)", len(crm.Cards))
 	}
-	wantInstall := `\claude mcp add --transport http crm https://int.ikigenba.com/srv/crm/mcp`
+	// The registration handle is namespaced "ikigenba_<svc>"; the resource URL is
+	// NOT prefixed — it stays the bare /srv/<svc>/mcp endpoint.
+	wantInstall := `\claude mcp add --transport http ikigenba_crm https://int.ikigenba.com/srv/crm/mcp`
 	if crm.Cards[0].InstallCommand != wantInstall {
 		t.Errorf("Claude install = %q, want %q", crm.Cards[0].InstallCommand, wantInstall)
 	}
-	if crm.Cards[0].RemoveCommand != `\claude mcp remove crm` {
+	if crm.Cards[0].RemoveCommand != `\claude mcp remove ikigenba_crm` {
 		t.Errorf("Claude remove = %q", crm.Cards[0].RemoveCommand)
+	}
+	if strings.Contains(crm.Cards[0].InstallCommand, "ikigenba_crm/mcp") {
+		t.Errorf("resource URL must not be prefixed: %q", crm.Cards[0].InstallCommand)
 	}
 	if crm.Cards[1].Name != "Codex" {
 		t.Errorf("second card = %q, want Codex", crm.Cards[1].Name)
@@ -72,7 +77,7 @@ func TestIndexConnectBlock(t *testing.T) {
 	if !strings.Contains(body, `<option value="crm"`) {
 		t.Errorf("index missing crm option:\n%s", body)
 	}
-	if !strings.Contains(body, `\claude mcp add --transport http crm https://int.ikigenba.com/srv/crm/mcp`) {
+	if !strings.Contains(body, `\claude mcp add --transport http ikigenba_crm https://int.ikigenba.com/srv/crm/mcp`) {
 		t.Errorf("index missing crm install snippet:\n%s", body)
 	}
 	// The dashboard itself (no MCP=true) must not appear as a connect target.

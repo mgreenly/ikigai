@@ -33,18 +33,23 @@ func TestInstallScript(t *testing.T) {
 	}
 	body := rec.Body.String()
 
+	// Registration handles are namespaced "ikigenba_<svc>"; the resource URLs stay
+	// the bare /srv/<svc>/mcp endpoints (not prefixed).
 	wantLines := []string{
 		"#!/usr/bin/env bash",
 		"set -euo pipefail",
-		"claude mcp remove --scope user crm >/dev/null 2>&1 || true",
-		"claude mcp add --scope user --transport http crm https://int.ikigenba.com/srv/crm/mcp",
-		"claude mcp remove --scope user ledger >/dev/null 2>&1 || true",
-		"claude mcp add --scope user --transport http ledger https://int.ikigenba.com/srv/ledger/mcp",
+		"claude mcp remove --scope user ikigenba_crm >/dev/null 2>&1 || true",
+		"claude mcp add --scope user --transport http ikigenba_crm https://int.ikigenba.com/srv/crm/mcp",
+		"claude mcp remove --scope user ikigenba_ledger >/dev/null 2>&1 || true",
+		"claude mcp add --scope user --transport http ikigenba_ledger https://int.ikigenba.com/srv/ledger/mcp",
 	}
 	for _, want := range wantLines {
 		if !strings.Contains(body, want) {
 			t.Errorf("script missing %q:\n%s", want, body)
 		}
+	}
+	if strings.Contains(body, "ikigenba_crm/mcp") {
+		t.Errorf("resource URL must not be prefixed:\n%s", body)
 	}
 	if strings.Contains(body, "dashboard") {
 		t.Errorf("dashboard (no MCP) leaked into install script:\n%s", body)

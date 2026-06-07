@@ -28,8 +28,9 @@ func installScript(scheme, host string, svcs []inventory.Service) string {
 	b.WriteString("set -euo pipefail\n\n")
 	for _, s := range svcs {
 		resource := mcpResourceURL(scheme, host, s.Mount)
-		fmt.Fprintf(&b, "claude mcp remove --scope user %s >/dev/null 2>&1 || true\n", s.Name)
-		fmt.Fprintf(&b, "claude mcp add --scope user --transport http %s %s\n\n", s.Name, resource)
+		name := mcpLocalName(s.Name)
+		fmt.Fprintf(&b, "claude mcp remove --scope user %s >/dev/null 2>&1 || true\n", name)
+		fmt.Fprintf(&b, "claude mcp add --scope user --transport http %s %s\n\n", name, resource)
 	}
 	b.WriteString(`echo "Done. Restart Claude Code for the new MCP servers to load."` + "\n")
 	return b.String()

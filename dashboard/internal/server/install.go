@@ -49,8 +49,19 @@ func mcpResourceURL(scheme, host, mount string) string {
 	return scheme + "://" + host + mount + "mcp"
 }
 
+// mcpLocalName is the local MCP registration handle for a service: the bare
+// service name namespaced with an "ikigenba_" prefix (e.g. "ikigenba_crm"), used
+// as the `claude mcp add`/`codex mcp add` <name> argument so the suite's MCP
+// servers don't collide with generically-named servers in a user's config. Only
+// the registration handle is prefixed — the resource URL (mcpResourceURL) and the
+// on-box service name are unchanged. Shared by the index install snippets and the
+// /install one-paste script so the two can't drift.
+func mcpLocalName(svc string) string {
+	return "ikigenba_" + svc
+}
+
 // installCardsFor returns the per-client connect snippets for one service. name
-// is the local MCP registration name (the service's manifest APP name); resource
+// is the local MCP registration handle (mcpLocalName: "ikigenba_<svc>"); resource
 // is its MCP endpoint URL. The leading backslash on each command bypasses any
 // shell alias named claude/codex so the real binary runs — kept from the crm
 // reference verbatim.
@@ -78,7 +89,7 @@ func mcpInstalls(scheme, host string, svcs []inventory.Service) []mcpInstall {
 		out = append(out, mcpInstall{
 			ID:    s.Name,
 			Name:  s.Name,
-			Cards: installCardsFor(s.Name, resource),
+			Cards: installCardsFor(mcpLocalName(s.Name), resource),
 		})
 	}
 	return out
