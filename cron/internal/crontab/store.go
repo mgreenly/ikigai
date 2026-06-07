@@ -54,6 +54,11 @@ func NewStore(db *sql.DB) *Store {
 	return &Store{db: db}
 }
 
+// DB returns the shared single-writer handle the Store runs on, so the tick
+// worker can open its own per-schedule transaction (Append + last_slot UPDATE)
+// on the same handle (the single-writer serialization is what makes that safe).
+func (s *Store) DB() *sql.DB { return s.db }
+
 // Create inserts a new schedule. now is the create/update timestamp (UTC). A
 // name collision is ErrExists; a CHECK violation is ErrInvalid.
 func (s *Store) Create(ctx context.Context, name, expr string, now time.Time) (*Entry, error) {
