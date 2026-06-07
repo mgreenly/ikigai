@@ -1,0 +1,28 @@
+# Build artifacts
+/build/
+# Stray bare binary from a module-root `go build` (never committed)
+/prompts
+
+# SQLite databases (runtime; default path is ./tmp/prompts.db)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
+# Runtime on-disk state: the SQLite file, per-session sandbox folders, and
+# per-run stream-json logs all live under data/ and are never committed.
+/data/
+/tmp/
+
+# Local environment
+.env
+.env.local
+
+# Editor / OS
+.DS_Store
+*.swp
+*.swo
+.idea/
+.vscode/
