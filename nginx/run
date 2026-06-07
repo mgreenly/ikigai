@@ -11,7 +11,7 @@ repo="$(cd "$here/.." && pwd)"
 # dev mirror of each service's bin/setup. Generated files are gitignored and
 # overwritten every run, so this stays idempotent.
 mkdir -p "$here/locations"
-for svc in agent crm cron dropbox ledger notify wiki; do
+for svc in agent crm cron dropbox gmail ledger notify wiki; do
 	frag="$repo/$svc/etc/nginx.conf"
 	[ -f "$frag" ] || continue
 	port="$(REGISTRY_ROOT="$repo" "$repo/bin/registry" port "$svc")"
