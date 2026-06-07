@@ -65,11 +65,12 @@ func (s *store) markSubscribed(ctx context.Context) error {
 	return nil
 }
 
-// commit advances the durable committed cursor for this upstream (§10). It is
-// best-effort: the engine commits the cursor for EVERY event regardless of what
-// the handler did (decision 1, 8) — there is no effect/dedup row to coordinate
-// with, so this is a single bare UPDATE. subscribed is set to 1 here too, so the
-// first real event also satisfies the bootstrap marker.
+// commit advances the durable committed cursor for this upstream (§10). The
+// engine calls it only when the handler's return value permits an advance — nil
+// or ErrSkip (event-triggering decisions §1); a stalling error skips this call
+// so the event re-delivers. There is no effect/dedup row to coordinate with, so
+// this is a single bare UPDATE. subscribed is set to 1 here too, so the first
+// real event also satisfies the bootstrap marker.
 func (s *store) commit(ctx context.Context, cursor string) error {
 	_, err := s.db.ExecContext(ctx,
 		`INSERT INTO feed_offset (source, cursor, subscribed, updated_at)

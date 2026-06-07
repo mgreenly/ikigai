@@ -10,10 +10,22 @@
 // loop, and the connect-time resync handling (all four reasons of §10.1) — none
 // of which a consuming service should re-implement. The service supplies only a
 // Config and a Handler: the engine calls the handler for EVERY event (type
-// filtering is the service's job, §7.3) and then commits the cursor regardless
-// of what the handler returned — this engine drives the best-effort external-hop
-// model (§11.2), so a handler error is logged and ignored, never retried, and
-// never blocks the cursor advance (decision 1, 8).
+// filtering is the service's job, §7.3) and the handler's return value gates the
+// cursor (event-triggering decisions §1):
+//
+//   - nil           → advance (commit the cursor).
+//   - ErrSkip       → log loud + advance (poison the handler can never process;
+//     matched with errors.Is, so a wrapped ErrSkip counts).
+//   - any other err → STALL: do NOT advance; tear down the connection and
+//     reconnect from the last committed cursor so the same event re-delivers
+//     before any later one (the §10 in-order, at-least-once stall).
+//
+// The default-on-unknown-error is therefore stall (the safe at-least-once
+// direction): a handler must opt in to loss via ErrSkip or by returning nil.
+// Best-effort is a HANDLER choice, not an engine policy — a best-effort handler
+// swallows its external failure and returns nil. The engine's own unparseable-
+// *envelope* skip (detected before the handler runs) stays as-is; ErrSkip is for
+// the *semantic* poison a handler discovers after parsing.
 //
 // What is a STRUCTURAL fault versus a TRANSPORT fault is the load-bearing split
 // (decision 11): a feed_offset read/write failure (a missing table, a closed DB
@@ -63,11 +75,22 @@ type Event struct {
 }
 
 // Handler is the per-event effect. The engine invokes it for EVERY event (the
-// service filters by Type itself, §7.3) and commits the cursor regardless of the
-// return value: a non-nil error is logged and ignored (decision 8), because this
-// engine drives the best-effort external-hop model (§11.2) where loss is
-// tolerated and the cursor must always advance.
+// service filters by Type itself, §7.3); its return value gates the cursor
+// (event-triggering decisions §1): nil advances, ErrSkip logs loud and advances,
+// any other error stalls (the engine tears down and replays from the last
+// committed cursor). A best-effort handler opts into loss by returning nil (e.g.
+// notify's ntfy push swallows its external failure); a handler that wants the
+// at-least-once retry returns the underlying error.
 type Handler func(ctx context.Context, ev Event) error
+
+// ErrSkip is the explicit "skip this event" signal a handler returns (possibly
+// wrapped) for semantic poison it can never process — an unprocessable payload,
+// a permanently-gone resource. The engine matches it with errors.Is, logs it
+// loud, and advances the cursor past the event so it does not stall the consumer
+// forever. It is the deliberate opt-in to loss that keeps "skip" distinct from a
+// transient "error" (which stalls). Contrast the engine's own unparseable-
+// *envelope* skip, which happens before the handler ever runs.
+var ErrSkip = errors.New("consumer: skip event")
 
 // Config is the engine's injected configuration, read once at the composition
 // root (§3). FeedURL, Source, and ConsumerID are the only peer-specific values;
@@ -166,9 +189,10 @@ type engine struct {
 // Sentinel errors that the frame callback returns to stop scanning. None
 // escapes the engine: the attempt outcome is carried in attemptResult.
 var (
-	errStopResync     = errors.New("consumer: resync received")
-	errStopStructural = errors.New("consumer: structural fault")
-	errStopShutdown   = errors.New("consumer: shutdown")
+	errStopResync       = errors.New("consumer: resync received")
+	errStopStructural   = errors.New("consumer: structural fault")
+	errStopShutdown     = errors.New("consumer: shutdown")
+	errStopHandlerStall = errors.New("consumer: handler stall")
 )
 
 // structural maps a feed_offset error to a Run return value: a context
@@ -185,9 +209,11 @@ func structural(ctx context.Context, err error) error {
 // terminal fields is meaningful; an all-zero result (no resync, no structErr,
 // connected or not) is a transport failure the loop retries.
 type attemptResult struct {
-	connected bool   // a 200 + text/event-stream was received (we registered at head)
-	resync    string // a fully-received resync reason (§10.1), authoritative
-	structErr error  // a feed_offset fault — crash (decision 11)
+	connected    bool   // a 200 + text/event-stream was received (we registered at head)
+	resync       string // a fully-received resync reason (§10.1), authoritative
+	structErr    error  // a feed_offset fault — crash (decision 11)
+	stalled      bool   // a handler returned a non-skip error — replay from the committed cursor
+	committedAny bool   // at least one event committed on this connection (progress)
 }
 
 // run is the bootstrap-then-reconnect loop. It (re)establishes the
@@ -239,7 +265,14 @@ func (e *engine) run(ctx context.Context) error {
 		}
 		if res.connected {
 			connectedOnce = true
-			backoff = baseBackoff // a healthy connection resets the curve
+		}
+		// Backoff resets on PROGRESS — a connection that committed at least one
+		// event — not on a bare 200 (event-triggering decisions §1). So a transient
+		// blip after a long healthy run retries fast, while a genuinely stuck
+		// handler (a stall that commits nothing, re-failing the same event) climbs
+		// to the cap.
+		if res.committedAny {
+			backoff = baseBackoff
 		}
 		if res.resync != "" {
 			e.logResync(res.resync)
@@ -250,6 +283,27 @@ func (e *engine) run(ctx context.Context) error {
 			// 9). No backoff: a resync is a clean reposition, not a failure.
 			needBootstrap = true
 			backoff = baseBackoff
+			continue
+		}
+
+		if res.stalled {
+			// A handler returned a non-skip error (event-triggering decisions §1):
+			// the cursor did NOT advance past the failing event. Tear down and
+			// reconnect from the last committed cursor so the same event re-delivers
+			// before any later one (the §10 in-order, at-least-once stall). A stall
+			// that made progress first (committedAny) already reset the backoff above
+			// and reconnects immediately; a no-progress stall falls through to the
+			// backoff so a persistently-failing handler does not hot-loop.
+			if ctx.Err() != nil {
+				return nil
+			}
+			if res.committedAny {
+				continue
+			}
+			if !e.sleep(ctx, jitter(backoff)) {
+				return nil
+			}
+			backoff = nextBackoff(backoff)
 			continue
 		}
 
@@ -347,12 +401,27 @@ func (e *engine) handleFrame(ctx context.Context, f sseFrame, res *attemptResult
 		if perr != nil {
 			// We cannot interpret the envelope, but the cursor MUST still advance
 			// past it (§7.3) or it re-arrives on every reconnect forever. Run no
-			// effect; commit the cursor.
+			// effect; commit the cursor. (This is the engine's own envelope skip,
+			// distinct from a handler's ErrSkip.)
 			e.log.Warn("consumer: unparseable envelope, skipping effect", "err", perr, "id", f.id, "source", e.cfg.Source)
 		} else if herr := e.h(ctx, ev); herr != nil {
-			// Best-effort: log and ignore, never retry, never block the commit
-			// (decision 1, 8; §11.2).
-			e.log.Warn("consumer: handler error (ignored)", "err", herr, "type", ev.Type, "event_id", ev.ID, "source", e.cfg.Source)
+			// The handler's return value gates the cursor (event-triggering
+			// decisions §1).
+			switch {
+			case errors.Is(herr, ErrSkip):
+				// Explicit, deliberate loss: log loud and advance past the poison so
+				// it never stalls the consumer forever.
+				e.log.Warn("consumer: handler skipped event (advancing)", "err", herr, "type", ev.Type, "event_id", ev.ID, "source", e.cfg.Source)
+			default:
+				// Any other error STALLS: do NOT advance. Stop scanning this
+				// connection; the run loop tears it down and replays from the last
+				// committed cursor so this event re-delivers before any later one
+				// (the §10 in-order, at-least-once stall). The default-on-unknown-
+				// error is stall — the safe at-least-once direction.
+				e.log.Warn("consumer: handler error, stalling (will replay)", "err", herr, "type", ev.Type, "event_id", ev.ID, "source", e.cfg.Source)
+				res.stalled = true
+				return errStopHandlerStall
+			}
 		}
 		if err := e.st.commit(ctx, f.id); err != nil {
 			if ctx.Err() != nil {
@@ -366,6 +435,7 @@ func (e *engine) handleFrame(ctx context.Context, f sseFrame, res *attemptResult
 			res.structErr = err
 			return errStopStructural
 		}
+		res.committedAny = true // progress: resets the reconnect backoff curve
 		return nil
 	}
 }

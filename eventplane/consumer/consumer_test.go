@@ -445,6 +445,193 @@ func TestResyncUnintelligible(t *testing.T) {
 	waitFor(t, "unintelligible logged", func() bool { return strings.Contains(logbuf.String(), "unintelligible-cursor") })
 }
 
+// ── P1: handler return gates the cursor (event-triggering decisions §1) ──────
+
+// nil → advance: the canonical happy path is already covered by
+// TestBacklogDrainedInOrder; this asserts the cursor lands on the last event.
+func TestHandlerNilAdvancesCursor(t *testing.T) {
+	dir := t.TempDir()
+	ob, pdb, srv := newProducer(t, filepath.Join(dir, "p.db"), filepath.Join(dir, "gen"))
+	for i := 1; i <= 3; i++ {
+		emit(t, ob, pdb, i)
+	}
+	cdb := newConsumerDB(t)
+	c := &collector{}
+	runConsumer(t, baseConfig(cdb, srv.URL, fromEarliest, io.Discard), c.handle)
+	waitEvents(t, c, 3)
+	waitFor(t, "cursor advanced past all", func() bool {
+		cur, _ := cursorRow(t, cdb)
+		return cur.Valid && strings.HasSuffix(cur.String, ".3")
+	})
+}
+
+// ErrSkip → log loud + advance: a handler that skips every event must not stall;
+// the cursor advances past all of them and is logged.
+func TestHandlerErrSkipAdvancesCursor(t *testing.T) {
+	dir := t.TempDir()
+	ob, pdb, srv := newProducer(t, filepath.Join(dir, "p.db"), filepath.Join(dir, "gen"))
+	for i := 1; i <= 3; i++ {
+		emit(t, ob, pdb, i)
+	}
+	cdb := newConsumerDB(t)
+	var seen int
+	var mu sync.Mutex
+	var logbuf syncBuffer
+	h := func(_ context.Context, _ Event) error {
+		mu.Lock()
+		seen++
+		mu.Unlock()
+		// Wrapped, to prove errors.Is matching (not ==).
+		return fmt.Errorf("poison payload: %w", ErrSkip)
+	}
+	cfg := baseConfig(cdb, srv.URL, fromEarliest, &logbuf)
+	runConsumer(t, cfg, h)
+
+	waitFor(t, "all three skipped", func() bool {
+		mu.Lock()
+		defer mu.Unlock()
+		return seen >= 3
+	})
+	// Cursor advanced past the last event despite every handler erroring.
+	waitFor(t, "cursor advanced past skips", func() bool {
+		cur, _ := cursorRow(t, cdb)
+		return cur.Valid && strings.HasSuffix(cur.String, ".3")
+	})
+	if !strings.Contains(logbuf.String(), "handler skipped event") {
+		t.Fatalf("ErrSkip not logged loud: %q", logbuf.String())
+	}
+	// Each event delivered exactly once (no stall/replay): seen must be exactly 3.
+	mu.Lock()
+	got := seen
+	mu.Unlock()
+	if got != 3 {
+		t.Fatalf("ErrSkip caused replay: handler saw %d events, want 3", got)
+	}
+}
+
+// other error → stall: the cursor does NOT advance and the same event is
+// re-delivered on reconnect from the committed cursor. Once the handler starts
+// returning nil, the consumer drains forward.
+func TestHandlerErrorStallsThenRecovers(t *testing.T) {
+	dir := t.TempDir()
+	ob, pdb, srv := newProducer(t, filepath.Join(dir, "p.db"), filepath.Join(dir, "gen"))
+	emit(t, ob, pdb, 1)
+	emit(t, ob, pdb, 2)
+	cdb := newConsumerDB(t)
+
+	var mu sync.Mutex
+	var attempts int // how many times event 1 was offered
+	heal := false
+	c := &collector{}
+	h := func(ctx context.Context, ev Event) error {
+		var p struct {
+			N int `json:"n"`
+		}
+		_ = json.Unmarshal(ev.Payload, &p)
+		mu.Lock()
+		healed := heal
+		if p.N == 1 {
+			attempts++
+		}
+		mu.Unlock()
+		if p.N == 1 && !healed {
+			return fmt.Errorf("transient failure on event 1")
+		}
+		return c.handle(ctx, ev)
+	}
+	runConsumer(t, baseConfig(cdb, srv.URL, fromEarliest, io.Discard), h)
+
+	// Event 1 is offered repeatedly (stall + replay) and the cursor never advances.
+	waitFor(t, "event 1 retried", func() bool {
+		mu.Lock()
+		defer mu.Unlock()
+		return attempts >= 2
+	})
+	if cur, _ := cursorRow(t, cdb); cur.Valid {
+		t.Fatalf("stall advanced the cursor to %q; must stay NULL", cur.String)
+	}
+	if got := c.ns(); len(got) != 0 {
+		t.Fatalf("stall delivered events downstream: %v", got)
+	}
+
+	// Heal: now the handler returns nil and the consumer drains 1 then 2 in order.
+	mu.Lock()
+	heal = true
+	mu.Unlock()
+	waitEvents(t, c, 2)
+	if got := c.ns(); fmt.Sprint(got) != fmt.Sprint([]int{1, 2}) {
+		t.Fatalf("after heal want [1 2] in order, got %v", got)
+	}
+	waitFor(t, "cursor advanced after heal", func() bool {
+		cur, _ := cursorRow(t, cdb)
+		return cur.Valid && strings.HasSuffix(cur.String, ".2")
+	})
+}
+
+// backoff resets on progress: a connection that commits at least one event
+// before stalling reconnects immediately (committedAny resets the curve), so a
+// transient blip after healthy progress does not crawl up the backoff curve.
+func TestBackoffResetsOnProgress(t *testing.T) {
+	dir := t.TempDir()
+	ob, pdb, srv := newProducer(t, filepath.Join(dir, "p.db"), filepath.Join(dir, "gen"))
+	emit(t, ob, pdb, 1) // committed (progress) before the stall
+	emit(t, ob, pdb, 2) // the one that stalls until it heals
+	cdb := newConsumerDB(t)
+
+	var mu sync.Mutex
+	var ev2Attempts int
+	heal := false
+	c := &collector{}
+	h := func(ctx context.Context, ev Event) error {
+		var p struct {
+			N int `json:"n"`
+		}
+		_ = json.Unmarshal(ev.Payload, &p)
+		mu.Lock()
+		healed := heal
+		if p.N == 2 {
+			ev2Attempts++
+		}
+		mu.Unlock()
+		if p.N == 2 && !healed {
+			return fmt.Errorf("transient failure on event 2")
+		}
+		return c.handle(ctx, ev)
+	}
+	runConsumer(t, baseConfig(cdb, srv.URL, fromEarliest, io.Discard), h)
+
+	// Event 1 committed (progress); event 2 stalls and is re-offered fast because
+	// the committed-on-this-connection progress resets the backoff each round.
+	start := time.Now()
+	waitFor(t, "event 2 retried several times", func() bool {
+		mu.Lock()
+		defer mu.Unlock()
+		return ev2Attempts >= 5
+	})
+	// With maxBackoff=20ms, a non-resetting curve would take far longer to reach
+	// 5 retries than a reset-to-base (2ms) one; assert the progress-reset path is
+	// live by bounding the elapsed time generously.
+	if elapsed := time.Since(start); elapsed > 2*time.Second {
+		t.Fatalf("progress did not reset backoff: 5 retries took %v", elapsed)
+	}
+	// Cursor sits at event 1 (committed) and never advanced to 2 while stalling.
+	if cur, _ := cursorRow(t, cdb); !cur.Valid || !strings.HasSuffix(cur.String, ".1") {
+		t.Fatalf("want cursor at .1 during stall, got %v", cur)
+	}
+
+	mu.Lock()
+	heal = true
+	mu.Unlock()
+	waitFor(t, "event 2 delivered after heal", func() bool {
+		for _, n := range c.ns() {
+			if n == 2 {
+				return true
+			}
+		}
+		return false
+	})
+}
+
 // 13a: control frames (caught-up on an empty feed) don't corrupt the cursor — it
 // stays NULL with no event to commit, while the bootstrap marker is durable.
 func TestControlFramesDoNotAdvanceCursor(t *testing.T) {

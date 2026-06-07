@@ -51,11 +51,28 @@ Two packages — the producer half (`outbox`) and the consumer half (`consumer`)
   so it keeps only the cursor + first-subscription marker, no dedup row). A
   consumer applies it through its own migration runner and asserts the migration
   matches the constant.
-- **Best-effort semantics** (decision 1, 8; §11.2): the engine commits the cursor
-  for **every** event regardless of what the handler returned — a handler error
-  is logged and ignored, never retried, never blocking the advance. Type
-  filtering is the service's job (§7.3); the engine calls the handler for every
-  event type.
+- **Handler return gates the cursor** (event-triggering decisions §1 — this
+  supersedes the prior "commit regardless" best-effort-engine model). The engine
+  calls the handler for **every** event (type filtering is the service's job,
+  §7.3); its return value decides the cursor:
+  - `nil` → advance (commit the cursor).
+  - `consumer.ErrSkip` (matched with `errors.Is`, so a wrapped `ErrSkip` counts)
+    → log loud + advance. The deliberate opt-in to loss for semantic poison a
+    handler can never process — keeps "skip" distinct from a transient "error".
+  - any other error → **stall**: the engine does NOT advance; it tears down the
+    connection and reconnects from the last committed cursor, so the same event
+    re-delivers before any later one (the §10 in-order, at-least-once stall). The
+    default-on-unknown-error is therefore stall — the safe direction; a handler
+    opts into loss, never the other way.
+  **Best-effort is a handler choice, not an engine policy:** a best-effort
+  handler (e.g. notify's ntfy push) swallows its external failure and returns
+  `nil`. The engine's own unparseable-*envelope* skip (before the handler runs)
+  is unchanged; `ErrSkip` is for semantic poison discovered *after* parsing.
+- **Reconnect backoff** resets on **progress** (a connection that committed at
+  least one event) and engages only on a **no-progress** stall — a reconnect
+  that re-fails the same event having committed nothing. A transient blip after a
+  long healthy run retries fast; a genuinely stuck handler climbs to the 30s cap.
+  (No extra state beyond a `committedAny` flag on the attempt result.)
 - **Structural vs transport** (decision 11): a `feed_offset` read/write failure
   (a missing table, a closed DB) escapes `Run` so the process crashes and
   systemd restart-loops visibly; a connect failure / non-200 / dropped
