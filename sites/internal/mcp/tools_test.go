@@ -19,6 +19,7 @@ const (
 	testClientID = "client-123"
 	testVersion  = "test-1.2.3"
 	testService  = "sites"
+	testBaseURL  = "https://int.ikigenba.com/srv/sites/"
 )
 
 // newTestHandler stands up a temp DB (migrated) and a temp SITES_ROOT, returning
@@ -37,7 +38,7 @@ func newTestHandler(t *testing.T) (*Handler, string) {
 	}
 	layout := sites.NewLayout(root)
 	store := sites.NewStoreWithLayout(conn, layout)
-	return NewHandler(store, layout, testVersion, testService, nil), root
+	return NewHandler(store, layout, testVersion, testService, testBaseURL, nil), root
 }
 
 type jsonRPCResponse struct {
@@ -216,6 +217,11 @@ func TestCreateThenList(t *testing.T) {
 	if created["published"] != false {
 		t.Errorf("new site should be unpublished: %+v", created)
 	}
+	// An unpublished site still reports a concrete would-be URL, defaulting to
+	// the public tier — never left for an agent to guess.
+	if want := testBaseURL + "public/demo/"; created["url"] != want {
+		t.Errorf("create url = %v, want %v", created["url"], want)
+	}
 	wd := filepath.Join(root, sites.WorkingSeg, "demo")
 	if fi, err := os.Stat(wd); err != nil || !fi.IsDir() {
 		t.Fatalf("working dir not created at %s: %v", wd, err)
@@ -251,12 +257,25 @@ func TestPublishUnpublish(t *testing.T) {
 	if pub["tier"] != "public" {
 		t.Fatalf("publish returned %+v", pub)
 	}
+	if want := testBaseURL + "public/demo/"; pub["url"] != want {
+		t.Errorf("publish url = %v, want %v", pub["url"], want)
+	}
 	link := filepath.Join(root, sites.ServedSeg, sites.PublicSeg, "demo")
 	if _, err := os.Lstat(link); err != nil {
 		t.Fatalf("served link not created at %s: %v", link, err)
 	}
 
-	callOK(t, h, "ikigenba_sites_unpublish", map[string]any{"name": "demo"})
+	// Re-publishing to the private tier switches the url to the private tier.
+	pvt := callOK(t, h, "ikigenba_sites_publish", map[string]any{"name": "demo", "tier": "private"})
+	if want := testBaseURL + "private/demo/"; pvt["url"] != want {
+		t.Errorf("private publish url = %v, want %v", pvt["url"], want)
+	}
+
+	unpub := callOK(t, h, "ikigenba_sites_unpublish", map[string]any{"name": "demo"})
+	// Unpublish clears the tier, so the would-be url falls back to public.
+	if want := testBaseURL + "public/demo/"; unpub["url"] != want {
+		t.Errorf("unpublish url = %v, want %v", unpub["url"], want)
+	}
 	if _, err := os.Lstat(link); !os.IsNotExist(err) {
 		t.Fatalf("served link should be gone after unpublish: %v", err)
 	}

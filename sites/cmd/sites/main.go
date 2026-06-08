@@ -19,6 +19,7 @@ package main
 
 import (
 	"os"
+	"strings"
 
 	"appkit"
 
@@ -41,8 +42,13 @@ func main() {
 		Handlers: func(rt *appkit.Router) error {
 			layout := sites.NewLayout(os.Getenv("SITES_ROOT"))
 			store := sites.NewStoreWithLayout(rt.DB(), layout)
+			// The front-door base under which nginx serves published sites is the
+			// service's ResourceID minus its trailing "mcp" — RESOURCE_ID is
+			// "https://<domain>/srv/sites/mcp", so this yields
+			// "https://<domain>/srv/sites/" and the tools append "<tier>/<name>/".
+			baseURL := strings.TrimSuffix(rt.ResourceID(), "mcp")
 			rt.Handle("POST /mcp", rt.RequireIdentity(
-				mcp.NewHandler(store, layout, rt.Version(), rt.Service(), rt.Health())))
+				mcp.NewHandler(store, layout, rt.Version(), rt.Service(), baseURL, rt.Health())))
 			return nil
 		},
 	})

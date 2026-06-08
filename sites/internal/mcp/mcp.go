@@ -44,16 +44,21 @@ type Handler struct {
 	layout  sites.Layout
 	version string
 	service string
+	baseURL string
 	health  func(context.Context) (map[string]any, error)
 }
 
 // NewHandler builds a Handler. store is the sites registry/publish service; a nil
 // store is a wiring error and panics at this seam rather than deferring a nil
 // dereference to first request. layout pins the SITES_ROOT working/served tree
-// the create/delete/mkdir tools mutate. version/service/health populate the
-// ikigenba_sites_health envelope; health is the optional per-service reporter
+// the create/delete/mkdir tools mutate. baseURL is the front-door base the nginx
+// serves published sites under — the canonical "https://<domain>/srv/sites/"
+// (trailing slash), composed at the wiring root from the server's ResourceID; the
+// tools append "<tier>/<name>/" to it so every rendered site carries its serving
+// URL and an agent never has to guess the host. version/service/health populate
+// the ikigenba_sites_health envelope; health is the optional per-service reporter
 // (nil → details is {}).
-func NewHandler(store *sites.Store, layout sites.Layout, version, service string,
+func NewHandler(store *sites.Store, layout sites.Layout, version, service, baseURL string,
 	health func(context.Context) (map[string]any, error)) *Handler {
 	if store == nil {
 		panic("mcp: sites store is required")
@@ -63,6 +68,7 @@ func NewHandler(store *sites.Store, layout sites.Layout, version, service string
 		layout:  layout,
 		version: version,
 		service: service,
+		baseURL: baseURL,
 		health:  health,
 	}
 }

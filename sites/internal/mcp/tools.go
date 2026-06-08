@@ -167,14 +167,15 @@ func (h *Handler) toolDescribe() (map[string]any, error) {
 		"summary": "Host static websites. Each site is a slug with an editable working tree; publishing it to a tier (public or private) makes the nginx front door serve it.",
 		"lifecycle": []string{
 			"create — register a slug and create its empty working tree",
-			"edit working tree with the file tools (write/read/edit/glob/grep — coming in a later phase)",
+			"edit the working tree with the file tools (write/read/edit/glob/grep)",
 			"mkdir — create parent directories inside the working tree",
 			"publish — serve the site at a tier (public or private)",
 			"unpublish — stop serving it",
 			"delete — unpublish, remove the working tree, and drop the row",
 		},
-		"tiers": []string{sites.PublicSeg, sites.PrivateSeg},
-		"note":  "File tools (write/read/edit/glob/grep) are not yet available; use mkdir to prepare directories.",
+		"tiers":     []string{sites.PublicSeg, sites.PrivateSeg},
+		"serves_at": h.baseURL + "<tier>/<name>/",
+		"note":      "Every site carries its front-door URL as \"url\" (returned by create/list/publish/unpublish); it points at the public tier unless the site is published to the private tier.",
 	})
 }
 
@@ -198,7 +199,7 @@ func (h *Handler) toolCreate(ctx context.Context, raw json.RawMessage) (map[stri
 	if err := os.MkdirAll(h.layout.WorkingDir(a.Name), 0o755); err != nil {
 		return errResultMsg("create_working_dir", err.Error()), nil
 	}
-	return toolResultJSON(renderSite(site))
+	return toolResultJSON(h.renderSite(site))
 }
 
 // toolList renders every site as structured JSON.
@@ -209,7 +210,7 @@ func (h *Handler) toolList(ctx context.Context) (map[string]any, error) {
 	}
 	out := make([]map[string]any, 0, len(all))
 	for _, s := range all {
-		out = append(out, renderSite(s))
+		out = append(out, h.renderSite(s))
 	}
 	return toolResultJSON(map[string]any{"sites": out})
 }
@@ -275,7 +276,11 @@ func (h *Handler) toolPublish(ctx context.Context, raw json.RawMessage) (map[str
 	if err := h.store.Publish(ctx, a.Name, a.Tier); err != nil {
 		return errResult(err), nil
 	}
-	return toolResultJSON(map[string]any{"published": a.Name, "tier": a.Tier})
+	site, err := h.store.Get(ctx, a.Name)
+	if err != nil {
+		return nil, err
+	}
+	return toolResultJSON(h.renderSite(site))
 }
 
 // toolUnpublish delegates to Store.Unpublish.
@@ -289,7 +294,11 @@ func (h *Handler) toolUnpublish(ctx context.Context, raw json.RawMessage) (map[s
 	if err := h.store.Unpublish(ctx, a.Name); err != nil {
 		return errResult(err), nil
 	}
-	return toolResultJSON(map[string]any{"unpublished": a.Name})
+	site, err := h.store.Get(ctx, a.Name)
+	if err != nil {
+		return nil, err
+	}
+	return toolResultJSON(h.renderSite(site))
 }
 
 // ── confinement ─────────────────────────────────────────────────────────────
@@ -321,12 +330,26 @@ func unmarshalArgs(raw json.RawMessage, v any) error {
 	return json.Unmarshal(raw, v)
 }
 
-// renderSite maps a Site to its JSON projection (nil published_at omitted).
-func renderSite(s sites.Site) map[string]any {
+// siteURL is the front-door URL a site is (or would be) served at under a tier:
+// <baseURL><tier>/<name>/. baseURL already carries the trailing slash.
+func (h *Handler) siteURL(tier, name string) string {
+	return h.baseURL + tier + "/" + name + "/"
+}
+
+// renderSite maps a Site to its JSON projection (nil published_at omitted), always
+// including "url" — the front-door URL the site is served at. The tier defaults to
+// public unless the site is set to private, so an unpublished site still reports a
+// concrete would-be URL rather than leaving an agent to guess the host.
+func (h *Handler) renderSite(s sites.Site) map[string]any {
+	tier := sites.PublicSeg
+	if s.Tier == sites.PrivateSeg {
+		tier = sites.PrivateSeg
+	}
 	m := map[string]any{
 		"name":       s.Name,
 		"tier":       s.Tier,
 		"published":  s.Published,
+		"url":        h.siteURL(tier, s.Name),
 		"created_at": s.CreatedAt.UTC().Format("2006-01-02T15:04:05.000000000Z07:00"),
 		"updated_at": s.UpdatedAt.UTC().Format("2006-01-02T15:04:05.000000000Z07:00"),
 	}
