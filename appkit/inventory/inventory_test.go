@@ -67,3 +67,26 @@ func TestReadConsumerHasNoFeed(t *testing.T) {
 		t.Errorf("Feed = %q, want empty", got[0].Feed)
 	}
 }
+
+// TestReadSortsByName: multiple MCP services come back sorted by Name regardless
+// of glob/filesystem order.
+func TestReadSortsByName(t *testing.T) {
+	root := t.TempDir()
+	writeManifest(t, root, "wiki", "APP=wiki\nMOUNT=/srv/wiki/\nPORT=3006\nMCP=true\n")
+	writeManifest(t, root, "crm", "APP=crm\nMOUNT=/srv/crm/\nPORT=3001\nMCP=true\n")
+	writeManifest(t, root, "ledger", "APP=ledger\nMOUNT=/srv/ledger/\nPORT=3002\nMCP=true\n")
+
+	got, err := Read(root)
+	if err != nil {
+		t.Fatalf("Read: %v", err)
+	}
+	want := []string{"crm", "ledger", "wiki"}
+	if len(got) != len(want) {
+		t.Fatalf("got %d services, want %d: %+v", len(got), len(want), got)
+	}
+	for i, name := range want {
+		if got[i].Name != name {
+			t.Errorf("services[%d].Name = %q, want %q", i, got[i].Name, name)
+		}
+	}
+}

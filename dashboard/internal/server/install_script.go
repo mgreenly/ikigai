@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"dashboard/internal/inventory"
+	"appkit/inventory"
 )
 
 // installScript builds the bash script served at GET /install — the target of

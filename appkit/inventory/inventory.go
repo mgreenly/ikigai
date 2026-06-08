@@ -15,7 +15,8 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"strings"
+
+	"appkit/manifest"
 )
 
 // Service is one MCP-exposing service discovered on the box. The MCP resource URL
@@ -29,10 +30,10 @@ type Service struct {
 	Feed  string
 }
 
-// Read globs root/*/etc/manifest.env, parses each as simple shell KEY=value, and
-// returns the services whose manifest sets MCP=true (sorted by Name). A single
-// unreadable or garbled manifest is skipped, not fatal; the only returned error is
-// a glob-level failure.
+// Read globs root/*/etc/manifest.env, parses each as simple shell KEY=value via
+// appkit/manifest.Parse, and returns the services whose manifest sets MCP=true
+// (sorted by Name). A single unreadable or garbled manifest is skipped, not
+// fatal; the only returned error is a glob-level failure.
 func Read(root string) ([]Service, error) {
 	matches, err := filepath.Glob(filepath.Join(root, "*", "etc", "manifest.env"))
 	if err != nil {
@@ -58,40 +59,19 @@ func Read(root string) ([]Service, error) {
 	return services, nil
 }
 
-// parseManifest reads a manifest.env into a key/value map: blank lines and lines
-// starting with '#' are skipped, each line splits on the first '=', keys and
-// values are trimmed, and matching surrounding single or double quotes are
-// stripped from the value.
+// parseManifest opens a manifest.env and parses it into a key/value map using the
+// shared appkit/manifest.Parse, so the inventory scan and the opsctl preflight
+// share one parser. An unreadable file or a scanner-level parse error is returned
+// so Read can skip that single manifest.
 func parseManifest(path string) (map[string]string, error) {
-	data, err := os.ReadFile(path)
+	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
-	env := make(map[string]string)
-	for _, line := range strings.Split(string(data), "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-		eq := strings.IndexByte(line, '=')
-		if eq < 0 {
-			continue
-		}
-		key := strings.TrimSpace(line[:eq])
-		val := strings.TrimSpace(line[eq+1:])
-		val = stripQuotes(val)
-		env[key] = val
+	defer f.Close()
+	env, _, err := manifest.Parse(f)
+	if err != nil {
+		return nil, err
 	}
 	return env, nil
-}
-
-// stripQuotes removes a single pair of matching surrounding single or double
-// quotes from v, if present.
-func stripQuotes(v string) string {
-	if len(v) >= 2 {
-		if (v[0] == '"' && v[len(v)-1] == '"') || (v[0] == '\'' && v[len(v)-1] == '\'') {
-			return v[1 : len(v)-1]
-		}
-	}
-	return v
 }

@@ -25,13 +25,13 @@ import (
 
 	"appkit"
 	"appkit/config"
+	"appkit/inventory"
 
 	"dashboard/internal/audit"
 	"dashboard/internal/backup"
 	"dashboard/internal/db"
 	"dashboard/internal/googleidp"
 	"dashboard/internal/grantevents"
-	"dashboard/internal/inventory"
 	"dashboard/internal/oauth"
 	"dashboard/internal/oauthstate"
 	"dashboard/internal/ratelimit"

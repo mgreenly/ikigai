@@ -9,7 +9,7 @@ package server
 import (
 	"net/http"
 
-	"dashboard/internal/inventory"
+	"appkit/inventory"
 )
 
 // installCard is one client's install/removal command pair (e.g. Claude Code),

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"dashboard/internal/inventory"
+	"appkit/inventory"
 )
 
 // TestMcpInstalls builds the connect view from a service list and checks the

@@ -5,7 +5,8 @@ import (
 	"errors"
 	"net/http"
 
-	"dashboard/internal/inventory"
+	"appkit/inventory"
+
 	"dashboard/internal/session"
 )
 

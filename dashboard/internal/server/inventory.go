@@ -3,7 +3,7 @@ package server
 import (
 	"net/http"
 
-	"dashboard/internal/inventory"
+	"appkit/inventory"
 )
 
 // inventoryService is one entry in the /services response: the service's name,
