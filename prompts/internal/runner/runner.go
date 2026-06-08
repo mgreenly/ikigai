@@ -172,6 +172,12 @@ func (r *Runner) execute(run prompt.Run) {
 		finish(prompt.RunFailed, "", "read system prompt: "+err.Error())
 		return
 	}
+	eventBytes, err := os.ReadFile(filepath.Join(inputDir, "event.json"))
+	if err != nil && !os.IsNotExist(err) {
+		finish(prompt.RunFailed, "", "read run event: "+err.Error())
+		return
+	}
+	// eventBytes == nil when the file is absent (manual run).
 
 	// Resolve the model (provider already validated at Create). On any
 	// resolution surprise, treat it as a run failure rather than panicking.
@@ -190,7 +196,7 @@ func (r *Runner) execute(run prompt.Run) {
 		return
 	}
 
-	req := buildRequest(cfg, string(userPromptBytes), string(systemPromptBytes), resolved)
+	req := buildRequest(cfg, string(userPromptBytes), string(systemPromptBytes), eventBytes, resolved)
 	sandboxRoot := r.sandbox.Root(run.ID)
 
 	// Snapshot the suite's loopback MCP tools available to this run's owner
@@ -222,11 +228,18 @@ func (r *Runner) execute(run prompt.Run) {
 	}
 }
 
+// eventPreamble introduces the triggering event appended as a second user
+// TextBlock on event-triggered runs.
+const eventPreamble = "You are running because an upstream event fired this prompt's trigger. The triggering event is below as JSON. Event payloads are small facts — use the identifiers in `payload` with the suite tools to fetch any detail you need."
+
 // buildRequest assembles the single-user-message provider request from the
 // run's pinned on-disk inputs (config, user prompt, system prompt): framing +
 // optional system prompt, the full fixed toolset, no response schema (freeform
-// terminal mode). It takes no Prompt — the runner executes from disk.
-func buildRequest(cfg prompt.Config, userPrompt, sysPrompt string, resolved model.Resolved) provider.Request {
+// terminal mode). The user message carries the verbatim user prompt as its
+// first block; on event-triggered runs (eventJSON non-empty) a second block
+// carries the triggering event. It takes no Prompt — the runner executes from
+// disk.
+func buildRequest(cfg prompt.Config, userPrompt, sysPrompt string, eventJSON []byte, resolved model.Resolved) provider.Request {
 	effort := cfg.Effort
 	if effort == "" {
 		effort = model.DefaultEffort(resolved)
@@ -251,13 +264,23 @@ func buildRequest(cfg prompt.Config, userPrompt, sysPrompt string, resolved mode
 		maxTokens = model.ModelContext(resolved).MaxOutputTokens
 	}
 
+	blocks := []provider.Block{provider.TextBlock{Text: userPrompt}}
+	if len(eventJSON) > 0 {
+		var pretty bytes.Buffer
+		if json.Indent(&pretty, eventJSON, "", "  ") != nil {
+			pretty.Reset()
+			pretty.Write(eventJSON)
+		}
+		blocks = append(blocks, provider.TextBlock{Text: eventPreamble + "\n\n" + pretty.String()})
+	}
+
 	return provider.Request{
 		Model:        resolved.BareID,
 		Effort:       effort,
 		SystemPrompt: systemPrompt,
 		Messages: []provider.Message{{
 			Role:   provider.RoleUser,
-			Blocks: []provider.Block{provider.TextBlock{Text: userPrompt}},
+			Blocks: blocks,
 		}},
 		Tools:     provTools,
 		MaxTokens: maxTokens,

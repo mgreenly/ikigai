@@ -2,6 +2,7 @@ package prompt
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -77,9 +78,9 @@ const ownerB = "b@example.com"
 func mustCreate(t *testing.T, svc *Service, owner string) Prompt {
 	t.Helper()
 	sess, err := svc.Create(context.Background(), owner, CreateInput{
-		Name:   "test",
+		Name:       "test",
 		UserPrompt: "do a thing",
-		Config: validConfig(),
+		Config:     validConfig(),
 	})
 	if err != nil {
 		t.Fatalf("Create: %v", err)
@@ -100,10 +101,10 @@ func TestConcurrentRunsIsolatedSandboxes(t *testing.T) {
 
 	// Fire two runs of the one prompt concurrently. Both must be accepted.
 	var (
-		wg       sync.WaitGroup
-		mu       sync.Mutex
-		runs     []Run
-		runErrs  []error
+		wg      sync.WaitGroup
+		mu      sync.Mutex
+		runs    []Run
+		runErrs []error
 	)
 	for i := 0; i < 2; i++ {
 		wg.Add(1)
@@ -146,6 +147,55 @@ func TestConcurrentRunsIsolatedSandboxes(t *testing.T) {
 	fr := svc.runner.(*fakeRunner)
 	if got := fr.spawnCount(); got != 2 {
 		t.Fatalf("spawn count: want 2, got %d", got)
+	}
+}
+
+// TestRunByEvent_WritesEventJSON proves an event-triggered run pins the
+// triggering event to runs/<run_id>/input/event.json, and its contents
+// unmarshal to the canonical envelope (source/type/event_id/payload).
+func TestRunByEvent_WritesEventJSON(t *testing.T) {
+	t.Setenv("ANTHROPIC_API_KEY", "sk-test")
+	svc, _, _, runsDir := newTestService(t)
+	ctx := context.Background()
+
+	sess := mustCreate(t, svc, ownerA)
+
+	payload := json.RawMessage(`{"id":"c1"}`)
+	run, err := svc.RunByEvent(ctx, sess.ID, "crm", "contact.created", "01JEVENT", payload)
+	if err != nil {
+		t.Fatalf("RunByEvent: %v", err)
+	}
+
+	b, err := os.ReadFile(filepath.Join(runsDir, run.ID, "input", "event.json"))
+	if err != nil {
+		t.Fatalf("read event.json: %v", err)
+	}
+	var env eventEnvelope
+	if err := json.Unmarshal(b, &env); err != nil {
+		t.Fatalf("unmarshal event.json: %v", err)
+	}
+	if env.Source != "crm" || env.Type != "contact.created" || env.EventID != "01JEVENT" {
+		t.Fatalf("envelope context = %+v", env)
+	}
+	if string(env.Payload) != `{"id":"c1"}` {
+		t.Fatalf("envelope payload = %s, want {\"id\":\"c1\"}", env.Payload)
+	}
+}
+
+// TestRun_NoEventJSON proves a manual Run writes NO input/event.json.
+func TestRun_NoEventJSON(t *testing.T) {
+	t.Setenv("ANTHROPIC_API_KEY", "sk-test")
+	svc, _, _, runsDir := newTestService(t)
+	ctx := context.Background()
+
+	sess := mustCreate(t, svc, ownerA)
+	run, err := svc.Run(ctx, ownerA, sess.ID)
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	if _, err := os.Stat(filepath.Join(runsDir, run.ID, "input", "event.json")); !os.IsNotExist(err) {
+		t.Fatalf("manual run should write no event.json, stat err = %v", err)
 	}
 }
 

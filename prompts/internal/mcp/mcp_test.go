@@ -13,8 +13,8 @@ import (
 	"testing"
 
 	"prompts/internal/db"
-	"prompts/internal/sandbox"
 	"prompts/internal/prompt"
+	"prompts/internal/sandbox"
 )
 
 // fakeRunner records Spawn/Cancel and leaves the run running (does not

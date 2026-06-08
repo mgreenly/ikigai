@@ -232,15 +232,17 @@ func (s *Service) Run(ctx context.Context, ownerEmail, id string) (Run, error) {
 	if err != nil {
 		return Run{}, err
 	}
-	return s.startRun(ctx, p, "", "", "")
+	return s.startRun(ctx, p, "", "", "", nil)
 }
 
 // materializeInput pins the prompt's changeable execution inputs to
 // runs/<run_id>/input/ BEFORE spawn: user_prompt.txt, system_prompt.txt (empty
 // file when none), and config.json (the resolved Config). Once written, this is
 // the record of exactly what the run executes — the runner reads from here, so
-// editing or deleting the prompt mid-run cannot change what the run runs.
-func (s *Service) materializeInput(run Run, p Prompt) error {
+// editing or deleting the prompt mid-run cannot change what the run runs. For an
+// event-triggered run it also writes event.json (the triggering event envelope);
+// that file is absent on a manual run.
+func (s *Service) materializeInput(run Run, p Prompt, payload []byte) error {
 	inputDir := filepath.Join(s.runsDir, run.ID, "input")
 	if err := os.MkdirAll(inputDir, 0o755); err != nil {
 		return fmt.Errorf("prompt: create run input dir: %w", err)
@@ -258,6 +260,19 @@ func (s *Service) materializeInput(run Run, p Prompt) error {
 	if err := os.WriteFile(filepath.Join(inputDir, "config.json"), cfgJSON, 0o644); err != nil {
 		return fmt.Errorf("prompt: write config: %w", err)
 	}
+	if run.TriggerSource != "" {
+		env := eventEnvelope{Source: run.TriggerSource, Type: run.TriggerType, EventID: run.TriggerEventID, Payload: json.RawMessage(payload)}
+		if len(env.Payload) == 0 {
+			env.Payload = json.RawMessage("null")
+		}
+		b, err := json.Marshal(env)
+		if err != nil {
+			return fmt.Errorf("prompt: marshal run event: %w", err)
+		}
+		if err := os.WriteFile(filepath.Join(inputDir, "event.json"), b, 0o644); err != nil {
+			return fmt.Errorf("prompt: write event: %w", err)
+		}
+	}
 	return nil
 }
 
@@ -266,7 +281,14 @@ func (s *Service) materializeInput(run Run, p Prompt) error {
 // trigger context), materializes input/ from the prompt's CURRENT definition,
 // inserts the row, creates the run-scoped sandbox, and hands off to the runner
 // — which executes from disk, never from p.
-func (s *Service) startRun(ctx context.Context, p Prompt, source, evType, eventID string) (Run, error) {
+type eventEnvelope struct {
+	Source  string          `json:"source"`
+	Type    string          `json:"type"`
+	EventID string          `json:"event_id"`
+	Payload json.RawMessage `json:"payload"`
+}
+
+func (s *Service) startRun(ctx context.Context, p Prompt, source, evType, eventID string, payload []byte) (Run, error) {
 	runID := ids.NewULID()
 	run := Run{
 		ID:             runID,
@@ -281,7 +303,7 @@ func (s *Service) startRun(ctx context.Context, p Prompt, source, evType, eventI
 		TriggerEventID: eventID,
 	}
 	// Pin the execution inputs to disk BEFORE the row exists / spawn happens.
-	if err := s.materializeInput(run, p); err != nil {
+	if err := s.materializeInput(run, p, payload); err != nil {
 		return Run{}, err
 	}
 	if err := s.store.InsertRun(ctx, run); err != nil {
@@ -306,14 +328,15 @@ func (s *Service) startRun(ctx context.Context, p Prompt, source, evType, eventI
 // fired event type, and the upstream event id that fired this run); they are
 // persisted on the Run row and FinishRun reads them back to populate the
 // run.succeeded / run.failed outcome payload. All empty for a manual run (see
-// Run, which passes "" / "" / ""). payload is reserved for future inputs to the
-// run (e.g. exposing the upstream event body); currently unused.
+// Run, which passes "" / "" / ""). payload is the upstream producer's raw event
+// body; it is pinned to the run's input/event.json (inside the canonical event
+// envelope) for an event-triggered run.
 func (s *Service) RunByEvent(ctx context.Context, id, source, evType, eventID string, payload []byte) (Run, error) {
 	p, err := s.store.GetPromptByID(ctx, id)
 	if err != nil {
 		return Run{}, err
 	}
-	return s.startRun(ctx, p, source, evType, eventID)
+	return s.startRun(ctx, p, source, evType, eventID, payload)
 }
 
 // readLines reads up to limit lines of the file at path starting at 1-based

@@ -283,10 +283,10 @@ func (s *Store) FinishRun(ctx context.Context, in FinishRunInput) error {
 	// Read the run's event fields from the row itself (A5): the runner no longer
 	// threads prompt_id / prompt_name / trigger context — they live on the run.
 	var (
-		promptID   string
-		promptName sql.NullString
-		trigSource sql.NullString
-		trigType   sql.NullString
+		promptID    string
+		promptName  sql.NullString
+		trigSource  sql.NullString
+		trigType    sql.NullString
 		trigEventID sql.NullString
 	)
 	if err := tx.QueryRowContext(ctx,

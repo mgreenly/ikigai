@@ -56,6 +56,15 @@ TRIGGERS — MULTI-SOURCE
   set_trigger, remove with clear_trigger, or
   pass an inline "triggers" array to create.
 
+EVENT-TRIGGERED RUNS
+- When a trigger fires, the run's user message carries a SECOND block with the
+  triggering event as JSON: {source, type, event_id, payload}. payload is the
+  upstream producer's fact body — small by design (often just an id) — so write
+  your user_prompt to read the event, then call the in-run suite tools to fetch
+  any detail you need. e.g. "When triggered by crm contact.created, take
+  payload.id, load the contact via the crm tool, then …".
+- This block is present ONLY on event-triggered runs; a manual run has none.
+
 DELETE
 - delete is a tombstone: it removes the prompt and its triggers
   but leaves its runs and their on-disk artifacts in place — those stay readable

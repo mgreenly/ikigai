@@ -23,7 +23,7 @@ func TestBuildRequest_MaxTokensDefaultsToModelMax(t *testing.T) {
 	}
 
 	cfg := prompt.Config{Provider: "anthropic", Model: "haiku"}
-	req := buildRequest(cfg, "do the thing", "", resolved)
+	req := buildRequest(cfg, "do the thing", "", nil, resolved)
 
 	if req.MaxTokens != want {
 		t.Errorf("MaxTokens = %d, want model max %d", req.MaxTokens, want)
@@ -39,7 +39,7 @@ func TestBuildRequest_MaxTokensHonorsConfig(t *testing.T) {
 	}
 
 	cfg := prompt.Config{Provider: "anthropic", Model: "haiku", MaxTokens: 12345}
-	req := buildRequest(cfg, "do the thing", "", resolved)
+	req := buildRequest(cfg, "do the thing", "", nil, resolved)
 
 	if req.MaxTokens != 12345 {
 		t.Errorf("MaxTokens = %d, want explicit 12345", req.MaxTokens)

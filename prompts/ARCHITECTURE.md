@@ -56,6 +56,7 @@ data/
         user_prompt.txt       # the pinned user_prompt for THIS run
         system_prompt.txt     # the pinned system_prompt (empty file if none)
         config.json           # the pinned {provider, model, effort?, max_tokens?, temperature?}
+        event.json            # the pinned triggering event (event-triggered runs ONLY; absent on manual runs)
       output.jsonl            # append-only stream-json run log
       sandbox/                # the agent's per-run workspace (produced files)
 ```
@@ -63,6 +64,9 @@ data/
 - `input/` is written by the service **at spawn** from the prompt's current
   definition, then persisted with the run forever — it *is* the record of exactly
   what executed.
+- `event.json` is written by the service **at spawn** for **event-triggered runs
+  only** — the pinned triggering event, envelope `{source, type, event_id,
+  payload}`. It is **absent on manual runs**.
 - The runner reads its execution inputs from `input/` — **never** from the DB or
   the live `Prompt` object.
 - `sandbox/` starts **empty every run** (no seeding / carry-over) and is persisted
@@ -172,7 +176,10 @@ mutates prompt/run state.
 - **RunByEvent(promptID, source, evType, eventID, payload)** — the event path
   (unscoped; owner resolved via `GetPromptByID`). Identical, plus it records the
   trigger context (`trigger_source`, `trigger_type`, `trigger_event_id`) on the
-  run row.
+  run row **and** pins the triggering event to `runs/<run_id>/input/event.json`
+  (envelope `{source, type, event_id, payload}`) so the runner can deliver it to
+  the agent as the second user-message block (§6). Manual `Run` writes no
+  `event.json`.
 
 ### Run reads (keyed by `run_id`, owner via the run's `owner_email`)
 
@@ -213,9 +220,14 @@ type Runner interface {
 - **`Spawn(run)`** starts a goroutine and returns. It derives
   `runDir = runsDir/<run.ID>`, reads `input/config.json` (→ `model.Resolve`,
   effort, max_tokens), `input/user_prompt.txt`, `input/system_prompt.txt`, and
-  runs the agent loop with `sandboxRoot = runDir/sandbox`, streaming stream-json
-  into `runDir/output.jsonl`. It references **no** `Prompt` field for execution
-  inputs.
+  the **optional** `input/event.json` (present only on event-triggered runs,
+  absent on manual runs), and runs the agent loop with
+  `sandboxRoot = runDir/sandbox`, streaming stream-json into
+  `runDir/output.jsonl`. It references **no** `Prompt` field for execution inputs.
+  The agent's single user message carries the verbatim `user_prompt` as its first
+  `TextBlock`; when `event.json` is present a **second** block (a short preamble +
+  the event JSON) is appended, so the run sees the event body that fired it. The
+  sandbox itself is **not** seeded — delivery is via the prompt message only.
 - A `context.WithTimeout(parent, PROMPTS_RUN_TTL)` is the runaway backstop. The
   `cancels` and `userCancelled` maps are keyed by **`run_id`**.
 - **`Cancel(runID)`** signals that run (cancelled, not failed); idempotent.
@@ -359,7 +371,11 @@ repeatedly to attach several bindings.
    concurrently in its own isolated sandbox.
 3. goroutine: read `input/`, drive the agent loop, stream into
    `runs/<run_id>/output.jsonl`; on finish → `FinishRun` writes the terminal run
-   row + emits `run.succeeded` / `run.failed` in one tx.
+   row + emits `run.succeeded` / `run.failed` in one tx. On an **event-triggered**
+   run the triggering event was pinned to `input/event.json` at spawn and is
+   delivered to the agent as the **second block** of the run's single user message
+   (the first block is the verbatim `user_prompt`); a manual run gets only the
+   first block.
 4. `run_get {run_id}` polls to terminal; `run_output {run_id, offset, limit}`
    tails the log; `run_fs_list` / `run_fs_read {run_id, path}` read the work
    product. All keep working after the parent prompt is `delete`d (tombstone).

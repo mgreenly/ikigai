@@ -31,7 +31,7 @@ func toolDescriptors() []map[string]any {
 
 		desc(tool("health"), "Health + diagnostics for the prompts service. Returns the fixed envelope (status, version, service, details) plus the authenticated caller's identity (owner_email, client_id) as established by the platform's auth gate — the end-to-end auth-chain proof. Takes no inputs.", obj(map[string]any{})),
 
-		desc(tool("create"), "Create a new prompt for the caller. A prompt is a reusable definition (user_prompt, config, optional name/system_prompt) that you run on demand or wire to event triggers. Returns the new prompt_id. Optionally attach event triggers inline.", obj(map[string]any{
+		desc(tool("create"), "Create a new prompt for the caller. A prompt is a reusable definition (user_prompt, config, optional name/system_prompt) that you run on demand or wire to event triggers. Returns the new prompt_id. Optionally attach event triggers inline. Event-triggered runs receive the triggering event in the prompt (see describe / set_trigger).", obj(map[string]any{
 			"user_prompt":   typ("string"),
 			"config":        configSchema(),
 			"name":          typ("string"),
@@ -57,7 +57,7 @@ func toolDescriptors() []map[string]any {
 			"prompt_id": typ("string"),
 		}, "prompt_id")),
 
-		desc(tool("set_trigger"), "Attach one (source, event_filter) event trigger to one of the caller's prompts: when an event of the given type arrives from the named upstream producer, prompts starts a run for the prompt. source is the producer (cron|crm|ledger|dropbox|scripts); event_filter is the event type/glob it publishes, e.g. \"cron.nightly\", \"file.created\", \"scripts.succeeded\". A prompt may hold several bindings — call repeatedly to attach more. An unknown source or an event_filter the producer never publishes is rejected.", obj(map[string]any{
+		desc(tool("set_trigger"), "Attach one (source, event_filter) event trigger to one of the caller's prompts: when an event of the given type arrives from the named upstream producer, prompts starts a run for the prompt. source is the producer (cron|crm|ledger|dropbox|scripts); event_filter is the event type/glob it publishes, e.g. \"cron.nightly\", \"file.created\", \"scripts.succeeded\". A prompt may hold several bindings — call repeatedly to attach more. An unknown source or an event_filter the producer never publishes is rejected. When the trigger fires, the run receives the triggering event (source, type, event_id, payload) as a second block in its prompt — author the prompt to read and use it; call describe for the contract.", obj(map[string]any{
 			"prompt_id":    typ("string"),
 			"source":       typ("string"),
 			"event_filter": typ("string"),
