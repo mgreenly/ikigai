@@ -6,15 +6,29 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
-	"prompts/internal/db"
+	"agentkit/agent"
 	"agentkit/provider"
+	"agentkit/wire"
+	"prompts/internal/db"
 	"prompts/internal/ids"
-	"prompts/internal/sandbox"
 	"prompts/internal/prompt"
+	"prompts/internal/sandbox"
 )
+
+// fakeToolSource is a minimal agent.ToolSource that owns no tools — enough to
+// be threaded into agent.Run without changing the run's behavior, while letting
+// tests observe that the discover seam was invoked with the run's identity.
+type fakeToolSource struct{}
+
+func (fakeToolSource) Descriptors() []provider.Tool { return nil }
+func (fakeToolSource) Owns(string) bool             { return false }
+func (fakeToolSource) Dispatch(context.Context, string, json.RawMessage) (wire.ToolResultBlock, error) {
+	return wire.ToolResultBlock{}, nil
+}
 
 // fakeClient is a provider.Client whose Stream returns a pre-canned sequence
 // of events. If block is true, Stream emits nothing and instead blocks until
@@ -63,7 +77,7 @@ func newTestRunner(t *testing.T, ttl time.Duration, fc provider.Client) (*Runner
 		t.Fatalf("sandbox.New: %v", err)
 	}
 
-	r := New(store, sb, ttl)
+	r := New(store, sb, ttl, t.TempDir())
 	r.newClient = func(apiKey, model string) (provider.Client, error) { return fc, nil }
 	return r, store
 }
@@ -189,6 +203,84 @@ func TestSpawn_TerminalSuccess(t *testing.T) {
 	}
 	if !strings.Contains(got.UsageJSON, "usage") {
 		t.Fatalf("usage_json = %q, want usage totals", got.UsageJSON)
+	}
+}
+
+// TestSpawn_DiscoversSuiteTools asserts the runner builds an in-run suite
+// ToolSource at spawn via the injectable discover seam, calling it with the
+// run's OwnerEmail/PromptID, and that the resulting source is threaded into the
+// engine (the run completes successfully with the fake source wired). It reuses
+// the fake-client seam so no real Anthropic call is made.
+func TestSpawn_DiscoversSuiteTools(t *testing.T) {
+	fc := &fakeClient{events: []provider.Event{
+		provider.EventTextDelta{Text: "ok"},
+		provider.EventDone{StopReason: "end_turn"},
+	}}
+	runsDir := t.TempDir()
+	r, store := newTestRunner(t, time.Minute, fc)
+	sess, run := seedRunning(t, store, r.sandbox, runsDir)
+
+	var (
+		mu          sync.Mutex
+		calls       int
+		gotOwner    string
+		gotPromptID string
+	)
+	r.discover = func(ctx context.Context, owner, promptID string) agent.ToolSource {
+		mu.Lock()
+		calls++
+		gotOwner = owner
+		gotPromptID = promptID
+		mu.Unlock()
+		return fakeToolSource{}
+	}
+
+	r.Spawn(run)
+	got := waitRun(t, store, sess.ID)
+
+	if got.Status != prompt.RunSucceeded {
+		t.Fatalf("run status = %q, want succeeded (error=%q)", got.Status, got.Error)
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+	if calls != 1 {
+		t.Fatalf("discover seam called %d times, want exactly 1", calls)
+	}
+	if gotOwner != run.OwnerEmail {
+		t.Fatalf("discover owner = %q, want %q", gotOwner, run.OwnerEmail)
+	}
+	if gotPromptID != run.PromptID {
+		t.Fatalf("discover promptID = %q, want %q", gotPromptID, run.PromptID)
+	}
+}
+
+// TestNew_DefaultDiscoverWired confirms the default construction (no seam
+// override) installs a working discover closure over the configured
+// manifestRoot — a smoke assertion that the default path is wired and returns a
+// non-nil ToolSource (suite.Discover's best-effort contract) without standing up
+// real peers.
+func TestNew_DefaultDiscoverWired(t *testing.T) {
+	ctx := context.Background()
+	conn, err := db.Open(filepath.Join(t.TempDir(), "prompts.db"))
+	if err != nil {
+		t.Fatalf("db.Open: %v", err)
+	}
+	t.Cleanup(func() { conn.Close() })
+	if err := db.Migrate(ctx, conn); err != nil {
+		t.Fatalf("db.Migrate: %v", err)
+	}
+	sb, err := sandbox.New(filepath.Join(t.TempDir(), "sandboxes"))
+	if err != nil {
+		t.Fatalf("sandbox.New: %v", err)
+	}
+
+	r := New(prompt.NewStore(conn), sb, time.Minute, t.TempDir())
+	if r.discover == nil {
+		t.Fatalf("New left discover seam nil")
+	}
+	if src := r.discover(ctx, "owner@example.com", "p_123"); src == nil {
+		t.Fatalf("default discover returned nil ToolSource; want non-nil (best-effort contract)")
 	}
 }
 

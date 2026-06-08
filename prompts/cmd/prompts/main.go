@@ -209,6 +209,10 @@ func registerRoutes(rt *appkit.Router) error {
 	// appkit resolved (default ./tmp/prompts.db; /opt/prompts/data/prompts.db on
 	// the box) — mirroring the on-box /opt/prompts/data layout.
 	dbPath := config.EnvOr(os.Getenv, "PROMPTS_DB_PATH", "./tmp/prompts.db")
+	// PROMPTS_MANIFEST_ROOT is the box inventory root the runner reads at run
+	// spawn to discover the suite's other loopback MCP services (Surface 2 —
+	// in-run suite tools). Defaults to /opt, the on-box layout root.
+	manifestRoot := config.EnvOr(os.Getenv, "PROMPTS_MANIFEST_ROOT", "/opt")
 	dataDir := filepath.Join(filepath.Dir(dbPath), "data")
 	// The run directory is the on-disk unit (data/runs/<run_id>/), holding
 	// both the run's output.jsonl and its per-run sandbox/ workspace. The
@@ -220,7 +224,7 @@ func registerRoutes(rt *appkit.Router) error {
 	}
 
 	store := prompt.NewStore(conn)
-	run := runner.New(store, sb, runTTL)
+	run := runner.New(store, sb, runTTL, manifestRoot)
 	svc := prompt.NewService(store, sb, runsDir, run)
 	// Capture the service for the consumer Worker and the store for the Producer
 	// hook (both run after Handlers; the Producer injects the outbox onto store).

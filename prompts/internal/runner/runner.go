@@ -28,6 +28,7 @@ import (
 	"agentkit/wire"
 	"prompts/internal/prompt"
 	"prompts/internal/sandbox"
+	"prompts/internal/suite"
 )
 
 // clientFactory builds a provider.Client from an API key and the resolved
@@ -53,6 +54,12 @@ type Runner struct {
 	sandbox   *sandbox.Manager
 	ttl       time.Duration
 	newClient clientFactory
+	// discover snapshots the box's other loopback MCP services as an
+	// agent.ToolSource at run spawn (Surface 2 — in-run suite tools). It
+	// defaults to a closure over the configured manifestRoot calling
+	// suite.Discover, but is injectable so tests can supply a fake source and
+	// never touch the real inventory or any peer.
+	discover func(ctx context.Context, owner, promptID string) agent.ToolSource
 
 	mu      sync.Mutex
 	cancels map[string]context.CancelFunc
@@ -64,12 +71,17 @@ type Runner struct {
 
 // New builds a Runner with the default Anthropic client factory. ttl bounds
 // every run's wall-clock; on expiry the run ends failed with a TTL error.
-func New(store *prompt.Store, sb *sandbox.Manager, ttl time.Duration) *Runner {
+// manifestRoot is the box inventory root (PROMPTS_MANIFEST_ROOT) threaded into
+// the default suite-discovery closure.
+func New(store *prompt.Store, sb *sandbox.Manager, ttl time.Duration, manifestRoot string) *Runner {
 	return &Runner{
-		store:         store,
-		sandbox:       sb,
-		ttl:           ttl,
-		newClient:     defaultClientFactory,
+		store:     store,
+		sandbox:   sb,
+		ttl:       ttl,
+		newClient: defaultClientFactory,
+		discover: func(ctx context.Context, owner, promptID string) agent.ToolSource {
+			return suite.Discover(ctx, manifestRoot, owner, promptID)
+		},
 		cancels:       make(map[string]context.CancelFunc),
 		userCancelled: make(map[string]bool),
 	}
@@ -181,7 +193,14 @@ func (r *Runner) execute(run prompt.Run) {
 	req := buildRequest(cfg, string(userPromptBytes), string(systemPromptBytes), resolved)
 	sandboxRoot := r.sandbox.Root(run.ID)
 
-	runErr := agent.Run(ctx, client, wireSess, req, agent.Options{SandboxRoot: sandboxRoot})
+	// Snapshot the suite's loopback MCP tools available to this run's owner
+	// (Surface 2). Best-effort by contract: never nil, never errors. The agent
+	// loop advertises the source's Descriptors and routes owned tool_use blocks
+	// to it; the built-in tools.All() set is advertised separately by
+	// buildRequest (single source of truth for suite tools is this source).
+	suiteSource := r.discover(ctx, run.OwnerEmail, run.PromptID)
+
+	runErr := agent.Run(ctx, client, wireSess, req, agent.Options{SandboxRoot: sandboxRoot, Tools: suiteSource})
 
 	// Classify the terminal status: explicit user cancel wins over TTL, TTL
 	// over an engine error, and a clean return is success.
