@@ -173,11 +173,12 @@ func TestToolsList(t *testing.T) {
 		"ikigenba_sites_mkdir",
 		"ikigenba_sites_publish",
 		"ikigenba_sites_unpublish",
-		"ikigenba_sites_write",
-		"ikigenba_sites_read",
-		"ikigenba_sites_edit",
-		"ikigenba_sites_glob",
-		"ikigenba_sites_grep",
+		"ikigenba_sites_file_write",
+		"ikigenba_sites_file_read",
+		"ikigenba_sites_file_edit",
+		"ikigenba_sites_file_glob",
+		"ikigenba_sites_file_grep",
+		"ikigenba_sites_file_list",
 	}
 	for _, name := range want {
 		if !got[name] {

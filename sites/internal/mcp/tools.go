@@ -55,11 +55,20 @@ func toolDescriptors() []map[string]any {
 		// ── file tools (agentkit bridge) ────────────────────────────────
 		// Each tool's inputSchema is agentkit's InputSchema for the underlying
 		// jailed tool plus a required "site" property naming the sandbox root.
-		fileToolDescriptor("write", "Write", "Write a file inside a site's working tree. 'site' selects the sandbox root; 'file_path' is relative to it and confined to it (absolute paths and '..' escapes are rejected). Creates parent directories as needed and overwrites an existing file."),
-		fileToolDescriptor("read", "Read", "Read a file inside a site's working tree. 'site' selects the sandbox root; 'file_path' is relative to it and confined to it. Optional offset/limit page large files."),
-		fileToolDescriptor("edit", "Edit", "Edit a file inside a site's working tree by replacing 'old_string' with 'new_string'. 'site' selects the sandbox root; 'file_path' is relative to it and confined to it. Set 'replace_all' to replace every occurrence."),
-		fileToolDescriptor("glob", "Glob", "Glob for files inside a site's working tree. 'site' selects the sandbox root; 'path' (if given) is relative to it and confined to it, defaulting to the working root."),
-		fileToolDescriptor("grep", "Grep", "Grep file contents inside a site's working tree. 'site' selects the sandbox root; 'path' (if given) is relative to it and confined to it, defaulting to the working root."),
+		desc(tool("file_write"), "writes content to file_path inside the site's working tree; creates parent dirs; overwrites by default, or appends when append:true.", obj(map[string]any{
+			"site":      descTyp("string", "site slug whose working dir is the sandbox root"),
+			"file_path": descTyp("string", "path relative to the site's working root (confined; absolute and '..' rejected)"),
+			"content":   descTyp("string", "the bytes to write"),
+			"append":    descTyp("boolean", "append to the file instead of overwriting; creates the file if missing (default false)"),
+		}, "site", "file_path", "content")),
+		fileToolDescriptor("file_read", "Read", "Read a file inside a site's working tree. 'site' selects the sandbox root; 'file_path' is relative to it and confined to it. Optional offset/limit page large files."),
+		fileToolDescriptor("file_edit", "Edit", "Edit a file inside a site's working tree by replacing 'old_string' with 'new_string'. 'site' selects the sandbox root; 'file_path' is relative to it and confined to it. Set 'replace_all' to replace every occurrence."),
+		fileToolDescriptor("file_glob", "Glob", "Glob for files inside a site's working tree. 'site' selects the sandbox root; 'path' (if given) is relative to it and confined to it, defaulting to the working root."),
+		fileToolDescriptor("file_grep", "Grep", "Grep file contents inside a site's working tree. 'site' selects the sandbox root; 'path' (if given) is relative to it and confined to it, defaulting to the working root."),
+		desc(tool("file_list"), "lists every regular file under the site's working tree with its size and md5, for reconciliation/verification against local files; path optionally scopes the walk; returned paths are relative to the working root.", obj(map[string]any{
+			"site": descTyp("string", "site slug whose working dir is the sandbox root"),
+			"path": descTyp("string", "optional subdirectory (relative to the working root) to scope the walk"),
+		}, "site")),
 	}
 }
 
@@ -121,16 +130,18 @@ func (h *Handler) dispatchTool(ctx context.Context, name string, argsRaw json.Ra
 		return h.toolPublish(ctx, argsRaw)
 	case tool("unpublish"):
 		return h.toolUnpublish(ctx, argsRaw)
-	case tool("write"):
-		return h.toolFile(ctx, "Write", argsRaw)
-	case tool("read"):
+	case tool("file_write"):
+		return h.toolFileWrite(ctx, argsRaw)
+	case tool("file_read"):
 		return h.toolFile(ctx, "Read", argsRaw)
-	case tool("edit"):
+	case tool("file_edit"):
 		return h.toolFile(ctx, "Edit", argsRaw)
-	case tool("glob"):
+	case tool("file_glob"):
 		return h.toolFile(ctx, "Glob", argsRaw)
-	case tool("grep"):
+	case tool("file_grep"):
 		return h.toolFile(ctx, "Grep", argsRaw)
+	case tool("file_list"):
+		return h.toolFileList(ctx, argsRaw)
 	default:
 		return nil, errors.New("unknown tool: " + name)
 	}
@@ -167,7 +178,7 @@ func (h *Handler) toolDescribe() (map[string]any, error) {
 		"summary": "Host static websites. Each site is a slug with an editable working tree; publishing it to a tier (public or private) makes the nginx front door serve it.",
 		"lifecycle": []string{
 			"create — register a slug and create its empty working tree",
-			"edit the working tree with the file tools (write/read/edit/glob/grep)",
+			"edit the working tree with the file tools (file_read/file_write/file_edit/file_glob/file_grep/file_list)",
 			"mkdir — create parent directories inside the working tree",
 			"publish — serve the site at a tier (public or private)",
 			"unpublish — stop serving it",

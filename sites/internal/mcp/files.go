@@ -2,14 +2,21 @@ package mcp
 
 import (
 	"context"
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
+	"io"
+	"io/fs"
+	"os"
+	"path/filepath"
 
 	"agentkit/tools"
 	"agentkit/wire"
 )
 
 // The five file tools bridge the MCP surface to agentkit's jailed file tools.
-// Each MCP file tool (ikigenba_sites_write/read/edit/glob/grep) maps to an
+// Each MCP file tool (ikigenba_sites_file_write/file_read/file_edit/file_glob/file_grep) maps to an
 // agentkit canonical tool (Write/Read/Edit/Glob/Grep) executed against a
 // per-site sandbox root = layout.WorkingDir(site). Confinement is NOT
 // reimplemented here: agentkit/tools.Dispatch confines every path argument
@@ -103,6 +110,126 @@ func (h *Handler) toolFile(ctx context.Context, agentName string, raw json.RawMe
 		return nil, err
 	}
 	return renderToolResultBlock(result), nil
+}
+
+// toolFileList walks a site's working tree and returns every regular file with
+// its path (relative to the working root), size, and md5. It is native (not an
+// agentkit bridge) because no agentkit tool returns md5. An optional "path"
+// scopes the walk to a subdirectory, confined to the working root; a missing
+// scope dir yields an empty list rather than an error.
+func (h *Handler) toolFileList(ctx context.Context, raw json.RawMessage) (map[string]any, error) {
+	var a struct {
+		Site string `json:"site"`
+		Path string `json:"path"`
+	}
+	if err := unmarshalArgs(raw, &a); err != nil {
+		return nil, err
+	}
+	if a.Site == "" {
+		return errResultMsg("invalid_site", "missing required \"site\" argument"), nil
+	}
+	if _, err := h.store.Get(ctx, a.Site); err != nil {
+		return errResult(err), nil
+	}
+
+	root := h.layout.WorkingDir(a.Site)
+	scope := root
+	if a.Path != "" {
+		s, err := confinePath(root, a.Path)
+		if err != nil {
+			return errResultMsg("path_escapes_working_dir", err.Error()), nil
+		}
+		scope = s
+	}
+
+	files := make([]map[string]any, 0)
+	walkErr := filepath.WalkDir(scope, func(p string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() || !d.Type().IsRegular() {
+			return nil
+		}
+		md5hex, size, herr := hashFile(p)
+		if herr != nil {
+			return herr
+		}
+		rel, _ := filepath.Rel(root, p)
+		rel = filepath.ToSlash(rel)
+		files = append(files, map[string]any{"path": rel, "size": size, "md5": md5hex})
+		return nil
+	})
+	if walkErr != nil && !errors.Is(walkErr, fs.ErrNotExist) {
+		return errResultMsg("walk", walkErr.Error()), nil
+	}
+
+	return toolResultJSON(map[string]any{"site": a.Site, "files": files})
+}
+
+// toolFileWrite is the NATIVE handler for ikigenba_sites_file_write. Unlike the
+// other four file tools, write is not bridged through agentkit: agentkit's Write
+// has no append mode and silently drops unknown fields, so the "append" flag
+// could not survive the bridge. It writes (truncate by default, append when
+// append:true) to a path confined under the site's working dir.
+func (h *Handler) toolFileWrite(ctx context.Context, raw json.RawMessage) (map[string]any, error) {
+	var a struct {
+		Site     string `json:"site"`
+		FilePath string `json:"file_path"`
+		Content  string `json:"content"`
+		Append   bool   `json:"append"`
+	}
+	if err := unmarshalArgs(raw, &a); err != nil {
+		return nil, err
+	}
+	if a.Site == "" {
+		return errResultMsg("invalid_site", "missing required \"site\" argument"), nil
+	}
+	if _, err := h.store.Get(ctx, a.Site); err != nil {
+		return errResult(err), nil
+	}
+
+	path, err := confinePath(h.layout.WorkingDir(a.Site), a.FilePath)
+	if err != nil {
+		return errResultMsg("path_escapes_working_dir", err.Error()), nil
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return errResultMsg("write", err.Error()), nil
+	}
+
+	flag := os.O_CREATE | os.O_WRONLY | os.O_TRUNC
+	if a.Append {
+		flag = os.O_CREATE | os.O_WRONLY | os.O_APPEND
+	}
+	f, err := os.OpenFile(path, flag, 0o644)
+	if err != nil {
+		return errResultMsg("write", err.Error()), nil
+	}
+	_, werr := f.Write([]byte(a.Content))
+	cerr := f.Close()
+	if werr != nil {
+		return errResultMsg("write", werr.Error()), nil
+	}
+	if cerr != nil {
+		return errResultMsg("write", cerr.Error()), nil
+	}
+
+	return toolResultJSON(map[string]any{"written": a.FilePath, "site": a.Site, "appended": a.Append})
+}
+
+// hashFile streams the file at path through md5, returning the hex digest and
+// the byte count.
+func hashFile(path string) (md5hex string, size int64, err error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return "", 0, err
+	}
+	defer f.Close()
+	h := md5.New()
+	n, err := io.Copy(h, f)
+	if err != nil {
+		return "", 0, err
+	}
+	return hex.EncodeToString(h.Sum(nil)), n, nil
 }
 
 // renderToolResultBlock maps an agentkit ToolResultBlock onto the MCP tool
