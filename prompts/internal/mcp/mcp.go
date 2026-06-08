@@ -21,7 +21,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"prompts/internal/session"
+	"prompts/internal/prompt"
 )
 
 // Identity is the authenticated caller, as told to us authoritatively by nginx
@@ -32,21 +32,21 @@ type Identity struct {
 }
 
 // Handler is the http.Handler for POST /mcp. It dispatches JSON-RPC methods,
-// routing tools/call to the injected session.Service — the handler talks only
+// routing tools/call to the injected prompt.Service — the handler talks only
 // to Service, never to the store/sandbox directly, so ownership is enforced in
 // one place.
 type Handler struct {
-	svc     *session.Service
+	svc     *prompt.Service
 	version string
 	service string
 	health  func(context.Context) (map[string]any, error)
 }
 
-// NewHandler builds a Handler over the session domain service. version/service/
+// NewHandler builds a Handler over the prompt domain service. version/service/
 // health populate the shared health envelope: version and service fill its
 // required top-level keys, and the optional health reporter (nil → details
 // renders {}) populates its details object. prompts supplies no reporter.
-func NewHandler(svc *session.Service, version, service string,
+func NewHandler(svc *prompt.Service, version, service string,
 	health func(context.Context) (map[string]any, error)) *Handler {
 	return &Handler{svc: svc, version: version, service: service, health: health}
 }

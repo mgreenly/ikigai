@@ -2,6 +2,7 @@ package runner
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,7 +13,7 @@ import (
 	"agentkit/provider"
 	"prompts/internal/ids"
 	"prompts/internal/sandbox"
-	"prompts/internal/session"
+	"prompts/internal/prompt"
 )
 
 // fakeClient is a provider.Client whose Stream returns a pre-canned sequence
@@ -44,7 +45,7 @@ func (f *fakeClient) Stream(ctx context.Context, req provider.Request) (<-chan p
 
 // newTestRunner builds a Runner backed by a real temp store + sandbox, with
 // the client factory replaced by one that always returns fc.
-func newTestRunner(t *testing.T, ttl time.Duration, fc provider.Client) (*Runner, *session.Store) {
+func newTestRunner(t *testing.T, ttl time.Duration, fc provider.Client) (*Runner, *prompt.Store) {
 	t.Helper()
 	ctx := context.Background()
 	conn, err := db.Open(filepath.Join(t.TempDir(), "prompts.db"))
@@ -55,7 +56,7 @@ func newTestRunner(t *testing.T, ttl time.Duration, fc provider.Client) (*Runner
 	if err := db.Migrate(ctx, conn); err != nil {
 		t.Fatalf("db.Migrate: %v", err)
 	}
-	store := session.NewStore(conn)
+	store := prompt.NewStore(conn)
 
 	sb, err := sandbox.New(filepath.Join(t.TempDir(), "sandboxes"))
 	if err != nil {
@@ -67,46 +68,72 @@ func newTestRunner(t *testing.T, ttl time.Duration, fc provider.Client) (*Runner
 	return r, store
 }
 
-// seedRunning inserts an idle session, makes its sandbox, then opens a running
-// run on it and flips the session to running — mirroring Service.Run, so the
-// runner can take it terminal.
-func seedRunning(t *testing.T, store *session.Store, sb *sandbox.Manager, runsDir string) (session.Session, session.Run) {
+// seedRunning inserts a prompt, makes a run-scoped sandbox, materializes the
+// run's input/ on disk (what the runner now reads from), then opens a running
+// run on it — mirroring Service.Run, so the runner can take it terminal.
+func seedRunning(t *testing.T, store *prompt.Store, sb *sandbox.Manager, runsDir string) (prompt.Prompt, prompt.Run) {
 	t.Helper()
 	ctx := context.Background()
 	now := time.Now().UTC().Format(time.RFC3339Nano)
-	sess := session.Session{
+	sess := prompt.Prompt{
 		ID:         ids.NewULID(),
 		OwnerEmail: "owner@example.com",
 		Name:       "n",
-		Prompt:     "do the thing",
-		Config:     session.Config{Provider: "anthropic", Model: "haiku"},
-		Status:     session.StatusRunning,
+		UserPrompt: "do the thing",
+		Config:     prompt.Config{Provider: "anthropic", Model: "haiku"},
 		CreatedAt:  now,
 		UpdatedAt:  now,
 	}
-	if err := store.InsertSession(ctx, sess); err != nil {
-		t.Fatalf("InsertSession: %v", err)
-	}
-	if err := sb.Create(sess.ID); err != nil {
-		t.Fatalf("sandbox.Create: %v", err)
+	if err := store.InsertPrompt(ctx, sess); err != nil {
+		t.Fatalf("InsertPrompt: %v", err)
 	}
 	runID := ids.NewULID()
-	run := session.Run{
-		ID:        runID,
-		SessionID: sess.ID,
-		Status:    session.RunRunning,
-		StartedAt: now,
-		LogPath:   filepath.Join(runsDir, sess.ID, runID+".jsonl"),
+	// Per-run sandbox is keyed by run_id (runs/<run_id>/sandbox).
+	if err := sb.Create(runID); err != nil {
+		t.Fatalf("sandbox.Create: %v", err)
 	}
+	run := prompt.Run{
+		ID:         runID,
+		PromptID:   sess.ID,
+		OwnerEmail: sess.OwnerEmail,
+		PromptName: sess.Name,
+		Status:     prompt.RunRunning,
+		StartedAt:  now,
+		LogPath:    filepath.Join(runsDir, runID, "output.jsonl"),
+	}
+	writeRunInput(t, runsDir, runID, sess.UserPrompt, sess.SystemPrompt, sess.Config)
 	if err := store.InsertRun(ctx, run); err != nil {
 		t.Fatalf("InsertRun: %v", err)
 	}
 	return sess, run
 }
 
+// writeRunInput pins a run's execution inputs to runs/<run_id>/input/, the
+// disk source the runner reads (mirrors Service.materializeInput).
+func writeRunInput(t *testing.T, runsDir, runID, userPrompt, sysPrompt string, cfg prompt.Config) {
+	t.Helper()
+	inputDir := filepath.Join(runsDir, runID, "input")
+	if err := os.MkdirAll(inputDir, 0o755); err != nil {
+		t.Fatalf("mkdir input: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(inputDir, "user_prompt.txt"), []byte(userPrompt), 0o644); err != nil {
+		t.Fatalf("write user_prompt: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(inputDir, "system_prompt.txt"), []byte(sysPrompt), 0o644); err != nil {
+		t.Fatalf("write system_prompt: %v", err)
+	}
+	cfgJSON, err := json.Marshal(cfg)
+	if err != nil {
+		t.Fatalf("marshal config: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(inputDir, "config.json"), cfgJSON, 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+}
+
 // waitRun polls the store until the run reaches a terminal status or the
 // deadline passes. Returns the final run row.
-func waitRun(t *testing.T, store *session.Store, sessionID string) session.Run {
+func waitRun(t *testing.T, store *prompt.Store, sessionID string) prompt.Run {
 	t.Helper()
 	deadline := time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) {
@@ -114,24 +141,13 @@ func waitRun(t *testing.T, store *session.Store, sessionID string) session.Run {
 		if err != nil {
 			t.Fatalf("GetLatestRun: %v", err)
 		}
-		if run != nil && run.Status != session.RunRunning {
+		if run != nil && run.Status != prompt.RunRunning {
 			return *run
 		}
 		time.Sleep(5 * time.Millisecond)
 	}
 	t.Fatalf("run for session %s did not reach a terminal state", sessionID)
-	return session.Run{}
-}
-
-func assertSessionIdle(t *testing.T, store *session.Store, owner, id string) {
-	t.Helper()
-	sess, err := store.GetSession(context.Background(), owner, id)
-	if err != nil {
-		t.Fatalf("GetSession: %v", err)
-	}
-	if sess.Status != session.StatusIdle {
-		t.Fatalf("session status = %q, want idle", sess.Status)
-	}
+	return prompt.Run{}
 }
 
 func TestSpawn_TerminalSuccess(t *testing.T) {
@@ -144,10 +160,10 @@ func TestSpawn_TerminalSuccess(t *testing.T) {
 	r, store := newTestRunner(t, time.Minute, fc)
 	sess, run := seedRunning(t, store, r.sandbox, runsDir)
 
-	r.Spawn(sess, run)
+	r.Spawn(run)
 	got := waitRun(t, store, sess.ID)
 
-	if got.Status != session.RunSucceeded {
+	if got.Status != prompt.RunSucceeded {
 		t.Fatalf("run status = %q, want succeeded (error=%q)", got.Status, got.Error)
 	}
 	if got.Error != "" {
@@ -156,7 +172,6 @@ func TestSpawn_TerminalSuccess(t *testing.T) {
 	if got.EndedAt == "" {
 		t.Fatalf("run ended_at empty")
 	}
-	assertSessionIdle(t, store, sess.OwnerEmail, sess.ID)
 
 	data, err := os.ReadFile(run.LogPath)
 	if err != nil {
@@ -183,13 +198,14 @@ func TestCancel(t *testing.T) {
 	r, store := newTestRunner(t, time.Minute, fc)
 	sess, run := seedRunning(t, store, r.sandbox, runsDir)
 
-	r.Spawn(sess, run)
+	r.Spawn(run)
 
-	// Wait until the run goroutine has registered its cancel func, then cancel.
+	// Wait until the run goroutine has registered its cancel func, then cancel
+	// by run_id.
 	var cancelled bool
 	deadline := time.Now().Add(2 * time.Second)
 	for time.Now().Before(deadline) {
-		if r.Cancel(sess.ID) {
+		if r.Cancel(run.ID) {
 			cancelled = true
 			break
 		}
@@ -200,17 +216,16 @@ func TestCancel(t *testing.T) {
 	}
 
 	got := waitRun(t, store, sess.ID)
-	if got.Status != session.RunCancelled {
+	if got.Status != prompt.RunCancelled {
 		t.Fatalf("run status = %q, want cancelled", got.Status)
 	}
 	if got.Error != "cancelled" {
 		t.Fatalf("run error = %q, want \"cancelled\"", got.Error)
 	}
-	assertSessionIdle(t, store, sess.OwnerEmail, sess.ID)
 
-	// Cancelling an absent session returns false.
-	if r.Cancel("no-such-session") {
-		t.Fatalf("Cancel of absent session returned true")
+	// Cancelling an absent run returns false.
+	if r.Cancel("no-such-run") {
+		t.Fatalf("Cancel of absent run returned true")
 	}
 }
 
@@ -220,16 +235,15 @@ func TestTTLFires(t *testing.T) {
 	r, store := newTestRunner(t, 50*time.Millisecond, fc)
 	sess, run := seedRunning(t, store, r.sandbox, runsDir)
 
-	r.Spawn(sess, run)
+	r.Spawn(run)
 	got := waitRun(t, store, sess.ID)
 
-	if got.Status != session.RunFailed {
+	if got.Status != prompt.RunFailed {
 		t.Fatalf("run status = %q, want failed", got.Status)
 	}
 	if got.Error != "run TTL exceeded" {
 		t.Fatalf("run error = %q, want \"run TTL exceeded\"", got.Error)
 	}
-	assertSessionIdle(t, store, sess.OwnerEmail, sess.ID)
 }
 
 func TestRecover(t *testing.T) {
@@ -251,8 +265,7 @@ func TestRecover(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetLatestRun: %v", err)
 	}
-	if run == nil || run.Status != session.RunFailed {
+	if run == nil || run.Status != prompt.RunFailed {
 		t.Fatalf("swept run status = %v, want failed", run)
 	}
-	assertSessionIdle(t, store, sess.OwnerEmail, sess.ID)
 }

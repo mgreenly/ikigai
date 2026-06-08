@@ -14,23 +14,23 @@ import (
 
 	"prompts/internal/db"
 	"prompts/internal/sandbox"
-	"prompts/internal/session"
+	"prompts/internal/prompt"
 )
 
 // fakeRunner records Spawn/Cancel and leaves the run running (does not
 // auto-complete), mirroring the session/runner test pattern.
 type fakeRunner struct {
 	mu      sync.Mutex
-	spawned []session.Run
+	spawned []prompt.Run
 }
 
-func (f *fakeRunner) Spawn(sess session.Session, run session.Run) {
+func (f *fakeRunner) Spawn(run prompt.Run) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.spawned = append(f.spawned, run)
 }
 
-func (f *fakeRunner) Cancel(sessionID string) bool { return false }
+func (f *fakeRunner) Cancel(runID string) bool { return false }
 
 const (
 	ownerEmail = "owner@example.com"
@@ -50,12 +50,15 @@ func newTestHandler(t *testing.T) (*Handler, *sandbox.Manager) {
 	if err := db.Migrate(ctx, conn); err != nil {
 		t.Fatalf("db.Migrate: %v", err)
 	}
-	sb, err := sandbox.New(filepath.Join(t.TempDir(), "sandboxes"))
+	// The sandbox Manager is rooted at the runs dir (A2): a run's sandbox is
+	// runs/<run_id>/sandbox, sharing the run directory with output.jsonl.
+	runsDir := t.TempDir()
+	sb, err := sandbox.New(runsDir)
 	if err != nil {
 		t.Fatalf("sandbox.New: %v", err)
 	}
-	store := session.NewStore(conn)
-	svc := session.NewService(store, sb, t.TempDir(), &fakeRunner{})
+	store := prompt.NewStore(conn)
+	svc := prompt.NewService(store, sb, runsDir, &fakeRunner{})
 	return NewHandler(svc, "1.2.3", "prompts", nil), sb
 }
 
@@ -115,7 +118,7 @@ func isError(res map[string]any) bool {
 	return v
 }
 
-func TestToolsListReturns14(t *testing.T) {
+func TestToolsListReturns16(t *testing.T) {
 	h, _ := newTestHandler(t)
 	body, _ := json.Marshal(map[string]any{"jsonrpc": "2.0", "id": 1, "method": "tools/list"})
 	rr := do(t, h, body)
@@ -130,29 +133,31 @@ func TestToolsListReturns14(t *testing.T) {
 	if err := json.Unmarshal(rr.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
-	if len(resp.Result.Tools) != 14 {
-		t.Fatalf("want 14 tools, got %d", len(resp.Result.Tools))
+	if len(resp.Result.Tools) != 16 {
+		t.Fatalf("want 16 tools, got %d", len(resp.Result.Tools))
 	}
-	got := make([]string, 0, 14)
+	got := make([]string, 0, 16)
 	for _, tl := range resp.Result.Tools {
 		got = append(got, tl.Name)
 	}
 	sort.Strings(got)
 	want := []string{
+		"ikigenba_prompts_clear_trigger",
+		"ikigenba_prompts_create",
+		"ikigenba_prompts_delete",
 		"ikigenba_prompts_describe",
+		"ikigenba_prompts_get",
 		"ikigenba_prompts_health",
-		"ikigenba_prompts_session_cancel",
-		"ikigenba_prompts_session_clear_trigger",
-		"ikigenba_prompts_session_create",
-		"ikigenba_prompts_session_delete",
-		"ikigenba_prompts_session_fs_list",
-		"ikigenba_prompts_session_fs_read",
-		"ikigenba_prompts_session_get",
-		"ikigenba_prompts_session_list",
-		"ikigenba_prompts_session_output",
-		"ikigenba_prompts_session_run",
-		"ikigenba_prompts_session_set_trigger",
-		"ikigenba_prompts_session_update",
+		"ikigenba_prompts_list",
+		"ikigenba_prompts_run",
+		"ikigenba_prompts_run_cancel",
+		"ikigenba_prompts_run_fs_list",
+		"ikigenba_prompts_run_fs_read",
+		"ikigenba_prompts_run_get",
+		"ikigenba_prompts_run_list",
+		"ikigenba_prompts_run_output",
+		"ikigenba_prompts_set_trigger",
+		"ikigenba_prompts_update",
 	}
 	if len(got) != len(want) {
 		t.Fatalf("name count mismatch: %v", got)
@@ -169,38 +174,51 @@ func TestToolsListReturns14(t *testing.T) {
 func TestSetAndClearTrigger(t *testing.T) {
 	h, _ := newTestHandler(t)
 
-	created := call(t, h, "ikigenba_prompts_session_create", map[string]any{
-		"prompt": "hi",
-		"config": map[string]any{"model": "haiku"},
+	created := call(t, h, "ikigenba_prompts_create", map[string]any{
+		"user_prompt": "hi",
+		"config":      map[string]any{"model": "haiku"},
 	})
 	var cv struct {
-		SessionID string `json:"session_id"`
+		PromptID string `json:"prompt_id"`
 	}
 	if err := json.Unmarshal([]byte(resultText(t, created)), &cv); err != nil {
 		t.Fatalf("decode create: %v", err)
 	}
 
-	set := call(t, h, "ikigenba_prompts_session_set_trigger", map[string]any{
-		"session_id":    cv.SessionID,
-		"trigger_event": "cron.nightly",
+	set := call(t, h, "ikigenba_prompts_set_trigger", map[string]any{
+		"prompt_id":    cv.PromptID,
+		"source":       "dropbox",
+		"event_filter": "file.created",
 	})
 	if isError(set) {
 		t.Fatalf("set_trigger returned isError: %+v", set)
 	}
 	var tv struct {
-		TriggerEvent     string `json:"trigger_event"`
-		MaxStalenessSecs int    `json:"max_staleness_secs"`
-		MaxAttempts      int    `json:"max_attempts"`
+		Source      string `json:"source"`
+		EventFilter string `json:"event_filter"`
+		CreatedAt   string `json:"created_at"`
 	}
 	if err := json.Unmarshal([]byte(resultText(t, set)), &tv); err != nil {
 		t.Fatalf("decode set: %v", err)
 	}
-	if tv.TriggerEvent != "cron.nightly" || tv.MaxStalenessSecs != 300 || tv.MaxAttempts != 3 {
-		t.Fatalf("unexpected trigger (defaults?): %+v", tv)
+	if tv.Source != "dropbox" || tv.EventFilter != "file.created" || tv.CreatedAt == "" {
+		t.Fatalf("unexpected trigger: %+v", tv)
 	}
 
-	cleared := call(t, h, "ikigenba_prompts_session_clear_trigger", map[string]any{
-		"session_id": cv.SessionID,
+	// An unknown source is rejected (validation).
+	bad := call(t, h, "ikigenba_prompts_set_trigger", map[string]any{
+		"prompt_id":    cv.PromptID,
+		"source":       "nope",
+		"event_filter": "x",
+	})
+	if !isError(bad) {
+		t.Fatalf("set_trigger with unknown source must return isError, got %+v", bad)
+	}
+
+	cleared := call(t, h, "ikigenba_prompts_clear_trigger", map[string]any{
+		"prompt_id":    cv.PromptID,
+		"source":       "dropbox",
+		"event_filter": "file.created",
 	})
 	if isError(cleared) {
 		t.Fatalf("clear_trigger returned isError: %+v", cleared)
@@ -219,7 +237,7 @@ func TestDescribe(t *testing.T) {
 	}
 	// Sanity: it should actually describe the lifecycle entry points, not just
 	// be non-empty.
-	for _, want := range []string{"session", "ikigenba_prompts_session_create", "ikigenba_prompts_session_run"} {
+	for _, want := range []string{"prompt", "ikigenba_prompts_create", "ikigenba_prompts_run"} {
 		if !strings.Contains(txt, want) {
 			t.Fatalf("ikigenba_prompts_describe text missing %q:\n%s", want, txt)
 		}
@@ -272,37 +290,33 @@ func TestHealth(t *testing.T) {
 	}
 }
 
-func createSession(t *testing.T, h *Handler) string {
+func createPrompt(t *testing.T, h *Handler) string {
 	t.Helper()
-	res := call(t, h, "ikigenba_prompts_session_create", map[string]any{
-		"prompt": "do a thing",
-		"config": map[string]any{"model": "haiku"},
-		"name":   "test",
+	res := call(t, h, "ikigenba_prompts_create", map[string]any{
+		"user_prompt": "do a thing",
+		"config":      map[string]any{"model": "haiku"},
+		"name":        "test",
 	})
 	var out struct {
-		SessionID string `json:"session_id"`
-		Status    string `json:"status"`
+		PromptID string `json:"prompt_id"`
 	}
 	if err := json.Unmarshal([]byte(resultText(t, res)), &out); err != nil {
 		t.Fatalf("decode create: %v", err)
 	}
-	if out.SessionID == "" {
-		t.Fatalf("create: empty session_id")
+	if out.PromptID == "" {
+		t.Fatalf("create: empty prompt_id")
 	}
-	if out.Status != session.StatusIdle {
-		t.Fatalf("create: want idle, got %q", out.Status)
-	}
-	return out.SessionID
+	return out.PromptID
 }
 
 func TestDispatchRoundtrip(t *testing.T) {
 	h, sb := newTestHandler(t)
 
-	id := createSession(t, h)
+	id := createPrompt(t, h)
 
-	// get returns it, idle, no last_run.
-	getRes := call(t, h, "ikigenba_prompts_session_get", map[string]any{"session_id": id})
-	var detail session.SessionDetail
+	// get returns it, no last_run.
+	getRes := call(t, h, "ikigenba_prompts_get", map[string]any{"prompt_id": id})
+	var detail prompt.PromptDetail
 	if err := json.Unmarshal([]byte(resultText(t, getRes)), &detail); err != nil {
 		t.Fatalf("decode get: %v", err)
 	}
@@ -311,55 +325,72 @@ func TestDispatchRoundtrip(t *testing.T) {
 	}
 
 	// list includes it.
-	listRes := call(t, h, "ikigenba_prompts_session_list", nil)
+	listRes := call(t, h, "ikigenba_prompts_list", nil)
 	var listOut struct {
-		Sessions []session.Session `json:"sessions"`
+		Prompts []prompt.Prompt `json:"prompts"`
 	}
 	if err := json.Unmarshal([]byte(resultText(t, listRes)), &listOut); err != nil {
 		t.Fatalf("decode list: %v", err)
 	}
-	if len(listOut.Sessions) != 1 || listOut.Sessions[0].ID != id {
-		t.Fatalf("list: %+v", listOut.Sessions)
+	if len(listOut.Prompts) != 1 || listOut.Prompts[0].ID != id {
+		t.Fatalf("list: %+v", listOut.Prompts)
 	}
 
-	// fs_list on the empty sandbox returns [].
-	fsRes := call(t, h, "ikigenba_prompts_session_fs_list", map[string]any{"session_id": id})
-	var fsOut struct {
-		Entries []sandbox.Entry `json:"entries"`
-	}
-	if err := json.Unmarshal([]byte(resultText(t, fsRes)), &fsOut); err != nil {
-		t.Fatalf("decode fs_list: %v", err)
-	}
-	if len(fsOut.Entries) != 0 {
-		t.Fatalf("fs_list empty: got %+v", fsOut.Entries)
-	}
-
-	// run flips to running; get.last_run reflects it.
-	runRes := call(t, h, "ikigenba_prompts_session_run", map[string]any{"session_id": id})
+	// run returns a run_id + running status.
+	runRes := call(t, h, "ikigenba_prompts_run", map[string]any{"prompt_id": id})
 	var runOut struct {
+		RunID  string `json:"run_id"`
 		Status string `json:"status"`
 	}
 	if err := json.Unmarshal([]byte(resultText(t, runRes)), &runOut); err != nil {
 		t.Fatalf("decode run: %v", err)
 	}
-	if runOut.Status != "running" {
-		t.Fatalf("run: want running, got %q", runOut.Status)
+	if runOut.Status != "running" || runOut.RunID == "" {
+		t.Fatalf("run: want running + run_id, got %+v", runOut)
 	}
-	getRes = call(t, h, "ikigenba_prompts_session_get", map[string]any{"session_id": id})
-	if err := json.Unmarshal([]byte(resultText(t, getRes)), &detail); err != nil {
-		t.Fatalf("decode get2: %v", err)
+	runID := runOut.RunID
+
+	// run_get reflects the run by run_id.
+	rgRes := call(t, h, "ikigenba_prompts_run_get", map[string]any{"run_id": runID})
+	var run prompt.Run
+	if err := json.Unmarshal([]byte(resultText(t, rgRes)), &run); err != nil {
+		t.Fatalf("decode run_get: %v", err)
 	}
-	if detail.Status != session.StatusRunning || detail.LastRun == nil || detail.LastRun.Status != session.RunRunning {
-		t.Fatalf("get after run: %+v", detail)
+	if run.ID != runID || run.Status != prompt.RunRunning {
+		t.Fatalf("run_get: %+v", run)
 	}
 
-	// write a file into the sandbox dir, then fs_read returns it.
-	if err := os.WriteFile(filepath.Join(sb.Root(id), "hello.txt"), []byte("line one\nline two\n"), 0o644); err != nil {
+	// run_list shows the run under the prompt.
+	rlRes := call(t, h, "ikigenba_prompts_run_list", map[string]any{"prompt_id": id})
+	var rlOut struct {
+		Runs []prompt.Run `json:"runs"`
+	}
+	if err := json.Unmarshal([]byte(resultText(t, rlRes)), &rlOut); err != nil {
+		t.Fatalf("decode run_list: %v", err)
+	}
+	if len(rlOut.Runs) != 1 || rlOut.Runs[0].ID != runID {
+		t.Fatalf("run_list: %+v", rlOut.Runs)
+	}
+
+	// run_fs_list on the now-created (empty) run sandbox returns [].
+	fsRes := call(t, h, "ikigenba_prompts_run_fs_list", map[string]any{"run_id": runID})
+	var fsOut struct {
+		Entries []sandbox.Entry `json:"entries"`
+	}
+	if err := json.Unmarshal([]byte(resultText(t, fsRes)), &fsOut); err != nil {
+		t.Fatalf("decode run_fs_list: %v", err)
+	}
+	if len(fsOut.Entries) != 0 {
+		t.Fatalf("run_fs_list empty: got %+v", fsOut.Entries)
+	}
+
+	// write a file into the run's sandbox dir, then run_fs_read returns it.
+	if err := os.WriteFile(filepath.Join(sb.Root(runID), "hello.txt"), []byte("line one\nline two\n"), 0o644); err != nil {
 		t.Fatalf("write sandbox file: %v", err)
 	}
-	readRes := call(t, h, "ikigenba_prompts_session_fs_read", map[string]any{"session_id": id, "path": "hello.txt"})
+	readRes := call(t, h, "ikigenba_prompts_run_fs_read", map[string]any{"run_id": runID, "path": "hello.txt"})
 	if got := resultText(t, readRes); got != "line one\nline two\n" {
-		t.Fatalf("fs_read: got %q", got)
+		t.Fatalf("run_fs_read: got %q", got)
 	}
 }
 
@@ -367,38 +398,50 @@ func TestErrorMapping(t *testing.T) {
 	h, _ := newTestHandler(t)
 
 	// unknown id -> isError (not found).
-	res := call(t, h, "ikigenba_prompts_session_get", map[string]any{"session_id": "nope"})
+	res := call(t, h, "ikigenba_prompts_get", map[string]any{"prompt_id": "nope"})
 	if !isError(res) {
 		t.Fatalf("get unknown: want isError, got %+v", res)
 	}
 
-	id := createSession(t, h)
+	id := createPrompt(t, h)
 
-	// run twice -> second is busy.
-	if r := call(t, h, "ikigenba_prompts_session_run", map[string]any{"session_id": id}); isError(r) {
+	// run is always accepted now (full concurrency, no single-flight): two runs
+	// of the same prompt both succeed.
+	if r := call(t, h, "ikigenba_prompts_run", map[string]any{"prompt_id": id}); isError(r) {
 		t.Fatalf("first run: unexpected isError %+v", r)
 	}
-	busy := call(t, h, "ikigenba_prompts_session_run", map[string]any{"session_id": id})
-	if !isError(busy) || !contains(resultText(t, busy), "flight") {
-		t.Fatalf("second run: want busy isError, got %+v", busy)
+	if r := call(t, h, "ikigenba_prompts_run", map[string]any{"prompt_id": id}); isError(r) {
+		t.Fatalf("second run: want success, got isError %+v", r)
 	}
 
-	// update/delete while running -> isError.
-	upd := call(t, h, "ikigenba_prompts_session_update", map[string]any{
-		"session_id": id, "prompt": "x", "config": map[string]any{"model": "haiku"},
+	// update/delete are always allowed now (no ErrRunning), even with runs live.
+	upd := call(t, h, "ikigenba_prompts_update", map[string]any{
+		"prompt_id": id, "user_prompt": "x", "config": map[string]any{"model": "haiku"},
 	})
-	if !isError(upd) {
-		t.Fatalf("update while running: want isError, got %+v", upd)
+	if isError(upd) {
+		t.Fatalf("update while running: want success, got isError %+v", upd)
 	}
-	del := call(t, h, "ikigenba_prompts_session_delete", map[string]any{"session_id": id})
-	if !isError(del) {
-		t.Fatalf("delete while running: want isError, got %+v", del)
+	del := call(t, h, "ikigenba_prompts_delete", map[string]any{"prompt_id": id})
+	if isError(del) {
+		t.Fatalf("delete while running: want success, got isError %+v", del)
 	}
 
-	// fs_read path escape -> isError.
-	esc := call(t, h, "ikigenba_prompts_session_fs_read", map[string]any{"session_id": id, "path": "../escape"})
+	// Re-create + run for the path-escape check (the prior prompt was deleted).
+	id = createPrompt(t, h)
+	runRes := call(t, h, "ikigenba_prompts_run", map[string]any{"prompt_id": id})
+	if isError(runRes) {
+		t.Fatalf("run for escape check: unexpected isError %+v", runRes)
+	}
+	var runOut struct {
+		RunID string `json:"run_id"`
+	}
+	if err := json.Unmarshal([]byte(resultText(t, runRes)), &runOut); err != nil {
+		t.Fatalf("decode run for escape: %v", err)
+	}
+	// run_fs_read path escape -> isError.
+	esc := call(t, h, "ikigenba_prompts_run_fs_read", map[string]any{"run_id": runOut.RunID, "path": "../escape"})
 	if !isError(esc) {
-		t.Fatalf("fs_read escape: want isError, got %+v", esc)
+		t.Fatalf("run_fs_read escape: want isError, got %+v", esc)
 	}
 }
 

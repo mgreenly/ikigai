@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// TestMigrate_CreatesPromptsSchema verifies 002_prompts.sql lands the sessions
+// TestMigrate_CreatesPromptsSchema verifies 002_prompts.sql lands the prompts
 // and runs tables (and the run index) on a fresh DB, idempotently.
 func TestMigrate_CreatesPromptsSchema(t *testing.T) {
 	ctx := context.Background()
@@ -23,7 +23,7 @@ func TestMigrate_CreatesPromptsSchema(t *testing.T) {
 		t.Fatalf("second migrate: %v", err)
 	}
 
-	for _, tbl := range []string{"sessions", "runs", "session_triggers", "feed_offset"} {
+	for _, tbl := range []string{"prompts", "runs", "prompt_triggers", "feed_offset"} {
 		var name string
 		err := conn.QueryRowContext(ctx,
 			`SELECT name FROM sqlite_master WHERE type='table' AND name=?`, tbl,
@@ -36,54 +36,55 @@ func TestMigrate_CreatesPromptsSchema(t *testing.T) {
 	// The run index must exist.
 	var idx string
 	err = conn.QueryRowContext(ctx,
-		`SELECT name FROM sqlite_master WHERE type='index' AND name='idx_runs_session'`,
+		`SELECT name FROM sqlite_master WHERE type='index' AND name='idx_runs_prompt'`,
 	).Scan(&idx)
 	if err != nil {
-		t.Fatalf("expected idx_runs_session: %v", err)
+		t.Fatalf("expected idx_runs_prompt: %v", err)
 	}
 
-	// Inserting a session then a run, and cascading delete, all work.
+	// Tombstone semantics (A3): there is NO FK/cascade. Deleting a prompt row
+	// leaves its runs in place (they stay owner-addressable by run_id), and the
+	// prompt's trigger(s) must be removed EXPLICITLY, not by cascade.
 	if _, err := conn.ExecContext(ctx,
-		`INSERT INTO sessions (id, owner_email, prompt, config_json, status, created_at, updated_at)
-		 VALUES ('s1', 'o@example.com', 'hi', '{}', 'idle', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO prompts (id, owner_email, user_prompt, config_json, created_at, updated_at)
+		 VALUES ('s1', 'o@example.com', 'hi', '{}', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')`,
 	); err != nil {
-		t.Fatalf("insert session: %v", err)
+		t.Fatalf("insert prompt: %v", err)
 	}
 	if _, err := conn.ExecContext(ctx,
-		`INSERT INTO runs (id, session_id, status, started_at, log_path)
-		 VALUES ('r1', 's1', 'running', '2026-01-01T00:00:00Z', 'data/runs/s1/r1.jsonl')`,
+		`INSERT INTO runs (id, prompt_id, owner_email, status, started_at, log_path)
+		 VALUES ('r1', 's1', 'o@example.com', 'running', '2026-01-01T00:00:00Z', 'data/runs/s1/r1.jsonl')`,
 	); err != nil {
 		t.Fatalf("insert run: %v", err)
 	}
-	// A session_trigger also cascades on session delete (1:1, PK session_id).
 	if _, err := conn.ExecContext(ctx,
-		`INSERT INTO session_triggers (session_id, trigger_event, max_staleness_secs, max_attempts, created_at, updated_at)
-		 VALUES ('s1', 'cron.nightly', 300, 3, '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')`,
+		`INSERT INTO prompt_triggers (prompt_id, source, event_filter, created_at)
+		 VALUES ('s1', 'cron', 'cron.nightly', '2026-01-01T00:00:00Z')`,
 	); err != nil {
-		t.Fatalf("insert session_trigger: %v", err)
+		t.Fatalf("insert prompt_trigger: %v", err)
 	}
-	if _, err := conn.ExecContext(ctx, `DELETE FROM sessions WHERE id='s1'`); err != nil {
-		t.Fatalf("delete session: %v", err)
+	if _, err := conn.ExecContext(ctx, `DELETE FROM prompts WHERE id='s1'`); err != nil {
+		t.Fatalf("delete prompt: %v", err)
 	}
 	var n int
-	if err := conn.QueryRowContext(ctx, `SELECT COUNT(*) FROM runs WHERE session_id='s1'`).Scan(&n); err != nil {
-		t.Fatalf("count runs after cascade: %v", err)
+	if err := conn.QueryRowContext(ctx, `SELECT COUNT(*) FROM runs WHERE prompt_id='s1'`).Scan(&n); err != nil {
+		t.Fatalf("count runs after tombstone: %v", err)
 	}
-	if n != 0 {
-		t.Fatalf("expected ON DELETE CASCADE to remove runs, got %d", n)
+	if n != 1 {
+		t.Fatalf("expected NO cascade: run should survive prompt delete, got %d", n)
 	}
-	if err := conn.QueryRowContext(ctx, `SELECT COUNT(*) FROM session_triggers WHERE session_id='s1'`).Scan(&n); err != nil {
-		t.Fatalf("count triggers after cascade: %v", err)
+	if err := conn.QueryRowContext(ctx, `SELECT COUNT(*) FROM prompt_triggers WHERE prompt_id='s1'`).Scan(&n); err != nil {
+		t.Fatalf("count triggers after tombstone: %v", err)
 	}
-	if n != 0 {
-		t.Fatalf("expected ON DELETE CASCADE to remove session_triggers, got %d", n)
+	if n != 1 {
+		t.Fatalf("expected NO cascade: trigger should survive prompt delete (removed explicitly by service), got %d", n)
 	}
 
-	// The trigger_event index must exist.
+	// The (source, event_filter) lookup index must exist.
 	var tidx string
 	if err := conn.QueryRowContext(ctx,
-		`SELECT name FROM sqlite_master WHERE type='index' AND name='idx_session_triggers_event'`,
+		`SELECT name FROM sqlite_master WHERE type='index' AND name='idx_prompt_triggers_lookup'`,
 	).Scan(&tidx); err != nil {
-		t.Fatalf("expected idx_session_triggers_event: %v", err)
+		t.Fatalf("expected idx_prompt_triggers_lookup: %v", err)
 	}
 }

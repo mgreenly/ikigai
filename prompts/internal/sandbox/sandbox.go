@@ -1,16 +1,19 @@
-// Package sandbox owns the per-session folder tree under data/sandboxes/.
+// Package sandbox owns the per-run sandbox folders under data/runs/.
 //
-// Each session gets its own folder data/sandboxes/<id>/ which is the
-// agent's only durable workspace. This package has two jobs:
+// Each run gets its own workspace data/runs/<run_id>/sandbox/ which is the
+// agent's only durable workspace for that run. This package has two jobs:
 //
 //  1. Lifecycle + confinement root for the engine: Create/Remove a
-//     session's folder and expose its absolute path (Root) as the single
-//     source of truth for "the confinement root for session X". The runner
-//     hands that string to the engine's Dispatch as sandboxRoot.
+//     run's sandbox folder and expose its absolute path (Root) as the
+//     single source of truth for "the confinement root for run X". The
+//     runner hands that string to the engine's Dispatch as sandboxRoot.
 //
-//  2. Read surface for the MCP foreground: List and Read over a session's
-//     folder, rejecting any path that escapes it. The sandbox is read-only
-//     from the foreground — the agent writes via the engine toolset.
+//  2. Read surface for the MCP foreground: List and Read over a run's
+//     sandbox folder, rejecting any path that escapes it. The sandbox is
+//     read-only from the foreground — the agent writes via the engine toolset.
+//
+// The Manager is rooted at the runs dir; every id it takes is a run_id, and
+// resolves to <runsDir>/<run_id>/sandbox.
 package sandbox
 
 import (
@@ -21,7 +24,8 @@ import (
 	"strings"
 )
 
-// Manager owns the data/sandboxes/<id>/ tree under a base directory.
+// Manager owns the data/runs/<run_id>/sandbox/ folders under a base
+// directory (the runs dir).
 type Manager struct {
 	base string
 }
@@ -33,8 +37,8 @@ type Entry struct {
 	Size  int64  `json:"size"`
 }
 
-// New returns a Manager rooted at baseDir (e.g. "<data>/sandboxes"),
-// creating baseDir if needed.
+// New returns a Manager rooted at baseDir (the runs dir, e.g.
+// "<data>/runs"), creating baseDir if needed.
 func New(baseDir string) (*Manager, error) {
 	if baseDir == "" {
 		return nil, fmt.Errorf("sandbox: base dir is empty")
@@ -49,31 +53,32 @@ func New(baseDir string) (*Manager, error) {
 	return &Manager{base: abs}, nil
 }
 
-// Create makes the empty folder for session id (idempotent — fine if it
-// already exists, per the crash-recovery "forward-only on disk" rule).
+// Create makes the empty sandbox folder for run id (idempotent — fine if
+// it already exists, per the crash-recovery "forward-only on disk" rule).
 func (m *Manager) Create(id string) error {
 	if err := validateID(id); err != nil {
 		return err
 	}
 	if err := os.MkdirAll(m.Root(id), 0o755); err != nil {
-		return fmt.Errorf("sandbox: create session folder: %w", err)
+		return fmt.Errorf("sandbox: create run sandbox folder: %w", err)
 	}
 	return nil
 }
 
-// Remove deletes session id's folder and everything under it.
+// Remove deletes run id's sandbox folder and everything under it.
 func (m *Manager) Remove(id string) error {
 	if err := validateID(id); err != nil {
 		return err
 	}
 	if err := os.RemoveAll(m.Root(id)); err != nil {
-		return fmt.Errorf("sandbox: remove session folder: %w", err)
+		return fmt.Errorf("sandbox: remove run sandbox folder: %w", err)
 	}
 	return nil
 }
 
-// Root returns the absolute confinement root for session id — the value
-// the engine's Dispatch consumes as sandboxRoot. It need not exist yet.
+// Root returns the absolute confinement root for run id — the value the
+// engine's Dispatch consumes as sandboxRoot. It resolves to
+// <runsDir>/<run_id>/sandbox and need not exist yet.
 //
 // If id is invalid (empty, contains a path separator or "..") Root returns
 // the empty string; callers should Create (which validates) first.
@@ -81,13 +86,13 @@ func (m *Manager) Root(id string) string {
 	if validateID(id) != nil {
 		return ""
 	}
-	return filepath.Join(m.base, id)
+	return filepath.Join(m.base, id, "sandbox")
 }
 
-// List returns the entries directly under relPath within session id's
-// folder. relPath "" or "." means the session root. Escapes are rejected.
+// List returns the entries directly under relPath within run id's sandbox
+// folder. relPath "" or "." means the sandbox root. Escapes are rejected.
 func (m *Manager) List(id, relPath string) ([]Entry, error) {
-	root, err := m.sessionRoot(id)
+	root, err := m.promptRoot(id)
 	if err != nil {
 		return nil, err
 	}
@@ -117,11 +122,11 @@ func (m *Manager) List(id, relPath string) ([]Entry, error) {
 	return entries, nil
 }
 
-// Read returns up to limit lines of the file at relPath within session
-// id's folder, starting at 1-based line offset (offset<=0 and limit<=0
+// Read returns up to limit lines of the file at relPath within run
+// id's sandbox folder, starting at 1-based line offset (offset<=0 and limit<=0
 // mean "from start" / "no limit"). Escapes and not-a-file are rejected.
 func (m *Manager) Read(id, relPath string, offset, limit int) (string, error) {
-	root, err := m.sessionRoot(id)
+	root, err := m.promptRoot(id)
 	if err != nil {
 		return "", err
 	}
@@ -173,41 +178,41 @@ func (m *Manager) Read(id, relPath string, offset, limit int) (string, error) {
 	return b.String(), nil
 }
 
-// sessionRoot validates id and resolves the (must-exist) session root,
+// sandboxRoot validates id and resolves the (must-exist) run sandbox root,
 // resolving symlinks on the root itself.
-func (m *Manager) sessionRoot(id string) (string, error) {
+func (m *Manager) promptRoot(id string) (string, error) {
 	if err := validateID(id); err != nil {
 		return "", err
 	}
 	root := m.Root(id)
 	if _, err := os.Stat(root); err != nil {
 		if os.IsNotExist(err) {
-			return "", fmt.Errorf("sandbox: session %q has no folder", id)
+			return "", fmt.Errorf("sandbox: run %q has no sandbox folder", id)
 		}
-		return "", fmt.Errorf("sandbox: stat session %q: %w", id, err)
+		return "", fmt.Errorf("sandbox: stat run %q: %w", id, err)
 	}
 	return root, nil
 }
 
 // validateID ensures id is a single non-empty path segment so a malicious
-// session id cannot escape the base directory.
+// prompt id cannot escape the base directory.
 func validateID(id string) error {
 	if id == "" {
-		return fmt.Errorf("sandbox: empty session id")
+		return fmt.Errorf("sandbox: empty prompt id")
 	}
 	if id == "." || id == ".." {
-		return fmt.Errorf("sandbox: invalid session id: %q", id)
+		return fmt.Errorf("sandbox: invalid prompt id: %q", id)
 	}
 	if strings.ContainsRune(id, '/') || strings.ContainsRune(id, os.PathSeparator) {
-		return fmt.Errorf("sandbox: invalid session id (contains separator): %q", id)
+		return fmt.Errorf("sandbox: invalid prompt id (contains separator): %q", id)
 	}
 	if strings.Contains(id, "..") {
-		return fmt.Errorf("sandbox: invalid session id (contains ..): %q", id)
+		return fmt.Errorf("sandbox: invalid prompt id (contains ..): %q", id)
 	}
 	return nil
 }
 
-// confine resolves relPath against the session root and returns the
+// confine resolves relPath against the prompt root and returns the
 // cleaned absolute path guaranteed within root, or an error. It mirrors
 // the engine's write-path confinement: join, Clean, resolve symlinks on
 // the longest existing ancestor (catching symlink escapes), then verify
@@ -228,7 +233,7 @@ func confine(root, relPath string) (string, error) {
 
 	rel, err := filepath.Rel(realRoot, resolved)
 	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
-		return "", fmt.Errorf("sandbox: path escapes session folder: %q", relPath)
+		return "", fmt.Errorf("sandbox: path escapes prompt folder: %q", relPath)
 	}
 	return abs, nil
 }

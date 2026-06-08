@@ -1,4 +1,4 @@
-package session
+package prompt
 
 import (
 	"encoding/json"
@@ -28,7 +28,7 @@ const (
 var Events = outbox.Registry{
 	{
 		Type:        EventRunSucceeded,
-		Description: "A prompts run finished successfully. Carries the session identity, the human-readable task name, and the trigger context (the cron event + scheduled slot that started it, empty for a manual run).",
+		Description: "A prompts run finished successfully. Carries the prompt identity, the human-readable task name, and the trigger context (the upstream source, fired event type, and upstream event id that started it, empty for a manual run).",
 		Sample:      sampleOutcomeSuccess,
 	},
 	{
@@ -38,41 +38,47 @@ var Events = outbox.Registry{
 	},
 }
 
-// outcomePayload is the run.succeeded / run.failed payload
-// (event-triggering decisions §3): the run's session identity, the
-// human-readable task name (session_name), and the trigger context
-// (trigger_event + scheduled_for — the cron event and matched slot that started
-// the run, both empty/omitted for a manual run). error is present ONLY on
-// run.failed (omitempty drops it on the success path). The full report stays in
-// prompts (read via MCP); this is the minimal-for-now outcome shape.
+// outcomePayload is the run.succeeded / run.failed payload: the run's prompt
+// identity, the human-readable task name (prompt_name), the run id, and the
+// trigger context (trigger_source + trigger_type + trigger_event_id — the
+// upstream source, fired event type, and upstream event id that started the run,
+// all empty/omitted for a manual run). error is present ONLY on run.failed
+// (omitempty drops it on the success path). The full report stays in prompts
+// (read via MCP); this is the minimal-for-now outcome shape.
 type outcomePayload struct {
-	SessionID    string `json:"session_id"`
-	SessionName  string `json:"session_name"`
-	TriggerEvent string `json:"trigger_event"`
-	ScheduledFor string `json:"scheduled_for"`
-	Error        string `json:"error,omitempty"`
+	PromptID       string `json:"prompt_id"`
+	PromptName     string `json:"prompt_name"`
+	RunID          string `json:"run_id"`
+	TriggerSource  string `json:"trigger_source"`
+	TriggerType    string `json:"trigger_type"`
+	TriggerEventID string `json:"trigger_event_id"`
+	Error          string `json:"error,omitempty"`
 }
 
 var sampleOutcomeSuccess = outcomePayload{
-	SessionID:    "01J9Z2K7P3QC8M4R6T0V2X5YA",
-	SessionName:  "nightly market scan",
-	TriggerEvent: "cron.nightly",
-	ScheduledFor: "2026-06-06T08:00:00Z",
+	PromptID:       "01J9Z2K7P3QC8M4R6T0V2X5YA",
+	PromptName:     "nightly market scan",
+	RunID:          "01J9Z2M0XB4D7F9H1K3N5Q7RZ",
+	TriggerSource:  "cron",
+	TriggerType:    "cron.nightly",
+	TriggerEventID: "01J9Z2J5W8R3T6V9Y2B4D6F8GH",
 }
 
 var sampleOutcomeFailure = outcomePayload{
-	SessionID:    "01J9Z2K7P3QC8M4R6T0V2X5YA",
-	SessionName:  "nightly market scan",
-	TriggerEvent: "cron.nightly",
-	ScheduledFor: "2026-06-06T08:00:00Z",
-	Error:        "run TTL exceeded",
+	PromptID:       "01J9Z2K7P3QC8M4R6T0V2X5YA",
+	PromptName:     "nightly market scan",
+	RunID:          "01J9Z2M0XB4D7F9H1K3N5Q7RZ",
+	TriggerSource:  "cron",
+	TriggerType:    "cron.nightly",
+	TriggerEventID: "01J9Z2J5W8R3T6V9Y2B4D6F8GH",
+	Error:          "run TTL exceeded",
 }
 
 // outcomeEvent builds the outbox event for a run's terminal state. status is the
 // run's terminal runs.status; only RunSucceeded / RunFailed produce an event
 // (the caller passes through other terminal states without emitting). errMsg is
 // carried only on the failed event.
-func outcomeEvent(status, sessionID, sessionName, triggerEvent, scheduledFor, errMsg string) (outbox.Event, bool, error) {
+func outcomeEvent(status, promptID, promptName, runID, triggerSource, triggerType, triggerEventID, errMsg string) (outbox.Event, bool, error) {
 	var typ string
 	switch status {
 	case RunSucceeded:
@@ -85,14 +91,16 @@ func outcomeEvent(status, sessionID, sessionName, triggerEvent, scheduledFor, er
 		return outbox.Event{}, false, nil
 	}
 	raw, err := json.Marshal(outcomePayload{
-		SessionID:    sessionID,
-		SessionName:  sessionName,
-		TriggerEvent: triggerEvent,
-		ScheduledFor: scheduledFor,
-		Error:        errMsg,
+		PromptID:       promptID,
+		PromptName:     promptName,
+		RunID:          runID,
+		TriggerSource:  triggerSource,
+		TriggerType:    triggerType,
+		TriggerEventID: triggerEventID,
+		Error:          errMsg,
 	})
 	if err != nil {
-		return outbox.Event{}, false, fmt.Errorf("session: marshal %s payload: %w", typ, err)
+		return outbox.Event{}, false, fmt.Errorf("prompt: marshal %s payload: %w", typ, err)
 	}
 	return outbox.Event{Type: typ, Payload: raw}, true, nil
 }

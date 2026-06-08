@@ -1,367 +1,391 @@
-# prompts — architecture (draft 1, run-once slice)
+# prompts — architecture
 
-**Status:** high-level architecture, settled in design discussion; not yet built.
-This document is the durable plan the code is written against. It captures the
-module layout, the components, how they fit together, and the procedures
-(engine copy-in, lifecycle scripts) that the run-once slice needs. It is the
-companion to `README.md` (which holds the *why* / the design ledger); this is
-the *how the code is shaped*.
+**Status:** implemented. This document describes the prompts service as it stands
+after the async-runs + multi-source-trigger redesign (`REDESIGN-PLAN.md` Part A,
+the frozen contracts; `REDESIGN-DECISIONS.md`, the *why*). It is the companion to
+`README.md` (the *why* / concept ledger); this is *how the code is shaped*.
 
-Scope is the run-once slice from `README.md`: create a session → set its prompt
-→ run it once → poll status → read the output / the file it wrote. **Anthropic
-only** (haiku / sonnet / opus). Loop/schedule/event triggers, the event plane,
-push delivery, and real sandbox isolation are all **deferred** (see Deferred).
+The unit of work is the **run** — first-class, addressable by `run_id`, fully
+concurrent, and self-contained on disk. A **prompt** is just the reusable
+definition a run is materialized from. There is **no session, no prompt status,
+and no single-flight gate**.
 
 ---
 
-## 1. Where the parts come from
-
-prompts is assembled from three sources, matching the README's "reuses vs. new":
-
-| Layer | Source | Disposition |
-|---|---|---|
-| **Chassis** — loopback HTTP, nginx identity gate, PRM doc, MCP JSON-RPC, SQLite + migrations, `bin/*` lifecycle | `../ledger` | clone + rename `ledger`→`agent` |
-| **Run engine** — provider seam, agent tool-use loop, file toolset, model registry | `~/projects/ikigai-cli` (Go) | **copy into the tree** (see §6) |
-| **Orchestration** — sessions, sandboxes, async run lifecycle | new | the genuinely-new code (§5) |
-
-Note on the engine reference: the README cites `ikigai-cli`; a sibling project
-`ikigai-tui` also exists but is **C** and is only a conceptual reference. The
-directly-portable Go engine is `ikigai-cli`, and it will be **discarded
-upstream** once borrowed — so prompts owns its copy outright (no sync-back).
-
----
-
-## 2. Module layout
+## 1. Module layout
 
 ```
 prompts/
-├── cmd/prompts/main.go            # composition root  (← ledger, renamed)
-├── go.mod   (module prompts)      # engine is stdlib-only, so no new deps
+├── cmd/prompts/main.go            # composition root: appkit Spec, consumer workers, producer outbox
+├── go.mod   (module prompts)
 ├── Makefile · bin/* · etc/*       # PORT=3004, MOUNT=/srv/prompts/, PROMPTS_* env
 └── internal/
-    ├── db/   ids/   logging/   server/    # chassis, ~verbatim from ledger
-    ├── mcp/                               # chassis, EXTENDED: holds a Service, 11 tools
-    │                                      #   Handler{ svc *session.Service }
-    ├── session/        # NEW — the domain
-    │     ├── model.go  #   Session, Run, Config, status enums
-    │     ├── store.go  #   SQLite queries (sessions + runs tables)
-    │     └── service.go#   CRUD + status + single-flight gate; entry to runner
-    ├── sandbox/        # NEW — per-session folder: Create / List / Read + path confinement
-    ├── runner/         # NEW — run lifecycle: spawn goroutine, TTL ctx, cancel,
-    │                   #   crash-recovery sweep, output-log sink
-    └── engine/         # COPIED from ikigai-cli (import paths rewritten)
-          ├── provider/{provider.go, anthropic/}   # seam kept; only anthropic wired
-          ├── agent/    # loop.go — the tool-use iteration, unchanged
-          ├── tools/    # bash/read/write/edit/glob/grep  (+ confinement at dispatch)
-          ├── model/    # opus/sonnet/haiku registry
-          └── wire/     # stream-json event sink
+    ├── db/                        # SQLite open + embedded migrations runner
+    │     └── migrations/          # 002_prompts.sql, 003_prompt_triggers.sql (+ lib 004/005)
+    ├── ids/   logging/            # chassis: ULIDs, slog JSON
+    ├── mcp/                       # 16-tool MCP surface (tools.go, describe.go) → Service
+    ├── prompt/        # THE DOMAIN (package `prompt`)
+    │     ├── model.go   #   Prompt, Run, PromptDetail, Config, Trigger, TriggerSpec, run-status consts
+    │     ├── store.go   #   SQLite queries: prompts + runs (run_id keyed)
+    │     ├── trigger.go #   composite-key (prompt_id, source, event_filter) trigger store + registry
+    │     ├── service.go #   CRUD + Run/RunByEvent + run_* readers + trigger validation
+    │     └── outcome.go #   run.succeeded / run.failed outbox events
+    ├── sandbox/       # per-RUN folder: Create/Root/List/Read/Remove + path confinement
+    ├── runner/        # async run lifecycle: Spawn(run)/Cancel(runID)/Recover; reads input/ from disk
+    ├── consume/       # multi-upstream fan-in: Subscriptions(sources) + Handler
+    └── engine/        # the agent loop: provider seam, tool registry, model registry, stream-json wire
 ```
 
-Rename points (full list in the ledger exploration): module `ledger`→`agent`,
-`cmd/ledger`→`cmd/agent`, env prefix `LEDGER_`→`AGENT_`, port `3002`→`3004`,
-mount `/srv/ledger/`→`/srv/agent/`, tool prefix → `ikigenba_agent_`, db
-`ledger.db`→`agent.db`, app user / `/opt/ledger` / systemd unit → `agent`.
+The agent **run engine** under `internal/engine/` (provider seam + tool-use loop
++ tool registry + model registry + stream-json wire) is the non-deterministic
+half; everything else is deterministic orchestration.
 
 ---
 
-## 3. Chassis (from ledger — what carries over unchanged)
+## 2. On-disk layout (A2)
 
-- **`cmd/prompts/main.go`** — composition root. Reads `PROMPTS_*` env, opens SQLite
-  (`db.Open` — WAL, FK, single writer), runs embedded migrations
-  (`db.Migrate`), builds the MCP handler, builds the HTTP server
-  (`server.New`), serves with graceful shutdown. prompts adds two wiring steps
-  here: (a) construct the `session.Service` (with store, sandbox root, runner)
-  and inject it into the MCP handler; (b) run the **crash-recovery sweep**
-  (§5.3) right after migrate.
-- **`internal/server`** — `POST /mcp` behind `requireIdentityHeaders` (reads
-  injected `X-Owner-Email` / `X-Client-Id`, 401 + `WWW-Authenticate` if absent);
-  the ungated `GET /health` liveness route and
-  `GET /.well-known/oauth-protected-resource` are open. nginx is the sole trust
-  boundary; prompts trusts the headers blindly.
-- **`internal/db`** — SQLite open + embedded `migrations/NNN_*.sql` runner
-  (idempotent, downgrade-refusing). prompts adds `002_prompts.sql` (§4).
-- **`internal/ids`** — ULID generation (session ids, run ids).
-- **`internal/logging`** — slog JSON + request-id middleware.
-- **`internal/mcp`** — JSON-RPC 2.0 dispatch (`initialize`, `tools/list`,
-  `tools/call`). EXTENDED for prompts: the skeleton's `Handler struct{}` becomes
-  `Handler{ svc *session.Service }`; `toolDescriptors()` lists the 11 tools (§7);
-  `dispatchTool` routes each `ikigenba_prompts_*` name to a `Service` method,
-  marshals the result to MCP content. `ikigenba_prompts_health` stays as the
-  chassis proof.
+`dataDir = dirname(PROMPTS_DB_PATH)/data`. The on-disk unit is the **run
+directory**, keyed by `run_id`. There is **no** persistent per-prompt sandbox.
+
+```
+data/
+  prompts.db
+  runs/
+    <run_id>/
+      input/
+        user_prompt.txt       # the pinned user_prompt for THIS run
+        system_prompt.txt     # the pinned system_prompt (empty file if none)
+        config.json           # the pinned {provider, model, effort?, max_tokens?, temperature?}
+      output.jsonl            # append-only stream-json run log
+      sandbox/                # the agent's per-run workspace (produced files)
+```
+
+- `input/` is written by the service **at spawn** from the prompt's current
+  definition, then persisted with the run forever — it *is* the record of exactly
+  what executed.
+- The runner reads its execution inputs from `input/` — **never** from the DB or
+  the live `Prompt` object.
+- `sandbox/` starts **empty every run** (no seeding / carry-over) and is persisted
+  after the run for the `run_fs_*` readers.
+- Retention / GC of run directories is deferred.
 
 ---
 
-## 4. Data model (`002_prompts.sql`)
+## 3. Chassis (appkit)
+
+prompts is built on the shared `appkit` chassis (consumed via a committed
+`replace`). `cmd/prompts/main.go` declares an `appkit.Spec` and appkit owns the
+verb dispatcher, the loopback server behind the nginx identity gate
+(`X-Owner-Email` / `X-Client-Id`, trusted blindly), the migration runner, the
+manifest emit, the `/feed` outbox, and the consumer engine. prompts adds:
+
+- the `prompt.Service` (store + sandbox + runner), injected into the MCP handler;
+- a **boot-time crash-recovery sweep** (§6) that runs after migrate, before
+  serving;
+- the **producer** wiring (`prompt.Events`, the outbox injected onto the store so
+  the runner's terminal write emits the outcome event on the same tx);
+- **five consumer workers**, one per upstream (the `notify` multi-cursor
+  pattern), each reading `PROMPTS_<SRC>_FEED_URL` with its own cursor.
+
+`Spec.Consumes = {cron, crm, ledger, dropbox, scripts}`, so appkit emits
+`CONSUMES=cron,crm,ledger,dropbox,scripts` into `etc/manifest.env` at deploy.
+
+---
+
+## 4. Data model
+
+### `002_prompts.sql`
+
+`prompts` is the definition (no `status` column); `runs` is first-class and
+`run_id`-keyed with **no FK / no cascade** to `prompts`, denormalized
+`owner_email` / `prompt_name`, and the trigger context.
 
 ```sql
-CREATE TABLE sessions (
-    id            TEXT PRIMARY KEY,        -- ULID
-    owner_email   TEXT NOT NULL,           -- from X-Owner-Email at create
-    name          TEXT,
-    prompt        TEXT NOT NULL,
-    system_prompt TEXT,
-    config_json   TEXT NOT NULL,           -- normalized {provider, model, effort?, max_tokens?, temperature?}
-    status        TEXT NOT NULL,           -- 'idle' | 'running'
-    created_at    TEXT NOT NULL,
-    updated_at    TEXT NOT NULL
+CREATE TABLE prompts (
+    id, owner_email, name?, user_prompt, system_prompt?, config_json,
+    created_at, updated_at
 );
 
 CREATE TABLE runs (
-    id          TEXT PRIMARY KEY,          -- ULID
-    session_id  TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
-    status      TEXT NOT NULL,             -- 'running' | 'succeeded' | 'failed' | 'cancelled'
-    started_at  TEXT NOT NULL,
-    ended_at    TEXT,
-    usage_json  TEXT,                      -- token/usage totals from the engine
-    error       TEXT,
-    log_path    TEXT NOT NULL              -- data/runs/<session_id>/<run_id>.jsonl
+    id,                                  -- ULID; the run, addressable
+    prompt_id,                           -- NO FK; may dangle after tombstone delete
+    owner_email,                         -- denormalized: run stays owner-addressable
+    prompt_name?,                        -- captured at run start, for the outcome event
+    status,                              -- running | succeeded | failed | cancelled
+    started_at, ended_at?, usage_json?, error?,
+    trigger_source?,                     -- '' for manual; else cron|crm|ledger|dropbox|scripts|prompts
+    trigger_type?,                       -- the fired event type, e.g. "file.created"
+    trigger_event_id?,                   -- the upstream event id that fired this run
+    log_path                             -- data/runs/<run_id>/output.jsonl
 );
-CREATE INDEX idx_runs_session ON runs(session_id, started_at);
+CREATE INDEX idx_runs_prompt ON runs(prompt_id, started_at);
+CREATE INDEX idx_runs_status ON runs(status);
 ```
 
-- **Config is a normalized blob**, validated at create time (§5.1). Storing it
-  as JSON keeps the schema stable as config fields grow.
-- **`last_run`** in the MCP surface = the newest `runs` row for the session.
-- **Ownership** is recorded per session; every MCP call is scoped to the
-  caller's `X-Owner-Email`.
+### `003_prompt_triggers.sql`
 
-On-disk state lives under `data/` (never touched by deploy):
+A composite-key, multi-source table — N triggers per prompt across N sources, no
+cascade. The old cron-only knobs (`max_staleness_secs`, `max_attempts`) are gone.
+
+```sql
+CREATE TABLE prompt_triggers (
+    prompt_id, source, event_filter, created_at,
+    PRIMARY KEY (prompt_id, source, event_filter)
+);
+CREATE INDEX idx_prompt_triggers_lookup ON prompt_triggers(source, event_filter);
 ```
-data/
-├── prompts.db                     # the SQLite file
-├── sandboxes/<session_id>/        # the agent's persistent work folder
-└── runs/<session_id>/<run_id>.jsonl   # the run's stream-json output log
-```
+
+Migrations `004_feed_offset.sql` / `005_outbox.sql` are **library-owned** and not
+touched.
 
 ---
 
-## 5. The three new components
+## 5. The domain (`internal/prompt`)
 
-### 5.1 `session` — the domain service
+`Service` is the only thing the MCP handler talks to and the only thing that
+mutates prompt/run state.
 
-`Service` is the only thing the MCP handler talks to, and the only thing that
-mutates session/run state. Responsibilities:
+### Prompt lifecycle
 
-- **Create** — validate config (`model.Resolve` recognizes the model alias;
-  the model's provider is `anthropic`; `ANTHROPIC_API_KEY` is present in env —
-  "validated per session"), insert the session (`idle`), and
-  `sandbox.Create(id)` to make the empty folder. Records `owner_email`.
-- **List / Get** — owner-scoped reads; `Get` joins the latest run for
-  `last_run` (status, started/ended, usage, error).
-- **Update** — edit prompt / system_prompt / config / name. **Rejected while
-  `running`.** Re-validates config on change.
-- **Delete** — remove session row (cascade runs), the sandbox folder, and the
-  run logs. **Rejected while `running`** (cancel first).
-- **Run** — the single-flight gate: if the session is already `running`, return
-  `busy`; else insert a `run` row (`running`), flip session to `running`, and
-  hand off to `runner.Spawn`. Returns immediately.
-- **Cancel** — signal the in-flight run's context; folder is kept.
+- **Create** — validate config (`model.Resolve`; provider is `anthropic`;
+  `ANTHROPIC_API_KEY` present), insert the prompt row. **No sandbox is created.**
+  Optional `Triggers []TriggerSpec` are applied via `SetTrigger` after insert
+  (same validation; the whole create is rejected if any binding is invalid).
+- **List / Get** — owner-scoped reads returning `PromptDetail` =
+  prompt + `running_count` (`COUNT(runs WHERE status='running')`) + `last_run`.
+- **Update** — edit `user_prompt` / `system_prompt` / `config` / `name`,
+  re-validating config. **Always allowed** (no `ErrRunning`).
+- **Delete** — **tombstone**: removes the prompt row and its triggers
+  (`DeleteTriggers`), nothing else. Runs, run directories, and the outbox survive.
+  **Always allowed.**
 
-### 5.2 `sandbox` — confined per-session folder
+### Run lifecycle — materialize → exec → persist
 
-Wraps `data/sandboxes/<session_id>/`. Two jobs:
+- **Run(owner, promptID)** — **always accepted**. Generates a `run_id`,
+  materializes `runs/<run_id>/input/` (`user_prompt.txt`, `system_prompt.txt`,
+  `config.json`) from the prompt's current definition, creates the empty per-run
+  sandbox, inserts the run row (`running`, `log_path`, `owner_email`,
+  `prompt_name`), and calls `runner.Spawn(run)`. Returns
+  `{run_id, status:"running", started_at}` immediately. There is **no
+  single-flight gate** — concurrent runs of one prompt are safe (each has its own
+  sandbox).
+- **RunByEvent(promptID, source, evType, eventID, payload)** — the event path
+  (unscoped; owner resolved via `GetPromptByID`). Identical, plus it records the
+  trigger context (`trigger_source`, `trigger_type`, `trigger_event_id`) on the
+  run row.
 
-1. **Read surface** for MCP: `List(path)` and `Read(path, offset, limit)`,
-   both rejecting any path that escapes the folder (clean + `..` checks against
-   the resolved root).
-2. **Confinement helpers for the engine toolset** — the borrowed tools have
-   *no* confinement (this is the retrofit, see §6):
-   - `bash` → set `cmd.Dir = sandboxRoot` (runs in the folder).
-   - `read` / `write` / `edit` (already absolute-path-only) → validate the path
-     resolves under `sandboxRoot` before touching disk.
-   - `glob` / `grep` (default to `os.Getwd()`) → inject `sandboxRoot` as the
-     search root.
+### Run reads (keyed by `run_id`, owner via the run's `owner_email`)
 
-**Draft-1 confinement is Go-level path checks + bash `cmd.Dir` only.** There is
-**no** network isolation and **no** OS sandbox — `bash` can still reach the
-network and, with effort, escape. Real isolation (bubblewrap / rootless podman
-`--network none` + bind-mounted volume + python image) is **deferred** and is
-likely an ikigenba *platform* concern. This is a known, accepted gap for draft 1.
+`RunList(owner, promptID)`, `RunGet`, `RunOutput`, `RunCancel`, `RunFsList`,
+`RunFsRead`. Owner is checked against the **run's** denormalized `owner_email`
+(not the prompt's), so every reader works **after the parent prompt is
+tombstoned**. `RunCancel` calls `runner.Cancel(runID)` and is idempotent.
 
-The agent's `python` is reached *through* `bash` (`python3 ...`), so the only
-runtime requirement is a `python3` interpreter on the box's `PATH` (§8).
+### Triggers
 
-### 5.3 `runner` — async run lifecycle
+`SetTrigger(owner, promptID, source, eventFilter)` validates `source ∈
+TriggerSources()` and `event_filter` plausible for that producer (the §8
+registry) with `ErrValidation`, then upserts the composite-key binding.
+`ClearTrigger` removes one. `PromptsForEvent(source, evType)` → prompt ids is the
+**consumer fan-out** (not owner-scoped).
 
-`Spawn(session, sandbox, run)` starts a goroutine and returns. The goroutine:
+### Store note — `FinishRun`
 
-1. `ctx, cancel := context.WithTimeout(parent, PROMPTS_RUN_TTL)` — the TTL is the
-   runaway-goroutine backstop. (Idle-network watchdog is **deferred**.)
-2. Open the log sink: a file `data/runs/<session>/<run>.jsonl`, wrapped as the
-   engine's `wire.Session(writer)`. The engine already emits **stream-json**
-   (one JSON event per line: assistant / user / result) — append-only and
-   line-addressable, so `ikigenba_prompts_session_output` is a cheap line-slice with no
-   transform.
-3. Build the Anthropic client (`anthropic.New(os.Getenv("ANTHROPIC_API_KEY"),
-   model)`) and the `provider.Request`: system_prompt + framing, the user
-   `prompt`, the confined toolset (bash/read/write/edit/glob/grep), model, and
-   effort→provider params from the model registry.
-4. `agent.Run(ctx, client, sess, req, …)` — drives the tool-use loop to a
-   terminal stop, tools confined to the sandbox.
-5. On exit: write the run's terminal `status` (`succeeded` / `failed` /
-   `cancelled`), `ended_at`, `usage_json`, `error`; flip the session back to
-   `idle`. The folder persists regardless.
-
-**Single-flight** is enforced by `session.Service.Run` (one in-flight run per
-session; shared mutable folder ⇒ no overlap). The runner tracks the active
-run's `cancel` func (in-memory map keyed by session id) so `Cancel` can reach it.
-
-**Crash recovery** — on boot, after migrate, sweep `runs WHERE status='running'`:
-mark them `failed` (orphaned by the crash) and flip their sessions to `idle`.
-The sandbox folder is left as-is (forward-only on disk); a fresh run inherits
-whatever files the crashed run wrote. "Fresh run" means fresh *conversation*,
-not fresh disk.
+`FinishRun(FinishRunInput{RunID, Status, EndedAt, UsageJSON, ErrMsg})` writes the
+run's terminal row **and** emits the outcome event in **one transaction**. The
+outcome-event fields (`prompt_id`, `prompt_name`, `run_id`, trigger context) are
+read **from the run row inside the tx**, so the runner does not thread them in.
+`SweepRunning` marks orphaned `running` runs `failed` — **runs only**, no prompt
+touch (prompts have no status).
 
 ---
 
-## 6. Engine copy-in procedure
+## 6. Runner (`internal/runner`)
 
-ikigai-cli's engine lives entirely under `internal/`, which Go forbids importing
-from another module. So we **copy**, not depend:
+```go
+type Runner interface {
+    Spawn(run Run)        // no Prompt param — runner reads input/ from disk
+    Cancel(runID string) bool
+}
+// plus Recover(ctx) (int, error) on the concrete type
+```
 
-1. Copy these packages from `~/projects/ikigai-cli/app-root/internal/` into
-   `prompts/internal/engine/`: `provider/` (incl. `provider.go` and
-   `anthropic/`), `agent/`, `tools/`, `model/`, `wire/`, plus whatever small
-   support packages they import (e.g. `schema`, `trace` if used by `agent.Run` —
-   resolve by compiling).
-2. Rewrite import paths: `github.com/ai4mgreenly/ikigai-cli/internal/… →
-   prompts/internal/engine/…` (mechanical sed across the copied tree).
-3. **Drop** the non-Anthropic providers (`openai/`, `google/`) — or keep them
-   behind the seam, unwired. Draft 1 only constructs the Anthropic client.
-   Keeping the `provider.Client` interface intact preserves the seam for later.
-4. **Add confinement at the tool dispatch boundary** (`tools/dispatch.go`):
-   thread a `sandboxRoot` through dispatch and apply the §5.2 rules. This is the
-   one substantive engine modification.
-5. The engine is **stdlib-only** (hand-rolled HTTP, no Anthropic SDK), so no new
-   `go.mod` requires beyond what ledger already has (`modernc.org/sqlite`).
-
-Key borrowed types (for reference when wiring):
-- `provider.Client` — `Stream(ctx, Request) (<-chan Event, error)`.
-- `provider.Request{ Model, Effort, SystemPrompt, Messages, Tools, ResponseSchema }`.
-- Blocks: `TextBlock`, `ToolUseBlock`, `ToolResultBlock`, `ThinkingBlock`.
-- Events: `EventTextDelta`, `EventToolUse`, `EventThinking`, `EventUsage`,
-  `EventDone{StopReason}`.
-- `agent.Run(ctx, client, sess, req, sch, tracer)` — the iteration loop.
-- `model.Resolve(alias)` — `opus`/`sonnet`/`haiku` → concrete ids + metadata.
+- **`Spawn(run)`** starts a goroutine and returns. It derives
+  `runDir = runsDir/<run.ID>`, reads `input/config.json` (→ `model.Resolve`,
+  effort, max_tokens), `input/user_prompt.txt`, `input/system_prompt.txt`, and
+  runs the agent loop with `sandboxRoot = runDir/sandbox`, streaming stream-json
+  into `runDir/output.jsonl`. It references **no** `Prompt` field for execution
+  inputs.
+- A `context.WithTimeout(parent, PROMPTS_RUN_TTL)` is the runaway backstop. The
+  `cancels` and `userCancelled` maps are keyed by **`run_id`**.
+- **`Cancel(runID)`** signals that run (cancelled, not failed); idempotent.
+- On exit the goroutine calls `store.FinishRun` (terminal run write + outcome
+  event, one tx). **No prompt-status flip** — there is none.
+- **`Recover(ctx)`** is the boot-time crash sweep: `SweepRunning` marks orphaned
+  `running` runs `failed` before the server begins listening.
 
 ---
 
-## 7. MCP tool surface (11 tools) → Service mapping
+## 7. Consume — multi-upstream fan-in (`internal/consume`)
 
-All reads are owner-scoped and session-scoped to the **latest run** (no `run_id`
-in the surface — run-history browsing is deferred). The sandbox is **read-only**
-from the foreground. The toolset is **fixed**.
+prompts subscribes to **N upstreams**, symmetric with scripts. `cmd` wires one
+consumer worker per upstream (the `notify` multi-cursor pattern).
 
-| MCP tool | Service entry | Notes |
+```go
+func Subscriptions(sources []string) []consumer.Subscription   // one per upstream, Filter:"*"
+func Handler(fire FireFunc, lookup LookupFunc, source string, logger *slog.Logger) consumer.Handler
+```
+
+Per event the handler calls `PromptsForEvent(source, ev.Type)` and fires
+`RunByEvent` for each matching prompt on its **own goroutine** (unbounded,
+non-blocking, **fire-and-forget**). It returns `nil` for any matched event (never
+stalls the feed) and `ErrSkip` only on a structurally-malformed envelope (poison
+→ log loud + advance). The cursor advances for every event. There is **no
+staleness guard and no retry** — the old single `cron.*` subscription,
+`fireWithRetry`, and the staleness/attempt knobs are gone.
+
+---
+
+## 8. Triggers & the event plane
+
+### Consumed upstreams (`PROMPTS_<SRC>_FEED_URL` / `_FROM`)
+
+| env var | dev fallback | source |
 |---|---|---|
-| `ikigenba_prompts_health` | (chassis) | identity proof; no side effects |
-| `ikigenba_prompts_session_create` | `Service.Create` | validates config; makes sandbox; → `{session_id, status:"idle"}` |
-| `ikigenba_prompts_session_list` | `Service.List` | owner-scoped enumeration |
-| `ikigenba_prompts_session_get` | `Service.Get` | full detail incl. `last_run` |
-| `ikigenba_prompts_session_update` | `Service.Update` | rejected while `running` |
-| `ikigenba_prompts_session_delete` | `Service.Delete` | rejected while `running`; removes folder + logs |
-| `ikigenba_prompts_session_run` | `Service.Run` | async; `busy` if in-flight; → `{status:"running", started_at}` |
-| `ikigenba_prompts_session_cancel` | `Service.Cancel` | terminate in-flight run; folder kept |
-| `ikigenba_prompts_session_output` | reads `runs.log_path` | latest run's jsonl, by line range; tailable |
-| `ikigenba_prompts_session_fs_list` | `sandbox.List` | path-escape rejected |
-| `ikigenba_prompts_session_fs_read` | `sandbox.Read` | path-escape / not-a-file rejected |
+| `PROMPTS_CRON_FEED_URL`    | `http://127.0.0.1:3007/feed` | cron |
+| `PROMPTS_CRM_FEED_URL`     | `http://127.0.0.1:3001/feed` | crm |
+| `PROMPTS_LEDGER_FEED_URL`  | `http://127.0.0.1:3002/feed` | ledger |
+| `PROMPTS_DROPBOX_FEED_URL` | `http://127.0.0.1:3005/feed` | dropbox |
+| `PROMPTS_SCRIPTS_FEED_URL` | `http://127.0.0.1:3009/feed` | scripts |
+
+`PROMPTS_<SRC>_FROM` defaults to `tail`. The event plane bypasses nginx, so the
+dev fallbacks are direct loopback addresses.
+
+### Known-producer registry (`SetTrigger` validation, A12)
+
+```
+cron    -> dynamic; any event_filter matching "cron.*"
+crm     -> contact.created | contact.updated | contact.tagged | contact.untagged
+ledger  -> transaction.recorded
+dropbox -> file.created | file.modified | file.deleted
+scripts -> scripts.succeeded | scripts.failed
+prompts -> run.succeeded | run.failed     (self-chaining; prompts' OWN feed — fast-follow)
+```
+
+This is the mirror image of scripts' registry (which lists prompts as an
+upstream): the two services are **symmetric event-plane peers**.
+
+### Producer — outcome events (`outcome.go`)
+
+Every terminal run emits one of two static types on prompts' own `/feed`
+(`cancelled` emits nothing):
+
+- `run.succeeded`
+- `run.failed` (same payload + an `error` string)
+
+Payload: `{prompt_id, prompt_name, run_id, trigger_source, trigger_type,
+trigger_event_id, error?}` — the trigger fields are empty for a manual run.
+
+### Self-consumption fast-follow
+
+`prompts` is in its own registry but is **not** wired day-one. Adding it is a
+one-line change: a sixth consumer worker pointed at the local `:3004/feed`
+(`PROMPTS_PROMPTS_FEED_URL`) plus the `prompts` CONSUMES entry — letting one
+prompt fire on another prompt's `run.succeeded` / `run.failed`. It is a flagged
+TODO in `cmd/prompts/main.go`.
 
 ---
 
-## 8. Lifecycle scripts (delta from the ledger skeleton)
+## 9. Sandbox (`internal/sandbox`)
 
-prompts ships **setup / deploy / start / stop / secrets / backup / restore /
-teardown** (ledger had only build/deploy/setup/start/stop). prompts is the first
-service whose *runtime*
-shells out beyond its own Go binary — the agent's `bash` tool runs `python3` —
-so the box must have a Python interpreter.
+`Manager` is rooted at `runsDir`; `Create / Root / List / Read / Remove` are keyed
+by **`run_id`**, resolving to `runsDir/<run_id>/sandbox`.
 
-- **`bin/setup`** — adds idempotent Python provisioning after the app-user /
-  `/opt/prompts` tree and before the nginx fragment:
-  ```sh
-  ssh … 'command -v python3 >/dev/null || sudo dnf install -y python3 python3-pip'
-  ```
-  Plain `python3` as shipped by **Amazon Linux 2023** (no version pin). Just the
-  interpreter + pip — no persistent package set (draft-1 sandboxes aren't
-  isolated, and pip installs are meant to evaporate per run).
-- **`bin/secrets`** — new. One secret: `ANTHROPIC_API_KEY`. Non-destructive
-  read-modify-write of prompts' own key in SSM `/ikigenba/<account>/app-config`,
-  value from `~/.secrets/ANTHROPIC_API_KEY`. Must be seeded **before first
-  start** (launcher hard-fails if `.["prompts"]` is missing). Locally the same
-  secret arrives via `.envrc` → env; the engine reads `os.Getenv("ANTHROPIC_API_KEY")`.
-- **`bin/backup` / `bin/restore`** — new. prompts holds durable state the run-once
-  slice can lose on box replacement: the SQLite DB (`data/prompts.db` — sessions +
-  run history), the **sandbox folders** (`data/sandboxes/` — the agents' actual
-  work product), and the run logs (`data/runs/`). Backup is `aws s3 sync` of
-  `data/` to the per-account backup bucket (`--profile ${ACCOUNT} --region
-  us-east-2`, live SSO session required); restore syncs back. One wrinkle: the
-  WAL-mode DB isn't consistent under a live `sync`, so `backup` takes a
-  consistent DB snapshot first (`VACUUM INTO` / the SQLite backup API) and syncs
-  the snapshot alongside the folders, rather than copying the hot `prompts.db`.
-  Sandbox/run folders sync as-is (forward-only files).
-- **`bin/teardown`** — new. Reverse of setup: stop+disable the unit, remove
-  `/opt/prompts` (incl. `data/` — DB **and** sandbox folders), drop the nginx
-  fragment, `nginx -t` + reload. Does **not** uninstall python3 (shared box
-  resource prompts didn't exclusively own).
-- **`bin/start` / `bin/stop`** (local dev) — add a soft `python3` preflight
-  warning; non-fatal (prompts boots fine without it; only the agent toolset needs it).
-- **`bin/build` / `bin/deploy`** — ledger shape, renamed (3002→3004,
-  ledger→agent). The launcher injects `ANTHROPIC_API_KEY` from app-config at
-  start; the build wrapper composes `PROMPTS_*` public config from
-  `IKIGENBA_DOMAIN` / `PORT`.
+1. **Read surface for MCP** — `List(run_id, path)` and `Read(run_id, path, offset,
+   limit)`, both rejecting any path that escapes the run's sandbox (clean + `..`
+   checks against the resolved root). These back `run_fs_list` / `run_fs_read`.
+2. **Confinement for the engine toolset** — `bash` runs with
+   `cmd.Dir = sandboxRoot`; `read`/`write`/`edit` validate the path resolves under
+   `sandboxRoot`; `glob`/`grep` use `sandboxRoot` as the search root.
 
-**Registering with the dashboard:** add
-`https://${IKIGENBA_DOMAIN}/srv/prompts/mcp` to `dashboard/bin/build →
-DASHBOARD_RESOURCES` and redeploy the dashboard, or `/internal/authn` won't
-issue a PRM challenge for prompts and connector OAuth can't discover it.
+Confinement is Go-level path checks + bash `cmd.Dir` only — **no** network
+isolation, **no** OS sandbox. Real isolation (bubblewrap / rootless podman
+`--network none`) is a known, deferred gap, likely a ikigenba **platform**
+concern. The agent reaches `python3` through `bash`, so the only runtime
+requirement is a `python3` interpreter on the box's `PATH`.
 
 ---
 
-## 9. End-to-end flow (the fusion example)
+## 10. MCP tool surface (16 tools)
 
-1. `ikigenba_prompts_session_create {prompt, config}` → `Service.Create` → validate config
-   → insert session (`idle`) → `sandbox.Create(id)` → `{session_id, "idle"}`.
-2. `ikigenba_prompts_session_run {session_id}` → single-flight check (`busy` if not) →
-   insert run (`running`), session→`running` → `runner.Spawn` → return
-   `{running, started_at}` immediately.
-3. goroutine: `agent.Run` drives Anthropic; tools confined to the sandbox;
-   narration streams into `<run>.jsonl`; on finish → run `succeeded`,
-   session→`idle`.
-4. `ikigenba_prompts_session_output {session_id, offset, limit}` → slice the jsonl.
-   `ikigenba_prompts_session_fs_list` / `_read` → confined sandbox reads. status/usage ride
-   on `ikigenba_prompts_session_get.last_run`.
+Prefix `ikigenba_prompts_`. **Airtight key rule:** keyed by `prompt_id` → bare
+verb; keyed by `run_id` → `run_*`. The wire field for the user-role prompt is
+**`user_prompt`**. There is no `session_` subprefix.
+
+| tool | key | input (** required) | service |
+|---|---|---|---|
+| `health` | — | `{}` | (chassis) |
+| `describe` | — | `{}` | (overview) |
+| `create` | → `prompt_id` | `{user_prompt**, config**, name, system_prompt, triggers}` | `Create` |
+| `list` | — | `{}` | `List` |
+| `get` | `prompt_id` | `{prompt_id**}` | `Get` |
+| `update` | `prompt_id` | `{prompt_id**, user_prompt, system_prompt, config, name}` | `Update` |
+| `delete` | `prompt_id` | `{prompt_id**}` | `Delete` |
+| `set_trigger` | `prompt_id` | `{prompt_id**, source**, event_filter**}` | `SetTrigger` |
+| `clear_trigger` | `prompt_id` | `{prompt_id**, source**, event_filter**}` | `ClearTrigger` |
+| `run` | `prompt_id` → `run_id` | `{prompt_id**}` | `Run` |
+| `run_list` | `prompt_id` | `{prompt_id**}` | `RunList` |
+| `run_get` | `run_id` | `{run_id**}` | `RunGet` |
+| `run_output` | `run_id` | `{run_id**, offset, limit}` | `RunOutput` |
+| `run_cancel` | `run_id` | `{run_id**}` | `RunCancel` |
+| `run_fs_list` | `run_id` | `{run_id**, path}` | `RunFsList` |
+| `run_fs_read` | `run_id` | `{run_id**, path**, offset, limit}` | `RunFsRead` |
+
+`create` returns `{prompt_id, ...}`; `run` returns `{run_id, status:"running",
+started_at}`. `create`'s optional `triggers` is an array of
+`{source, event_filter}` applied at create time. `set_trigger` may be called
+repeatedly to attach several bindings.
 
 ---
 
-## 10. Config & secrets
+## 11. End-to-end flow
 
-- **Public config** (`PROMPTS_*` env, composed by the build wrapper from
-  `IKIGENBA_DOMAIN`/`PORT`): port 3004, resource id, auth server, db path, log
-  level, plus `PROMPTS_RUN_TTL` (the run backstop, e.g. `30m`).
-- **Secret**: `ANTHROPIC_API_KEY` — the only one. On the box: SSM app-config →
-  launcher → process env. Locally: `~/.secrets/ANTHROPIC_API_KEY` → `.envrc` →
-  env. Read once via `os.Getenv` in the runner's client construction; never on
-  disk, never logged.
+1. `create {user_prompt, config, triggers?}` → validate → insert prompt row →
+   apply inline triggers → `{prompt_id}`. **No sandbox yet.**
+2. `run {prompt_id}` → generate `run_id` → materialize `runs/<run_id>/input/` +
+   empty `sandbox/` → insert run row (`running`) → `runner.Spawn(run)` →
+   `{run_id, "running", started_at}`. A **second** `run` of the same prompt runs
+   concurrently in its own isolated sandbox.
+3. goroutine: read `input/`, drive the agent loop, stream into
+   `runs/<run_id>/output.jsonl`; on finish → `FinishRun` writes the terminal run
+   row + emits `run.succeeded` / `run.failed` in one tx.
+4. `run_get {run_id}` polls to terminal; `run_output {run_id, offset, limit}`
+   tails the log; `run_fs_list` / `run_fs_read {run_id, path}` read the work
+   product. All keep working after the parent prompt is `delete`d (tombstone).
 
 ---
 
-## 11. Deferred / known gaps (draft 1)
+## 12. Deploy notes
 
-- **Sandbox isolation** — no bwrap/podman, no network isolation; bash can reach
-  the network. Go-level path confinement only. Likely a platform concern.
-- **`websearch` / `webfetch`** — the agent-mediated network tools are **not** in
-  draft 1 (the engine ships none; left out by decision).
-- **Triggers beyond run-once** — loop / schedule / event-subscribe and their
-  overlap policy.
-- **Event plane** — `publish_event`, multi-tenant `eventplane`, the consumer
-  cursor guarantees.
-- **Delivery beyond pull** — push-to-owner, talking back into the conversation.
-- **Idle-network watchdog** — detecting a silently-stalled LLM stream (TTL only
-  for now).
-- **Run-history browsing** — `run_id`-addressed reads; the surface is
-  latest-run-only.
+- **Restart the dashboard after deploying** so it re-reads the prompts manifest —
+  the tool set changed (16 bare/`run_*` tools, the `user_prompt` field). See the
+  suite `CLAUDE.md` deploy flow (bump → ship → stage → deploy).
+- `etc/manifest.env` is **regenerated from the binary at deploy** (`opsctl
+  deploy`); `CONSUMES` is emitted from `Spec.Consumes`
+  (`cron,crm,ledger,dropbox,scripts`).
+- One secret: `ANTHROPIC_API_KEY` (SSM app-config → launcher → env), seeded
+  before first start.
+- The box needs a `python3` interpreter on `PATH` for the agent's `bash`-mediated
+  `python3`.
 
-## 12. Open items to confirm
+---
 
-- *(none currently — backup/restore resolved: in scope, `aws s3 sync` of `data/`
-  to the per-account bucket with a consistent DB snapshot; see §8.)*
+## 13. Deferred / known gaps
+
+- **Self-consumption** (prompts → its own feed) — one-line fast-follow.
+- **Retention / GC** of run directories.
+- **Sandbox seeding / cross-run carry-over** — explicit non-goal.
+- **Sandbox isolation hardening** (bwrap/podman, network isolation) — likely
+  platform-level.
+- **Push-to-owner delivery** / talking back into the calling conversation.
+</content>

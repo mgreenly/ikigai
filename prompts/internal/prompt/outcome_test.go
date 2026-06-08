@@ -1,4 +1,4 @@
-package session
+package prompt
 
 import (
 	"context"
@@ -38,25 +38,41 @@ func newProducerStore(t *testing.T) (*Store, *sql.DB) {
 	return store, conn
 }
 
-// seedRunningRun seeds a running session + run for a terminal-write test.
-func seedRunningRun(t *testing.T, store *Store, name string) (Session, Run) {
+// seedRunningRun seeds a running session + run for a terminal-write test. The
+// outcome-event fields (prompt_id, prompt_name, trigger context) now live on
+// the run row — FinishRun reads them from there — so they are pinned at seed.
+func seedRunningRun(t *testing.T, store *Store, name string) (Prompt, Run) {
+	return seedRunningRunTrig(t, store, name, "", "", "")
+}
+
+func seedRunningRunTrig(t *testing.T, store *Store, name, triggerSource, triggerType, triggerEventID string) (Prompt, Run) {
 	t.Helper()
 	ctx := context.Background()
 	now := store.nowStr()
-	sess := Session{
+	sess := Prompt{
 		ID:         ids.NewULID(),
 		OwnerEmail: "owner@example.com",
 		Name:       name,
-		Prompt:     "p",
+		UserPrompt: "p",
 		Config:     Config{Provider: "anthropic", Model: "haiku"},
-		Status:     StatusRunning,
 		CreatedAt:  now,
 		UpdatedAt:  now,
 	}
-	if err := store.InsertSession(ctx, sess); err != nil {
-		t.Fatalf("InsertSession: %v", err)
+	if err := store.InsertPrompt(ctx, sess); err != nil {
+		t.Fatalf("InsertPrompt: %v", err)
 	}
-	run := Run{ID: ids.NewULID(), SessionID: sess.ID, Status: RunRunning, StartedAt: now, LogPath: "x"}
+	run := Run{
+		ID:             ids.NewULID(),
+		PromptID:       sess.ID,
+		OwnerEmail:     sess.OwnerEmail,
+		PromptName:     sess.Name,
+		Status:         RunRunning,
+		StartedAt:      now,
+		LogPath:        "x",
+		TriggerSource:  triggerSource,
+		TriggerType:    triggerType,
+		TriggerEventID: triggerEventID,
+	}
 	if err := store.InsertRun(ctx, run); err != nil {
 		t.Fatalf("InsertRun: %v", err)
 	}
@@ -95,22 +111,19 @@ func decodePayload(t *testing.T, raw string) map[string]any {
 
 // TestFinishRun_SuccessEmitsRunSucceeded: the success path emits exactly one
 // run.succeeded, in the SAME tx as the terminal write — the run row is succeeded
-// AND the outbox holds exactly one event, committed together. trigger_event /
-// scheduled_for are sourced from the (cron-triggered) run; error is absent.
+// AND the outbox holds exactly one event, committed together. trigger_source /
+// trigger_type / trigger_event_id are sourced from the (cron-triggered) run;
+// error is absent.
 func TestFinishRun_SuccessEmitsRunSucceeded(t *testing.T) {
 	store, conn := newProducerStore(t)
 	ctx := context.Background()
-	sess, run := seedRunningRun(t, store, "nightly scan")
+	sess, run := seedRunningRunTrig(t, store, "nightly scan", "cron", "cron.nightly", "ev-001")
 
 	if err := store.FinishRun(ctx, FinishRunInput{
-		RunID:        run.ID,
-		SessionID:    sess.ID,
-		SessionName:  sess.Name,
-		Status:       RunSucceeded,
-		EndedAt:      store.nowStr(),
-		UsageJSON:    `{"tokens":5}`,
-		TriggerEvent: "cron.nightly",
-		ScheduledFor: "2026-06-06T08:00:00Z",
+		RunID:     run.ID,
+		Status:    RunSucceeded,
+		EndedAt:   store.nowStr(),
+		UsageJSON: `{"tokens":5}`,
 	}); err != nil {
 		t.Fatalf("FinishRun: %v", err)
 	}
@@ -123,13 +136,6 @@ func TestFinishRun_SuccessEmitsRunSucceeded(t *testing.T) {
 	if got.Status != RunSucceeded || got.EndedAt == "" {
 		t.Fatalf("terminal write not committed: %+v", got)
 	}
-	var sessStatus string
-	if err := conn.QueryRow(`SELECT status FROM sessions WHERE id = ?`, sess.ID).Scan(&sessStatus); err != nil {
-		t.Fatalf("session status: %v", err)
-	}
-	if sessStatus != StatusIdle {
-		t.Fatalf("session not flipped idle: %q", sessStatus)
-	}
 
 	// Exactly one event, the right type, committed alongside the terminal write.
 	evs := outboxRows(t, conn)
@@ -140,11 +146,14 @@ func TestFinishRun_SuccessEmitsRunSucceeded(t *testing.T) {
 		t.Fatalf("type = %q, want %q", evs[0].Type, EventRunSucceeded)
 	}
 	p := decodePayload(t, evs[0].Payload)
-	if p["session_id"] != sess.ID || p["session_name"] != "nightly scan" {
+	if p["prompt_id"] != sess.ID || p["prompt_name"] != "nightly scan" {
 		t.Fatalf("identity fields wrong: %+v", p)
 	}
-	if p["trigger_event"] != "cron.nightly" || p["scheduled_for"] != "2026-06-06T08:00:00Z" {
+	if p["trigger_source"] != "cron" || p["trigger_type"] != "cron.nightly" || p["trigger_event_id"] != "ev-001" {
 		t.Fatalf("trigger context wrong: %+v", p)
+	}
+	if p["run_id"] != run.ID {
+		t.Fatalf("run_id wrong: got %v, want %s", p["run_id"], run.ID)
 	}
 	if _, ok := p["error"]; ok {
 		t.Fatalf("success payload must omit error: %+v", p)
@@ -156,17 +165,13 @@ func TestFinishRun_SuccessEmitsRunSucceeded(t *testing.T) {
 func TestFinishRun_FailureEmitsRunFailedWithError(t *testing.T) {
 	store, conn := newProducerStore(t)
 	ctx := context.Background()
-	sess, run := seedRunningRun(t, store, "nightly scan")
+	_, run := seedRunningRunTrig(t, store, "nightly scan", "cron", "cron.nightly", "ev-001")
 
 	if err := store.FinishRun(ctx, FinishRunInput{
-		RunID:        run.ID,
-		SessionID:    sess.ID,
-		SessionName:  sess.Name,
-		Status:       RunFailed,
-		EndedAt:      store.nowStr(),
-		ErrMsg:       "run TTL exceeded",
-		TriggerEvent: "cron.nightly",
-		ScheduledFor: "2026-06-06T08:00:00Z",
+		RunID:   run.ID,
+		Status:  RunFailed,
+		EndedAt: store.nowStr(),
+		ErrMsg:  "run TTL exceeded",
 	}); err != nil {
 		t.Fatalf("FinishRun: %v", err)
 	}
@@ -187,15 +192,12 @@ func TestFinishRun_FailureEmitsRunFailedWithError(t *testing.T) {
 func TestFinishRun_ManualRunEmptyTriggerContext(t *testing.T) {
 	store, conn := newProducerStore(t)
 	ctx := context.Background()
-	sess, run := seedRunningRun(t, store, "manual task")
+	_, run := seedRunningRun(t, store, "manual task") // no trigger context → manual run
 
 	if err := store.FinishRun(ctx, FinishRunInput{
-		RunID:       run.ID,
-		SessionID:   sess.ID,
-		SessionName: sess.Name,
-		Status:      RunSucceeded,
-		EndedAt:     store.nowStr(),
-		// TriggerEvent / ScheduledFor left empty → manual run.
+		RunID:   run.ID,
+		Status:  RunSucceeded,
+		EndedAt: store.nowStr(),
 	}); err != nil {
 		t.Fatalf("FinishRun: %v", err)
 	}
@@ -204,7 +206,7 @@ func TestFinishRun_ManualRunEmptyTriggerContext(t *testing.T) {
 		t.Fatalf("expected one event, got %+v", evs)
 	}
 	p := decodePayload(t, evs[0].Payload)
-	if p["trigger_event"] != "" || p["scheduled_for"] != "" {
+	if p["trigger_source"] != "" || p["trigger_type"] != "" || p["trigger_event_id"] != "" {
 		t.Fatalf("manual run must carry empty trigger context: %+v", p)
 	}
 }
@@ -218,12 +220,10 @@ func TestFinishRun_CancelledEmitsNoEvent(t *testing.T) {
 	sess, run := seedRunningRun(t, store, "cancelled task")
 
 	if err := store.FinishRun(ctx, FinishRunInput{
-		RunID:       run.ID,
-		SessionID:   sess.ID,
-		SessionName: sess.Name,
-		Status:      RunCancelled,
-		EndedAt:     store.nowStr(),
-		ErrMsg:      "cancelled",
+		RunID:   run.ID,
+		Status:  RunCancelled,
+		EndedAt: store.nowStr(),
+		ErrMsg:  "cancelled",
 	}); err != nil {
 		t.Fatalf("FinishRun: %v", err)
 	}
@@ -243,12 +243,11 @@ func TestFinishRun_CancelledEmitsNoEvent(t *testing.T) {
 // if the outbox Append fails, the run's terminal-state write MUST roll back too
 // (they share one tx). We force the Append failure with a registry that does NOT
 // contain the outcome types, so Outbox.Append rejects the unregistered type. The
-// run must remain 'running' and the session must remain 'running' — nothing
-// committed.
+// run must remain 'running' — nothing committed.
 func TestFinishRun_AppendFailureRollsBackTerminalWrite(t *testing.T) {
 	store, conn := newProducerStore(t)
 	ctx := context.Background()
-	sess, run := seedRunningRun(t, store, "atomic task")
+	_, run := seedRunningRun(t, store, "atomic task")
 
 	// Swap in an outbox whose registry rejects run.* — Append will fail.
 	bad, err := outbox.New(conn, outbox.Options{
@@ -261,29 +260,20 @@ func TestFinishRun_AppendFailureRollsBackTerminalWrite(t *testing.T) {
 	store.Outbox = bad
 
 	if err := store.FinishRun(ctx, FinishRunInput{
-		RunID:       run.ID,
-		SessionID:   sess.ID,
-		SessionName: sess.Name,
-		Status:      RunSucceeded,
-		EndedAt:     store.nowStr(),
+		RunID:   run.ID,
+		Status:  RunSucceeded,
+		EndedAt: store.nowStr(),
 	}); err == nil {
 		t.Fatal("FinishRun must fail when the outbox Append is rejected")
 	}
 
 	// Atomicity: the terminal write rolled back with the failed Append.
-	got, err := store.GetLatestRun(ctx, sess.ID)
+	got, err := store.GetLatestRun(ctx, run.PromptID)
 	if err != nil {
 		t.Fatalf("GetLatestRun: %v", err)
 	}
 	if got.Status != RunRunning || got.EndedAt != "" {
 		t.Fatalf("terminal write must have rolled back, run = %+v", got)
-	}
-	var sessStatus string
-	if err := conn.QueryRow(`SELECT status FROM sessions WHERE id = ?`, sess.ID).Scan(&sessStatus); err != nil {
-		t.Fatalf("session status: %v", err)
-	}
-	if sessStatus != StatusRunning {
-		t.Fatalf("session status must have rolled back to running, got %q", sessStatus)
 	}
 	if evs := outboxRows(t, conn); len(evs) != 0 {
 		t.Fatalf("no event must be committed on rollback, got %+v", evs)
@@ -296,17 +286,15 @@ func TestFinishRun_AppendFailureRollsBackTerminalWrite(t *testing.T) {
 func TestFinishRun_NilOutboxIsPureTerminalWrite(t *testing.T) {
 	store := newTestStore(t)
 	ctx := context.Background()
-	sess := seedSession(t, store, "owner@example.com", StatusRunning)
-	run := Run{ID: ids.NewULID(), SessionID: sess.ID, Status: RunRunning, StartedAt: store.nowStr(), LogPath: "x"}
+	sess := seedPrompt(t, store, "owner@example.com")
+	run := Run{ID: ids.NewULID(), PromptID: sess.ID, OwnerEmail: sess.OwnerEmail, PromptName: sess.Name, Status: RunRunning, StartedAt: store.nowStr(), LogPath: "x"}
 	if err := store.InsertRun(ctx, run); err != nil {
 		t.Fatalf("InsertRun: %v", err)
 	}
 	if err := store.FinishRun(ctx, FinishRunInput{
-		RunID:       run.ID,
-		SessionID:   sess.ID,
-		SessionName: sess.Name,
-		Status:      RunSucceeded,
-		EndedAt:     store.nowStr(),
+		RunID:   run.ID,
+		Status:  RunSucceeded,
+		EndedAt: store.nowStr(),
 	}); err != nil {
 		t.Fatalf("FinishRun (nil outbox): %v", err)
 	}

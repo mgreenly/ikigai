@@ -8,7 +8,7 @@ import (
 
 	"appkit"
 
-	"prompts/internal/session"
+	"prompts/internal/prompt"
 )
 
 // toolPrefix brands every MCP tool name (DECISIONS §1). It is the suite name
@@ -19,78 +19,89 @@ const toolPrefix = "ikigenba_prompts_"
 // tool returns the branded MCP tool name for a verb.
 func tool(verb string) string { return toolPrefix + verb }
 
-// toolDescriptors returns the full ikigenba_prompts_* tool set:
-// ikigenba_prompts_health (the auth proof + diagnostics) plus the ten
-// session/run/fs tools, each mapped to a session.Service method in dispatchTool.
-// Schemas are hand-coded JSON Schema; required fields are marked so MCP clients
-// prompt for them.
+// toolDescriptors returns the full ikigenba_prompts_* tool set (A8). The surface
+// splits on the addressing key: prompt-addressed operations are BARE verbs keyed
+// by prompt_id; run-addressed operations live under the run_* namespace keyed by
+// run_id. Each maps to a prompt.Service method in dispatchTool. Schemas are
+// hand-coded JSON Schema; required fields are marked so MCP clients prompt for
+// them.
 func toolDescriptors() []map[string]any {
 	return []map[string]any{
-		desc(tool("describe"), "Return a detailed overview of prompts: what a session is, the create→run→poll→read lifecycle, the stream-json output format, the sandbox model, and a worked example. Call this first if you're unfamiliar with prompts. Takes no inputs.", obj(map[string]any{})),
+		desc(tool("describe"), "Return a detailed overview of prompts: what a prompt vs a run is, the create→run→poll→read lifecycle, full concurrency, the per-run sandbox, the stream-json output format, and a worked example. Call this first if you're unfamiliar with prompts. Takes no inputs.", obj(map[string]any{})),
 
 		desc(tool("health"), "Health + diagnostics for the prompts service. Returns the fixed envelope (status, version, service, details) plus the authenticated caller's identity (owner_email, client_id) as established by the platform's auth gate — the end-to-end auth-chain proof. Takes no inputs.", obj(map[string]any{})),
 
-		desc(tool("session_create"), "Create a new idle agent session for the caller. Returns the new session_id and its status.", obj(map[string]any{
-			"prompt":        typ("string"),
+		desc(tool("create"), "Create a new prompt for the caller. A prompt is a reusable definition (user_prompt, config, optional name/system_prompt) that you run on demand or wire to event triggers. Returns the new prompt_id. Optionally attach event triggers inline.", obj(map[string]any{
+			"user_prompt":   typ("string"),
 			"config":        configSchema(),
 			"name":          typ("string"),
 			"system_prompt": typ("string"),
-		}, "prompt", "config")),
+			"triggers":      triggersSchema(),
+		}, "user_prompt", "config")),
 
-		desc(tool("session_list"), "List the caller's sessions.", obj(map[string]any{})),
+		desc(tool("list"), "List the caller's prompts, each with its running run count and latest run (last_run).", obj(map[string]any{})),
 
-		desc(tool("session_get"), "Get one of the caller's sessions, including its latest run (last_run).", obj(map[string]any{
-			"session_id": typ("string"),
-		}, "session_id")),
+		desc(tool("get"), "Get one of the caller's prompts, including its running run count and latest run (last_run).", obj(map[string]any{
+			"prompt_id": typ("string"),
+		}, "prompt_id")),
 
-		desc(tool("session_update"), "Update a session's name, prompt, system_prompt, and config. Rejected while the session is running.", obj(map[string]any{
-			"session_id":    typ("string"),
-			"prompt":        typ("string"),
+		desc(tool("update"), "Update a prompt's name, user_prompt, system_prompt, and config. Always allowed (in-flight runs read their pinned inputs from disk, so they are unaffected).", obj(map[string]any{
+			"prompt_id":     typ("string"),
+			"user_prompt":   typ("string"),
 			"system_prompt": typ("string"),
 			"config":        configSchema(),
 			"name":          typ("string"),
-		}, "session_id")),
+		}, "prompt_id")),
 
-		desc(tool("session_delete"), "Delete one of the caller's sessions (and its sandbox + run logs). Rejected while running.", obj(map[string]any{
-			"session_id": typ("string"),
-		}, "session_id")),
+		desc(tool("delete"), "Delete one of the caller's prompts (a tombstone: the prompt row and its triggers are removed; its runs and their on-disk artifacts survive and stay readable by run_id). Always allowed.", obj(map[string]any{
+			"prompt_id": typ("string"),
+		}, "prompt_id")),
 
-		desc(tool("session_run"), "Start a run for one of the caller's sessions. Rejected if a run is already in flight. Returns the run status and start time.", obj(map[string]any{
-			"session_id": typ("string"),
-		}, "session_id")),
+		desc(tool("set_trigger"), "Attach one (source, event_filter) event trigger to one of the caller's prompts: when an event of the given type arrives from the named upstream producer, prompts starts a run for the prompt. source is the producer (cron|crm|ledger|dropbox|scripts); event_filter is the event type/glob it publishes, e.g. \"cron.nightly\", \"file.created\", \"scripts.succeeded\". A prompt may hold several bindings — call repeatedly to attach more. An unknown source or an event_filter the producer never publishes is rejected.", obj(map[string]any{
+			"prompt_id":    typ("string"),
+			"source":       typ("string"),
+			"event_filter": typ("string"),
+		}, "prompt_id", "source", "event_filter")),
 
-		desc(tool("session_cancel"), "Cancel the in-flight run for one of the caller's sessions. Idempotent.", obj(map[string]any{
-			"session_id": typ("string"),
-		}, "session_id")),
+		desc(tool("clear_trigger"), "Remove one (source, event_filter) event trigger from one of the caller's prompts.", obj(map[string]any{
+			"prompt_id":    typ("string"),
+			"source":       typ("string"),
+			"event_filter": typ("string"),
+		}, "prompt_id", "source", "event_filter")),
 
-		desc(tool("session_set_trigger"), "Attach (or replace — one trigger per session) an event trigger on one of the caller's sessions: when the named cron event fires, prompts starts a run for the session. trigger_event is the full cron event type, e.g. \"cron.nightly\" (create it first via the cron service's crontab). max_staleness_secs skips an occurrence older than this (default 300); max_attempts caps the in-memory retry of a failed start (default 3). Both default when omitted or <=0.", obj(map[string]any{
-			"session_id":         typ("string"),
-			"trigger_event":      typ("string"),
-			"max_staleness_secs": typ("integer"),
-			"max_attempts":       typ("integer"),
-		}, "session_id", "trigger_event")),
+		desc(tool("run"), "Start a run for one of the caller's prompts. Always accepted — runs are fully concurrent, each in its own per-run sandbox. Returns the new run_id, status (\"running\"), and start time.", obj(map[string]any{
+			"prompt_id": typ("string"),
+		}, "prompt_id")),
 
-		desc(tool("session_clear_trigger"), "Remove the event trigger from one of the caller's sessions. The session becomes manual-run only.", obj(map[string]any{
-			"session_id": typ("string"),
-		}, "session_id")),
+		desc(tool("run_list"), "List the runs of one of the caller's prompts, newest first.", obj(map[string]any{
+			"prompt_id": typ("string"),
+		}, "prompt_id")),
 
-		desc(tool("session_output"), "Read the latest run's output log (append-only stream-json, one event per line). offset is 1-based; limit caps the number of lines (<=0 means from start / no limit).", obj(map[string]any{
-			"session_id": typ("string"),
-			"offset":     typ("integer"),
-			"limit":      typ("integer"),
-		}, "session_id")),
+		desc(tool("run_get"), "Get one run by run_id (the run stays readable after its prompt is deleted).", obj(map[string]any{
+			"run_id": typ("string"),
+		}, "run_id")),
 
-		desc(tool("session_fs_list"), "List entries under path within a session's sandbox folder (path defaults to the session root).", obj(map[string]any{
-			"session_id": typ("string"),
-			"path":       typ("string"),
-		}, "session_id")),
+		desc(tool("run_output"), "Read a run's output log by run_id (append-only stream-json, one event per line). offset is 1-based; limit caps the number of lines (<=0 means from start / no limit).", obj(map[string]any{
+			"run_id": typ("string"),
+			"offset": typ("integer"),
+			"limit":  typ("integer"),
+		}, "run_id")),
 
-		desc(tool("session_fs_read"), "Read a file within a session's sandbox folder. offset is 1-based; limit caps the number of lines (<=0 means from start / no limit).", obj(map[string]any{
-			"session_id": typ("string"),
-			"path":       typ("string"),
-			"offset":     typ("integer"),
-			"limit":      typ("integer"),
-		}, "session_id", "path")),
+		desc(tool("run_cancel"), "Cancel an in-flight run by run_id. Idempotent.", obj(map[string]any{
+			"run_id": typ("string"),
+		}, "run_id")),
+
+		desc(tool("run_fs_list"), "List entries under path within a run's sandbox folder by run_id (path defaults to the sandbox root).", obj(map[string]any{
+			"run_id": typ("string"),
+			"path":   typ("string"),
+		}, "run_id")),
+
+		desc(tool("run_fs_read"), "Read a file within a run's sandbox folder by run_id. offset is 1-based; limit caps the number of lines (<=0 means from start / no limit).", obj(map[string]any{
+			"run_id": typ("string"),
+			"path":   typ("string"),
+			"offset": typ("integer"),
+			"limit":  typ("integer"),
+		}, "run_id", "path")),
 	}
 }
 
@@ -108,7 +119,7 @@ func obj(props map[string]any, required ...string) map[string]any {
 
 func typ(t string) map[string]any { return map[string]any{"type": t} }
 
-// configSchema is the shared session.Config input schema (model required).
+// configSchema is the shared prompt.Config input schema (model required).
 func configSchema() map[string]any {
 	return obj(map[string]any{
 		"model":       typ("string"),
@@ -116,6 +127,19 @@ func configSchema() map[string]any {
 		"max_tokens":  typ("integer"),
 		"temperature": typ("number"),
 	}, "model")
+}
+
+// triggersSchema is create's optional inline triggers array: each element is a
+// {source, event_filter} binding applied via SetTrigger after the prompt row is
+// inserted (same validation as set_trigger).
+func triggersSchema() map[string]any {
+	return map[string]any{
+		"type": "array",
+		"items": obj(map[string]any{
+			"source":       typ("string"),
+			"event_filter": typ("string"),
+		}, "source", "event_filter"),
+	}
 }
 
 // ── dispatch ──────────────────────────────────────────────────────────────
@@ -164,7 +188,7 @@ func parseArgs(args json.RawMessage, v any) error {
 	return nil
 }
 
-// configFromInput maps the wire config object to session.Config.
+// configFromInput maps the wire config object to prompt.Config.
 type configInput struct {
 	Model       string   `json:"model"`
 	Effort      string   `json:"effort"`
@@ -172,13 +196,19 @@ type configInput struct {
 	Temperature *float64 `json:"temperature"`
 }
 
-func (c configInput) toConfig() session.Config {
-	return session.Config{
+func (c configInput) toConfig() prompt.Config {
+	return prompt.Config{
 		Model:       c.Model,
 		Effort:      c.Effort,
 		MaxTokens:   c.MaxTokens,
 		Temperature: c.Temperature,
 	}
+}
+
+// triggerInput maps one wire trigger object to prompt.TriggerSpec.
+type triggerInput struct {
+	Source      string `json:"source"`
+	EventFilter string `json:"event_filter"`
 }
 
 func (h *Handler) dispatchTool(ctx context.Context, name string, id Identity, args json.RawMessage) (map[string]any, error) {
@@ -191,51 +221,57 @@ func (h *Handler) dispatchTool(ctx context.Context, name string, id Identity, ar
 	case tool("health"):
 		return h.toolHealth(ctx, id)
 
-	case tool("session_create"):
+	case tool("create"):
 		var in struct {
-			Prompt       string      `json:"prompt"`
-			Config       configInput `json:"config"`
-			Name         string      `json:"name"`
-			SystemPrompt string      `json:"system_prompt"`
+			UserPrompt   string         `json:"user_prompt"`
+			Config       configInput    `json:"config"`
+			Name         string         `json:"name"`
+			SystemPrompt string         `json:"system_prompt"`
+			Triggers     []triggerInput `json:"triggers"`
 		}
 		if err := parseArgs(args, &in); err != nil {
 			return nil, err
 		}
-		sess, err := svc.Create(ctx, owner, session.CreateInput{
+		var triggers []prompt.TriggerSpec
+		for _, t := range in.Triggers {
+			triggers = append(triggers, prompt.TriggerSpec{Source: t.Source, EventFilter: t.EventFilter})
+		}
+		p, err := svc.Create(ctx, owner, prompt.CreateInput{
 			Name:         in.Name,
-			Prompt:       in.Prompt,
+			UserPrompt:   in.UserPrompt,
 			SystemPrompt: in.SystemPrompt,
 			Config:       in.Config.toConfig(),
+			Triggers:     triggers,
 		})
 		if err != nil {
 			return nil, err
 		}
-		return toolResultJSON(map[string]any{"session_id": sess.ID, "status": sess.Status})
+		return toolResultJSON(map[string]any{"prompt_id": p.ID})
 
-	case tool("session_list"):
-		sessions, err := svc.List(ctx, owner)
+	case tool("list"):
+		prompts, err := svc.List(ctx, owner)
 		if err != nil {
 			return nil, err
 		}
-		return toolResultJSON(map[string]any{"sessions": sessions})
+		return toolResultJSON(map[string]any{"prompts": prompts})
 
-	case tool("session_get"):
+	case tool("get"):
 		var in struct {
-			SessionID string `json:"session_id"`
+			PromptID string `json:"prompt_id"`
 		}
 		if err := parseArgs(args, &in); err != nil {
 			return nil, err
 		}
-		detail, err := svc.Get(ctx, owner, in.SessionID)
+		detail, err := svc.Get(ctx, owner, in.PromptID)
 		if err != nil {
 			return nil, err
 		}
 		return toolResultJSON(detail)
 
-	case tool("session_update"):
+	case tool("update"):
 		var in struct {
-			SessionID    string      `json:"session_id"`
-			Prompt       string      `json:"prompt"`
+			PromptID     string      `json:"prompt_id"`
+			UserPrompt   string      `json:"user_prompt"`
 			SystemPrompt string      `json:"system_prompt"`
 			Config       configInput `json:"config"`
 			Name         string      `json:"name"`
@@ -243,126 +279,149 @@ func (h *Handler) dispatchTool(ctx context.Context, name string, id Identity, ar
 		if err := parseArgs(args, &in); err != nil {
 			return nil, err
 		}
-		sess, err := svc.Update(ctx, owner, in.SessionID, session.UpdateInput{
+		p, err := svc.Update(ctx, owner, in.PromptID, prompt.UpdateInput{
 			Name:         in.Name,
-			Prompt:       in.Prompt,
+			UserPrompt:   in.UserPrompt,
 			SystemPrompt: in.SystemPrompt,
 			Config:       in.Config.toConfig(),
 		})
 		if err != nil {
 			return nil, err
 		}
-		return toolResultJSON(sess)
+		return toolResultJSON(p)
 
-	case tool("session_delete"):
+	case tool("delete"):
 		var in struct {
-			SessionID string `json:"session_id"`
+			PromptID string `json:"prompt_id"`
 		}
 		if err := parseArgs(args, &in); err != nil {
 			return nil, err
 		}
-		if err := svc.Delete(ctx, owner, in.SessionID); err != nil {
+		if err := svc.Delete(ctx, owner, in.PromptID); err != nil {
 			return nil, err
 		}
-		return toolResultJSON(map[string]any{"deleted": in.SessionID})
+		return toolResultJSON(map[string]any{"deleted": in.PromptID})
 
-	case tool("session_run"):
+	case tool("set_trigger"):
 		var in struct {
-			SessionID string `json:"session_id"`
+			PromptID    string `json:"prompt_id"`
+			Source      string `json:"source"`
+			EventFilter string `json:"event_filter"`
 		}
 		if err := parseArgs(args, &in); err != nil {
 			return nil, err
 		}
-		run, err := svc.Run(ctx, owner, in.SessionID)
-		if err != nil {
-			return nil, err
-		}
-		return toolResultJSON(map[string]any{"status": "running", "started_at": run.StartedAt, "run_id": run.ID})
-
-	case tool("session_cancel"):
-		var in struct {
-			SessionID string `json:"session_id"`
-		}
-		if err := parseArgs(args, &in); err != nil {
-			return nil, err
-		}
-		if err := svc.Cancel(ctx, owner, in.SessionID); err != nil {
-			return nil, err
-		}
-		return toolResultJSON(map[string]any{"cancelled": in.SessionID})
-
-	case tool("session_set_trigger"):
-		var in struct {
-			SessionID        string `json:"session_id"`
-			TriggerEvent     string `json:"trigger_event"`
-			MaxStalenessSecs int    `json:"max_staleness_secs"`
-			MaxAttempts      int    `json:"max_attempts"`
-		}
-		if err := parseArgs(args, &in); err != nil {
-			return nil, err
-		}
-		trig, err := svc.SetTrigger(ctx, owner, in.SessionID, session.SetTriggerInput{
-			TriggerEvent:     in.TriggerEvent,
-			MaxStalenessSecs: in.MaxStalenessSecs,
-			MaxAttempts:      in.MaxAttempts,
-		})
+		trig, err := svc.SetTrigger(ctx, owner, in.PromptID, in.Source, in.EventFilter)
 		if err != nil {
 			return nil, err
 		}
 		return toolResultJSON(trig)
 
-	case tool("session_clear_trigger"):
+	case tool("clear_trigger"):
 		var in struct {
-			SessionID string `json:"session_id"`
+			PromptID    string `json:"prompt_id"`
+			Source      string `json:"source"`
+			EventFilter string `json:"event_filter"`
 		}
 		if err := parseArgs(args, &in); err != nil {
 			return nil, err
 		}
-		if err := svc.ClearTrigger(ctx, owner, in.SessionID); err != nil {
+		if err := svc.ClearTrigger(ctx, owner, in.PromptID, in.Source, in.EventFilter); err != nil {
 			return nil, err
 		}
-		return toolResultJSON(map[string]any{"cleared": in.SessionID})
+		return toolResultJSON(map[string]any{"cleared": in.PromptID})
 
-	case tool("session_output"):
+	case tool("run"):
 		var in struct {
-			SessionID string `json:"session_id"`
-			Offset    int    `json:"offset"`
-			Limit     int    `json:"limit"`
+			PromptID string `json:"prompt_id"`
 		}
 		if err := parseArgs(args, &in); err != nil {
 			return nil, err
 		}
-		out, err := svc.Output(ctx, owner, in.SessionID, in.Offset, in.Limit)
+		run, err := svc.Run(ctx, owner, in.PromptID)
+		if err != nil {
+			return nil, err
+		}
+		return toolResultJSON(map[string]any{"run_id": run.ID, "status": run.Status, "started_at": run.StartedAt})
+
+	case tool("run_list"):
+		var in struct {
+			PromptID string `json:"prompt_id"`
+		}
+		if err := parseArgs(args, &in); err != nil {
+			return nil, err
+		}
+		runs, err := svc.RunList(ctx, owner, in.PromptID)
+		if err != nil {
+			return nil, err
+		}
+		return toolResultJSON(map[string]any{"runs": runs})
+
+	case tool("run_get"):
+		var in struct {
+			RunID string `json:"run_id"`
+		}
+		if err := parseArgs(args, &in); err != nil {
+			return nil, err
+		}
+		run, err := svc.RunGet(ctx, owner, in.RunID)
+		if err != nil {
+			return nil, err
+		}
+		return toolResultJSON(run)
+
+	case tool("run_output"):
+		var in struct {
+			RunID  string `json:"run_id"`
+			Offset int    `json:"offset"`
+			Limit  int    `json:"limit"`
+		}
+		if err := parseArgs(args, &in); err != nil {
+			return nil, err
+		}
+		out, err := svc.RunOutput(ctx, owner, in.RunID, in.Offset, in.Limit)
 		if err != nil {
 			return nil, err
 		}
 		return toolResultText(out), nil
 
-	case tool("session_fs_list"):
+	case tool("run_cancel"):
 		var in struct {
-			SessionID string `json:"session_id"`
-			Path      string `json:"path"`
+			RunID string `json:"run_id"`
 		}
 		if err := parseArgs(args, &in); err != nil {
 			return nil, err
 		}
-		entries, err := svc.FsList(ctx, owner, in.SessionID, in.Path)
+		if err := svc.RunCancel(ctx, owner, in.RunID); err != nil {
+			return nil, err
+		}
+		return toolResultJSON(map[string]any{"cancelled": in.RunID})
+
+	case tool("run_fs_list"):
+		var in struct {
+			RunID string `json:"run_id"`
+			Path  string `json:"path"`
+		}
+		if err := parseArgs(args, &in); err != nil {
+			return nil, err
+		}
+		entries, err := svc.RunFsList(ctx, owner, in.RunID, in.Path)
 		if err != nil {
 			return nil, err
 		}
 		return toolResultJSON(map[string]any{"entries": entries})
 
-	case tool("session_fs_read"):
+	case tool("run_fs_read"):
 		var in struct {
-			SessionID string `json:"session_id"`
-			Path      string `json:"path"`
-			Offset    int    `json:"offset"`
-			Limit     int    `json:"limit"`
+			RunID  string `json:"run_id"`
+			Path   string `json:"path"`
+			Offset int    `json:"offset"`
+			Limit  int    `json:"limit"`
 		}
 		if err := parseArgs(args, &in); err != nil {
 			return nil, err
 		}
-		out, err := svc.FsRead(ctx, owner, in.SessionID, in.Path, in.Offset, in.Limit)
+		out, err := svc.RunFsRead(ctx, owner, in.RunID, in.Path, in.Offset, in.Limit)
 		if err != nil {
 			return nil, err
 		}

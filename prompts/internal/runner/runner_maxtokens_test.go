@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"agentkit/model"
-	"prompts/internal/session"
+	"prompts/internal/prompt"
 )
 
 // TestBuildRequest_MaxTokensDefaultsToModelMax verifies that when a session
@@ -22,11 +22,8 @@ func TestBuildRequest_MaxTokensDefaultsToModelMax(t *testing.T) {
 		t.Fatalf("test precondition: model %q has no registered MaxOutputTokens", resolved.BareID)
 	}
 
-	sess := session.Session{
-		Prompt: "do the thing",
-		Config: session.Config{Provider: "anthropic", Model: "haiku"},
-	}
-	req := (&Runner{}).buildRequest(sess, resolved)
+	cfg := prompt.Config{Provider: "anthropic", Model: "haiku"}
+	req := buildRequest(cfg, "do the thing", "", resolved)
 
 	if req.MaxTokens != want {
 		t.Errorf("MaxTokens = %d, want model max %d", req.MaxTokens, want)
@@ -41,11 +38,8 @@ func TestBuildRequest_MaxTokensHonorsConfig(t *testing.T) {
 		t.Fatalf("model.Resolve: %v", err)
 	}
 
-	sess := session.Session{
-		Prompt: "do the thing",
-		Config: session.Config{Provider: "anthropic", Model: "haiku", MaxTokens: 12345},
-	}
-	req := (&Runner{}).buildRequest(sess, resolved)
+	cfg := prompt.Config{Provider: "anthropic", Model: "haiku", MaxTokens: 12345}
+	req := buildRequest(cfg, "do the thing", "", resolved)
 
 	if req.MaxTokens != 12345 {
 		t.Errorf("MaxTokens = %d, want explicit 12345", req.MaxTokens)

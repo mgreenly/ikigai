@@ -1,4 +1,4 @@
-package session
+package prompt
 
 import (
 	"context"
@@ -24,21 +24,20 @@ func newTestStore(t *testing.T) *Store {
 	return NewStore(conn)
 }
 
-func seedSession(t *testing.T, store *Store, owner, status string) Session {
+func seedPrompt(t *testing.T, store *Store, owner string) Prompt {
 	t.Helper()
 	now := store.nowStr()
-	sess := Session{
+	sess := Prompt{
 		ID:         ids.NewULID(),
 		OwnerEmail: owner,
 		Name:       "n",
-		Prompt:     "p",
+		UserPrompt: "p",
 		Config:     Config{Provider: "anthropic", Model: "haiku"},
-		Status:     status,
 		CreatedAt:  now,
 		UpdatedAt:  now,
 	}
-	if err := store.InsertSession(context.Background(), sess); err != nil {
-		t.Fatalf("InsertSession: %v", err)
+	if err := store.InsertPrompt(context.Background(), sess); err != nil {
+		t.Fatalf("InsertPrompt: %v", err)
 	}
 	return sess
 }
@@ -47,18 +46,18 @@ func TestStoreGetNotFound(t *testing.T) {
 	store := newTestStore(t)
 	ctx := context.Background()
 
-	sess := seedSession(t, store, ownerA, StatusIdle)
+	sess := seedPrompt(t, store, ownerA)
 
-	if _, err := store.GetSession(ctx, "nobody@example.com", sess.ID); !errors.Is(err, ErrNotFound) {
+	if _, err := store.GetPrompt(ctx, "nobody@example.com", sess.ID); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("foreign owner: want ErrNotFound, got %v", err)
 	}
-	if _, err := store.GetSession(ctx, ownerA, "nonexistent"); !errors.Is(err, ErrNotFound) {
+	if _, err := store.GetPrompt(ctx, ownerA, "nonexistent"); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("missing id: want ErrNotFound, got %v", err)
 	}
 
-	got, err := store.GetSession(ctx, ownerA, sess.ID)
+	got, err := store.GetPrompt(ctx, ownerA, sess.ID)
 	if err != nil {
-		t.Fatalf("GetSession: %v", err)
+		t.Fatalf("GetPrompt: %v", err)
 	}
 	if got.Config.Model != "haiku" {
 		t.Fatalf("config round-trip: %+v", got.Config)
@@ -68,7 +67,7 @@ func TestStoreGetNotFound(t *testing.T) {
 func TestStoreLatestRunNilWhenNone(t *testing.T) {
 	store := newTestStore(t)
 	ctx := context.Background()
-	sess := seedSession(t, store, ownerA, StatusIdle)
+	sess := seedPrompt(t, store, ownerA)
 
 	last, err := store.GetLatestRun(ctx, sess.ID)
 	if err != nil {
@@ -82,10 +81,10 @@ func TestStoreLatestRunNilWhenNone(t *testing.T) {
 func TestStoreLatestRunNewest(t *testing.T) {
 	store := newTestStore(t)
 	ctx := context.Background()
-	sess := seedSession(t, store, ownerA, StatusIdle)
+	sess := seedPrompt(t, store, ownerA)
 
-	older := Run{ID: ids.NewULID(), SessionID: sess.ID, Status: RunSucceeded, StartedAt: "2026-01-01T00:00:00Z", LogPath: "a"}
-	newer := Run{ID: ids.NewULID(), SessionID: sess.ID, Status: RunRunning, StartedAt: "2026-02-01T00:00:00Z", LogPath: "b"}
+	older := Run{ID: ids.NewULID(), PromptID: sess.ID, Status: RunSucceeded, StartedAt: "2026-01-01T00:00:00Z", LogPath: "a"}
+	newer := Run{ID: ids.NewULID(), PromptID: sess.ID, Status: RunRunning, StartedAt: "2026-02-01T00:00:00Z", LogPath: "b"}
 	if err := store.InsertRun(ctx, older); err != nil {
 		t.Fatalf("InsertRun older: %v", err)
 	}
@@ -105,8 +104,8 @@ func TestStoreLatestRunNewest(t *testing.T) {
 func TestStoreUpdateRunTerminal(t *testing.T) {
 	store := newTestStore(t)
 	ctx := context.Background()
-	sess := seedSession(t, store, ownerA, StatusRunning)
-	run := Run{ID: ids.NewULID(), SessionID: sess.ID, Status: RunRunning, StartedAt: store.nowStr(), LogPath: "x"}
+	sess := seedPrompt(t, store, ownerA)
+	run := Run{ID: ids.NewULID(), PromptID: sess.ID, Status: RunRunning, StartedAt: store.nowStr(), LogPath: "x"}
 	if err := store.InsertRun(ctx, run); err != nil {
 		t.Fatalf("InsertRun: %v", err)
 	}
@@ -123,25 +122,36 @@ func TestStoreUpdateRunTerminal(t *testing.T) {
 	}
 }
 
-func TestStoreDeleteCascadesRuns(t *testing.T) {
+func TestStoreDeleteIsTombstone(t *testing.T) {
 	store := newTestStore(t)
 	ctx := context.Background()
-	sess := seedSession(t, store, ownerA, StatusIdle)
-	run := Run{ID: ids.NewULID(), SessionID: sess.ID, Status: RunSucceeded, StartedAt: store.nowStr(), LogPath: "x"}
+	sess := seedPrompt(t, store, ownerA)
+	run := Run{ID: ids.NewULID(), PromptID: sess.ID, OwnerEmail: ownerA, Status: RunSucceeded, StartedAt: store.nowStr(), LogPath: "x"}
 	if err := store.InsertRun(ctx, run); err != nil {
 		t.Fatalf("InsertRun: %v", err)
 	}
 
-	if err := store.DeleteSession(ctx, ownerA, sess.ID); err != nil {
-		t.Fatalf("DeleteSession: %v", err)
+	if err := store.DeletePrompt(ctx, ownerA, sess.ID); err != nil {
+		t.Fatalf("DeletePrompt: %v", err)
 	}
-	// Runs cascade-deleted: latest run is now nil.
+	// Tombstone (A3): the prompt is gone but its run survives — there is no
+	// cascade. The run is still addressable by run_id.
+	if _, err := store.GetPrompt(ctx, ownerA, sess.ID); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("prompt should be gone, got err=%v", err)
+	}
+	got, err := store.GetRun(ctx, run.ID)
+	if err != nil {
+		t.Fatalf("GetRun after tombstone: %v", err)
+	}
+	if got.ID != run.ID || got.OwnerEmail != ownerA {
+		t.Fatalf("run should survive tombstone, got %+v", got)
+	}
 	last, err := store.GetLatestRun(ctx, sess.ID)
 	if err != nil {
 		t.Fatalf("GetLatestRun: %v", err)
 	}
-	if last != nil {
-		t.Fatalf("runs should have cascaded, got %+v", last)
+	if last == nil || last.ID != run.ID {
+		t.Fatalf("latest run should survive tombstone, got %+v", last)
 	}
 }
 
@@ -149,10 +159,9 @@ func TestSweepRunning(t *testing.T) {
 	store := newTestStore(t)
 	ctx := context.Background()
 
-	running := seedSession(t, store, ownerA, StatusRunning)
-	idle := seedSession(t, store, ownerA, StatusIdle)
+	withRun := seedPrompt(t, store, ownerA)
 
-	run := Run{ID: ids.NewULID(), SessionID: running.ID, Status: RunRunning, StartedAt: store.nowStr(), LogPath: "x"}
+	run := Run{ID: ids.NewULID(), PromptID: withRun.ID, Status: RunRunning, StartedAt: store.nowStr(), LogPath: "x"}
 	if err := store.InsertRun(ctx, run); err != nil {
 		t.Fatalf("InsertRun: %v", err)
 	}
@@ -165,24 +174,13 @@ func TestSweepRunning(t *testing.T) {
 		t.Fatalf("swept count: want 1, got %d", n)
 	}
 
-	got, err := store.GetLatestRun(ctx, running.ID)
+	// The orphaned running run is marked failed. There is no prompt status to
+	// flip — SweepRunning touches runs only.
+	got, err := store.GetLatestRun(ctx, withRun.ID)
 	if err != nil {
 		t.Fatalf("GetLatestRun: %v", err)
 	}
 	if got.Status != RunFailed || got.Error != "interrupted by restart" || got.EndedAt == "" {
 		t.Fatalf("swept run: %+v", got)
-	}
-
-	sess, err := store.GetSession(ctx, ownerA, running.ID)
-	if err != nil {
-		t.Fatalf("GetSession: %v", err)
-	}
-	if sess.Status != StatusIdle {
-		t.Fatalf("swept session status: want idle, got %q", sess.Status)
-	}
-
-	// The already-idle session is untouched.
-	if s2, _ := store.GetSession(ctx, ownerA, idle.ID); s2.Status != StatusIdle {
-		t.Fatalf("idle session disturbed: %q", s2.Status)
 	}
 }

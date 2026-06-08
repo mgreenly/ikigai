@@ -1,9 +1,9 @@
 // Package runner drives the async run lifecycle for prompts: it borrows the
-// engine (provider + agent loop + wire sink) to execute a session's prompt
+// engine (provider + agent loop + wire sink) to execute a prompt's user prompt
 // inside its sandbox, streams the engine's stream-json events to the run's
-// log file, and writes the run's terminal state back to the store, flipping
-// the session to idle. See ARCHITECTURE.md §5.3 (runner), §9 (end-to-end
-// flow), §10 (secrets).
+// log file, and writes the run's terminal state back to the store. There is no
+// prompt status to flip — runs are fully concurrent. See ARCHITECTURE.md §5.3
+// (runner), §9 (end-to-end flow), §10 (secrets).
 //
 // Spawn returns immediately; the work happens on a goroutine. Cancel signals
 // an in-flight run (distinguished from a TTL expiry so the run is classified
@@ -26,8 +26,8 @@ import (
 	"agentkit/provider/anthropic"
 	"agentkit/tools"
 	"agentkit/wire"
+	"prompts/internal/prompt"
 	"prompts/internal/sandbox"
-	"prompts/internal/session"
 )
 
 // clientFactory builds a provider.Client from an API key and the resolved
@@ -47,24 +47,24 @@ func defaultClientFactory(apiKey, modelID string) (provider.Client, error) {
 	return c, nil
 }
 
-// Runner drives run lifecycles. It satisfies session.Runner.
+// Runner drives run lifecycles. It satisfies prompt.Runner.
 type Runner struct {
-	store     *session.Store
+	store     *prompt.Store
 	sandbox   *sandbox.Manager
 	ttl       time.Duration
 	newClient clientFactory
 
 	mu      sync.Mutex
 	cancels map[string]context.CancelFunc
-	// userCancelled records sessions whose in-flight run was cancelled by an
+	// userCancelled records runs whose in-flight execution was cancelled by an
 	// explicit Cancel call (as opposed to a TTL expiry), so the goroutine can
-	// classify the terminal status correctly.
+	// classify the terminal status correctly. Keyed by run_id.
 	userCancelled map[string]bool
 }
 
 // New builds a Runner with the default Anthropic client factory. ttl bounds
 // every run's wall-clock; on expiry the run ends failed with a TTL error.
-func New(store *session.Store, sb *sandbox.Manager, ttl time.Duration) *Runner {
+func New(store *prompt.Store, sb *sandbox.Manager, ttl time.Duration) *Runner {
 	return &Runner{
 		store:         store,
 		sandbox:       sb,
@@ -75,24 +75,27 @@ func New(store *session.Store, sb *sandbox.Manager, ttl time.Duration) *Runner {
 	}
 }
 
-// Spawn starts the run on a goroutine and returns immediately.
-func (r *Runner) Spawn(sess session.Session, run session.Run) {
-	go r.execute(sess, run)
+// Spawn starts the run on a goroutine and returns immediately. The runner reads
+// its execution inputs from runs/<run.ID>/input/ on disk (pinned by the service
+// before spawn) — never from a live Prompt, so a mid-run edit/delete of the
+// prompt cannot change what this run executes.
+func (r *Runner) Spawn(run prompt.Run) {
+	go r.execute(run)
 }
 
 // execute runs the engine and persists the terminal outcome.
-func (r *Runner) execute(sess session.Session, run session.Run) {
+func (r *Runner) execute(run prompt.Run) {
 	ctx, cancel := context.WithTimeout(context.Background(), r.ttl)
 
 	r.mu.Lock()
-	r.cancels[sess.ID] = cancel
+	r.cancels[run.ID] = cancel
 	r.mu.Unlock()
 
 	defer func() {
 		cancel()
 		r.mu.Lock()
-		delete(r.cancels, sess.ID)
-		delete(r.userCancelled, sess.ID)
+		delete(r.cancels, run.ID)
+		delete(r.userCancelled, run.ID)
 		r.mu.Unlock()
 	}()
 
@@ -103,32 +106,27 @@ func (r *Runner) execute(sess session.Session, run session.Run) {
 
 	// finish writes the run's terminal state AND (when the store is a producer)
 	// emits the run.succeeded / run.failed outcome event in ONE transaction
-	// (event-triggering decisions §3 — at-most-once per run, atomic). The trigger
-	// context (the cron event + matched slot that started this run) rides on the
-	// Run struct from the fire path; it is empty for a manual run. session_name is
-	// the session's human-readable task name.
+	// (event-triggering decisions §3 — at-most-once per run, atomic). The outcome
+	// fields (prompt_id, prompt_name, trigger context) are sourced from the run
+	// row by FinishRun itself, so the runner threads only the terminal state.
 	finish := func(status, usageJSON, errMsg string) {
-		_ = r.store.FinishRun(bg, session.FinishRunInput{
-			RunID:        run.ID,
-			SessionID:    sess.ID,
-			SessionName:  sess.Name,
-			Status:       status,
-			EndedAt:      endedAt(),
-			UsageJSON:    usageJSON,
-			ErrMsg:       errMsg,
-			TriggerEvent: run.TriggerEvent,
-			ScheduledFor: run.ScheduledFor,
+		_ = r.store.FinishRun(bg, prompt.FinishRunInput{
+			RunID:     run.ID,
+			Status:    status,
+			EndedAt:   endedAt(),
+			UsageJSON: usageJSON,
+			ErrMsg:    errMsg,
 		})
 	}
 
 	// Open the run log for create/write/truncate.
 	if err := os.MkdirAll(filepath.Dir(run.LogPath), 0o755); err != nil {
-		finish(session.RunFailed, "", "open run log dir: "+err.Error())
+		finish(prompt.RunFailed, "", "open run log dir: "+err.Error())
 		return
 	}
 	logFile, err := os.OpenFile(run.LogPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
 	if err != nil {
-		finish(session.RunFailed, "", "open run log: "+err.Error())
+		finish(prompt.RunFailed, "", "open run log: "+err.Error())
 		return
 	}
 	defer logFile.Close()
@@ -138,11 +136,36 @@ func (r *Runner) execute(sess session.Session, run session.Run) {
 	var tee bytes.Buffer
 	wireSess := wire.NewSession(io.MultiWriter(logFile, &tee))
 
+	// Read the run's pinned execution inputs from runs/<run.ID>/input/ — NOT
+	// from any live Prompt. This folder was written by the service at spawn and
+	// is the immutable record of exactly what this run executes.
+	inputDir := filepath.Join(filepath.Dir(run.LogPath), "input")
+	var cfg prompt.Config
+	cfgBytes, err := os.ReadFile(filepath.Join(inputDir, "config.json"))
+	if err != nil {
+		finish(prompt.RunFailed, "", "read run config: "+err.Error())
+		return
+	}
+	if err := json.Unmarshal(cfgBytes, &cfg); err != nil {
+		finish(prompt.RunFailed, "", "parse run config: "+err.Error())
+		return
+	}
+	userPromptBytes, err := os.ReadFile(filepath.Join(inputDir, "user_prompt.txt"))
+	if err != nil {
+		finish(prompt.RunFailed, "", "read user prompt: "+err.Error())
+		return
+	}
+	systemPromptBytes, err := os.ReadFile(filepath.Join(inputDir, "system_prompt.txt"))
+	if err != nil {
+		finish(prompt.RunFailed, "", "read system prompt: "+err.Error())
+		return
+	}
+
 	// Resolve the model (provider already validated at Create). On any
 	// resolution surprise, treat it as a run failure rather than panicking.
-	resolved, err := model.Resolve(sess.Config.Model)
+	resolved, err := model.Resolve(cfg.Model)
 	if err != nil {
-		finish(session.RunFailed, "", "resolve model: "+err.Error())
+		finish(prompt.RunFailed, "", "resolve model: "+err.Error())
 		return
 	}
 
@@ -151,40 +174,41 @@ func (r *Runner) execute(sess session.Session, run session.Run) {
 	apiKey := os.Getenv("ANTHROPIC_API_KEY")
 	client, err := r.newClient(apiKey, resolved.BareID)
 	if err != nil {
-		finish(session.RunFailed, "", "create client: "+err.Error())
+		finish(prompt.RunFailed, "", "create client: "+err.Error())
 		return
 	}
 
-	req := r.buildRequest(sess, resolved)
-	sandboxRoot := r.sandbox.Root(sess.ID)
+	req := buildRequest(cfg, string(userPromptBytes), string(systemPromptBytes), resolved)
+	sandboxRoot := r.sandbox.Root(run.ID)
 
 	runErr := agent.Run(ctx, client, wireSess, req, nil, sandboxRoot, nil)
 
 	// Classify the terminal status: explicit user cancel wins over TTL, TTL
 	// over an engine error, and a clean return is success.
 	r.mu.Lock()
-	userCancelled := r.userCancelled[sess.ID]
+	userCancelled := r.userCancelled[run.ID]
 	r.mu.Unlock()
 
 	usageJSON := captureUsage(tee.Bytes())
 
 	switch {
 	case userCancelled:
-		finish(session.RunCancelled, usageJSON, "cancelled")
+		finish(prompt.RunCancelled, usageJSON, "cancelled")
 	case ctx.Err() == context.DeadlineExceeded:
-		finish(session.RunFailed, usageJSON, "run TTL exceeded")
+		finish(prompt.RunFailed, usageJSON, "run TTL exceeded")
 	case runErr != nil:
-		finish(session.RunFailed, usageJSON, runErr.Error())
+		finish(prompt.RunFailed, usageJSON, runErr.Error())
 	default:
-		finish(session.RunSucceeded, usageJSON, "")
+		finish(prompt.RunSucceeded, usageJSON, "")
 	}
 }
 
-// buildRequest assembles the single-user-message provider request: framing +
-// optional session system prompt, the full fixed toolset, no response schema
-// (freeform terminal mode).
-func (r *Runner) buildRequest(sess session.Session, resolved model.Resolved) provider.Request {
-	effort := sess.Config.Effort
+// buildRequest assembles the single-user-message provider request from the
+// run's pinned on-disk inputs (config, user prompt, system prompt): framing +
+// optional system prompt, the full fixed toolset, no response schema (freeform
+// terminal mode). It takes no Prompt — the runner executes from disk.
+func buildRequest(cfg prompt.Config, userPrompt, sysPrompt string, resolved model.Resolved) provider.Request {
+	effort := cfg.Effort
 	if effort == "" {
 		effort = model.DefaultEffort(resolved)
 	}
@@ -195,15 +219,15 @@ func (r *Runner) buildRequest(sess session.Session, resolved model.Resolved) pro
 	}
 
 	systemPrompt := agent.FramingPrompt
-	if sess.SystemPrompt != "" {
-		systemPrompt = agent.FramingPrompt + "\n\n" + sess.SystemPrompt
+	if sysPrompt != "" {
+		systemPrompt = agent.FramingPrompt + "\n\n" + sysPrompt
 	}
 
 	// Resolve the output-token ceiling: honor an explicit Config.MaxTokens,
 	// otherwise default to the model's registry-pinned maximum so a run is
 	// not silently truncated at a fixed low cap (the default is effectively
 	// "unlimited within the model's bounds").
-	maxTokens := sess.Config.MaxTokens
+	maxTokens := cfg.MaxTokens
 	if maxTokens <= 0 {
 		maxTokens = model.ModelContext(resolved).MaxOutputTokens
 	}
@@ -214,7 +238,7 @@ func (r *Runner) buildRequest(sess session.Session, resolved model.Resolved) pro
 		SystemPrompt: systemPrompt,
 		Messages: []provider.Message{{
 			Role:   provider.RoleUser,
-			Blocks: []provider.Block{provider.TextBlock{Text: sess.Prompt}},
+			Blocks: []provider.Block{provider.TextBlock{Text: userPrompt}},
 		}},
 		Tools:     provTools,
 		MaxTokens: maxTokens,
@@ -282,14 +306,14 @@ func captureUsage(streamed []byte) string {
 	return string(b)
 }
 
-// Cancel signals the in-flight run for sessionID. It marks the run as
+// Cancel signals the in-flight run runID. It marks the run as
 // user-cancelled (so the goroutine classifies it cancelled, not failed) and
 // triggers context cancellation. Returns whether a run was in flight.
-func (r *Runner) Cancel(sessionID string) bool {
+func (r *Runner) Cancel(runID string) bool {
 	r.mu.Lock()
-	cancel, ok := r.cancels[sessionID]
+	cancel, ok := r.cancels[runID]
 	if ok {
-		r.userCancelled[sessionID] = true
+		r.userCancelled[runID] = true
 	}
 	r.mu.Unlock()
 	if !ok {
@@ -300,8 +324,8 @@ func (r *Runner) Cancel(sessionID string) bool {
 }
 
 // Recover is the boot-time crash-recovery sweep: it marks every orphaned
-// running run failed and flips its session back to idle, returning the count
-// swept. Delegates to the store's transactional sweep.
+// running run failed, returning the count swept (runs only — there is no
+// prompt status). Delegates to the store's sweep.
 func (r *Runner) Recover(ctx context.Context) (int, error) {
 	return r.store.SweepRunning(ctx)
 }

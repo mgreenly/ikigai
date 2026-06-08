@@ -4,268 +4,235 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
+	"log/slog"
 	"sync"
 	"testing"
 	"time"
 
 	"eventplane/consumer"
-
-	"prompts/internal/session"
 )
 
-// shrink the fixed retry delay so retry tests run fast.
-func init() { retryDelay = 1 * time.Millisecond }
-
-// recorder is a FireFunc stub: it records every (session id) it is asked to fire,
-// returns a programmed error per session, and signals a WaitGroup so a test can
-// wait for the async fan-out to settle without sleeping.
-type recorder struct {
-	mu      sync.Mutex
-	calls   map[string]int
-	errs    map[string]error  // error to return for a session (nil = success)
-	failN   map[string]int    // fail the first N attempts for a session, then succeed
-	trigger map[string]string // last trigger_event a session was fired with
-	slot    map[string]string // last scheduled_for a session was fired with
-	wg      *sync.WaitGroup
+func discardLogger() *slog.Logger {
+	return slog.New(slog.NewJSONHandler(io.Discard, nil))
 }
 
-func newRecorder() *recorder {
-	return &recorder{calls: map[string]int{}, errs: map[string]error{}, failN: map[string]int{}, trigger: map[string]string{}, slot: map[string]string{}}
+// fireRecorder is a fake FireFunc that records every (prompt,source,type,id,payload)
+// call. Because fire runs on a detached goroutine, callers use expect/await to
+// settle exactly n dispatches deterministically before asserting.
+type fireRecorder struct {
+	mu    sync.Mutex
+	calls []fireCall
+	wg    sync.WaitGroup
+	err   error // returned by every fire (nil = success)
 }
 
-func (r *recorder) fire(ctx context.Context, sessionID, triggerEvent, scheduledFor string) error {
-	r.mu.Lock()
-	r.calls[sessionID]++
-	r.trigger[sessionID] = triggerEvent
-	r.slot[sessionID] = scheduledFor
-	n := r.calls[sessionID]
-	var err error
-	if fn, ok := r.failN[sessionID]; ok {
-		if n <= fn {
-			err = errors.New("transient start failure")
-		}
-	} else {
-		err = r.errs[sessionID]
-	}
-	wg := r.wg
-	r.mu.Unlock()
-	if wg != nil {
-		wg.Done()
-	}
-	return err
+type fireCall struct {
+	promptID, source, evType, eventID string
+	payload                           []byte
 }
 
-func (r *recorder) firedWith(sessionID string) (string, string) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	return r.trigger[sessionID], r.slot[sessionID]
+func (f *fireRecorder) fn(ctx context.Context, promptID, source, evType, eventID string, payload []byte) error {
+	f.mu.Lock()
+	f.calls = append(f.calls, fireCall{promptID, source, evType, eventID, append([]byte(nil), payload...)})
+	f.mu.Unlock()
+	f.wg.Done()
+	return f.err
 }
 
-func (r *recorder) count(sessionID string) int {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	return r.calls[sessionID]
+func (f *fireRecorder) snapshot() []fireCall {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	out := make([]fireCall, len(f.calls))
+	copy(out, f.calls)
+	return out
 }
 
-func staticLookup(triggers ...session.Trigger) triggerLookup {
-	return func(ctx context.Context, eventType string) ([]session.Trigger, error) {
-		var out []session.Trigger
-		for _, t := range triggers {
-			if t.TriggerEvent == eventType {
-				out = append(out, t)
-			}
-		}
-		return out, nil
-	}
-}
+func (f *fireRecorder) expect(n int) { f.wg.Add(n) }
 
-func cronEvent(t *testing.T, name, scheduledFor string) consumer.Event {
+func (f *fireRecorder) await(t *testing.T) {
 	t.Helper()
-	payload, err := json.Marshal(cronPayload{Name: name, ScheduledFor: scheduledFor, FiredAt: scheduledFor})
-	if err != nil {
-		t.Fatalf("marshal payload: %v", err)
+	done := make(chan struct{})
+	go func() { f.wg.Wait(); close(done) }()
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for fire goroutines")
 	}
-	return consumer.Event{Type: "cron." + name, ID: "ev1", Source: "cron", Payload: payload}
 }
 
-func trig(sessionID, event string) session.Trigger {
-	return session.Trigger{SessionID: sessionID, TriggerEvent: event, MaxStalenessSecs: 300, MaxAttempts: 3}
+// staticLookup returns a fixed list of prompt ids for any (source,type).
+func staticLookup(ids []string, err error) LookupFunc {
+	return func(ctx context.Context, source, evType string) ([]string, error) {
+		return ids, err
+	}
 }
 
-// TestHandler_FanOut: a cron.<name> fires a run for every matching session and
-// none for a non-matching one; the handler returns nil.
-func TestHandler_FanOut(t *testing.T) {
-	rec := newRecorder()
-	var wg sync.WaitGroup
-	wg.Add(2) // two matching sessions
-	rec.wg = &wg
+// TestHandlerFanOut: a well-formed event whose lookup returns 2 prompt ids fires
+// exactly twice (once per prompt, with the event context forwarded) and the
+// handler returns nil.
+func TestHandlerFanOut(t *testing.T) {
+	fire := &fireRecorder{}
+	fire.expect(2)
+	h := Handler(fire.fn, staticLookup([]string{"p1", "p2"}, nil), "crm", discardLogger())
 
-	lookup := staticLookup(
-		trig("s-a", "cron.nightly"),
-		trig("s-b", "cron.nightly"),
-		trig("s-c", "cron.hourly"),
-	)
-	h := Handler(rec.fire, lookup, nil)
-
-	// scheduled_for = now so it is fresh (no staleness skip).
-	ev := cronEvent(t, "nightly", time.Now().UTC().Format(time.RFC3339))
+	payload := json.RawMessage(`{"id":"c1"}`)
+	ev := consumer.Event{Type: "contact.created", ID: "01EVENT", Source: "crm", Payload: payload}
 	if err := h(context.Background(), ev); err != nil {
-		t.Fatalf("handler returned non-nil: %v", err)
+		t.Fatalf("Handler returned %v, want nil", err)
 	}
-	wg.Wait()
+	fire.await(t)
 
-	if rec.count("s-a") != 1 || rec.count("s-b") != 1 {
-		t.Fatalf("expected one fire each for s-a, s-b; got a=%d b=%d", rec.count("s-a"), rec.count("s-b"))
+	calls := fire.snapshot()
+	if len(calls) != 2 {
+		t.Fatalf("fired %d runs, want 2", len(calls))
 	}
-	if rec.count("s-c") != 0 {
-		t.Fatalf("non-matching session s-c should not fire; got %d", rec.count("s-c"))
+	seen := map[string]bool{}
+	for _, c := range calls {
+		seen[c.promptID] = true
+		if c.source != "crm" || c.evType != "contact.created" || c.eventID != "01EVENT" {
+			t.Errorf("fire got wrong context: %+v", c)
+		}
+		if string(c.payload) != string(payload) {
+			t.Errorf("fire payload = %q, want %q", c.payload, payload)
+		}
+	}
+	if !seen["p1"] || !seen["p2"] {
+		t.Errorf("expected fires for p1 and p2, got %v", seen)
 	}
 }
 
-// TestHandler_PlumbsTriggerContext: the cron event type and its scheduled_for
-// slot are carried into the fire call so they can become the outcome payload's
-// trigger_event / scheduled_for (event-triggering decisions §3).
-func TestHandler_PlumbsTriggerContext(t *testing.T) {
-	rec := newRecorder()
-	var wg sync.WaitGroup
-	wg.Add(1)
-	rec.wg = &wg
+// TestHandlerNonCronUpstream: an event from a NON-cron upstream (dropbox)
+// dispatches to the matching prompt with the full (source, type, id) context —
+// proving the multi-upstream fan-in, not just cron.
+func TestHandlerNonCronUpstream(t *testing.T) {
+	fire := &fireRecorder{}
+	fire.expect(1)
+	h := Handler(fire.fn, staticLookup([]string{"p-drop"}, nil), "dropbox", discardLogger())
 
-	h := Handler(rec.fire, staticLookup(trig("s-a", "cron.nightly")), nil)
-	slot := time.Now().UTC().Format(time.RFC3339)
-	if err := h(context.Background(), cronEvent(t, "nightly", slot)); err != nil {
-		t.Fatalf("handler returned non-nil: %v", err)
+	ev := consumer.Event{Type: "file.created", ID: "01FILE", Source: "dropbox", Payload: json.RawMessage(`{"path":"/x"}`)}
+	if err := h(context.Background(), ev); err != nil {
+		t.Fatalf("Handler returned %v, want nil", err)
 	}
-	wg.Wait()
+	fire.await(t)
 
-	gotTrigger, gotSlot := rec.firedWith("s-a")
-	if gotTrigger != "cron.nightly" {
-		t.Fatalf("trigger_event not plumbed: got %q want cron.nightly", gotTrigger)
+	calls := fire.snapshot()
+	if len(calls) != 1 {
+		t.Fatalf("fired %d runs, want 1", len(calls))
 	}
-	if gotSlot != slot {
-		t.Fatalf("scheduled_for not plumbed: got %q want %q", gotSlot, slot)
+	c := calls[0]
+	if c.promptID != "p-drop" || c.source != "dropbox" || c.evType != "file.created" || c.eventID != "01FILE" {
+		t.Fatalf("non-cron fire context wrong: %+v", c)
 	}
 }
 
-// TestHandler_StalenessGuard: an occurrence older than max_staleness is skipped
-// (no fire), the handler returns nil.
-func TestHandler_StalenessGuard(t *testing.T) {
-	rec := newRecorder()
-	// max_staleness 60s; scheduled_for 10m ago → stale → skip.
-	tr := trig("s-stale", "cron.nightly")
-	tr.MaxStalenessSecs = 60
-	h := Handler(rec.fire, staticLookup(tr), nil)
+// TestHandlerNoMatch: a well-formed event whose lookup returns 0 ids fires
+// nothing and returns nil (matched-zero is success).
+func TestHandlerNoMatch(t *testing.T) {
+	fire := &fireRecorder{}
+	h := Handler(fire.fn, staticLookup(nil, nil), "ledger", discardLogger())
 
-	old := time.Now().UTC().Add(-10 * time.Minute).Format(time.RFC3339)
-	if err := h(context.Background(), cronEvent(t, "nightly", old)); err != nil {
-		t.Fatalf("handler returned non-nil: %v", err)
+	ev := consumer.Event{Type: "transaction.recorded", ID: "01EVENT", Source: "ledger", Payload: json.RawMessage(`{}`)}
+	if err := h(context.Background(), ev); err != nil {
+		t.Fatalf("Handler returned %v, want nil", err)
 	}
-	// Give any (erroneous) goroutine a moment; none should have fired.
 	time.Sleep(20 * time.Millisecond)
-	if rec.count("s-stale") != 0 {
-		t.Fatalf("stale occurrence must not fire; got %d", rec.count("s-stale"))
+	if got := fire.snapshot(); len(got) != 0 {
+		t.Fatalf("no-match fired %d runs, want 0", len(got))
 	}
 }
 
-// TestHandler_BusySkip: a session already running (fire returns ErrBusy) is
-// fired exactly once (the busy result is the serialization skip, NOT retried).
-func TestHandler_BusySkip(t *testing.T) {
-	rec := newRecorder()
-	rec.errs["s-busy"] = session.ErrBusy
-	var wg sync.WaitGroup
-	wg.Add(1)
-	rec.wg = &wg
-
-	h := Handler(rec.fire, staticLookup(trig("s-busy", "cron.nightly")), nil)
-	ev := cronEvent(t, "nightly", time.Now().UTC().Format(time.RFC3339))
-	if err := h(context.Background(), ev); err != nil {
-		t.Fatalf("handler returned non-nil: %v", err)
+// TestHandlerMalformedSkips: a structurally-malformed envelope (missing type or
+// id) returns an ErrSkip-wrapped error and fires nothing.
+func TestHandlerMalformedSkips(t *testing.T) {
+	cases := []struct {
+		name string
+		ev   consumer.Event
+	}{
+		{"no type", consumer.Event{Type: "", ID: "01EVENT", Source: "crm", Payload: json.RawMessage(`{}`)}},
+		{"no id", consumer.Event{Type: "contact.created", ID: "", Source: "crm", Payload: json.RawMessage(`{}`)}},
 	}
-	wg.Wait()
-	time.Sleep(20 * time.Millisecond) // ensure no retry sneaks in
-	if got := rec.count("s-busy"); got != 1 {
-		t.Fatalf("busy session must be fired exactly once (no retry); got %d", got)
-	}
-}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			fire := &fireRecorder{}
+			lookup := func(ctx context.Context, source, evType string) ([]string, error) {
+				t.Fatal("lookup called for malformed envelope")
+				return nil, nil
+			}
+			h := Handler(fire.fn, lookup, "crm", discardLogger())
 
-// TestHandler_RetryUpToCap: a transient start failure is retried with the fixed
-// delay up to max_attempts (3) then given up; the handler still returned nil.
-func TestHandler_RetryUpToCap(t *testing.T) {
-	rec := newRecorder()
-	rec.failN["s-fail"] = 99 // always fail → exhausts the cap
-	var wg sync.WaitGroup
-	wg.Add(3) // max_attempts
-	rec.wg = &wg
-
-	h := Handler(rec.fire, staticLookup(trig("s-fail", "cron.nightly")), nil)
-	ev := cronEvent(t, "nightly", time.Now().UTC().Format(time.RFC3339))
-	if err := h(context.Background(), ev); err != nil {
-		t.Fatalf("handler must return nil even when a run keeps failing: %v", err)
-	}
-	wg.Wait()
-	time.Sleep(20 * time.Millisecond) // ensure no 4th attempt
-	if got := rec.count("s-fail"); got != 3 {
-		t.Fatalf("expected exactly 3 attempts (cap), got %d", got)
+			err := h(context.Background(), tc.ev)
+			if err == nil {
+				t.Fatal("malformed envelope returned nil, want an ErrSkip-wrapped error")
+			}
+			if !errors.Is(err, consumer.ErrSkip) {
+				t.Fatalf("error does not satisfy errors.Is(err, ErrSkip): %v", err)
+			}
+			time.Sleep(20 * time.Millisecond)
+			if got := fire.snapshot(); len(got) != 0 {
+				t.Fatalf("malformed envelope fired %d runs, want 0", len(got))
+			}
+		})
 	}
 }
 
-// TestHandler_RetryThenSucceed: a fire that fails twice then succeeds stops
-// retrying at the success (not the cap).
-func TestHandler_RetryThenSucceed(t *testing.T) {
-	rec := newRecorder()
-	rec.failN["s-ok"] = 2 // fail first 2, succeed on 3rd
-	var wg sync.WaitGroup
-	wg.Add(3)
-	rec.wg = &wg
+// TestHandlerLookupErrorAdvances: a transient lookup error must NOT stall — the
+// handler returns nil (and fires nothing), so the cursor advances.
+func TestHandlerLookupErrorAdvances(t *testing.T) {
+	fire := &fireRecorder{}
+	h := Handler(fire.fn, staticLookup(nil, errors.New("db down")), "dropbox", discardLogger())
 
-	h := Handler(rec.fire, staticLookup(trig("s-ok", "cron.nightly")), nil)
-	ev := cronEvent(t, "nightly", time.Now().UTC().Format(time.RFC3339))
+	ev := consumer.Event{Type: "file.created", ID: "01EVENT", Source: "dropbox", Payload: json.RawMessage(`{}`)}
 	if err := h(context.Background(), ev); err != nil {
-		t.Fatalf("handler returned non-nil: %v", err)
+		t.Fatalf("lookup error returned %v, want nil (never stall)", err)
 	}
-	wg.Wait()
 	time.Sleep(20 * time.Millisecond)
-	if got := rec.count("s-ok"); got != 3 {
-		t.Fatalf("expected 3 attempts (2 fail + 1 success), got %d", got)
+	if got := fire.snapshot(); len(got) != 0 {
+		t.Fatalf("lookup error fired %d runs, want 0", len(got))
 	}
 }
 
-// TestHandler_MalformedPayloadSkips: a payload that cannot decode returns ErrSkip
-// (log loud + advance), never a stalling error, and fires nothing.
-func TestHandler_MalformedPayloadSkips(t *testing.T) {
-	rec := newRecorder()
-	h := Handler(rec.fire, staticLookup(trig("s", "cron.nightly")), nil)
-	ev := consumer.Event{Type: "cron.nightly", ID: "ev1", Source: "cron", Payload: json.RawMessage(`{bad`)}
-	err := h(context.Background(), ev)
-	if !errors.Is(err, consumer.ErrSkip) {
-		t.Fatalf("expected ErrSkip for malformed payload, got %v", err)
-	}
-}
+// TestHandlerFireErrorDoesNotStall: a fire that returns an error is swallowed
+// (logged + dropped) — the handler already returned nil.
+func TestHandlerFireErrorDoesNotStall(t *testing.T) {
+	fire := &fireRecorder{err: errors.New("spawn failed")}
+	fire.expect(1)
+	h := Handler(fire.fn, staticLookup([]string{"p1"}, nil), "crm", discardLogger())
 
-// TestHandler_NonMatchingTypeAdvances: an unrelated event type is a no-op that
-// returns nil (the engine still advances the cursor).
-func TestHandler_NonMatchingTypeAdvances(t *testing.T) {
-	rec := newRecorder()
-	h := Handler(rec.fire, staticLookup(trig("s", "cron.nightly")), nil)
-	ev := consumer.Event{Type: "contact.created", ID: "ev1", Source: "crm", Payload: json.RawMessage(`{}`)}
+	ev := consumer.Event{Type: "contact.created", ID: "01EVENT", Source: "crm", Payload: json.RawMessage(`{}`)}
 	if err := h(context.Background(), ev); err != nil {
-		t.Fatalf("non-matching type must return nil, got %v", err)
+		t.Fatalf("Handler returned %v, want nil", err)
 	}
-	if rec.count("s") != 0 {
-		t.Fatalf("non-matching type must fire nothing")
+	fire.await(t)
+	if got := fire.snapshot(); len(got) != 1 {
+		t.Fatalf("fired %d runs, want 1", len(got))
 	}
 }
 
-// TestHandler_LookupFailureAdvances: a trigger-lookup error never stalls the
-// cron feed — the handler logs and returns nil (next tick recovers).
-func TestHandler_LookupFailureAdvances(t *testing.T) {
-	rec := newRecorder()
-	failing := func(ctx context.Context, eventType string) ([]session.Trigger, error) {
-		return nil, errors.New("db read failed")
+// TestSubscriptions: one Subscription per source, each Filter "*" with the
+// source carried through.
+func TestSubscriptions(t *testing.T) {
+	subs := Subscriptions([]string{"cron", "crm", "ledger", "dropbox", "scripts"})
+	if len(subs) != 5 {
+		t.Fatalf("got %d subscriptions, want 5", len(subs))
 	}
-	h := Handler(rec.fire, failing, nil)
-	ev := cronEvent(t, "nightly", time.Now().UTC().Format(time.RFC3339))
-	if err := h(context.Background(), ev); err != nil {
-		t.Fatalf("lookup failure must not stall the feed (return nil), got %v", err)
+	want := map[string]bool{"cron": true, "crm": true, "ledger": true, "dropbox": true, "scripts": true}
+	for _, s := range subs {
+		if !want[s.Source] {
+			t.Errorf("unexpected source %q", s.Source)
+		}
+		delete(want, s.Source)
+		if s.Filter != "*" {
+			t.Errorf("source %q Filter = %q, want %q", s.Source, s.Filter, "*")
+		}
+		if !s.Match("anything.at.all") {
+			t.Errorf("source %q Filter %q should match any type", s.Source, s.Filter)
+		}
+		if s.Description == "" {
+			t.Errorf("source %q has empty Description", s.Source)
+		}
+	}
+	if len(want) != 0 {
+		t.Errorf("missing subscriptions for %v", want)
 	}
 }
