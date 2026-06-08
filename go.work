@@ -19,6 +19,7 @@ use (
 	./notify
 	./opsctl
 	./prompts
+	./scripts
 	./sites
 	./wiki
 )

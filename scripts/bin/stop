@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# bin/stop — stop the locally-running scripts started by bin/start.
+set -euo pipefail
+
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$REPO"
+. etc/manifest.env
+
+PIDFILE="build/${APP}.pid"
+
+# Soft preflight (informational symmetry with bin/start): scripts itself never
+# needs python3 — only run execution does. Warn, never fail.
+command -v python3 >/dev/null || echo "warning: python3 not found; script runs will fail" >&2
+
+if [[ ! -f "$PIDFILE" ]]; then
+  echo "scripts not running (no pidfile)" >&2
+  exit 0
+fi
+
+PID="$(cat "$PIDFILE")"
+if kill -0 "$PID" 2>/dev/null; then
+  kill "$PID"
+  echo "scripts stopped (pid $PID)"
+else
+  echo "scripts not running (stale pidfile)" >&2
+fi
+rm -f "$PIDFILE"

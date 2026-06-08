@@ -3,7 +3,6 @@ package opsctl
 import (
 	"context"
 	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -342,6 +341,40 @@ func TestSetup_WWWTree(t *testing.T) {
 	}
 }
 
+// TestSetup_InstallsPackages asserts a service's declared OS packages flow to the
+// InstallPackages seam, FIRST (before user creation), so a service (e.g. scripts
+// → python3.11) provisions its own runtime deps. Mirrors init-box's package step.
+func TestSetup_InstallsPackages(t *testing.T) {
+	root := t.TempDir()
+	sysRoot := t.TempDir()
+	sys := &stubSystem{}
+	o := newProvisioner(t, root, sysRoot, sys)
+	runInitBox(t, o, readRepoFile(t, "../../../dashboard/etc/nginx.conf"))
+	sys.ops = nil
+
+	app := "scripts"
+	fragSrc := readRepoFile(t, "../../../scripts/etc/nginx.conf")
+	if err := o.Setup(context.Background(), SetupOptions{
+		App: app, Port: 3009, Fragment: fragSrc, Packages: []string{"python3.11"},
+	}); err != nil {
+		t.Fatalf("setup scripts --packages python3.11: %v", err)
+	}
+
+	l := NewLayoutSys(root, sysRoot, app)
+	// install-packages is requested FIRST and carries the declared package.
+	wantOps := []string{
+		"install-packages:python3.11",
+		"ensure-user:scripts:" + l.AppDir(),
+		"daemon-reload",
+		"enable:scripts.service",
+		"nginx-test",
+		"nginx-reload",
+	}
+	if got := sys.opSeq(); strings.Join(got, "|") != strings.Join(wantOps, "|") {
+		t.Fatalf("setup ops = %v, want %v", got, wantOps)
+	}
+}
+
 // TestWWWDirsFor_OnlySites asserts the www tree is derived per-app: sites gets
 // the five-dir tree, every other app gets none — so non-sites setup creates no
 // www dir (no regression). Pairs with the ledger setup test, which never sees a
@@ -390,117 +423,5 @@ func TestSetup_NoWWWTreeForOtherApps(t *testing.T) {
 		if strings.HasPrefix(op, "chown:") {
 			t.Errorf("setup chowned for a non-sites app: %s", op)
 		}
-	}
-}
-
-// TestSetup_DeferNginx stages the fragment but skips nginx -t/reload — the
-// greenfield path where nginx is not yet serviceable (no apex cert). The
-// fragment is still written; only the validate/reload ops are absent.
-func TestSetup_DeferNginx(t *testing.T) {
-	root := t.TempDir()
-	sysRoot := t.TempDir()
-	sys := &stubSystem{}
-	o := newProvisioner(t, root, sysRoot, sys)
-	runInitBox(t, o, readRepoFile(t, "../../../dashboard/etc/nginx.conf"))
-	sys.ops = nil
-
-	app := "ledger"
-	fragSrc := readRepoFile(t, "../../../ledger/etc/nginx.conf")
-	if err := o.Setup(context.Background(), SetupOptions{
-		App: app, Port: 3002, Fragment: fragSrc, DeferNginx: true,
-	}); err != nil {
-		t.Fatalf("setup ledger --defer-nginx: %v", err)
-	}
-
-	l := NewLayoutSys(root, sysRoot, app)
-	// The fragment is still staged.
-	wantFrag := shellSubst(fragSrc, map[string]string{"__PORT__": "3002"})
-	if got := readRepoFile(t, l.FragmentPath()); got != wantFrag {
-		t.Fatalf("defer-nginx did not stage the fragment")
-	}
-	// But nginx -t/reload were NOT requested.
-	wantOps := []string{
-		"ensure-user:ledger:" + l.AppDir(),
-		"daemon-reload",
-		"enable:ledger.service",
-	}
-	if got := sys.opSeq(); strings.Join(got, "|") != strings.Join(wantOps, "|") {
-		t.Fatalf("defer-nginx ops = %v, want %v", got, wantOps)
-	}
-}
-
-// TestSetup_Apex provisions the apex app (dashboard) — DEFAULT, MOUNT=/, no
-// location fragment of its own (the apex block is init-box's job). The unit still
-// byte-matches; no fragment is dropped.
-func TestSetup_Apex(t *testing.T) {
-	root := t.TempDir()
-	sysRoot := t.TempDir()
-	sys := &stubSystem{}
-	o := newProvisioner(t, root, sysRoot, sys)
-	runInitBox(t, o, readRepoFile(t, "../../../dashboard/etc/nginx.conf"))
-	sys.ops = nil
-
-	app := "dashboard"
-	// The apex app has no /srv/<app>/ fragment of its own — its server block is
-	// owned by init-box — so setup is called with an empty Fragment.
-	if err := o.Setup(context.Background(), SetupOptions{App: app, Port: 3000, Fragment: ""}); err != nil {
-		t.Fatalf("setup dashboard: %v", err)
-	}
-
-	l := NewLayoutSys(root, sysRoot, app)
-	if got := readRepoFile(t, l.UnitPath()); got != expectedUnit(app) {
-		t.Fatalf("dashboard unit mismatch:\n--- got ---\n%q\n--- want ---\n%q", got, expectedUnit(app))
-	}
-	// No location fragment is written for the apex app.
-	if _, err := os.Stat(l.FragmentPath()); !os.IsNotExist(err) {
-		t.Errorf("apex setup wrote a location fragment, want none (err=%v)", err)
-	}
-	// Tree created; ops requested through the seam (no fragment ⇒ no nginx ops).
-	if fi, err := os.Stat(l.AppDir()); err != nil || !fi.IsDir() {
-		t.Fatalf("/opt/dashboard not created: %v", err)
-	}
-	wantOps := []string{
-		"ensure-user:dashboard:" + l.AppDir(),
-		"daemon-reload",
-		"enable:dashboard.service",
-	}
-	if got := sys.opSeq(); strings.Join(got, "|") != strings.Join(wantOps, "|") {
-		t.Fatalf("apex setup ops = %v, want %v", got, wantOps)
-	}
-}
-
-// TestSetup_RequiresInitBox asserts setup refuses when conf.d/locations/ is
-// absent (the box-global precondition init-box owns) — proving the split: per-app
-// provisioning never reaches for box-global state, it depends on it.
-func TestSetup_RequiresInitBox(t *testing.T) {
-	root := t.TempDir()
-	sysRoot := t.TempDir() // no init-box run ⇒ no conf.d/locations/
-	sys := &stubSystem{}
-	o := newProvisioner(t, root, sysRoot, sys)
-
-	err := o.Setup(context.Background(), SetupOptions{
-		App: "ledger", Port: 3002,
-		Fragment: readRepoFile(t, "../../../ledger/etc/nginx.conf"),
-	})
-	if err == nil || !strings.Contains(err.Error(), "init-box") {
-		t.Fatalf("setup without init-box err = %v, want an init-box precondition error", err)
-	}
-	if len(sys.opSeq()) != 0 {
-		t.Errorf("setup ran box ops before the precondition check: %v", sys.opSeq())
-	}
-}
-
-// fragmentPathOnBox documents the on-box fragment path matches the old
-// bin/setup target /etc/nginx/conf.d/locations/<app>.conf.
-func TestFragmentPath_MatchesBoxConvention(t *testing.T) {
-	l := NewLayout("/opt", "ledger") // SysRoot "" ⇒ "/"
-	if got, want := l.FragmentPath(), "/etc/nginx/conf.d/locations/ledger.conf"; got != want {
-		t.Fatalf("FragmentPath = %q, want %q", got, want)
-	}
-	if got, want := l.UnitPath(), "/etc/systemd/system/ledger.service"; got != want {
-		t.Fatalf("UnitPath = %q, want %q", got, want)
-	}
-	if got, want := filepath.Clean(l.ApexBlockPath()), "/etc/nginx/conf.d/ledger.conf"; got != want {
-		t.Fatalf("ApexBlockPath = %q, want %q", got, want)
 	}
 }

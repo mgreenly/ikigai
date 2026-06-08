@@ -36,6 +36,15 @@ type SetupOptions struct {
 	// hard-fail. With DeferNginx the fragment is written and validated/reloaded
 	// later, when the cert lands and nginx comes up. Mirrors init-box --skip-cert.
 	DeferNginx bool
+
+	// Packages are OS packages the service declares it needs on the box (e.g.
+	// scripts needs python3.11 to execute runs). They are installed early in
+	// setup via the System.InstallPackages seam — idempotently, since the
+	// package manager skips already-present packages — so a service can request
+	// its own runtime deps independently of any sibling service. Empty ⇒ no
+	// package install step (the common case). Mirrors init-box's nginx+certbot
+	// install (initbox.go:58).
+	Packages []string
 }
 
 // Setup performs first-time, idempotent per-app provisioning, the per-APP half of
@@ -66,6 +75,17 @@ func (o *Opsctl) Setup(ctx context.Context, opts SetupOptions) error {
 	// owned by init-box, mirroring the old service bin/setup precondition check.
 	if _, err := os.Stat(l.LocationsDir()); err != nil {
 		return fmt.Errorf("setup: %s missing — run `opsctl init-box` first: %w", l.LocationsDir(), err)
+	}
+
+	// 0. OS packages the service declares it needs (e.g. scripts → python3.11).
+	//    Installed before anything else so the runtime deps are present by the
+	//    time the unit is enabled. Idempotent: the package manager no-ops on
+	//    already-present packages, so multiple services may declare the same one.
+	if len(opts.Packages) > 0 {
+		o.logf("install packages: %s", strings.Join(opts.Packages, " "))
+		if err := o.System.InstallPackages(ctx, opts.Packages...); err != nil {
+			return fmt.Errorf("setup: install packages: %w", err)
+		}
 	}
 
 	// 1. App user (seam — never executed in tests).

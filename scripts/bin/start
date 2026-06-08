@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# bin/start — run scripts locally on its loopback port, writing its PID to build/scripts.pid.
+#
+# Local-run only. The systemd-on-the-box lifecycle is owned by opsctl (deploy + the start/stop passthroughs).
+# scripts binds 127.0.0.1 by default; nginx is its only real ingress.
+set -euo pipefail
+
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$REPO"
+. etc/manifest.env
+
+BIN="build/${APP}.bin"
+PIDFILE="build/${APP}.pid"
+
+# Soft preflight: scripts boots fine without python3 — only run execution needs
+# it. Warn, never fail.
+command -v python3 >/dev/null || echo "warning: python3 not found; script runs will fail" >&2
+
+if [[ ! -x "$BIN" ]]; then
+  bin/build
+fi
+
+if [[ -f "$PIDFILE" ]] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+  echo "scripts already running (pid $(cat "$PIDFILE"))" >&2
+  exit 1
+fi
+
+SCRIPTS_PORT="${SCRIPTS_PORT:-${PORT}}" "./$BIN" --port "${SCRIPTS_PORT:-${PORT}}" &
+echo $! > "$PIDFILE"
+echo "scripts started (pid $(cat "$PIDFILE")) on 127.0.0.1:${SCRIPTS_PORT:-${PORT}}"

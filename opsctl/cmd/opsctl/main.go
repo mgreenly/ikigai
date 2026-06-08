@@ -92,7 +92,7 @@ var groups = []group{
 		{"tail", "opsctl tail <app> [journalctl args…]"},
 	}},
 	{"Provisioning", []verb{
-		{"setup", "opsctl setup <app> [--port <n>] [--fragment <path>] [--defer-nginx]"},
+		{"setup", "opsctl setup <app> [--port <n>] [--fragment <path>] [--defer-nginx] [--packages <p1,p2>]"},
 		{"teardown", "opsctl teardown <app> --force [--keep-user]"},
 		// One flag per line; line 1 is the verb + first flag, continuation lines
 		// align under --domain (16 cols = len("opsctl init-box "); the renderer
@@ -392,12 +392,13 @@ func runSetup(ctx context.Context, root, name string, args []string) error {
 	port := fs.Int("port", 0, "the service's loopback port (substituted for __PORT__ in the fragment)")
 	fragment := fs.String("fragment", "", "path to the service's nginx location fragment source (omit for a worker)")
 	deferNginx := fs.Bool("defer-nginx", false, "stage the fragment but skip nginx -t/reload (greenfield box with no apex cert yet)")
-	if err := fs.Parse(reorderArgs(args, map[string]bool{"port": true, "fragment": true})); err != nil {
+	packages := fs.String("packages", "", "comma-separated OS packages to install for the service (e.g. python3.11)")
+	if err := fs.Parse(reorderArgs(args, map[string]bool{"port": true, "fragment": true, "packages": true})); err != nil {
 		return helpErr(err)
 	}
 	pos := fs.Args()
 	if len(pos) != 1 {
-		return fmt.Errorf("usage: opsctl setup <app> [--port N] [--fragment <path>] [--defer-nginx]")
+		return fmt.Errorf("usage: opsctl setup <app> [--port N] [--fragment <path>] [--defer-nginx] [--packages p1,p2]")
 	}
 	frag, err := opsctl.LoadFragmentFile(*fragment)
 	if err != nil {
@@ -410,7 +411,8 @@ func runSetup(ctx context.Context, root, name string, args []string) error {
 		DeferNginx: *deferNginx,
 		// Derived per-app: sites gets its world-readable www/ tree automatically
 		// (no operator flag); every other app gets none.
-		WWWDirs: opsctl.WWWDirsFor(root, pos[0]),
+		WWWDirs:  opsctl.WWWDirsFor(root, pos[0]),
+		Packages: splitList(*packages),
 	})
 }
 
@@ -430,6 +432,21 @@ func runTeardown(ctx context.Context, root, name string, args []string) error {
 		Force:    *force,
 		KeepUser: *keepUser,
 	})
+}
+
+// splitList parses a comma-separated flag value into a trimmed, empty-dropped
+// slice. "" yields nil so an absent --packages means "install nothing".
+func splitList(s string) []string {
+	if strings.TrimSpace(s) == "" {
+		return nil
+	}
+	var out []string
+	for _, p := range strings.Split(s, ",") {
+		if p = strings.TrimSpace(p); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
 }
 
 // helpErr swallows flag.ErrHelp (the FlagSet already printed its synopsis+flags
