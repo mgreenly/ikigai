@@ -1,11 +1,7 @@
 // Package mcp implements a minimal MCP transport for the /mcp endpoint and the
-// * tool surface.
-//
-// This is the scaffold wiki service (Task 2.1): the only tool is
-// health, the end-to-end auth proof. The real wiki domain tools
-// (ingest_text, ingest_url, search, …)
-// are added here in later phases, wired to a domain service the same way crm
-// wires internal/contacts.
+// wiki tool surface: health plus the domain verbs (ingest_text, ingest_url,
+// search, ask, job_status), wired to a domain service the same way crm wires
+// internal/contacts.
 //
 // The transport speaks JSON-RPC 2.0 over plain HTTP POST (no SSE/streaming),
 // responding with Content-Type: application/json. It carries NO token logic:
@@ -130,6 +126,9 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			"protocolVersion": "2025-03-26",
 			"capabilities":    map[string]any{"tools": map[string]any{}},
 			"serverInfo":      map[string]any{"name": "Wiki", "version": "1"},
+			"instructions": "A personal wiki: ingest text or URLs, then search or ask. " +
+				"search is a fast keyword read; ask runs an agent for a cited answer. " +
+				"Poll async jobs with job_status.",
 		})
 	case "notifications/initialized":
 		// fire-and-forget notification — no response per JSON-RPC.

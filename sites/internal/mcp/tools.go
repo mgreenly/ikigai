@@ -31,17 +31,17 @@ func tool(verb string) string { return toolPrefix + verb }
 func toolDescriptors() []map[string]any {
 	return []map[string]any{
 		// ── chassis tools ───────────────────────────────────────────────
-		desc(tool("health"), "Health + diagnostics for the sites service. Returns the fixed envelope (status, version, service, details) plus the authenticated caller's identity (owner_email, client_id) as established by the platform's auth gate — the end-to-end auth-chain proof. Takes no inputs.", obj(map[string]any{})),
+		desc(tool("health"), "Health + diagnostics for the sites service. Returns the fixed envelope (status, version, service, details) plus the authenticated caller's identity (owner_email, client_id). Takes no inputs.", obj(map[string]any{})),
 		desc(tool("describe"), "Self-describe the sites service: how to host a static website. The lifecycle is create a site (a slug) → edit its working tree with the file tools → publish it to a tier (public or private) so the front door serves it; unpublish/delete to tear it down. Returns the concept overview and the lifecycle tool list. Takes no inputs.", obj(map[string]any{})),
 		// ── lifecycle tools ─────────────────────────────────────────────
 		desc(tool("create"), "Create a new site. 'name' is the slug (1–63 chars, lowercase alphanumeric + hyphen, must start alphanumeric); reserved names are rejected. Inserts the registry row and creates its empty working tree. Returns the created site.", obj(map[string]any{
 			"name": descTyp("string", "the site slug (lowercase alnum + hyphen, 1–63 chars)"),
 		}, "name")),
 		desc(tool("list"), "List every site with its tier, published flag, and timestamps. Takes no inputs.", obj(map[string]any{})),
-		desc(tool("delete"), "Delete a site: unpublish it (drop any served link), remove its working tree, then remove the registry row. Idempotent enough to tolerate an already-removed working tree.", obj(map[string]any{
+		desc(tool("delete"), "Delete a site: unpublish it (drop any served link), remove its working tree, then remove the registry row. Idempotent: tolerates an already-removed working tree.", obj(map[string]any{
 			"name": descTyp("string", "the site slug to delete"),
 		}, "name")),
-		desc(tool("mkdir"), "Create a directory (and any missing parents) inside a site's working tree. 'path' is relative to the site's working root and is confined to it (absolute paths and any escape via '..' are rejected). Use this to make parent directories before writing files into nested paths.", obj(map[string]any{
+		desc(tool("mkdir"), "Create a directory (and any missing parents) inside a site's working tree. 'path' is relative to the site's working root and is confined to it (absolute paths and any escape via '..' are rejected). file_write already creates parent dirs, so this is only needed to make an empty directory.", obj(map[string]any{
 			"name": descTyp("string", "the site slug whose working tree to create the directory in"),
 			"path": descTyp("string", "directory path relative to the site's working root"),
 		}, "name", "path")),
@@ -55,7 +55,7 @@ func toolDescriptors() []map[string]any {
 		// ── file tools (agentkit bridge) ────────────────────────────────
 		// Each tool's inputSchema is agentkit's InputSchema for the underlying
 		// jailed tool plus a required "site" property naming the sandbox root.
-		desc(tool("file_write"), "writes content to file_path inside the site's working tree; creates parent dirs; overwrites by default, or appends when append:true.", obj(map[string]any{
+		desc(tool("file_write"), "Write content to file_path inside the site's working tree. Creates parent dirs; overwrites by default, or appends when append:true.", obj(map[string]any{
 			"site":      descTyp("string", "site slug whose working dir is the sandbox root"),
 			"file_path": descTyp("string", "path relative to the site's working root (confined; absolute and '..' rejected)"),
 			"content":   descTyp("string", "the bytes to write"),
@@ -65,7 +65,7 @@ func toolDescriptors() []map[string]any {
 		fileToolDescriptor("file_edit", "Edit", "Edit a file inside a site's working tree by replacing 'old_string' with 'new_string'. 'site' selects the sandbox root; 'file_path' is relative to it and confined to it. Set 'replace_all' to replace every occurrence."),
 		fileToolDescriptor("file_glob", "Glob", "Glob for files inside a site's working tree. 'site' selects the sandbox root; 'path' (if given) is relative to it and confined to it, defaulting to the working root."),
 		fileToolDescriptor("file_grep", "Grep", "Grep file contents inside a site's working tree. 'site' selects the sandbox root; 'path' (if given) is relative to it and confined to it, defaulting to the working root."),
-		desc(tool("file_list"), "lists every regular file under the site's working tree with its size and md5, for reconciliation/verification against local files; path optionally scopes the walk; returned paths are relative to the working root.", obj(map[string]any{
+		desc(tool("file_list"), "List every regular file under the site's working tree with its size and md5, for reconciliation against local files. 'path' optionally scopes the walk; returned paths are relative to the working root.", obj(map[string]any{
 			"site": descTyp("string", "site slug whose working dir is the sandbox root"),
 			"path": descTyp("string", "optional subdirectory (relative to the working root) to scope the walk"),
 		}, "site")),

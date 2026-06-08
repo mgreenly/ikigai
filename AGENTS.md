@@ -37,7 +37,7 @@ specifics live in the folders below and in `docs/`.
 | **ledger** | Path-routed service `/srv/ledger/` — double-entry bookkeeping (immutable journal, fixed-verb MCP); event-plane **producer**. |
 | **notify** | Path-routed service `/srv/notify/` — event-plane **consumer** (push) and the worked example for bringing up a new consumer. |
 | **dropbox** | Path-routed service `/srv/dropbox/` — keeps a private local mirror in sync with a single Dropbox app folder; loopback daemon + event-plane **producer**. |
-| **prompts** | Path-routed service `/srv/prompts/` — runs sandboxed Claude agent sessions on the owner's behalf, exposed as MCP (design-stage). |
+| **prompts** | Path-routed service `/srv/prompts/` — runs sandboxed Claude agent sessions on the owner's behalf, exposed as MCP; event-plane **producer** + **consumer** (self-chaining). |
 | **wiki** | Path-routed service `/srv/wiki/` — knowledge base: ingest / search / ask (RAG) + MCP. |
 | **appkit** | Shared Go **chassis** library: config-from-env, migration runner + downgrade guard, loopback server, `/feed`, manifest emit/parse, the verb dispatcher (consumed via a committed `replace`). |
 | **eventplane** | Shared Go **library** — the event-plane producer/consumer plumbing (committed `replace`). |

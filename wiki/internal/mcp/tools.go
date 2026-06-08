@@ -30,7 +30,7 @@ func tool(verb string) string { return toolPrefix + verb }
 // hand-coded with per-field docs to improve LLM hinting.
 func toolDescriptors() []map[string]any {
 	return []map[string]any{
-		desc(tool("health"), "Health + diagnostics for the wiki service. Returns the fixed envelope (status, version, service, details) plus the authenticated caller's identity (owner_email, client_id) as established by the platform's auth gate — the end-to-end auth-chain proof. Takes no inputs.", obj(map[string]any{})),
+		desc(tool("health"), "Health + diagnostics for the wiki service. Returns the fixed envelope (status, version, service, details) plus the authenticated caller's identity (owner_email, client_id). Takes no inputs.", obj(map[string]any{})),
 		desc(tool("ingest_text"),
 			"Ingest inline text into your personal wiki. The bytes are stored immutably (sha256-keyed) and an asynchronous integration agent files them into curated, cross-linked pages. Returns a job_id you can poll with job_status. Provide provenance (title/source/tags) so the wiki can trace every page back to its origin.",
 			obj(map[string]any{
@@ -65,12 +65,12 @@ func toolDescriptors() []map[string]any {
 				},
 			}, "query")),
 		desc(tool("ask"),
-			"Ask your personal wiki a question and get a synthesized, cited answer. Unlike search (a fast keyword read), this runs an asynchronous agent that navigates your wiki index-first, reads the relevant curated pages, and composes a direct answer citing the pages it used — then files that answer back as a synthesis page so future questions compound (subsequent search calls will find it). Returns a job_id to poll with job_status; when the job succeeds, the cited synthesis page is searchable. Answers are drawn ONLY from what your wiki already contains. Prefer search for quick lookups; use ask when you want a digested answer.",
+			"Ask your personal wiki a question and get a synthesized, cited answer. Runs an asynchronous agent that navigates your wiki index-first, reads the relevant curated pages, and composes a direct answer citing the pages it used — then files that answer back as a synthesis page so future questions compound. Returns a job_id to poll with job_status; when the job succeeds, the cited synthesis page is searchable. Answers are drawn ONLY from what your wiki already contains; prefer search for quick lookups.",
 			obj(map[string]any{
 				"question": strField("The question to answer from your wiki (free text)."),
 			}, "question")),
 		desc(tool("job_status"),
-			"Read the status of an asynchronous wiki job (e.g. an ingest integration pass or an ask synthesis) by its job_id. Returns the lifecycle state (running|succeeded|failed|cancelled), start/end timestamps, any error, and token usage. Owner-scoped: you can only read your own jobs.",
+			"Read the status of an asynchronous wiki job (e.g. an ingest integration pass or an ask synthesis) by its job_id. Returns the lifecycle state (running|succeeded|failed), start/end timestamps, any error, and token usage. Owner-scoped: you can only read your own jobs.",
 			obj(map[string]any{
 				"job_id": strField("The job id returned by ingest_text, ask, or another async verb."),
 			}, "job_id")),
@@ -183,7 +183,7 @@ type ingestURLArgs struct {
 
 // toolIngestURL drives the URL ingest core for the caller's owner. The service
 // fetches the URL server-side and extracts HTML→markdown; the result feeds the
-// same async ingest pipeline as wiki_ingest_text, with source defaulted to the
+// same async ingest pipeline as ingest_text, with source defaulted to the
 // URL. Collection is always the default (no collection arg per PLAN Decision 4).
 func (h *Handler) toolIngestURL(ctx context.Context, raw json.RawMessage, id Identity) (map[string]any, error) {
 	if h.ingest == nil {

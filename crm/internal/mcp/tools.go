@@ -33,7 +33,7 @@ func tool(verb string) string { return toolPrefix + verb }
 func toolDescriptors() []map[string]any {
 	return []map[string]any{
 		desc(tool("search"),
-			"Filtered, recency-ordered (updated_at DESC) summaries across all entities, or scoped to one 'type'. The first move on almost any request, and the list/paginate verb. 'query' substring-matches the entity's key text (LIKE). 'type' is one of organization|contact|deal|task|interaction. 'filters' is an object of entity-specific predicates, e.g. {\"subject_id\":\"<id>\"} for interactions, {\"tag\":\"newsletter\"} or {\"lifecycle\":\"customer\"} for contacts, {\"stage\":\"proposal\"} or {\"status\":\"open\"} for deals, {\"status\":\"open\"} for tasks. Use 'after_id' (the returned next_cursor) to paginate.",
+			"Filtered, recency-ordered (updated_at DESC) summaries across all entities, or scoped to one 'type'; the list/paginate verb. 'query' substring-matches the entity's key text (LIKE). 'type' is one of organization|contact|deal|task|interaction. 'filters' is an object of entity-specific predicates, e.g. {\"subject_id\":\"<id>\"} for interactions, {\"tag\":\"newsletter\"} or {\"lifecycle\":\"customer\"} for contacts, {\"stage\":\"proposal\"} or {\"status\":\"open\"} for deals, {\"status\":\"open\"} for tasks. Use 'after_id' (the returned next_cursor) to paginate.",
 			obj(map[string]any{
 				"query":    typ("string"),
 				"type":     typ("string"),
@@ -42,7 +42,7 @@ func toolDescriptors() []map[string]any {
 				"after_id": typ("string"),
 			})),
 		desc(tool("get"),
-			"Fetch one entity as a rich card by ULID: a contact comes back with its organization, open deals, recent interactions, and open tasks already attached — one call, full context. The type is resolved from the id automatically.",
+			"Fetch one entity as a rich card by ULID: a contact comes back with its organization, open deals, recent interactions, and open tasks already attached. The type is resolved from the id automatically.",
 			obj(map[string]any{"id": typ("string")}, "id")),
 		desc(tool("save"),
 			saveDescription,
@@ -59,7 +59,7 @@ func toolDescriptors() []map[string]any {
 				"id":   typ("string"),
 			}, "type", "id")),
 		desc(tool("log"),
-			"Append an interaction to a subject's timeline (the most frequent CRM write). 'subject_id' is the id of the contact, organization, or deal the interaction is about (resolved automatically). 'kind' is one of note|call|email|meeting. 'occurred_at' is optional (RFC3339; defaults to now). Append-only — to correct an entry, delete it (delete type:interaction) and log a new one.",
+			"Append an interaction to a subject's timeline. 'subject_id' is the id of the contact, organization, or deal the interaction is about (resolved automatically). 'kind' is one of note|call|email|meeting. 'occurred_at' is optional (RFC3339; defaults to now). Append-only — to correct an entry, delete it (delete type:interaction) and log a new one.",
 			obj(map[string]any{
 				"subject_id":  typ("string"),
 				"kind":        enumTyp("string", "note", "call", "email", "meeting"),
@@ -67,10 +67,10 @@ func toolDescriptors() []map[string]any {
 				"occurred_at": typ("string"),
 			}, "subject_id", "kind")),
 		desc(tool("health"),
-			"Health + diagnostics for the crm service. Returns the fixed envelope (status, version, service, details) plus the authenticated caller's identity (owner_email, client_id) as established by the platform's auth gate — the end-to-end auth-chain proof. Takes no inputs.",
+			"Health + diagnostics for the crm service. Returns the fixed envelope (status, version, service, details) plus the authenticated caller's identity (owner_email, client_id). Takes no inputs.",
 			obj(map[string]any{})),
 		desc(tool("reflection"),
-			"Self-describe crm's place in the event graph: 'publishes' (the event types this service emits) and 'subscribes' (the event types it listens to — empty for crm, a producer). With no arguments, returns the index: {publishes:[{type,description}], subscribes:[{source,filter,description}]}. Pass 'event_type' (one of the published types) to get its publish detail — {type, description, schema (JSON Schema of the payload), example (a worked instance)}. Resolve a subscribed edge's shape by calling the source service's reflection tool.",
+			"Self-describe crm's edges in the event graph. With no arguments, returns the index {publishes:[{type,description}], subscribes:[{source,filter,description}]} — crm is a producer, so subscribes is empty. Pass 'event_type' (a published type) for its detail {type, description, schema, example}.",
 			obj(map[string]any{
 				"event_type": descTyp("string", "optional; a published event type to fetch the schema+example detail for"),
 			})),

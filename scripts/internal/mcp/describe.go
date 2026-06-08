@@ -32,9 +32,9 @@ LIFECYCLE
 
 TRIGGERS
   set_trigger {script_id, source, event_filter} binds the script
-  to a producer (cron|crm|ledger|dropbox|prompts|scripts). On a matching event a
+  to a producer (cron|crm|ledger|dropbox|prompts). On a matching event a
   run starts automatically. Completion emits scripts.succeeded / scripts.failed
-  on this service's own /feed, so scripts can chain off each other.
+  on this service's own /feed for other services (e.g. prompts) to consume.
 
 health proves the auth chain and reports the runtime contract.`
 

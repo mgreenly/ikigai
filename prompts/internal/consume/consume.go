@@ -1,6 +1,7 @@
 // Package consume is prompts' event-plane CONSUMER domain: it fans events from
-// every upstream producer (cron, crm, ledger, dropbox, scripts) out to the
-// prompts whose triggers match, firing a run per match. It is the multi-upstream
+// every upstream producer (cron, crm, ledger, dropbox, scripts, and prompts'
+// own /feed for self-chaining) out to the prompts whose triggers match, firing
+// a run per match. It is the multi-upstream
 // mirror of notify's internal/push and scripts' internal/consume — where notify
 // reacts to a single upstream, prompts wires one Handler per upstream source and
 // fans each event out to N matching prompts.

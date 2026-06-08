@@ -52,7 +52,8 @@ OUTPUT FORMAT
 TRIGGERS — MULTI-SOURCE
 - A prompt can be wired to event triggers so it runs automatically. Each trigger
   is one (source, event_filter) binding; a prompt may hold several across several
-  upstream producers (cron|crm|ledger|dropbox|scripts). Attach with
+  upstream producers (cron|crm|ledger|dropbox|scripts|prompts, the last being
+  prompts' own run.succeeded/run.failed for self-chaining). Attach with
   set_trigger, remove with clear_trigger, or
   pass an inline "triggers" array to create.
 

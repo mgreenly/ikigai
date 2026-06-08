@@ -135,7 +135,7 @@ var knownProducers = map[string][]string{
 	"ledger":  {"transaction.recorded"},
 	"dropbox": {"file.created", "file.modified", "file.deleted"},
 	"scripts": {"scripts.succeeded", "scripts.failed"},
-	"prompts": {"run.succeeded", "run.failed"}, // self-chaining (A12); the consumer loop is a fast-follow TODO
+	"prompts": {"run.succeeded", "run.failed"}, // self-chaining (A12): prompts consumes its OWN /feed
 }
 
 // cronSource is the one DYNAMIC producer: its event types come from the live

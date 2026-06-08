@@ -21,15 +21,15 @@ const toolPrefix = ""
 // toolDescriptors and dispatchTool so the two sites cannot drift.
 func tool(verb string) string { return toolPrefix + verb }
 
-// toolDescriptors returns the notify tool set. For the skeleton this
-// is just health; real notify tools are added to this list and to
-// dispatchTool as the domain is built out. Schemas are hand-coded; a full JSON
-// Schema isn't required by MCP clients but improves the LLM hinting.
+// toolDescriptors returns the notify tool set: health and reflection. notify is
+// a consumer with no write verbs; its work happens in the background consumer
+// loop, not over MCP. Schemas are hand-coded; a full JSON Schema isn't required
+// by MCP clients but improves the LLM hinting.
 func toolDescriptors() []map[string]any {
 	return []map[string]any{
-		desc(tool("health"), "Health + diagnostics for the notify service. Returns the fixed envelope (status, version, service, details) plus the authenticated caller's identity (owner_email, client_id) as established by the platform's auth gate — the end-to-end auth-chain proof. Takes no inputs.", obj(map[string]any{})),
+		desc(tool("health"), "Health + diagnostics for the notify service. Returns the fixed envelope (status, version, service, details) plus the authenticated caller's identity (owner_email, client_id). Takes no inputs.", obj(map[string]any{})),
 		desc(tool("reflection"),
-			"Self-describe notify's place in the event graph: 'publishes' (the event types this service emits — empty for notify, a consumer) and 'subscribes' (the event types it listens to). With no arguments, returns the index: {publishes:[{type,description}], subscribes:[{source,filter,description}]}. Pass 'event_type' (one of the published types) to get its publish detail — {type, description, schema (JSON Schema of the payload), example (a worked instance)}. Resolve a subscribed edge's shape by calling the source service's reflection tool.",
+			"Self-describe notify's edges in the event graph. With no arguments, returns the index {publishes:[{type,description}], subscribes:[{source,filter,description}]} — notify is a consumer, so publishes is empty. Resolve a subscribed edge's payload shape by calling the source service's reflection tool.",
 			obj(map[string]any{
 				"event_type": descTyp("string", "optional; a published event type to fetch the schema+example detail for"),
 			})),

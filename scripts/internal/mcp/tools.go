@@ -27,7 +27,7 @@ func toolDescriptors() []map[string]any {
 	return []map[string]any{
 		desc(tool("describe"), "Return a detailed overview of scripts: what a script is, the create→run→poll→read lifecycle, triggers, and the runtime contract. Call this first if you're unfamiliar with scripts. Takes no inputs.", obj(map[string]any{})),
 
-		desc(tool("health"), "Health + diagnostics for the scripts service. Returns the fixed envelope (status, version, service, details) where details is the static runtime contract (python_version, bash_version, network, packages), plus the authenticated caller's identity. Takes no inputs.", obj(map[string]any{})),
+		desc(tool("health"), "Health + diagnostics for the scripts service. Returns the fixed envelope (status, version, service, details) plus the authenticated caller's identity (owner_email, client_id). details is the static runtime contract (python_version, bash_version, network, packages). Takes no inputs.", obj(map[string]any{})),
 
 		desc(tool("create"), "Create a new script for the caller. body is the Python source. Returns the new script_id.", obj(map[string]any{
 			"name":   typ("string"),
@@ -52,7 +52,7 @@ func toolDescriptors() []map[string]any {
 			"script_id": typ("string"),
 		}, "script_id")),
 
-		desc(tool("set_trigger"), "Bind a script to an upstream event. source is one of cron|crm|ledger|dropbox|prompts|scripts; event_filter is a glob over that producer's event types (e.g. \"contact.created\", \"contact.*\", \"cron.nightly\"). When a matching event fires, scripts starts a run.", obj(map[string]any{
+		desc(tool("set_trigger"), "Bind a script to an upstream event. source is one of cron|crm|ledger|dropbox|prompts; event_filter is a glob over that producer's event types (e.g. \"contact.created\", \"contact.*\", \"cron.nightly\"). When a matching event fires, scripts starts a run.", obj(map[string]any{
 			"script_id":    typ("string"),
 			"source":       typ("string"),
 			"event_filter": typ("string"),
@@ -64,7 +64,7 @@ func toolDescriptors() []map[string]any {
 			"event_filter": typ("string"),
 		}, "script_id", "source", "event_filter")),
 
-		desc(tool("run"), "Start a manual run of one of the caller's scripts. Always accepted (unbounded concurrency). Returns the run_id and start time.", obj(map[string]any{
+		desc(tool("run"), "Start a manual run of one of the caller's scripts. Always allowed — runs are fully concurrent. Returns the run_id and start time.", obj(map[string]any{
 			"script_id": typ("string"),
 		}, "script_id")),
 

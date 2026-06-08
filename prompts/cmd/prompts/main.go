@@ -47,17 +47,13 @@ import (
 // (event-protocol.md §7.1) — the literal "prompts" across all its upstream loops.
 const consumerID = "prompts"
 
-// sources is the five resolved upstream producers prompts consumes day-one
-// (A11). CONSUMES=cron,crm,ledger,dropbox,scripts in etc/manifest.env mirrors
-// this for the registry.
-//
-// TODO(self-chaining, A12): add "prompts" pointed at the LOCAL /feed
-// (PROMPTS_PROMPTS_FEED_URL default http://127.0.0.1:3004/feed) so a prompt can
-// fire on another prompt's run.succeeded/run.failed. Day-one keeps the five
-// external upstreams only; adding self-chaining means a SIXTH consumer loop
-// pointed at the local /feed — a one-line addition to this slice plus the
-// "prompts" CONSUMES entry.
-var sources = []string{"cron", "crm", "ledger", "dropbox", "scripts"}
+// sources is the resolved upstream producers prompts consumes (A11).
+// CONSUMES=cron,crm,ledger,dropbox,scripts,prompts in etc/manifest.env mirrors
+// this for the registry. The final "prompts" entry is self-chaining (A12): a
+// consumer loop pointed at prompts' OWN /feed (PROMPTS_PROMPTS_FEED_URL default
+// http://127.0.0.1:3004/feed) so a prompt can fire on another prompt's
+// run.succeeded/run.failed.
+var sources = []string{"cron", "crm", "ledger", "dropbox", "scripts", "prompts"}
 
 // feedDefaults is each upstream's loopback dev fallback (A11). The event plane
 // bypasses nginx, so these are direct 127.0.0.1 addresses; production composes
@@ -68,6 +64,7 @@ var feedDefaults = map[string]string{
 	"ledger":  "http://127.0.0.1:3002/feed",
 	"dropbox": "http://127.0.0.1:3005/feed",
 	"scripts": "http://127.0.0.1:3009/feed",
+	"prompts": "http://127.0.0.1:3004/feed", // self-chaining: prompts' OWN /feed (A12)
 }
 
 // svcRef carries the prompt service from the Handlers hook (where appkit has

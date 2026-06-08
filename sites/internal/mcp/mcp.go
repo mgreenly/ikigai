@@ -91,6 +91,8 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			"protocolVersion": "2025-03-26",
 			"capabilities":    map[string]any{"tools": map[string]any{}},
 			"serverInfo":      map[string]any{"name": "Sites", "version": "1"},
+			"instructions": "Host static websites behind the front door. Call describe " +
+				"first for the create→edit→publish lifecycle.",
 		})
 	case "notifications/initialized":
 		// fire-and-forget notification — no response per JSON-RPC.

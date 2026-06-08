@@ -1,9 +1,9 @@
 // Package mcp implements a minimal MCP transport for the /mcp endpoint and the
 // notify tool surface.
 //
-// This is the skeleton notify service: the only tool is health,
-// the end-to-end auth proof. Real notify domain tools are added here later, wired
-// to a domain service the same way crm wires internal/contacts.
+// notify exposes two MCP tools — health (the end-to-end auth proof) and
+// reflection (its event-plane edges). notify is an event-plane consumer; the
+// real work happens in the background consumer loop, not over MCP.
 //
 // The transport speaks JSON-RPC 2.0 over plain HTTP POST (no SSE/streaming),
 // responding with Content-Type: application/json. It carries NO token logic:
@@ -34,9 +34,9 @@ type Identity struct {
 
 // Handler is the http.Handler for POST /mcp. It is constructed at wiring time
 // with the health-envelope inputs (version, service, optional reporter) threaded
-// from appkit's Router accessors, and dispatches JSON-RPC methods. The skeleton
-// holds no domain service; a future notify domain service is injected here (see
-// NewHandler) the same way crm injects internal/contacts.
+// from appkit's Router accessors, and dispatches JSON-RPC methods. notify holds
+// no MCP-side domain service; its domain runs in the background consumer loop,
+// not over MCP.
 type Handler struct {
 	version       string
 	service       string
@@ -80,6 +80,9 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			"protocolVersion": "2025-03-26",
 			"capabilities":    map[string]any{"tools": map[string]any{}},
 			"serverInfo":      map[string]any{"name": "Notify", "version": "1"},
+			"instructions": "Event-plane consumer that pushes a notification for each " +
+				"subscribed event. Check health for status and reflection for what it " +
+				"subscribes to.",
 		})
 	case "notifications/initialized":
 		// fire-and-forget notification — no response per JSON-RPC.

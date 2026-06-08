@@ -73,7 +73,9 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		writeJSONRPCResult(w, req.ID, map[string]any{
 			"protocolVersion": "2025-03-26",
 			"capabilities":    map[string]any{"tools": map[string]any{}},
-			"serverInfo":      map[string]any{"name": "cron", "version": "1"},
+			"serverInfo":      map[string]any{"name": "Cron", "version": "1"},
+			"instructions": "Named UTC cron schedules that publish a cron.<name> event on " +
+				"a timer. Create a schedule, then wire consumers to its event.",
 		})
 	case "notifications/initialized":
 		w.WriteHeader(http.StatusAccepted)

@@ -21,19 +21,19 @@ const toolPrefix = ""
 // toolDescriptors and dispatchTool so the two sites cannot drift.
 func tool(verb string) string { return toolPrefix + verb }
 
-// toolDescriptors returns the single-tool dropbox surface (DECISIONS §7).
-// dropbox is a daemon: the service side is read-only, so there are no write
-// verbs. The former dropbox_whoami identity probe and the richer dropbox_health
-// status tool have been folded into the one branded health
+// toolDescriptors returns the two-tool dropbox surface (DECISIONS §7): health
+// and reflection. dropbox is a daemon: the service side is read-only, so there
+// are no write verbs. The former dropbox_whoami identity probe and the richer
+// dropbox_health status tool have been folded into the one branded health
 // tool — its sync/mirror telemetry lives under the envelope's details, supplied
-// by dropbox's Spec.Health reporter. Takes no inputs.
+// by dropbox's Spec.Health reporter.
 func toolDescriptors() []map[string]any {
 	return []map[string]any{
 		desc(tool("health"),
-			"Health + diagnostics for the dropbox service. Returns the fixed envelope (status, version, service, details) plus the authenticated caller's identity (owner_email, client_id) as established by the platform's auth gate — the end-to-end auth-chain proof. The details object carries the mirror daemon's telemetry: mirror_bytes (indexed logical size), disk_free_bytes / disk_total_bytes (mirror filesystem), and failed_files (count of files the sync engine could not download). Takes no inputs.",
+			"Health + diagnostics for the dropbox service. Returns the fixed envelope (status, version, service, details) plus the authenticated caller's identity (owner_email, client_id). details carries the mirror daemon's telemetry: mirror_bytes (indexed logical size), disk_free_bytes / disk_total_bytes (mirror filesystem), and failed_files (count of files the sync engine could not download). Takes no inputs.",
 			obj(map[string]any{})),
 		desc(tool("reflection"),
-			"Self-describe dropbox's place in the event graph: 'publishes' (the event types this service emits) and 'subscribes' (the event types it listens to — empty for dropbox, a producer). With no arguments, returns the index: {publishes:[{type,description}], subscribes:[{source,filter,description}]}. Pass 'event_type' (one of the published types) to get its publish detail — {type, description, schema (JSON Schema of the payload), example (a worked instance)}. Resolve a subscribed edge's shape by calling the source service's reflection tool.",
+			"Self-describe dropbox's edges in the event graph. With no arguments, returns the index {publishes:[{type,description}], subscribes:[{source,filter,description}]} — dropbox is a producer, so subscribes is empty. Pass 'event_type' (a published type) for its detail {type, description, schema, example}.",
 			obj(map[string]any{
 				"event_type": descTyp("string", "optional; a published event type to fetch the schema+example detail for"),
 			})),

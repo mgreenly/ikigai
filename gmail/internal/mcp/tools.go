@@ -122,17 +122,17 @@ var Events = outbox.Registry{
 func toolDescriptors() []map[string]any {
 	return []map[string]any{
 		desc(tool("health"),
-			"Health + diagnostics for the gmail service. Returns the fixed envelope (status, version, service, details) plus the authenticated caller's identity (owner_email, client_id) as established by the platform's auth gate — the end-to-end auth-chain proof. Takes no inputs.",
+			"Health + diagnostics for the gmail service. Returns the fixed envelope (status, version, service, details) plus the authenticated caller's identity (owner_email, client_id). Takes no inputs.",
 			obj(map[string]any{})),
 		desc(tool("reflection"),
-			"Self-describe gmail's place in the event graph: 'publishes' (the event types this service emits — mail.received, mail.sent, mail.deleted) and 'subscribes' (the event types it listens to — empty for gmail, a producer). With no arguments, returns the index: {publishes:[{type,description}], subscribes:[{source,filter,description}]}. Pass 'event_type' (one of the published types) to get its publish detail — {type, description, schema (JSON Schema of the payload), example (a worked instance)}. Resolve a subscribed edge's shape by calling the source service's reflection tool.",
+			"Self-describe gmail's edges in the event graph. With no arguments, returns the index {publishes:[{type,description}], subscribes:[{source,filter,description}]} — gmail is a producer, so subscribes is empty. Pass 'event_type' (a published type) for its detail {type, description, schema, example}.",
 			obj(map[string]any{
 				"event_type": descTyp("string", "optional; a published event type to fetch the schema+example detail for"),
 			})),
 
 		// ── read-only ──────────────────────────────────────────────────────
 		desc(tool("list"),
-			"List or SEARCH messages (one tool — Gmail's messages.list is the same call either way). Returns bare message pointers {id, thread_id} plus a next_page_token for pagination and a result_size_estimate. Use the 'read' tool to fetch a pointer's headers/body.",
+			"List or SEARCH messages (one call either way). Returns bare message pointers {id, thread_id} plus a next_page_token for pagination and a result_size_estimate. Use read to fetch a pointer's headers/body.",
 			obj(map[string]any{
 				"q":          descTyp("string", "optional Gmail search query (e.g. 'from:alice@example.com', 'subject:invoice', 'is:unread', 'after:2026/01/01'); empty lists recent messages"),
 				"page_token": descTyp("string", "optional pagination cursor from a prior call's next_page_token"),
@@ -167,7 +167,7 @@ func toolDescriptors() []map[string]any {
 				"body":    descTyp("string", "the plain-text message body"),
 			}, "to", "subject", "body")),
 		desc(tool("label"),
-			"Apply a label to a message (adds the label id). Covers mark-as-read in reverse via unlabel; to archive use unlabel with INBOX. Returns the updated message {id, label_ids}.",
+			"Apply a label to a message (adds the label id). Returns the updated message {id, label_ids}.",
 			obj(map[string]any{
 				"id":       descTyp("string", "the message id"),
 				"label_id": descTyp("string", "the label id to add (a system id like INBOX/UNREAD or a user label id from the labels tool)"),

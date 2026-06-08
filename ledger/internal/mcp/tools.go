@@ -36,7 +36,7 @@ func tool(verb string) string { return toolPrefix + verb }
 func toolDescriptors() []map[string]any {
 	return []map[string]any{
 		desc(tool("record"),
-			"Post one balanced double-entry transaction — the heart of the ledger and its most frequent write. Provide 2+ postings whose signed amount_cents sum to zero (debit +, credit −). Exactly one posting MAY omit amount_cents to receive the balancing residual (ledger-cli's killer ergonomic). Accounts are colon-paths whose root must be a known type; sub-accounts spring into existence on first posting. Returns the full transaction with the resolved residual and assigned ids.",
+			"Post one balanced double-entry transaction. Provide 2+ postings whose signed amount_cents sum to zero (debit +, credit −). Exactly one posting MAY omit amount_cents to receive the balancing residual. Accounts are colon-paths whose root must be a known type; sub-accounts spring into existence on first posting. Returns the full transaction with the resolved residual and assigned ids.",
 			obj(map[string]any{
 				"date":        typd("string", "calendar day YYYY-MM-DD (a business day, not a timestamp)"),
 				"description": typd("string", "payee / memo"),
@@ -64,7 +64,7 @@ func toolDescriptors() []map[string]any {
 			}, "posting_ids", "status")),
 
 		desc(tool("balance"),
-			"The `bal` report and the live chart of accounts. With no arguments returns the whole emergent account tree with raw signed balances (Assets/Expenses positive, Liabilities/Equity/Income negative; the whole-ledger total is 0). Serves trial balance, balance sheet, net worth, and per-customer A/R. Filter by account substring, period, depth, and reconciliation status (the cleared-vs-ledger view).",
+			"The `bal` report and the live chart of accounts. With no arguments returns the whole emergent account tree with raw signed balances (Assets/Expenses positive, Liabilities/Equity/Income negative; the whole-ledger total is 0). Filter by account substring, period, depth, and reconciliation status.",
 			obj(map[string]any{
 				"query":  typd("string", "case-insensitive substring matched against the full account path; omit for every account"),
 				"period": periodSchema(),
@@ -73,7 +73,7 @@ func toolDescriptors() []map[string]any {
 			})),
 
 		desc(tool("register"),
-			"The `reg` report — matched postings in chronological order with a running total. Customer statements, account history, search, and the list verb. Raw signed amounts like balance.",
+			"The `reg` report — matched postings in chronological order with a running total; the list verb. Raw signed amounts like balance.",
 			obj(map[string]any{
 				"query":  typd("string", "case-insensitive substring matched against the full account path; omit for every posting"),
 				"period": periodSchema(),
@@ -86,10 +86,10 @@ func toolDescriptors() []map[string]any {
 			"Discovery — the first call any agent should make. Returns the five typed roots (with normal balance and which statement they feed), the money unit (USD cents), the reconciliation states and their meaning, the live emergent account tree, and recipes for producing a balance sheet / P&L / customer statement from balance + register. Takes no inputs.",
 			obj(map[string]any{})),
 
-		desc(tool("health"), "Health + diagnostics for the ledger service. Returns the fixed envelope (status, version, service, details) plus the authenticated caller's identity (owner_email, client_id) as established by the platform's auth gate — the end-to-end auth-chain proof. Takes no inputs.", obj(map[string]any{})),
+		desc(tool("health"), "Health + diagnostics for the ledger service. Returns the fixed envelope (status, version, service, details) plus the authenticated caller's identity (owner_email, client_id). Takes no inputs.", obj(map[string]any{})),
 
 		desc(tool("reflection"),
-			"Self-describe ledger's place in the event graph: 'publishes' (the event types this service emits) and 'subscribes' (the event types it listens to — empty for ledger, a producer). With no arguments, returns the index: {publishes:[{type,description}], subscribes:[{source,filter,description}]}. Pass 'event_type' (one of the published types) to get its publish detail — {type, description, schema (JSON Schema of the payload), example (a worked instance)}. Resolve a subscribed edge's shape by calling the source service's reflection tool.",
+			"Self-describe ledger's edges in the event graph. With no arguments, returns the index {publishes:[{type,description}], subscribes:[{source,filter,description}]} — ledger is a producer, so subscribes is empty. Pass 'event_type' (a published type) for its detail {type, description, schema, example}.",
 			obj(map[string]any{
 				"event_type": typd("string", "optional; a published event type to fetch the schema+example detail for"),
 			})),

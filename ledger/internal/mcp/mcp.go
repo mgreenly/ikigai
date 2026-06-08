@@ -88,6 +88,9 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			"protocolVersion": "2025-03-26",
 			"capabilities":    map[string]any{"tools": map[string]any{}},
 			"serverInfo":      map[string]any{"name": "Ledger", "version": "1"},
+			"instructions": "Double-entry bookkeeping over an immutable journal. Call " +
+				"describe first for the account model, then use record, balance, and " +
+				"register.",
 		})
 	case "notifications/initialized":
 		// fire-and-forget notification — no response per JSON-RPC.

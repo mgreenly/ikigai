@@ -85,6 +85,9 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			"protocolVersion": "2025-03-26",
 			"capabilities":    map[string]any{"tools": map[string]any{}},
 			"serverInfo":      map[string]any{"name": "CRM", "version": "1"},
+			"instructions": "A sales CRM over organizations, contacts, deals, tasks, " +
+				"and interactions. Start with search to find things, then get, save, " +
+				"and log.",
 		})
 	case "notifications/initialized":
 		// fire-and-forget notification — no response per JSON-RPC.
