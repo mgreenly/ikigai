@@ -85,3 +85,23 @@ re-reads the manifests.
 The full deploy model is `docs/adr-deployment-redesign.md`; versioning is
 `docs/versioning.md`; per-service details live under each service's own
 directory and `CLAUDE.md`.
+
+## Migrations — timestamped and immutable
+
+Each service owns its schema as ordered SQL files under
+`<service>/internal/db/migrations/`, applied forward-only by the appkit runner
+and tracked individually in `schema_migrations`. Two hard rules:
+
+- **Never hand-pick a migration number, and never write one by hand.** Run
+  `bin/new-migration <service> <name>`; it stamps a UTC timestamp version
+  (`YYYYMMDDHHMMSS_name.sql`). Timestamps are why two agents on two branches
+  don't collide — sequential integers did, and the clash only surfaced at
+  deploy. (Legacy `NNN_*.sql` files predate this and stay frozen; they sort
+  before any timestamp, so the two coexist.)
+- **Never modify or delete a committed migration.** Once a migration is on
+  `main` it is immutable — the runner keys on its version and will silently skip
+  an edited body, so the change reaches new databases but not existing ones.
+  Change schema by adding a *new* migration. `bin/check-migrations` enforces
+  both rules in CI (no duplicate versions, no edits to existing files).
+
+See `docs/adr-migration-timestamps.md`.

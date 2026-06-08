@@ -1,0 +1,174 @@
+#!/usr/bin/env bash
+# bin/check-migrations — CI guard for service schema migrations.
+#
+#   bin/check-migrations
+#
+# Scans every <service>/internal/db/migrations/ directory in the repo and enforces
+# the three rules of docs/adr-migration-timestamps.md, failing CI (non-zero exit
+# with a precise message naming the offending file) on any violation:
+#
+#   1. Naming      — every *.sql file starts with a numeric prefix then '_': it is
+#                    either the legacy integer form (NNN_name.sql) or the timestamp
+#                    form (YYYYMMDDHHMMSS_name.sql). A file with no numeric prefix
+#                    (e.g. foo.sql) is rejected.
+#   2. Uniqueness  — within EACH service's migrations dir, no two files share the
+#                    same numeric prefix. This is the merge-collision backstop,
+#                    moved from LoadMigrations at deploy time to CI.
+#   3. Immutability — a committed migration is never edited, deleted, or renamed.
+#                    Computed from the git diff of the merge-base of origin/main
+#                    (falling back to main) against HEAD over the migration paths:
+#                    any M / D / R of an existing migration fails; only A (added)
+#                    is permitted.
+#
+# The naming and uniqueness checks always run. The immutability check is guarded:
+# if no upstream ref is resolvable (fresh clone, or on main with nothing to diff)
+# it has nothing to compare and passes, without aborting the other checks.
+#
+# See docs/adr-migration-timestamps.md and docs/plan-migration-timestamps.md.
+set -euo pipefail
+
+usage() {
+  cat <<'USAGE'
+bin/check-migrations — CI guard: naming, uniqueness, and immutability of service migrations.
+
+Usage:
+  bin/check-migrations
+
+Scans every <service>/internal/db/migrations/ directory and enforces:
+  1. Naming      — every *.sql starts with digits then '_' (legacy NNN_ or 14-digit timestamp).
+  2. Uniqueness  — no two files in one service share the same numeric prefix.
+  3. Immutability — no edit/delete/rename of a migration already on origin/main (only adds).
+
+Exits non-zero, naming the offending file, on any violation.
+
+Flags:
+  -h, --help   show this help.
+USAGE
+}
+
+for arg in "$@"; do
+  case "$arg" in
+    -h|--help) usage; exit 0 ;;
+    *)         echo "!! unexpected argument: $arg" >&2; usage >&2; exit 2 ;;
+  esac
+done
+
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$REPO"
+
+fail=0
+
+# prefix_of <filename> — the leading run of digits of a migration basename, i.e.
+# the numeric version prefix before the first underscore. Empty if none.
+prefix_of() {
+  local base="$1"
+  printf '%s' "$base" | sed -n 's/^\([0-9][0-9]*\)_.*/\1/p'
+}
+
+# --- discover the migration dirs --------------------------------------------
+mig_dirs=()
+for d in */internal/db/migrations; do
+  [ -d "$d" ] && mig_dirs+=("$d")
+done
+
+if [ "${#mig_dirs[@]}" -eq 0 ]; then
+  echo "!! no */internal/db/migrations directories found under $REPO" >&2
+  exit 1
+fi
+
+# --- checks 1 & 2: naming + per-service uniqueness --------------------------
+for dir in "${mig_dirs[@]}"; do
+  service="${dir%%/*}"
+
+  prefixes=""
+  for f in "$dir"/*.sql; do
+    # no .sql files in this dir -> the glob is literal; skip.
+    [ -e "$f" ] || continue
+    base="$(basename "$f")"
+
+    # 1. Naming: must be digits then '_' then a non-empty name then '.sql'.
+    if ! printf '%s' "$base" | grep -Eq '^[0-9]+_.+\.sql$'; then
+      echo "!! naming: ${f} does not match a migration name (NNN_name.sql or YYYYMMDDHHMMSS_name.sql)" >&2
+      fail=1
+      continue
+    fi
+
+    prefix="$(prefix_of "$base")"
+    prefixes="${prefixes}${prefix}"$'\n'
+  done
+
+  # 2. Uniqueness: no duplicate numeric prefix within this service.
+  dupes="$(printf '%s' "$prefixes" | grep -v '^$' | sort | uniq -d || true)"
+  if [ -n "$dupes" ]; then
+    while IFS= read -r dupe; do
+      [ -n "$dupe" ] || continue
+      colliding="$(cd "$dir" && ls "${dupe}"_*.sql 2>/dev/null | tr '\n' ' ')"
+      echo "!! uniqueness: service '${service}' has duplicate migration prefix '${dupe}': ${colliding}" >&2
+    done <<< "$dupes"
+    fail=1
+  fi
+done
+
+# --- check 3: immutability via git diff -------------------------------------
+# Resolve an upstream ref to diff against, then the merge-base with HEAD. Each git
+# call is guarded so a missing origin/main (fresh clone, no remote) does not abort
+# the script — the naming/uniqueness checks above have already run.
+base_ref=""
+if git rev-parse --verify --quiet origin/main >/dev/null 2>&1; then
+  base_ref="origin/main"
+elif git rev-parse --verify --quiet main >/dev/null 2>&1; then
+  base_ref="main"
+fi
+
+merge_base=""
+if [ -n "$base_ref" ]; then
+  merge_base="$(git merge-base "$base_ref" HEAD 2>/dev/null || true)"
+fi
+
+if [ -n "$merge_base" ]; then
+  # name-status over the merge-base..HEAD range; -z for NUL-safe parsing.
+  # Status letters: A added (ok), M modified, D deleted, R### renamed.
+  while IFS= read -r -d '' status; do
+    IFS= read -r -d '' path || break
+    case "$path" in
+      */internal/db/migrations/*.sql) ;;
+      *)
+        # rename emits oldpath then newpath; consume the newpath token too.
+        case "$status" in R*|C*) IFS= read -r -d '' _newpath || true ;; esac
+        continue
+        ;;
+    esac
+
+    case "$status" in
+      A)
+        : # added — permitted.
+        ;;
+      M)
+        echo "!! immutability: migration modified since ${base_ref}: ${path} (migrations are immutable — add a new one)" >&2
+        fail=1
+        ;;
+      D)
+        echo "!! immutability: migration deleted since ${base_ref}: ${path} (migrations are immutable — never delete)" >&2
+        fail=1
+        ;;
+      R*)
+        IFS= read -r -d '' newpath || true
+        echo "!! immutability: migration renamed since ${base_ref}: ${path} -> ${newpath} (migrations are immutable — never rename)" >&2
+        fail=1
+        ;;
+      C*)
+        IFS= read -r -d '' _newpath || true
+        ;;
+      *)
+        : # other statuses (T type-change, etc.) are not expected for .sql; ignore.
+        ;;
+    esac
+  done < <(git diff -z --name-status "${merge_base}..HEAD" 2>/dev/null || true)
+fi
+
+if [ "$fail" -ne 0 ]; then
+  echo "!! check-migrations: FAILED" >&2
+  exit 1
+fi
+
+echo "check-migrations: OK (${#mig_dirs[@]} migration dirs checked)"

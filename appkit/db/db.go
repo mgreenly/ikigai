@@ -7,6 +7,22 @@
 // embed.FS baked into this package, so one runner serves every app while each
 // app keeps its own migration set app-side (PLAN §B1 map: appkit/db owns the
 // mechanism, the *.sql stay app-side).
+//
+// Migration filenames carry a numeric version prefix in one of two forms (see
+// docs/adr-migration-timestamps.md):
+//
+//   - New migrations use a generated 14-digit UTC timestamp,
+//     YYYYMMDDHHMMSS_name.sql (e.g. 20260607143022_add_widgets.sql), produced by
+//     bin/new-migration — never hand-picked. Timestamps make cross-branch
+//     collisions astronomically unlikely.
+//   - Legacy migrations use a hand-picked sequential integer, NNN_name.sql
+//     (001_…, 002_…). These are frozen: never renumbered, never edited.
+//
+// The two schemes coexist in one sorted run because a 14-digit timestamp sorts
+// strictly after any legacy integer. The runner makes no contiguity/gaplessness
+// assumption — versions need only be unique and parse as a positive integer; the
+// version is parsed by strconv.Atoi either way (int is 64-bit on the linux/amd64
+// build target, so a 14-digit timestamp fits without overflow).
 package db
 
 import (
@@ -52,8 +68,10 @@ type Migration struct {
 }
 
 // LoadMigrations reads and orders the migrations under dir in fsys (the
-// service's embedded migrations/*.sql). It enforces the NNN_name.sql naming and
-// rejects duplicate version numbers.
+// service's embedded migrations/*.sql). It accepts both the legacy
+// NNN_name.sql integer form and the new YYYYMMDDHHMMSS_name.sql timestamp form
+// (the prefix must be a positive integer either way), sorts by version, and
+// rejects duplicate version numbers. It makes no contiguity assumption.
 func LoadMigrations(fsys fs.FS, dir string) ([]Migration, error) {
 	entries, err := fs.ReadDir(fsys, dir)
 	if err != nil {
@@ -66,11 +84,14 @@ func LoadMigrations(fsys fs.FS, dir string) ([]Migration, error) {
 		}
 		under := strings.IndexByte(e.Name(), '_')
 		if under <= 0 {
-			return nil, fmt.Errorf("migration %q: expected NNN_name.sql", e.Name())
+			return nil, fmt.Errorf("migration %q: expected NNN_name.sql (legacy integer) or YYYYMMDDHHMMSS_name.sql (timestamp)", e.Name())
 		}
 		v, err := strconv.Atoi(e.Name()[:under])
 		if err != nil {
 			return nil, fmt.Errorf("migration %q: parse version: %w", e.Name(), err)
+		}
+		if v <= 0 {
+			return nil, fmt.Errorf("migration %q: version must be a positive integer (legacy NNN or YYYYMMDDHHMMSS timestamp), got %d", e.Name(), v)
 		}
 		body, err := fs.ReadFile(fsys, path.Join(dir, e.Name()))
 		if err != nil {

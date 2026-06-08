@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"testing/fstest"
 
 	"appkit/db"
 	"appkit/internal/testmigrations"
@@ -115,10 +116,87 @@ func TestLoadMigrations_OrderAndNaming(t *testing.T) {
 	if len(migs) != 2 {
 		t.Fatalf("len = %d, want 2", len(migs))
 	}
-	for i, m := range migs {
-		if m.Version != i+1 {
-			t.Errorf("migration %d has version %d (gaps not allowed)", i, m.Version)
+	// Versions must be strictly ascending and unique; contiguity (no gaps) is
+	// NOT required — timestamp migrations are sparse by design.
+	for i := 1; i < len(migs); i++ {
+		if migs[i].Version <= migs[i-1].Version {
+			t.Errorf("migration %d version %d not strictly after prior %d", i, migs[i].Version, migs[i-1].Version)
 		}
+	}
+}
+
+// TestLoadMigrations_Timestamp confirms a 14-digit UTC timestamp filename loads
+// and parses into the right Version (int is 64-bit on linux/amd64, so no
+// overflow).
+func TestLoadMigrations_Timestamp(t *testing.T) {
+	fsys := fstest.MapFS{
+		"m/20260607143022_add_widgets.sql": {Data: []byte("SELECT 1;")},
+	}
+	migs, err := db.LoadMigrations(fsys, "m")
+	if err != nil {
+		t.Fatalf("LoadMigrations: %v", err)
+	}
+	if len(migs) != 1 {
+		t.Fatalf("len = %d, want 1", len(migs))
+	}
+	if migs[0].Version != 20260607143022 {
+		t.Errorf("version = %d, want 20260607143022", migs[0].Version)
+	}
+}
+
+// TestLoadMigrations_MixedIntegerAndTimestamp confirms a legacy-integer +
+// timestamp set sorts into the correct order: integers sort strictly before any
+// 14-digit timestamp.
+func TestLoadMigrations_MixedIntegerAndTimestamp(t *testing.T) {
+	fsys := fstest.MapFS{
+		"m/002_b.sql":            {Data: []byte("SELECT 1;")},
+		"m/20260607143022_d.sql": {Data: []byte("SELECT 1;")},
+		"m/001_a.sql":            {Data: []byte("SELECT 1;")},
+		"m/003_c.sql":            {Data: []byte("SELECT 1;")},
+	}
+	migs, err := db.LoadMigrations(fsys, "m")
+	if err != nil {
+		t.Fatalf("LoadMigrations: %v", err)
+	}
+	want := []int{1, 2, 3, 20260607143022}
+	if len(migs) != len(want) {
+		t.Fatalf("len = %d, want %d", len(migs), len(want))
+	}
+	for i, w := range want {
+		if migs[i].Version != w {
+			t.Errorf("migs[%d].Version = %d, want %d", i, migs[i].Version, w)
+		}
+	}
+}
+
+// TestLoadMigrations_RejectsDuplicates confirms the duplicate-version guard
+// still fires (e.g. a cross-branch collision on the same prefix).
+func TestLoadMigrations_RejectsDuplicates(t *testing.T) {
+	fsys := fstest.MapFS{
+		"m/004_a.sql": {Data: []byte("SELECT 1;")},
+		"m/004_b.sql": {Data: []byte("SELECT 1;")},
+	}
+	_, err := db.LoadMigrations(fsys, "m")
+	if err == nil {
+		t.Fatal("expected duplicate-version error, got nil")
+	}
+	if !strings.Contains(err.Error(), "duplicated") {
+		t.Fatalf("error = %v, want a duplication error", err)
+	}
+}
+
+// TestLoadMigrations_RejectsNonPositive confirms the defensive Version > 0 check
+// rejects a zero/negative prefix that would otherwise sort ahead of everything.
+func TestLoadMigrations_RejectsNonPositive(t *testing.T) {
+	fsys := fstest.MapFS{
+		"m/000_zero.sql": {Data: []byte("SELECT 1;")},
+	}
+	_, err := db.LoadMigrations(fsys, "m")
+	if err == nil {
+		t.Fatal("expected non-positive version error, got nil")
+	}
+	if !strings.Contains(err.Error(), "positive") {
+		t.Fatalf("error = %v, want a positive-integer error", err)
 	}
 }
 
