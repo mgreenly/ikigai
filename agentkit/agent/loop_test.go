@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -983,6 +984,365 @@ func TestFreeformStopAllowsEmptyText(t *testing.T) {
 	}
 	if got != "" {
 		t.Fatalf("result text = %q, want empty string", got)
+	}
+}
+
+// fakeToolSource is a test ToolSource. It owns a fixed set of
+// service-prefixed tool names, advertises one descriptor per owned name,
+// and returns a canned text result (or a Go error, when errOnDispatch is
+// set) from Dispatch. It records the (name, input) pairs it was asked to
+// dispatch so tests can assert routing.
+type fakeToolSource struct {
+	owned         map[string]bool
+	resultText    string
+	errOnDispatch error
+	dispatched    []struct {
+		name  string
+		input json.RawMessage
+	}
+}
+
+func (f *fakeToolSource) Descriptors() []provider.Tool {
+	var ds []provider.Tool
+	for name := range f.owned {
+		ds = append(ds, provider.Tool{
+			Name:        name,
+			InputSchema: json.RawMessage(`{"type":"object"}`),
+		})
+	}
+	return ds
+}
+
+func (f *fakeToolSource) Owns(name string) bool { return f.owned[name] }
+
+func (f *fakeToolSource) Dispatch(ctx context.Context, name string, input json.RawMessage) (wire.ToolResultBlock, error) {
+	f.dispatched = append(f.dispatched, struct {
+		name  string
+		input json.RawMessage
+	}{name, input})
+	if f.errOnDispatch != nil {
+		return wire.ToolResultBlock{}, f.errOnDispatch
+	}
+	// Deliberately leave ToolUseID empty: the loop is responsible for
+	// attaching the tool_use id to source-dispatched results.
+	b, err := wire.NewToolResultBlock("", false, f.resultText)
+	return b, err
+}
+
+// Phase 4: when opts.Tools is non-nil, Run advertises the source's
+// descriptors on the very first provider request, alongside any caller-
+// supplied built-ins already present in req.Tools.
+func TestToolSource_DescriptorsAdvertisedOnRequest(t *testing.T) {
+	src := &fakeToolSource{
+		owned:      map[string]bool{"ikigenba_crm_search": true},
+		resultText: "ok",
+	}
+
+	client := &capturingClient{sequences: [][]provider.Event{
+		{
+			provider.EventTextDelta{Text: "done"},
+			provider.EventDone{StopReason: "end_turn"},
+		},
+	}}
+
+	var out bytes.Buffer
+	sess := wire.NewSession(&out)
+	// A caller-supplied built-in descriptor must survive alongside the source's.
+	req := provider.Request{Tools: []provider.Tool{{Name: "Read", InputSchema: json.RawMessage(`{}`)}}}
+
+	if err := Run(context.Background(), client, sess, req, Options{Tools: src}); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	if len(client.capturedRequests) != 1 {
+		t.Fatalf("captured %d requests, want 1", len(client.capturedRequests))
+	}
+	names := map[string]bool{}
+	for _, tool := range client.capturedRequests[0].Tools {
+		names[tool.Name] = true
+	}
+	if !names["Read"] {
+		t.Errorf("caller-supplied built-in Read missing from req.Tools; got %v", names)
+	}
+	if !names["ikigenba_crm_search"] {
+		t.Errorf("source descriptor ikigenba_crm_search missing from req.Tools; got %v", names)
+	}
+}
+
+// Phase 4: a tool_use whose name the source Owns is dispatched through the
+// source's Dispatch, and the resulting tool_result carries the correct
+// tool_use id (attached by the loop) and the source's text.
+func TestToolSource_OwnedToolRoutedThroughSource(t *testing.T) {
+	src := &fakeToolSource{
+		owned:      map[string]bool{"ikigenba_crm_search": true},
+		resultText: "crm-says-hello",
+	}
+
+	toolInput := json.RawMessage(`{"q":"acme"}`)
+	client := &sequenceClient{sequences: [][]provider.Event{
+		{
+			provider.EventToolUse{ID: "toolu_crm_01", Name: "ikigenba_crm_search", Input: toolInput},
+			provider.EventDone{StopReason: "tool_use"},
+		},
+		{
+			provider.EventTextDelta{Text: "done"},
+			provider.EventDone{StopReason: "end_turn"},
+		},
+	}}
+
+	var out bytes.Buffer
+	sess := wire.NewSession(&out)
+	if err := Run(context.Background(), client, sess, provider.Request{}, Options{Tools: src}); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	// The source must have been asked to dispatch the owned tool by name+input.
+	if len(src.dispatched) != 1 {
+		t.Fatalf("source dispatched %d tools, want 1", len(src.dispatched))
+	}
+	if src.dispatched[0].name != "ikigenba_crm_search" {
+		t.Errorf("dispatched name = %q, want ikigenba_crm_search", src.dispatched[0].name)
+	}
+	if string(src.dispatched[0].input) != string(toolInput) {
+		t.Errorf("dispatched input = %s, want %s", src.dispatched[0].input, toolInput)
+	}
+
+	lines := splitLines(out.String())
+	// assistant(tool_use), user(tool_result), assistant(text), result
+	if len(lines) != 4 {
+		t.Fatalf("expected 4 events, got %d: %q", len(lines), out.String())
+	}
+	var userEv struct {
+		Type    string `json:"type"`
+		Message struct {
+			Content []struct {
+				Type      string `json:"type"`
+				ToolUseID string `json:"tool_use_id"`
+				IsError   bool   `json:"is_error"`
+				Content   string `json:"content"`
+			} `json:"content"`
+		} `json:"message"`
+	}
+	if err := json.Unmarshal([]byte(lines[1]), &userEv); err != nil {
+		t.Fatalf("unmarshal user event: %v", err)
+	}
+	if len(userEv.Message.Content) != 1 || userEv.Message.Content[0].Type != "tool_result" {
+		t.Fatalf("user content = %+v, want one tool_result", userEv.Message.Content)
+	}
+	blk := userEv.Message.Content[0]
+	if blk.ToolUseID != "toolu_crm_01" {
+		t.Errorf("tool_result tool_use_id = %q, want toolu_crm_01 (loop must attach id)", blk.ToolUseID)
+	}
+	if blk.IsError {
+		t.Errorf("tool_result is_error = true, want false")
+	}
+	if blk.Content != "crm-says-hello" {
+		t.Errorf("tool_result content = %q, want crm-says-hello", blk.Content)
+	}
+}
+
+// Phase 4: a tool_use with a built-in name the source does NOT own still
+// goes through the built-in tools.Dispatch path, unaffected by the
+// presence of opts.Tools. The source's Dispatch is never called.
+func TestToolSource_UnownedToolFallsThroughToBuiltins(t *testing.T) {
+	tmp := t.TempDir()
+	filePath := tmp + "/hello.txt"
+	if err := os.WriteFile(filePath, []byte("hello world\n"), 0o644); err != nil {
+		t.Fatalf("write temp file: %v", err)
+	}
+	readInput, err := json.Marshal(map[string]string{"file_path": filePath})
+	if err != nil {
+		t.Fatalf("marshal read input: %v", err)
+	}
+
+	src := &fakeToolSource{
+		owned:      map[string]bool{"ikigenba_crm_search": true},
+		resultText: "should-not-appear",
+	}
+
+	client := &sequenceClient{sequences: [][]provider.Event{
+		{
+			provider.EventToolUse{ID: "toolu_read_01", Name: "Read", Input: readInput},
+			provider.EventDone{StopReason: "tool_use"},
+		},
+		{
+			provider.EventTextDelta{Text: "done"},
+			provider.EventDone{StopReason: "end_turn"},
+		},
+	}}
+
+	var out bytes.Buffer
+	sess := wire.NewSession(&out)
+	if err := Run(context.Background(), client, sess, provider.Request{}, Options{Tools: src}); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	if len(src.dispatched) != 0 {
+		t.Fatalf("source Dispatch was called %d times for an unowned tool, want 0", len(src.dispatched))
+	}
+
+	lines := splitLines(out.String())
+	if len(lines) != 4 {
+		t.Fatalf("expected 4 events, got %d: %q", len(lines), out.String())
+	}
+	var userEv struct {
+		Message struct {
+			Content []struct {
+				ToolUseID string `json:"tool_use_id"`
+				IsError   bool   `json:"is_error"`
+				Content   string `json:"content"`
+			} `json:"content"`
+		} `json:"message"`
+	}
+	if err := json.Unmarshal([]byte(lines[1]), &userEv); err != nil {
+		t.Fatalf("unmarshal user event: %v", err)
+	}
+	if len(userEv.Message.Content) != 1 {
+		t.Fatalf("user content len = %d, want 1", len(userEv.Message.Content))
+	}
+	if userEv.Message.Content[0].ToolUseID != "toolu_read_01" {
+		t.Errorf("tool_use_id = %q, want toolu_read_01", userEv.Message.Content[0].ToolUseID)
+	}
+	if userEv.Message.Content[0].IsError {
+		t.Errorf("built-in Read tool_result is_error = true, want false")
+	}
+	if !strings.Contains(userEv.Message.Content[0].Content, "hello world") {
+		t.Errorf("built-in Read content = %q, want it to contain the file body", userEv.Message.Content[0].Content)
+	}
+}
+
+// Phase 4 / decision #9: when the source's Dispatch returns a Go error,
+// the loop converts it into an is_error tool_result for that tool and the
+// run CONTINUES (Run does not return the error).
+func TestToolSource_DispatchErrorIsNonFatal(t *testing.T) {
+	src := &fakeToolSource{
+		owned:         map[string]bool{"ikigenba_crm_search": true},
+		errOnDispatch: fmt.Errorf("boom from source"),
+	}
+
+	client := &sequenceClient{sequences: [][]provider.Event{
+		{
+			provider.EventToolUse{ID: "toolu_crm_01", Name: "ikigenba_crm_search", Input: json.RawMessage(`{}`)},
+			provider.EventDone{StopReason: "tool_use"},
+		},
+		{
+			provider.EventTextDelta{Text: "recovered"},
+			provider.EventDone{StopReason: "end_turn"},
+		},
+	}}
+
+	var out bytes.Buffer
+	sess := wire.NewSession(&out)
+	if err := Run(context.Background(), client, sess, provider.Request{}, Options{Tools: src}); err != nil {
+		t.Fatalf("Run returned error %v; a source Dispatch error must be non-fatal", err)
+	}
+	if client.calls != 2 {
+		t.Fatalf("client.calls = %d, want 2 (run must continue past the failed tool)", client.calls)
+	}
+
+	lines := splitLines(out.String())
+	if len(lines) != 4 {
+		t.Fatalf("expected 4 events, got %d: %q", len(lines), out.String())
+	}
+	var userEv struct {
+		Message struct {
+			Content []struct {
+				Type      string `json:"type"`
+				ToolUseID string `json:"tool_use_id"`
+				IsError   bool   `json:"is_error"`
+				Content   string `json:"content"`
+			} `json:"content"`
+		} `json:"message"`
+	}
+	if err := json.Unmarshal([]byte(lines[1]), &userEv); err != nil {
+		t.Fatalf("unmarshal user event: %v", err)
+	}
+	if len(userEv.Message.Content) != 1 || userEv.Message.Content[0].Type != "tool_result" {
+		t.Fatalf("user content = %+v, want one tool_result", userEv.Message.Content)
+	}
+	blk := userEv.Message.Content[0]
+	if !blk.IsError {
+		t.Errorf("tool_result is_error = false, want true for a failed source dispatch")
+	}
+	if blk.ToolUseID != "toolu_crm_01" {
+		t.Errorf("tool_result tool_use_id = %q, want toolu_crm_01", blk.ToolUseID)
+	}
+	if !strings.Contains(blk.Content, "boom from source") {
+		t.Errorf("tool_result content = %q, want it to mention the source error", blk.Content)
+	}
+	// Final result event must be a clean (non-error) end_turn.
+	var resultEv struct {
+		Type    string `json:"type"`
+		IsError bool   `json:"is_error"`
+	}
+	if err := json.Unmarshal([]byte(lines[3]), &resultEv); err != nil {
+		t.Fatalf("unmarshal result: %v", err)
+	}
+	if resultEv.Type != "result" || resultEv.IsError {
+		t.Fatalf("final event = %+v, want non-error result", resultEv)
+	}
+}
+
+// Phase 4: with opts.Tools == nil, no descriptors are added to req.Tools
+// and tool dispatch is byte-identical to the pre-Phase-4 built-in path.
+func TestToolSource_NilLeavesRequestAndDispatchUnchanged(t *testing.T) {
+	tmp := t.TempDir()
+	filePath := tmp + "/hello.txt"
+	if err := os.WriteFile(filePath, []byte("nil-path\n"), 0o644); err != nil {
+		t.Fatalf("write temp file: %v", err)
+	}
+	readInput, err := json.Marshal(map[string]string{"file_path": filePath})
+	if err != nil {
+		t.Fatalf("marshal read input: %v", err)
+	}
+
+	client := &capturingClient{sequences: [][]provider.Event{
+		{
+			provider.EventToolUse{ID: "toolu_read_01", Name: "Read", Input: readInput},
+			provider.EventDone{StopReason: "tool_use"},
+		},
+		{
+			provider.EventTextDelta{Text: "done"},
+			provider.EventDone{StopReason: "end_turn"},
+		},
+	}}
+
+	var out bytes.Buffer
+	sess := wire.NewSession(&out)
+	if err := Run(context.Background(), client, sess, provider.Request{}, Options{Tools: nil}); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	// No descriptors added to any request.
+	for i, captured := range client.capturedRequests {
+		if len(captured.Tools) != 0 {
+			t.Errorf("request %d has %d tools, want 0 (nil Tools must not advertise)", i, len(captured.Tools))
+		}
+	}
+
+	lines := splitLines(out.String())
+	if len(lines) != 4 {
+		t.Fatalf("expected 4 events, got %d: %q", len(lines), out.String())
+	}
+	var userEv struct {
+		Message struct {
+			Content []struct {
+				ToolUseID string `json:"tool_use_id"`
+				IsError   bool   `json:"is_error"`
+				Content   string `json:"content"`
+			} `json:"content"`
+		} `json:"message"`
+	}
+	if err := json.Unmarshal([]byte(lines[1]), &userEv); err != nil {
+		t.Fatalf("unmarshal user event: %v", err)
+	}
+	if len(userEv.Message.Content) != 1 {
+		t.Fatalf("user content len = %d, want 1", len(userEv.Message.Content))
+	}
+	if userEv.Message.Content[0].ToolUseID != "toolu_read_01" || userEv.Message.Content[0].IsError {
+		t.Errorf("built-in dispatch changed under nil Tools: %+v", userEv.Message.Content[0])
+	}
+	if !strings.Contains(userEv.Message.Content[0].Content, "nil-path") {
+		t.Errorf("built-in Read content = %q, want it to contain the file body", userEv.Message.Content[0].Content)
 	}
 }
 

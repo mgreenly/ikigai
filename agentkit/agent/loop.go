@@ -46,15 +46,17 @@ type Options struct {
 	// Tracer disables tracing.
 	Tracer *trace.Tracer
 	// Tools supplies a caller-provided source of additional tools. A
-	// nil Tools restricts the run to the built-in tool set. Advertising
-	// and dispatch wiring for this field is intentionally deferred to a
-	// later phase; Run does not consult it.
+	// nil Tools restricts the run to the built-in tool set, preserving
+	// historical behavior byte-for-byte. When non-nil, Run advertises the
+	// source's descriptors alongside the built-ins and routes tool_use
+	// blocks the source Owns through its Dispatch.
 	Tools ToolSource
 }
 
 // ToolSource is a caller-provided source of additional tools the agent
-// may advertise and dispatch. It is declared so Options can carry one;
-// Run does not consult it in this phase.
+// may advertise and dispatch. When supplied via Options.Tools, Run
+// appends its Descriptors to the provider request and routes owned
+// tool_use blocks through Dispatch.
 type ToolSource interface {
 	// Descriptors returns the provider-neutral advertisements for every
 	// tool this source owns.
@@ -112,6 +114,14 @@ func Run(ctx context.Context, client provider.Client, sess *wire.Session, req pr
 	pricing := model.ModelPricing(resolved)
 	caps := model.ModelContext(resolved)
 
+	// Advertise the caller-supplied tool source, if any, BEFORE the first
+	// provider stream. Built-ins already present in req.Tools stay; the
+	// source's descriptors are appended (built-ins plus suite tools). A nil
+	// opts.Tools leaves req.Tools untouched, preserving historical behavior.
+	if opts.Tools != nil {
+		req.Tools = append(req.Tools, opts.Tools.Descriptors()...)
+	}
+
 	for {
 		events, err := client.Stream(ctx, req)
 		if err != nil {
@@ -131,7 +141,7 @@ func Run(ctx context.Context, client provider.Client, sess *wire.Session, req pr
 
 		if stop == "tool_use" {
 			// R-8293-8LCI: dispatch tools and loop back.
-			req, err = dispatchTools(ctx, sess, req, wireBlocks, providerBlocks, sandboxRoot, tracer)
+			req, err = dispatchTools(ctx, sess, req, wireBlocks, providerBlocks, sandboxRoot, tracer, opts.Tools)
 			if err != nil {
 				return err
 			}
@@ -207,7 +217,7 @@ func Run(ctx context.Context, client provider.Client, sess *wire.Session, req pr
 // user event per tool_result via sess (R-EW6N-L2M1), and returns a new
 // Request with the assistant turn and tool-result user turn appended to
 // history. R-8293-8LCI.
-func dispatchTools(ctx context.Context, sess *wire.Session, req provider.Request, wireBlocks []any, providerBlocks []provider.Block, sandboxRoot string, tracer *trace.Tracer) (provider.Request, error) {
+func dispatchTools(ctx context.Context, sess *wire.Session, req provider.Request, wireBlocks []any, providerBlocks []provider.Block, sandboxRoot string, tracer *trace.Tracer, toolSrc ToolSource) (provider.Request, error) {
 	var resultProviderBlocks []provider.Block
 
 	for _, b := range wireBlocks {
@@ -217,11 +227,34 @@ func dispatchTools(ctx context.Context, sess *wire.Session, req provider.Request
 		}
 		// R-6EFF-GW25: trace tool dispatch before execution.
 		tracer.LogToolDispatch(tu.Name, tu.Input)
-		trWire, sidecar, err := tools.Dispatch(ctx, sandboxRoot, tu)
-		if err != nil {
-			// Dispatch returns an is_error block on failure; a Go error here
-			// means NewToolResultBlock itself failed, which should never happen.
-			return provider.Request{}, fmt.Errorf("dispatch %s: %w", tu.Name, err)
+
+		var trWire wire.ToolResultBlock
+		var sidecar any
+		var err error
+		if toolSrc != nil && toolSrc.Owns(tu.Name) {
+			// Source-dispatched tool. The ToolSource.Dispatch contract does
+			// not receive the tool_use id, so the returned block lacks it;
+			// attach it from tu to mirror the built-in path. A source result
+			// has no sidecar. A non-nil Go error must NOT crash the run
+			// (decision #9): convert it into an is_error tool_result so the
+			// loop continues.
+			trWire, err = toolSrc.Dispatch(ctx, tu.Name, tu.Input)
+			if err != nil {
+				trWire, err = wire.NewToolResultBlock(tu.ID, true, err.Error())
+				if err != nil {
+					return provider.Request{}, fmt.Errorf("dispatch %s: %w", tu.Name, err)
+				}
+			} else {
+				trWire.ToolUseID = tu.ID
+			}
+			sidecar = nil
+		} else {
+			trWire, sidecar, err = tools.Dispatch(ctx, sandboxRoot, tu)
+			if err != nil {
+				// Dispatch returns an is_error block on failure; a Go error here
+				// means NewToolResultBlock itself failed, which should never happen.
+				return provider.Request{}, fmt.Errorf("dispatch %s: %w", tu.Name, err)
+			}
 		}
 
 		// Unmarshal the wire content (JSON-encoded string) to obtain the
