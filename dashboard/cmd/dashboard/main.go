@@ -116,7 +116,7 @@ func registerRoutes(rt *appkit.Router) error {
 	manifestRoot := config.EnvOr(getenv, "DASHBOARD_MANIFEST_ROOT", "/opt")
 
 	// Per-token introspection rate limit applied by POST /internal/authn.
-	authnRateLimit, err := config.EnvOrInt(getenv, "DASHBOARD_AUTHN_RATE_LIMIT", 60)
+	authnRateLimit, err := config.EnvOrInt(getenv, "DASHBOARD_AUTHN_RATE_LIMIT", 120)
 	if err != nil {
 		return err
 	}
