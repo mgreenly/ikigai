@@ -2,13 +2,14 @@
 // dropbox MCP tool surface.
 //
 // dropbox is a daemon + event-plane producer (PLAN.md): its service-side surface
-// is read-only, so MCP is thin and exists only for the end-to-end auth proof and
-// the dashboard inventory (MCP=true). There are two tools (DECISIONS §7): health
-// renders the shared health envelope (status/version/service/details) plus the
-// caller's identity, with dropbox's mirror/disk telemetry under details (supplied
-// by the Spec.Health reporter); reflection self-describes dropbox's event-plane
-// edges. The former dropbox_whoami probe and the separate dropbox_health tool are
-// folded into health.
+// is read-only, so MCP carries no write verbs. There are four tools (DECISIONS
+// §7): health renders the shared health envelope (status/version/service/details)
+// plus the caller's identity, with dropbox's mirror/disk telemetry under details
+// (supplied by the Spec.Health reporter); reflection self-describes dropbox's
+// event-plane edges; list and get are READ tools that let an off-machine agent
+// browse and fetch the mirror's files (list = recursive paginated listing, get =
+// one file's base64 bytes + metadata). The former dropbox_whoami probe and the
+// separate dropbox_health tool are folded into health.
 //
 // The transport speaks JSON-RPC 2.0 over plain HTTP POST (no SSE/streaming),
 // responding with Content-Type: application/json. It carries NO token logic:
@@ -94,7 +95,8 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			"serverInfo":      map[string]any{"name": "Dropbox", "version": "1"},
 			"instructions": "Keeps a local mirror of one Dropbox app folder and publishes " +
 				"file.created/modified/deleted events. Check health for sync status and " +
-				"reflection for its events.",
+				"reflection for its events. Use list to browse the mirror's files and get " +
+				"to fetch one file's bytes.",
 		})
 	case "notifications/initialized":
 		// fire-and-forget notification — no response per JSON-RPC.

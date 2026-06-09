@@ -159,6 +159,122 @@ func TestDeleteSubtreePrefixBoundary(t *testing.T) {
 	})
 }
 
+func TestListFiles(t *testing.T) {
+	conn := openStoreDB(t)
+	s := NewStore()
+
+	// Seed a mix of subtrees and a sibling that must not match the /foo prefix.
+	// Insert order is intentionally NOT path_lower order to prove ORDER BY.
+	seed := []string{
+		"/other.txt",
+		"/foo/b.txt",
+		"/Foo/A.txt", // case-different display, folds under /foo
+		"/foo",       // the folder path itself
+		"/foobar",    // sibling — must NOT match /foo
+		"/foo/sub/c.txt",
+	}
+	withTx(t, conn, func(tx *sql.Tx) {
+		for i, p := range seed {
+			if err := s.UpsertFile(tx, p, "rev", "hash", int64(i+1), "2026-06-04T00:00:00Z"); err != nil {
+				t.Fatalf("seed %s: %v", p, err)
+			}
+		}
+	})
+
+	collect := func(prefix, after string, limit int) []string {
+		var got []string
+		withTx(t, conn, func(tx *sql.Tx) {
+			rows, err := s.ListFiles(tx, prefix, after, limit)
+			if err != nil {
+				t.Fatalf("list files: %v", err)
+			}
+			for _, fr := range rows {
+				got = append(got, fr.PathLower)
+			}
+		})
+		return got
+	}
+
+	// Empty prefix returns every row in path_lower order.
+	all := collect("", "", 100)
+	wantAll := []string{
+		"/foo", "/foo/a.txt", "/foo/b.txt", "/foo/sub/c.txt", "/foobar", "/other.txt",
+	}
+	if !equalStrings(all, wantAll) {
+		t.Fatalf("empty prefix = %v, want %v", all, wantAll)
+	}
+
+	// Prefix scoping: /foo matches /foo and its subtree, NOT /foobar.
+	scoped := collect("/foo", "", 100)
+	wantScoped := []string{"/foo", "/foo/a.txt", "/foo/b.txt", "/foo/sub/c.txt"}
+	if !equalStrings(scoped, wantScoped) {
+		t.Fatalf("/foo prefix = %v, want %v", scoped, wantScoped)
+	}
+
+	// limit bounds the page.
+	page1 := collect("/foo", "", 2)
+	if !equalStrings(page1, []string{"/foo", "/foo/a.txt"}) {
+		t.Fatalf("limit page1 = %v", page1)
+	}
+
+	// after cursor stitches the next page with no overlap/gap.
+	page2 := collect("/foo", page1[len(page1)-1], 2)
+	if !equalStrings(page2, []string{"/foo/b.txt", "/foo/sub/c.txt"}) {
+		t.Fatalf("cursor page2 = %v", page2)
+	}
+}
+
+// TestListFilesService_FoldsPrefix exercises Service.List end to end: it folds
+// the incoming display-path prefix, so a mixed-case /FOO scopes to the folded
+// subtree, and "/" means "list everything".
+func TestListFilesService_FoldsPrefix(t *testing.T) {
+	conn := openStoreDB(t)
+	svc := NewService(conn)
+
+	seed := []string{"/Foo/A.txt", "/foo/b.txt", "/other.txt"}
+	withTx(t, conn, func(tx *sql.Tx) {
+		for i, p := range seed {
+			if err := svc.Store.UpsertFile(tx, p, "rev", "hash", int64(i+1), "t"); err != nil {
+				t.Fatalf("seed %s: %v", p, err)
+			}
+		}
+	})
+
+	// Mixed-case prefix folds and scopes to the /foo subtree.
+	rows, err := svc.List("/FOO", "", 100)
+	if err != nil {
+		t.Fatalf("list /FOO: %v", err)
+	}
+	var got []string
+	for _, fr := range rows {
+		got = append(got, fr.PathLower)
+	}
+	if !equalStrings(got, []string{"/foo/a.txt", "/foo/b.txt"}) {
+		t.Fatalf("Service.List(/FOO) = %v", got)
+	}
+
+	// "/" means list everything (no prefix bound).
+	rows, err = svc.List("/", "", 100)
+	if err != nil {
+		t.Fatalf("list /: %v", err)
+	}
+	if len(rows) != len(seed) {
+		t.Fatalf("Service.List(/) returned %d rows, want %d", len(rows), len(seed))
+	}
+}
+
+func equalStrings(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
 func TestTotalSize(t *testing.T) {
 	conn := openStoreDB(t)
 	s := NewStore()

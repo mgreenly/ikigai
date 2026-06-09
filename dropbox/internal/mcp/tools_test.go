@@ -3,6 +3,7 @@ package mcp
 import (
 	"context"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -88,6 +89,12 @@ func TestToolsList(t *testing.T) {
 	}
 	if !names["reflection"] {
 		t.Errorf("tools/list missing reflection (got %v)", names)
+	}
+	if !names["list"] {
+		t.Errorf("tools/list missing list (got %v)", names)
+	}
+	if !names["get"] {
+		t.Errorf("tools/list missing get (got %v)", names)
 	}
 	// whoami is folded away — it must not reappear.
 	if names["whoami"] || names["dropbox_whoami"] {
@@ -258,6 +265,219 @@ func TestHealth_ReporterPopulatesDetails(t *testing.T) {
 	}
 	if df, _ := d["disk_free_bytes"].(float64); df <= 0 {
 		t.Errorf("details.disk_free_bytes = %v, want > 0", d["disk_free_bytes"])
+	}
+}
+
+// newMirrorHandler builds a Handler over a Service with a real file-backed DB
+// and a real mirror (the bare newHandler has no mirror, so it can't serve `get`
+// bytes). It mirrors TestHealth_ReporterPopulatesDetails' wiring.
+func newMirrorHandler(t *testing.T) (*Handler, *dropbox.Service) {
+	t.Helper()
+	conn, err := sql.Open("sqlite", "file:"+t.TempDir()+"/dropbox.db?_pragma=foreign_keys(ON)")
+	if err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	conn.SetMaxOpenConns(1)
+	t.Cleanup(func() { conn.Close() })
+	if err := db.Migrate(context.Background(), conn); err != nil {
+		t.Fatalf("migrate: %v", err)
+	}
+	mirror, err := dropbox.NewMirror(t.TempDir())
+	if err != nil {
+		t.Fatalf("mirror: %v", err)
+	}
+	svc := dropbox.NewService(conn)
+	svc.Mirror = mirror
+	h := NewHandler(svc, "v-test", "dropbox", nil, dropbox.Events, nil)
+	return h, svc
+}
+
+// seedFile writes bytes to the mirror and upserts the matching index row on its
+// own write tx (the same path the sync engine takes, minus the event).
+func seedFile(t *testing.T, svc *dropbox.Service, path, rev, hash string, data []byte) {
+	t.Helper()
+	if err := svc.Mirror.Write(path, data); err != nil {
+		t.Fatalf("mirror write %s: %v", path, err)
+	}
+	tx, err := svc.DB.BeginTx(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("begin: %v", err)
+	}
+	if err := svc.Store.UpsertFile(tx, path, rev, hash, int64(len(data)), "2026-06-09T00:00:00Z"); err != nil {
+		tx.Rollback()
+		t.Fatalf("upsert %s: %v", path, err)
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatalf("commit %s: %v", path, err)
+	}
+}
+
+func TestList_OrderPrefixHashAndPagination(t *testing.T) {
+	h, svc := newMirrorHandler(t)
+	// Seed out of order; a long hash so the 8-char truncation is observable.
+	longHash := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+	seedFile(t, svc, "/notes/b.md", "rev-b", longHash, []byte("bbb"))
+	seedFile(t, svc, "/notes/a.md", "rev-a", longHash, []byte("aaa"))
+	seedFile(t, svc, "/notesxyz.md", "rev-x", longHash, []byte("x")) // must NOT match /notes prefix
+	seedFile(t, svc, "/top.md", "rev-t", longHash, []byte("t"))
+
+	// Full listing: path_lower ASC over all four.
+	all, isErr := callTool(t, h, "list", `{}`)
+	if isErr {
+		t.Fatalf("list isError: %v", all)
+	}
+	files := all["files"].([]any)
+	if len(files) != 4 {
+		t.Fatalf("expected 4 files, got %d: %v", len(files), files)
+	}
+	gotOrder := []string{}
+	for _, f := range files {
+		gotOrder = append(gotOrder, f.(map[string]any)["path"].(string))
+	}
+	want := []string{"/notes/a.md", "/notes/b.md", "/notesxyz.md", "/top.md"}
+	for i := range want {
+		if gotOrder[i] != want[i] {
+			t.Fatalf("order mismatch: got %v want %v", gotOrder, want)
+		}
+	}
+	// 8-char abbreviated hash.
+	if hsh := files[0].(map[string]any)["hash"].(string); hsh != "01234567" {
+		t.Errorf("hash = %q, want first-8 %q", hsh, "01234567")
+	}
+
+	// Prefix scoping: /notes matches a.md + b.md, NOT /notesxyz.md.
+	scoped, _ := callTool(t, h, "list", `{"path":"/notes"}`)
+	sf := scoped["files"].([]any)
+	if len(sf) != 2 {
+		t.Fatalf("prefix /notes expected 2 files, got %d: %v", len(sf), sf)
+	}
+	for _, f := range sf {
+		p := f.(map[string]any)["path"].(string)
+		if !strings.HasPrefix(p, "/notes/") {
+			t.Errorf("prefix leaked non-subtree path %q", p)
+		}
+	}
+
+	// Pagination round-trip: limit 2 → full page + next_cursor; page 2 stitches.
+	page1, _ := callTool(t, h, "list", `{"limit":2}`)
+	p1 := page1["files"].([]any)
+	if len(p1) != 2 {
+		t.Fatalf("page1 expected 2 files, got %d", len(p1))
+	}
+	cursor, ok := page1["next_cursor"].(string)
+	if !ok || cursor == "" {
+		t.Fatalf("page1 missing next_cursor (full page): %v", page1)
+	}
+	page2, _ := callTool(t, h, "list", `{"limit":2,"cursor":"`+cursor+`"}`)
+	p2 := page2["files"].([]any)
+	if len(p2) != 2 {
+		t.Fatalf("page2 expected 2 files, got %d", len(p2))
+	}
+	// Last page is full (4 total / 2) so next_cursor is present, but a third page
+	// is empty and must omit it.
+	page3Cursor := page2["next_cursor"].(string)
+	page3, _ := callTool(t, h, "list", `{"limit":2,"cursor":"`+page3Cursor+`"}`)
+	if len(page3["files"].([]any)) != 0 {
+		t.Fatalf("page3 expected empty, got %v", page3["files"])
+	}
+	if _, present := page3["next_cursor"]; present {
+		t.Errorf("empty page must omit next_cursor, got %v", page3["next_cursor"])
+	}
+	// Stitched union covers all four with no overlap.
+	seen := map[string]bool{}
+	for _, f := range append(append([]any{}, p1...), p2...) {
+		seen[f.(map[string]any)["path"].(string)] = true
+	}
+	for _, w := range want {
+		if !seen[w] {
+			t.Errorf("pagination dropped %q (seen %v)", w, seen)
+		}
+	}
+}
+
+func TestGet_HappyPath(t *testing.T) {
+	h, svc := newMirrorHandler(t)
+	body := []byte("hello dropbox bytes")
+	fullHash := "abc123def456abc123def456abc123def456abc123def456abc123def4560000"
+	seedFile(t, svc, "/notes/a.md", "rev-7", fullHash, body)
+
+	// Case-insensitive resolution through the index.
+	p, isErr := callTool(t, h, "get", `{"path":"/NOTES/A.md"}`)
+	if isErr {
+		t.Fatalf("get isError: %v", p)
+	}
+	if p["path"] != "/notes/a.md" {
+		t.Errorf("path = %v, want canonical display /notes/a.md", p["path"])
+	}
+	if p["content_hash"] != fullHash {
+		t.Errorf("content_hash = %v, want full %q", p["content_hash"], fullHash)
+	}
+	if p["rev"] != "rev-7" {
+		t.Errorf("rev = %v", p["rev"])
+	}
+	if p["updated_at"] != "2026-06-09T00:00:00Z" {
+		t.Errorf("updated_at = %v", p["updated_at"])
+	}
+	b64 := p["content_base64"].(string)
+	dec, err := base64.StdEncoding.DecodeString(b64)
+	if err != nil {
+		t.Fatalf("decode content_base64: %v", err)
+	}
+	if string(dec) != string(body) {
+		t.Errorf("decoded bytes = %q, want %q", dec, body)
+	}
+}
+
+func TestGet_NotFound(t *testing.T) {
+	h, _ := newMirrorHandler(t)
+	p, isErr := callTool(t, h, "get", `{"path":"/missing.md"}`)
+	if !isErr {
+		t.Fatalf("expected isError for unknown path, got %v", p)
+	}
+	em := p["error"].(map[string]any)
+	if em["code"] != "not_found" {
+		t.Errorf("code = %v, want not_found", em["code"])
+	}
+}
+
+func TestGet_Conflict(t *testing.T) {
+	h, svc := newMirrorHandler(t)
+	seedFile(t, svc, "/a.md", "rev-current", "hash00000000", []byte("x"))
+	p, isErr := callTool(t, h, "get", `{"path":"/a.md","rev":"rev-old"}`)
+	if !isErr {
+		t.Fatalf("expected isError for rev mismatch, got %v", p)
+	}
+	em := p["error"].(map[string]any)
+	if em["code"] != "conflict" {
+		t.Errorf("code = %v, want conflict", em["code"])
+	}
+}
+
+func TestGet_TooLarge(t *testing.T) {
+	h, svc := newMirrorHandler(t)
+	// The guard is post-Content (we hold the bytes, then reject on row.Size), so a
+	// faithful oversize case needs real mirror bytes just over the 25 MiB cap.
+	big := make([]byte, (25<<20)+1)
+	seedFile(t, svc, "/big.bin", "rev-big", "hashbigbigbig", big)
+	p, isErr := callTool(t, h, "get", `{"path":"/big.bin"}`)
+	if !isErr {
+		t.Fatalf("expected isError for oversize, got %v", p)
+	}
+	em := p["error"].(map[string]any)
+	if em["code"] != "too_large" {
+		t.Errorf("code = %v, want too_large", em["code"])
+	}
+}
+
+func TestGet_MissingPath(t *testing.T) {
+	h, _ := newMirrorHandler(t)
+	p, isErr := callTool(t, h, "get", `{}`)
+	if !isErr {
+		t.Fatalf("expected isError for missing path, got %v", p)
+	}
+	em := p["error"].(map[string]any)
+	if em["code"] != "validation" {
+		t.Errorf("code = %v, want validation", em["code"])
 	}
 }
 

@@ -82,6 +82,29 @@ func (s *Service) Content(path string, rev *string) ([]byte, FileRow, error) {
 	return data, row, nil
 }
 
+// List returns index rows for the `list` MCP tool: a path_lower-ordered page of
+// the files index, optionally scoped to a folder prefix and paginated by an
+// opaque after-cursor. It runs the query on a read-only tx (same pattern as
+// Content) and stays deliberately thin — the MCP layer owns limit clamping and
+// next_cursor derivation.
+//
+// path is a display-path prefix; it is folded with foldPath (lowercases only —
+// it does NOT normalize slashes), so the caller scopes case-insensitively. Both
+// "" and "/" fold to a value the store treats as "no prefix" ("" stays "", and a
+// bare "/" never bounds a real subtree), so either means "list everything".
+func (s *Service) List(path, after string, limit int) ([]FileRow, error) {
+	prefix := foldPath(path)
+	if prefix == "/" {
+		prefix = ""
+	}
+	tx, err := s.DB.BeginTx(context.Background(), &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		return nil, fmt.Errorf("list: begin tx: %w", err)
+	}
+	defer tx.Rollback()
+	return s.Store.ListFiles(tx, prefix, after, limit)
+}
+
 // ── apply helpers (the engine's tx boundary) ────────────────────────────────
 //
 // These are the ONLY mutators of mirror state. Each owns the crash-ordering

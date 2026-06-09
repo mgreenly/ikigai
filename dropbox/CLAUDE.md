@@ -75,11 +75,15 @@ bootstrap → longpoll(cursor) → continue(cursor) → apply each delta → adv
   raw files. **Never public** — guarded by the handler's identity-header check
   (see below), not by nginx.
 
-## The MCP surface (1 tool — it's a daemon)
+## The MCP surface (4 tools — it's a daemon)
 
-The service side is read-only; there are no write verbs. MCP is thin and exists
-for the auth proof + the dashboard inventory (`MCP=true`). The former pair of
-identity/health probes are **folded into one** branded tool (DECISIONS §7).
+The service side is **read-only**; there are no write verbs (nothing here uploads
+to Dropbox or mutates the mirror — `list`/`get` are reads). The surface is four
+tools: `health`, `reflection`, `list`, and `get`. `health`/`reflection` exist for
+the auth proof + the dashboard inventory (`MCP=true`); `list`/`get` let an
+off-machine agent (no local mount) browse and fetch the mirror's files over MCP.
+The former pair of identity/health probes are **folded into one** branded tool
+(DECISIONS §7).
 
 - **`health`** — `()` renders the shared health envelope
   (`status`/`version`/`service`/`details`) **plus** the authenticated caller's
@@ -90,6 +94,28 @@ identity/health probes are **folded into one** branded tool (DECISIONS §7).
   and `failed_files` (count of index rows with a non-null `error` — the poison
   entries the engine advanced past). The same reporter feeds the HTTP `/health`
   route, so the two transports can't diverge.
+- **`reflection`** — `(event_type?)` self-describes dropbox's event-plane edges.
+  No argument returns the index `{publishes, subscribes}` (dropbox is a producer,
+  so `subscribes` is empty); an `event_type` returns that published type's
+  `{type, description, schema, example}`.
+- **`list`** — `(path?, cursor?, limit?)` recursively lists files in the mirror,
+  ordered by path. **Read-only.** No arguments lists everything; `path` scopes to
+  a folder prefix (case-insensitive subtree match — `/notes` matches `/notes` and
+  `/notes/a.md` but not `/notesxyz`). `limit` is the page size (default 1000,
+  clamped to `[1,1000]`); pagination is cursor-based — a full page returns
+  `next_cursor`, which you pass back as `cursor` for the next page (absent =
+  done). Each entry is `{path, size, hash, rev, updated_at}`, where `hash` is the
+  content hash **truncated to its first 8 hex chars** and `updated_at` is the only
+  timestamp the index has (the last time the index row changed). Files only — the
+  index does not track directories.
+- **`get`** — `(path, rev?)` fetches one file's current bytes + metadata.
+  **Read-only.** `path` (required) resolves case-insensitively through the index;
+  returns `{path, size, content_hash, rev, updated_at, content_base64}`, where
+  `content_base64` is the standard base64 of the mirror bytes and `content_hash`
+  is the **full** 64-char hash. An optional `rev` pins the version — a mismatch
+  with the indexed rev returns a conflict (the `/content` `rev`→**409** contract).
+  Files larger than **25 MiB** are rejected with `too_large` (base64-in-JSON is
+  not streamed; fetch those via `/content`); unknown paths return `not_found`.
 
 ## Package layout
 
@@ -120,10 +146,10 @@ Same chassis layering as ledger/crm (one file per concern within one package;
     seam (lets the engine run with emission disabled in unit tests, like ledger).
   - `content.go` — the loopback `GET /content` handler.
   - `health.go` — `HealthInfo` assembly.
-- **`internal/mcp`** — JSON-RPC 2.0 transport. `tools.go` holds the single
-  `health` descriptor, dispatches into `dropbox.Service`
-  (`Health`), translates sentinels to tool-error text. `mcp.go` is the transport,
-  unchanged.
+- **`internal/mcp`** — JSON-RPC 2.0 transport. `tools.go` holds the four tool
+  descriptors (`health`, `reflection`, `list`, `get`), dispatches into
+  `dropbox.Service` (`Health`/`List`/`Content`), and translates sentinels to
+  tool-error text. `mcp.go` is the transport.
 - **`internal/server`** — routing, the RFC 9728 protected-resource metadata
   document, `requireIdentityHeaders`, the ungated `/health` route, the
   unauthenticated `GET /feed` and `GET /content` routes, security headers,

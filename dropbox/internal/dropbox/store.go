@@ -174,6 +174,62 @@ func (Store) DeleteSubtree(tx *sql.Tx, displayPath string) ([]FileRow, error) {
 	return deleted, nil
 }
 
+// ListFiles returns index rows in path_lower order, optionally scoped to a folded
+// folder prefix and paginated by an opaque after-cursor. It is the read backing
+// the `list` MCP tool — SQL-only, *sql.Tx, opens no own connection.
+//
+// prefix (already folded by the caller, or "" for no scope): when non-empty it
+// matches the same `/`-boundary subtree semantics as DeleteSubtree,
+//
+//	path_lower = prefix  OR  path_lower LIKE prefix || '/%'
+//
+// so a prefix of `/foo` matches `/foo` and `/foo/bar` but NOT `/foobar` (the
+// LIKE clause requires a literal `/` after the prefix; the equality clause covers
+// the folder path itself). The pattern is built with escapeLike + ESCAPE '\' so
+// any `%`/`_` in the path is matched literally.
+//
+// after (the cursor): when non-empty, only rows with path_lower > after are
+// returned — the previous page's last path_lower, so pages stitch without
+// overlap. Rows come back ordered by path_lower ASC, capped at limit.
+func (Store) ListFiles(tx *sql.Tx, prefix, after string, limit int) ([]FileRow, error) {
+	var (
+		where []string
+		args  []any
+	)
+	if prefix != "" {
+		where = append(where, "(path_lower = ? OR path_lower LIKE ? ESCAPE '\\')")
+		args = append(args, prefix, escapeLike(prefix)+"/%")
+	}
+	if after != "" {
+		where = append(where, "path_lower > ?")
+		args = append(args, after)
+	}
+	q := `SELECT path, rev, content_hash, size, updated_at, path_lower, error FROM files`
+	if len(where) > 0 {
+		q += " WHERE " + strings.Join(where, " AND ")
+	}
+	q += " ORDER BY path_lower ASC LIMIT ?"
+	args = append(args, limit)
+
+	rows, err := tx.Query(q, args...)
+	if err != nil {
+		return nil, fmt.Errorf("list files: %w", err)
+	}
+	defer rows.Close()
+	var out []FileRow
+	for rows.Next() {
+		fr, err := scanFileRow(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, fr)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("scan files: %w", err)
+	}
+	return out, nil
+}
+
 // escapeLike escapes the LIKE metacharacters (%, _, and the escape char itself)
 // so a path is matched literally as a prefix. Paired with ESCAPE '\' on the query.
 func escapeLike(s string) string {
