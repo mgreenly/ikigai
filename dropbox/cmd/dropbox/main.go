@@ -92,11 +92,13 @@ func main() {
 			}, nil
 		},
 		// Handlers builds dropbox's domain Service + sync engine over appkit's shared
-		// DB handle, then mounts the two routes dropbox owns: the gated dropbox_* MCP
-		// surface (POST /mcp) and the UNAUTHENTICATED, loopback-only private byte feed
-		// (GET /content — the handler is the primary guard, 404ing any nginx-injected
-		// identity header, exactly like /feed). The secrets + non-secret sync knobs are
-		// read here at dropbox's own composition root; appkit never reads them.
+		// DB handle, then mounts the routes dropbox owns: the gated dropbox_* MCP
+		// surface (POST /mcp) and the UNAUTHENTICATED, loopback-only private byte
+		// routes — GET /content (one file's bytes) and GET /list (its enumeration
+		// twin, ADR-import-sync §3). Each byte route is the primary guard, 404ing any
+		// nginx-injected identity header, exactly like /feed. The secrets + non-secret
+		// sync knobs are read here at dropbox's own composition root; appkit never
+		// reads them.
 		Handlers: func(r *appkit.Router) error {
 			rt = r
 			conn := rt.DB()
@@ -167,9 +169,13 @@ func main() {
 			rt.Handle("POST /mcp", rt.RequireIdentity(
 				mcp.NewHandler(svc, rt.Version(), rt.Service(), rt.Health(),
 					rt.Events(), rt.Subscriptions())))
-			// /content is unauthenticated + loopback-only (the handler self-guards),
-			// so it is registered verbatim, NOT behind RequireIdentity.
+			// /content and /list are unauthenticated + loopback-only (each handler
+			// self-guards, 404ing any nginx-injected identity header), so they are
+			// registered verbatim, NOT behind RequireIdentity. /content delivers a
+			// file's bytes; /list is its enumeration twin (the loopback peer-walk
+			// route sites' `sync` consumes, ADR-import-sync §3).
 			rt.Handle("GET /content", svc.ContentHandler())
+			rt.Handle("GET /list", svc.ListHandler())
 			return nil
 		},
 		// Producer fires after Handlers: wrap the outbox with the content base so
