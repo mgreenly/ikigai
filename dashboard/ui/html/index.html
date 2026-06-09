@@ -32,6 +32,15 @@
         </div>
       </section>
       {{template "install_block" .Installs}}
+      <section class="pats">
+        <h2>Personal access tokens</h2>
+        <p class="pats-intro">Mint a long-lived token to connect an agent without the browser sign-in flow. One token reaches every service you can. The secret is shown once at creation.</p>
+        <form method="POST" action="/pat" class="pat-create">
+          <input type="text" name="label" maxlength="48" placeholder="Label (e.g. Codex on laptop)" aria-label="Token label" required>
+          <button type="submit">Create</button>
+        </form>
+        {{template "pat_block" .PATs}}
+      </section>
     {{else}}
       <section class="landing">
         <h2>{{.Host}}</h2>

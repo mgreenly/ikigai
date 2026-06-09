@@ -1,0 +1,17 @@
+{{define "pat_block"}}
+  {{if .}}
+    <ul class="pats-list">
+      {{range .}}
+        <li class="pat-row">
+          <span class="pat-label">{{.Label}}</span>
+          <span class="pat-created" title="{{.CreatedISO}}">{{.CreatedRel}}</span>
+          <form method="POST" action="/pat/{{.PublicID}}/revoke" class="pat-revoke">
+            <button type="submit">Revoke</button>
+          </form>
+        </li>
+      {{end}}
+    </ul>
+  {{else}}
+    <p class="pats-empty">No personal access tokens yet.</p>
+  {{end}}
+{{end}}

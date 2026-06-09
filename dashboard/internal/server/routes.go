@@ -34,6 +34,13 @@ func (a *app) register(mux muxer) {
 	mux.Handle("GET /grants/fragment", a.handleGrantsFragment())
 	mux.Handle("POST /grants/{public_id}/revoke", a.handleGrantRevoke())
 
+	// Personal access tokens on the logged-in index: session-authenticated,
+	// same-origin-enforced. Create renders the show-once secret directly (no
+	// PRG); revoke is POST→303→/. No SSE — a PAT row only changes through these
+	// explicit actions, so the list renders inline in handleIndex (ADR §D9).
+	mux.Handle("POST /pat", a.handlePATCreate())
+	mux.Handle("POST /pat/{public_id}/revoke", a.handlePATRevoke())
+
 	// OAuth authorization-server surface.
 	mux.Handle("GET /.well-known/oauth-authorization-server", a.handleASMetadata())
 	mux.Handle("POST /oauth/register", a.handleDCRRegister())

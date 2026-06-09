@@ -224,6 +224,82 @@ button:hover, .signin-link:hover { border-color: var(--accent); }
 
 .copy-btn { margin-top: 0.25rem; }
 
+/* Personal access tokens block on the logged-in index. Styled like the
+   live-grants list (D9). */
+.pats h2 {
+  font-size: 1.1rem;
+  margin: 1.5rem 0 1rem;
+}
+
+.pats-intro {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin: 0 0 1rem;
+}
+
+.pat-create {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.pat-create input {
+  flex: 1;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--card);
+  color: inherit;
+  font: inherit;
+}
+
+.pats-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--card);
+}
+
+.pat-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.pat-row:last-child { border-bottom: none; }
+
+.pat-label { font-weight: 500; }
+.pat-created { color: var(--muted); font-size: 0.85rem; }
+
+.pats-empty {
+  padding: 1rem;
+  color: var(--muted);
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  background: var(--card);
+}
+
+/* Show-once token confirmation page. */
+.pat-created h2 {
+  font-size: 1.1rem;
+  margin: 0 0 1rem;
+}
+
+.pat-created-notice {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin: 0 0 0.75rem;
+}
+
+.pat-created-done {
+  margin-top: 1.5rem;
+}
+
 .site-footer {
   text-align: center;
   padding: 2rem;

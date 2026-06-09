@@ -162,6 +162,8 @@ func newApp(opts Options) (*app, error) {
 		"html/partials/grants_block.tmpl",
 		"html/partials/install_block.tmpl",
 		"html/partials/install_card.tmpl",
+		"html/partials/pat_block.tmpl",
+		"html/partials/pat_created.tmpl",
 	)
 	if err != nil {
 		return nil, fmt.Errorf("parse templates: %w", err)

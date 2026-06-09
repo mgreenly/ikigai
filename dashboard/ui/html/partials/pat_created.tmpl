@@ -1,0 +1,30 @@
+{{define "pat_created"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Token created · ikigenba dashboard</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <header class="banner">
+    <h1>ikigenba</h1>
+  </header>
+
+  <main class="content-block">
+    <section class="pat-created">
+      <h2>Token created</h2>
+      <p class="pat-created-label">Label: <strong>{{.Label}}</strong></p>
+      <p class="pat-created-notice">This is the only time you'll see this token — copy it now. After you leave this page it cannot be recovered or shown again.</p>
+      <pre class="snippet"><code>{{.Secret}}</code></pre>
+      <button type="button" class="copy-btn" data-copy-target="prev">Copy</button>
+      <p class="pat-created-done"><a href="/">Done</a></p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <small>ikigenba</small>
+  </footer>
+</body>
+</html>{{end}}
