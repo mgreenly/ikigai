@@ -6,9 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"agentkit/model"
 	"prompts/internal/ids"
@@ -43,6 +45,11 @@ type Service struct {
 	runsDir string
 	runner  Runner
 	now     func() time.Time
+	// Fetcher reads bytes from the dropbox mirror over loopback for Import. It is
+	// field-injected at the composition root (cmd/prompts sets svc.Fetcher), not a
+	// NewService parameter, so every existing NewService call site and test stays
+	// untouched. nil unless wired (only Import uses it).
+	Fetcher ContentFetcher
 }
 
 // NewService wires the store, sandbox manager, run-logs base dir, and runner.
@@ -136,6 +143,54 @@ func (s *Service) Create(ctx context.Context, ownerEmail string, in CreateInput)
 		}
 	}
 	return p, nil
+}
+
+// maxImportBytes caps an imported prompt body at 1 MiB — a prompt file above
+// that is almost certainly a mistake (ADR "Asserted defaults").
+const maxImportBytes = 1 << 20
+
+// importDefaultModel is the model an imported prompt's config defaults to. A
+// prompt is multi-field but a file is one blob, so import maps the file body →
+// user_prompt and leaves the other fields at sane defaults (ADR Decision 5). The
+// config must still validate — Create/validateConfig requires the model to
+// resolve to an Anthropic model, so an empty config would reject — therefore we
+// seed the canonical Sonnet id (the same model the describe doc shows as the
+// example config) so an imported prompt is immediately runnable.
+const importDefaultModel = "claude-sonnet-4-6"
+
+// Import adopts a Dropbox-mirrored file as a prompt. It fetches the current
+// mirror bytes over loopback, requires valid UTF-8 text under 1 MiB (a binary
+// blob is not prompt text), maps the file body → user_prompt, derives the name
+// from the path when none is given, leaves system_prompt empty, and seeds a valid
+// default config (importDefaultModel) so the prompt is runnable. It upserts on
+// (owner, source_path): re-importing the same path updates the same prompt
+// instead of creating a duplicate (config + system_prompt keep their values on a
+// re-import — a re-pull is a body refresh, not a config change). Direction is
+// strictly Dropbox → prompts; nothing writes back. See
+// docs/adr-dropbox-import-sync.md.
+func (s *Service) Import(ctx context.Context, owner, sourcePath, name string) (Prompt, error) {
+	if strings.TrimSpace(sourcePath) == "" {
+		return Prompt{}, fmt.Errorf("%w: source_path is required", ErrValidation)
+	}
+	data, err := s.Fetcher.Fetch(ctx, sourcePath)
+	if err != nil {
+		return Prompt{}, err
+	}
+	if !utf8.Valid(data) {
+		return Prompt{}, fmt.Errorf("%w: %q is not valid UTF-8 text (a prompt body must be text)", ErrValidation, sourcePath)
+	}
+	if len(data) > maxImportBytes {
+		return Prompt{}, fmt.Errorf("%w: %q is %d bytes, over the 1 MiB import limit", ErrValidation, sourcePath, len(data))
+	}
+	if name == "" {
+		name = path.Base(sourcePath)
+	}
+	// Seed a valid default config so the imported prompt is runnable. Provider is
+	// normalized to anthropic, exactly as Create does. Config is left as-is on a
+	// re-import (the upsert refreshes name + user_prompt only), so this default
+	// only takes effect on the first import.
+	cfg := Config{Provider: string(model.ProviderAnthropic), Model: importDefaultModel}
+	return s.store.UpsertPromptBySource(ctx, owner, sourcePath, name, string(data), cfg, s.nowStr())
 }
 
 // List returns the owner's prompts, each as a PromptDetail carrying its derived

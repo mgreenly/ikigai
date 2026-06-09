@@ -2,6 +2,7 @@ package mcp
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -118,7 +119,7 @@ func isError(res map[string]any) bool {
 	return v
 }
 
-func TestToolsListReturns16(t *testing.T) {
+func TestToolsListReturns17(t *testing.T) {
 	h, _ := newTestHandler(t)
 	body, _ := json.Marshal(map[string]any{"jsonrpc": "2.0", "id": 1, "method": "tools/list"})
 	rr := do(t, h, body)
@@ -133,10 +134,10 @@ func TestToolsListReturns16(t *testing.T) {
 	if err := json.Unmarshal(rr.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
-	if len(resp.Result.Tools) != 16 {
-		t.Fatalf("want 16 tools, got %d", len(resp.Result.Tools))
+	if len(resp.Result.Tools) != 17 {
+		t.Fatalf("want 17 tools, got %d", len(resp.Result.Tools))
 	}
-	got := make([]string, 0, 16)
+	got := make([]string, 0, 17)
 	for _, tl := range resp.Result.Tools {
 		got = append(got, tl.Name)
 	}
@@ -148,6 +149,7 @@ func TestToolsListReturns16(t *testing.T) {
 		"describe",
 		"get",
 		"health",
+		"import",
 		"list",
 		"run",
 		"run_cancel",
@@ -391,6 +393,44 @@ func TestDispatchRoundtrip(t *testing.T) {
 	readRes := call(t, h, "run_fs_read", map[string]any{"run_id": runID, "path": "hello.txt"})
 	if got := resultText(t, readRes); got != "line one\nline two\n" {
 		t.Fatalf("run_fs_read: got %q", got)
+	}
+}
+
+// stubFetcher is a prompt.ContentFetcher returning canned bytes, so the import
+// dispatch is exercised without a live dropbox.
+type stubFetcher struct{ data []byte }
+
+func (f stubFetcher) Fetch(ctx context.Context, path string) ([]byte, error) { return f.data, nil }
+
+// TestDispatchImport proves the import verb routes to svc.Import and returns
+// {prompt_id, name}, with the file body adopted as the prompt's user_prompt.
+func TestDispatchImport(t *testing.T) {
+	h, _ := newTestHandler(t)
+	h.svc.Fetcher = stubFetcher{data: []byte("draft the weekly update\n")}
+
+	res := call(t, h, "import", map[string]any{"source_path": "/prompts/weekly.md"})
+	if isError(res) {
+		t.Fatalf("import returned isError: %+v", res)
+	}
+	var out struct {
+		PromptID string `json:"prompt_id"`
+		Name     string `json:"name"`
+	}
+	if err := json.Unmarshal([]byte(resultText(t, res)), &out); err != nil {
+		t.Fatalf("decode import: %v", err)
+	}
+	if out.PromptID == "" || out.Name != "weekly.md" {
+		t.Fatalf("import result: %+v", out)
+	}
+
+	// get the imported prompt and confirm the body landed as user_prompt.
+	getRes := call(t, h, "get", map[string]any{"prompt_id": out.PromptID})
+	var detail prompt.PromptDetail
+	if err := json.Unmarshal([]byte(resultText(t, getRes)), &detail); err != nil {
+		t.Fatalf("decode get: %v", err)
+	}
+	if detail.UserPrompt != "draft the weekly update\n" {
+		t.Fatalf("imported user_prompt: %q", detail.UserPrompt)
 	}
 }
 

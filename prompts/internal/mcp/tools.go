@@ -39,6 +39,11 @@ func toolDescriptors() []map[string]any {
 			"triggers":      triggersSchema(),
 		}, "user_prompt", "config")),
 
+		desc(tool("import"), "Import a Dropbox-mirrored file as a prompt. 'source_path' is the file's path in the dropbox mirror. Fetches the current mirror bytes over loopback (valid UTF-8 under 1 MiB) and maps the file body to the prompt's user_prompt; 'name' defaults to the basename. Re-importing the same source_path updates the same prompt (upsert); system_prompt and config keep their defaults. Returns {prompt_id, name}.", obj(map[string]any{
+			"source_path": typ("string"),
+			"name":        typ("string"),
+		}, "source_path")),
+
 		desc(tool("list"), "List the caller's prompts, each with its running run count and latest run (last_run).", obj(map[string]any{})),
 
 		desc(tool("get"), "Get one of the caller's prompts, including its running run count and latest run (last_run).", obj(map[string]any{
@@ -247,6 +252,20 @@ func (h *Handler) dispatchTool(ctx context.Context, name string, id Identity, ar
 			return nil, err
 		}
 		return toolResultJSON(map[string]any{"prompt_id": p.ID})
+
+	case tool("import"):
+		var in struct {
+			SourcePath string `json:"source_path"`
+			Name       string `json:"name"`
+		}
+		if err := parseArgs(args, &in); err != nil {
+			return nil, err
+		}
+		p, err := svc.Import(ctx, owner, in.SourcePath, in.Name)
+		if err != nil {
+			return nil, err
+		}
+		return toolResultJSON(map[string]any{"prompt_id": p.ID, "name": p.Name})
 
 	case tool("list"):
 		prompts, err := svc.List(ctx, owner)

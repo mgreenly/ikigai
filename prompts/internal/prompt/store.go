@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"eventplane/outbox"
+
+	"prompts/internal/ids"
 )
 
 // Store is the SQLite persistence for prompts and runs. All reads that take
@@ -59,10 +61,10 @@ func (s *Store) InsertPrompt(ctx context.Context, p Prompt) error {
 	}
 	_, err = s.db.ExecContext(ctx,
 		`INSERT INTO prompts
-		   (id, owner_email, name, user_prompt, system_prompt, config_json, created_at, updated_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		   (id, owner_email, name, user_prompt, system_prompt, config_json, source_path, created_at, updated_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		p.ID, p.OwnerEmail, nullStr(p.Name), p.UserPrompt, nullStr(p.SystemPrompt),
-		cfg, p.CreatedAt, p.UpdatedAt,
+		cfg, nullStr(p.SourcePath), p.CreatedAt, p.UpdatedAt,
 	)
 	if err != nil {
 		return fmt.Errorf("prompt: insert: %w", err)
@@ -70,11 +72,45 @@ func (s *Store) InsertPrompt(ctx context.Context, p Prompt) error {
 	return nil
 }
 
+// UpsertPromptBySource inserts an import-managed prompt or, when one already
+// exists for (owner_email, source_path), updates it in place — refreshing
+// name/user_prompt/updated_at only and leaving config_json + system_prompt as-is
+// (a re-import is a body pull, not a config change). The partial unique index
+// idx_prompts_source backs the ON CONFLICT target, making idempotency a schema
+// invariant rather than a convention. SQLite requires the conflict target to
+// repeat the partial index predicate (WHERE source_path IS NOT NULL), else it
+// will not match the partial unique index. Returns the resolved prompt (its id is
+// the freshly-generated ULID on insert, or the existing row's id on update via
+// RETURNING). config is the value used only on the INSERT arm.
+func (s *Store) UpsertPromptBySource(ctx context.Context, owner, sourcePath, name, userPrompt string, config Config, now string) (Prompt, error) {
+	cfg, err := marshalConfig(config)
+	if err != nil {
+		return Prompt{}, err
+	}
+	id := ids.NewULID()
+	var resolvedID string
+	err = s.db.QueryRowContext(ctx,
+		`INSERT INTO prompts
+		   (id, owner_email, name, user_prompt, system_prompt, config_json, source_path, created_at, updated_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		 ON CONFLICT(owner_email, source_path) WHERE source_path IS NOT NULL DO UPDATE SET
+		     name = excluded.name, user_prompt = excluded.user_prompt, updated_at = excluded.updated_at
+		 RETURNING id`,
+		id, owner, nullStr(name), userPrompt, nullStr(""), cfg, sourcePath, now, now,
+	).Scan(&resolvedID)
+	if err != nil {
+		return Prompt{}, fmt.Errorf("prompt: upsert by source: %w", err)
+	}
+	// Read the resolved row back so the caller (and its result) reflects exactly
+	// what landed (config + system_prompt are the pre-existing ones on an update).
+	return s.GetPrompt(ctx, owner, resolvedID)
+}
+
 // GetPrompt returns the owner's prompt, or ErrNotFound when it is missing or
 // owned by another caller.
 func (s *Store) GetPrompt(ctx context.Context, owner, id string) (Prompt, error) {
 	row := s.db.QueryRowContext(ctx,
-		`SELECT id, owner_email, name, user_prompt, system_prompt, config_json, created_at, updated_at
+		`SELECT id, owner_email, name, user_prompt, system_prompt, config_json, source_path, created_at, updated_at
 		   FROM prompts WHERE id = ? AND owner_email = ?`,
 		id, owner,
 	)
@@ -86,7 +122,7 @@ func (s *Store) GetPrompt(ctx context.Context, owner, id string) (Prompt, error)
 // the prompt is gone.
 func (s *Store) GetPromptByID(ctx context.Context, id string) (Prompt, error) {
 	row := s.db.QueryRowContext(ctx,
-		`SELECT id, owner_email, name, user_prompt, system_prompt, config_json, created_at, updated_at
+		`SELECT id, owner_email, name, user_prompt, system_prompt, config_json, source_path, created_at, updated_at
 		   FROM prompts WHERE id = ?`,
 		id,
 	)
@@ -96,7 +132,7 @@ func (s *Store) GetPromptByID(ctx context.Context, id string) (Prompt, error) {
 // ListPrompts returns all of the owner's prompts, newest first.
 func (s *Store) ListPrompts(ctx context.Context, owner string) ([]Prompt, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT id, owner_email, name, user_prompt, system_prompt, config_json, created_at, updated_at
+		`SELECT id, owner_email, name, user_prompt, system_prompt, config_json, source_path, created_at, updated_at
 		   FROM prompts WHERE owner_email = ? ORDER BY created_at DESC, id DESC`,
 		owner,
 	)
@@ -368,10 +404,11 @@ func scanPrompt(sc scanner) (Prompt, error) {
 		name    sql.NullString
 		sysProm sql.NullString
 		cfgJSON string
+		srcPath sql.NullString
 	)
 	err := sc.Scan(
 		&p.ID, &p.OwnerEmail, &name, &p.UserPrompt, &sysProm,
-		&cfgJSON, &p.CreatedAt, &p.UpdatedAt,
+		&cfgJSON, &srcPath, &p.CreatedAt, &p.UpdatedAt,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Prompt{}, ErrNotFound
@@ -381,6 +418,7 @@ func scanPrompt(sc scanner) (Prompt, error) {
 	}
 	p.Name = name.String
 	p.SystemPrompt = sysProm.String
+	p.SourcePath = srcPath.String
 	cfg, err := unmarshalConfig(cfgJSON)
 	if err != nil {
 		return Prompt{}, err

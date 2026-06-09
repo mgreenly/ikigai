@@ -51,6 +51,11 @@ type Prompt struct {
 	Config       Config `json:"config"`
 	CreatedAt    string `json:"created_at"`
 	UpdatedAt    string `json:"updated_at"`
+	// SourcePath is the originating Dropbox mirror path for an import-managed
+	// prompt ("" ⇒ SQL NULL, a hand-authored prompt). It is the upsert key for
+	// re-import (idempotency, enforced by idx_prompts_source) and marks the row as
+	// import-managed. See docs/adr-dropbox-import-sync.md (Decision 2).
+	SourcePath string `json:"source_path,omitempty"`
 	// NOTE: no Status field — full concurrency, no prompt lifecycle.
 }
 

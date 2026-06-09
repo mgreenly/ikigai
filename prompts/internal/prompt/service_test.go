@@ -571,6 +571,106 @@ func TestRun_MaterializesFrozenInput_SurvivesMutation(t *testing.T) {
 	}
 }
 
+// stubFetcher is a ContentFetcher returning canned bytes/err, so Import is
+// exercised with no live dropbox or network.
+type stubFetcher struct {
+	data []byte
+	err  error
+}
+
+func (f stubFetcher) Fetch(ctx context.Context, path string) ([]byte, error) {
+	return f.data, f.err
+}
+
+// TestImportHappyAndIdempotent: a first import writes a prompt whose user_prompt
+// is the file body and whose name is the basename, with a valid (runnable)
+// config; a second import of the SAME path updates that same row (same prompt_id,
+// new user_prompt) with no duplicate, and the config is preserved.
+func TestImportHappyAndIdempotent(t *testing.T) {
+	t.Setenv("ANTHROPIC_API_KEY", "sk-test")
+	svc, store, _, _ := newTestService(t)
+	ctx := context.Background()
+	svc.Fetcher = stubFetcher{data: []byte("summarize the inbox\n")}
+
+	p, err := svc.Import(ctx, ownerA, "/prompts/triage.md", "")
+	if err != nil {
+		t.Fatalf("Import: %v", err)
+	}
+	if p.Name != "triage.md" {
+		t.Fatalf("name not derived from basename: %q", p.Name)
+	}
+	if p.UserPrompt != "summarize the inbox\n" {
+		t.Fatalf("user_prompt: %q", p.UserPrompt)
+	}
+	if p.SystemPrompt != "" {
+		t.Fatalf("system_prompt should be empty: %q", p.SystemPrompt)
+	}
+	if p.SourcePath != "/prompts/triage.md" {
+		t.Fatalf("source_path: %q", p.SourcePath)
+	}
+	// The imported prompt must be runnable: its config must validate exactly as
+	// Create requires (model resolves to an Anthropic model, key present).
+	if err := validateConfig(p.Config); err != nil {
+		t.Fatalf("imported prompt config does not validate (run would reject it): %v", err)
+	}
+	if p.Config.Provider != "anthropic" {
+		t.Fatalf("provider not normalized: %q", p.Config.Provider)
+	}
+
+	// Re-import the same path with new bytes → same id, updated user_prompt, no dup.
+	svc.Fetcher = stubFetcher{data: []byte("summarize and label the inbox\n")}
+	p2, err := svc.Import(ctx, ownerA, "/prompts/triage.md", "")
+	if err != nil {
+		t.Fatalf("re-Import: %v", err)
+	}
+	if p2.ID != p.ID {
+		t.Fatalf("re-import created a new row: %q != %q", p2.ID, p.ID)
+	}
+	if p2.UserPrompt != "summarize and label the inbox\n" {
+		t.Fatalf("re-import did not update user_prompt: %q", p2.UserPrompt)
+	}
+	// Config survives the re-import (a re-pull is a body refresh, not a config change).
+	if err := validateConfig(p2.Config); err != nil {
+		t.Fatalf("re-imported prompt config does not validate: %v", err)
+	}
+	list, err := store.ListPrompts(ctx, ownerA)
+	if err != nil || len(list) != 1 {
+		t.Fatalf("expected exactly one row after re-import: len=%d err=%v", len(list), err)
+	}
+}
+
+// TestImportRejectsNonUTF8 asserts a binary blob is rejected as ErrValidation.
+func TestImportRejectsNonUTF8(t *testing.T) {
+	svc, _, _, _ := newTestService(t)
+	svc.Fetcher = stubFetcher{data: []byte{0xff, 0xfe, 0x00}}
+	if _, err := svc.Import(context.Background(), ownerA, "/prompts/blob.bin", ""); !errors.Is(err, ErrValidation) {
+		t.Fatalf("non-UTF-8: want ErrValidation, got %v", err)
+	}
+}
+
+// TestImportRejectsTooLarge asserts a body over 1 MiB is rejected as ErrValidation.
+func TestImportRejectsTooLarge(t *testing.T) {
+	svc, _, _, _ := newTestService(t)
+	big := make([]byte, (1<<20)+1)
+	for i := range big {
+		big[i] = 'a'
+	}
+	svc.Fetcher = stubFetcher{data: big}
+	if _, err := svc.Import(context.Background(), ownerA, "/prompts/huge.md", ""); !errors.Is(err, ErrValidation) {
+		t.Fatalf("too-large: want ErrValidation, got %v", err)
+	}
+}
+
+// TestImportRejectsEmptySourcePath asserts a missing source_path is ErrValidation
+// (before any fetch).
+func TestImportRejectsEmptySourcePath(t *testing.T) {
+	svc, _, _, _ := newTestService(t)
+	svc.Fetcher = stubFetcher{data: []byte("x")}
+	if _, err := svc.Import(context.Background(), ownerA, "", ""); !errors.Is(err, ErrValidation) {
+		t.Fatalf("empty source_path: want ErrValidation, got %v", err)
+	}
+}
+
 // TestDeleteTombstoneRunStillReadable is the Phase 5 gate: create → run →
 // delete prompt → the run is STILL readable by the owner-scoped run readers
 // (RunGet/RunList/RunOutput/RunFs*), authorized via the run's denormalized

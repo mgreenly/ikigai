@@ -223,6 +223,11 @@ func registerRoutes(rt *appkit.Router) error {
 	store := prompt.NewStore(conn)
 	run := runner.New(store, sb, runTTL, manifestRoot)
 	svc := prompt.NewService(store, sb, runsDir, run)
+	// Wire the dropbox loopback content fetcher for the import verb. DROPBOX_BASE_URL
+	// is env-only (default the standard loopback layout), the same loopback-URL-via-env
+	// shape notify uses for its feed URLs. Field-injected so NewService stays unchanged.
+	dropboxBase := config.EnvOr(os.Getenv, "DROPBOX_BASE_URL", "http://127.0.0.1:3005")
+	svc.Fetcher = prompt.NewHTTPFetcher(dropboxBase)
 	// Capture the service for the consumer Worker and the store for the Producer
 	// hook (both run after Handlers; the Producer injects the outbox onto store).
 	svcRef = svc
