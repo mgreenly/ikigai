@@ -4,10 +4,12 @@
 > the wiki's running process, step by step. This supersedes the approach in
 > `wiki-rewrite-design.md` where they conflict. When the walk is complete this
 > feeds a proper `<slug>-design.md` per `docs/README.md`. Covered so far: the
-> **ingest side** (front doors → acceptance → inbox → dispatcher → integrators)
+> **ingest side** (front doors → acceptance → inbox → self-selecting workers →
+> integrators)
 > and the **document pass** (extract → resolve → merge, the registry, the page
-> store), the **digest pass**, and the **concurrency rule** (worker pool +
-> optimistic commit), and the **failure policy** (bounded retries +
+> store), the **digest pass**, and the **concurrency rule** (N identical
+> self-selecting workers — no central dispatcher — over optimistic commit),
+> and the **failure policy** (bounded retries +
 > dead-letter, settled), and **lint** (three jobs on the spine, settled),
 > and **search/ask** (the read side: hosted-ask-first + hybrid index,
 > settled), and **re-integration** (rejected — stamps permanent, settled),
@@ -18,6 +20,16 @@
 > `related`, settled — see `docs/wiki-prior-art-research.md`).
 > Remaining open: schema finals, eval harness, exact prompts, exact
 > models, config defaults.
+>
+> The execution model is the **dispatcher-free identical-worker pool**: N
+> identical worker goroutines self-select pending work under one in-flight-set
+> mutex, in place of a single dispatcher goroutine handing work to a dumb pool.
+> The two are the *same design under two concurrency idioms* (goroutine-confined
+> selection state + channel signaling vs. mutex-guarded shared state), shown
+> correctness-, crash-, and contention-equivalent; the worker model was chosen on
+> **legibility** (explicit over implicit, mechanical verification). This was
+> worked out in a design detour and folded in here; the dispatch/concurrency,
+> stamping, and failure-backoff sections below describe the worker model.
 
 ## Vocabulary
 
@@ -26,8 +38,9 @@
 | **ingest / acceptance** | receiving input and durably recording it in the inbox. Cheap, deterministic, never touches an LLM. The *only* contract of ingest: "your input is recorded and will eventually be reflected." |
 | **front door** | any code path that receives input and calls `Accept`: the MCP verbs (`ingest_text`, `ingest_url`) and the eventplane consumer loops. Thin adapters, not a layer. |
 | **inbox** | the queue of accepted-but-not-yet-integrated arrivals: one SQLite table + a blob directory. Pending = `integrated_by = ''`. |
-| **dispatcher** | the single in-process loop that decides *when* integration happens. Wakes on channel signals only; never reads feeds itself. |
-| **integrator** | code that turns inbox rows into wiki content. The dispatcher dispatches to integrators. Two policies: eager (document pass) and batch (digests). |
+| **worker** | one of N identical goroutines (pool size `WIKI_INTEGRATION_WORKERS`, default 4). Each runs the same loop: self-select the next eligible unit of work under the in-flight-set mutex, run the integrator, commit. No central decider role exists — workers are homogeneous. |
+| **selection** | the mutex-guarded critical section in which a worker picks the highest-priority eligible inbox row and claims it in the in-memory in-flight set. *This is where "what runs next" is decided* — the lone dispatcher of the earlier design, re-expressed as a lock. Wakes on the same signals the dispatcher's `select` watched; never reads feeds itself. |
+| **integrator** | code that turns inbox rows into wiki content. A worker, having selected a row, runs the matching integrator. Two policies: eager (document pass) and batch (digests). |
 | **run** | one execution of one integrator. A row in a runs table (ULID id, integrator name, status, timestamps, usage, error). The provenance key. |
 | **digest** | a batch integrator's compiled summary of accumulated events, given one integration pass. |
 
@@ -196,7 +209,7 @@ Decisions baked into that schema, with reasoning:
   carry no owner, everyone's documents merge into the business's one
   wiki, ask reads everything. The `(owner, integrated_by)` index dropped
   to `(integrated_by)` — owner-scoped pending queries don't exist; the
-  dispatcher's pending predicate is global. Eventplane consumer doors
+  workers' selection predicate is global. Eventplane consumer doors
   stamp a system identity (no human acted; exact literal → schema
   finals).
 - `attrs` JSON catch-all deliberately omitted until something needs it.
@@ -209,7 +222,8 @@ Accept(owner, kind, source, mime, title, tags string, bytes []byte)
 ```
 
 The only code that writes the inbox: hash, size, inline-vs-spill, insert row,
-nudge dispatcher. Front doors are thin adapters doing door-specific work
+nudge the workers (broadcast on the wake `sync.Cond`/channel). Front doors are
+thin adapters doing door-specific work
 *before* calling it:
 
 - `ingest_text` → `Accept` directly with the bytes.
@@ -218,7 +232,7 @@ nudge dispatcher. Front doors are thin adapters doing door-specific work
 
 There is **no synthetic event envelope** wrapping MCP-arrived content. The
 inbox row *is* the common shape; each door just fills the columns from what it
-natively has. The dispatcher never reads `content`; `kind` is the entire
+natively has. Selection never reads `content`; `kind` is the entire
 interface between "what arrived" and "what happens next."
 
 ### MCP return contract — a receipt, not a job
@@ -247,25 +261,29 @@ dropbox, crm, ledger, …, cron)
         │    cron.<name>             → Accept(kind=event, source="cron:<name>")
         │  cursor commits only after Accept returns (at-least-once; dedup via hash)
         ▼
-one dispatcher goroutine — single select over channels:
-   arrival nudge (sent by Accept) │ run completion │ shutdown
+N identical worker goroutines (WIKI_INTEGRATION_WORKERS), each looping:
+   select the next eligible row under the in-flight-set mutex (see "Selection")
+   → run the integrator → commit → drop the in-flight claim
+   an idle worker blocks on a wake `sync.Cond`/channel, broadcast on:
+   arrival nudge (sent by Accept) │ run completion │ ineligible_until timer │ shutdown
         ▼
 integrators (runs)
 ```
 
 - Consumer loops cannot share a select (blocking SSE reads aren't channels);
   one goroutine per feed is the existing eventplane pattern.
-- The dispatcher has no SSE connections and no feed knowledge.
+- Workers have no SSE connections and no feed knowledge — they read only the
+  inbox.
 - The **nudge is an optimization, not the truth**: signals carry no data, may
-  be lost or duplicated. On any wake (and at boot) the dispatcher queries the
-  inbox for pending work. Crash between acceptance and integration loses
-  nothing.
+  be lost or duplicated. On any wake (and at boot) a worker re-runs selection
+  against the inbox for pending work. Crash between acceptance and integration
+  loses nothing.
 - **Cron events go through `Accept` like every other event** (revised from
   an earlier trigger-message design). Consumers are fully uniform — every
-  handler ends at `Accept`, every cursor commits after it — and the
-  dispatcher's select has exactly one signal type, the contentless nudge.
+  handler ends at `Accept`, every cursor commits after it — and the workers'
+  wake has exactly one signal type, the contentless nudge.
   The decisive argument: a pending `cron:<name>` row is *durable batch
-  authorization*. If the dispatcher is busy, the row waits in the table; if
+  authorization*. If every worker is busy, the row waits in the table; if
   the process crashes before the digests run — including this suite's
   scheduled-downtime deploys, which make "restart near the nightly tick"
   routine — the boot scan finds the row and fires the digests late instead
@@ -278,20 +296,29 @@ integrators (runs)
   the envelope is used and discarded. Only suite domain events are stored *as*
   events.
 
-## Dispatch — the decision loop
+## Selection — the per-worker decision loop
 
-On every wake — nudge, run completion, or boot — the dispatcher runs the
-same check against the inbox:
+There is no central dispatcher. Each of the N identical workers runs the same
+loop; when it finishes a run (or wakes idle) it re-runs **selection** — the
+critical section under the in-flight-set mutex that picks and claims the next
+unit of work. The priority and eligibility are exactly what the lone dispatcher
+applied; the only change is that the selecting goroutine is whichever worker is
+free, guarded by a lock instead of being the sole goroutine:
 
 ```
-1. Free worker slot?         → no: sleep  (runs execute on the worker
-                                           pool, see "Concurrency")
-2. Pending cron row?         → look up its batch entries, start the
-                                bound digest run(s) — skipping any
-                                entry with a run already in flight
-3. Pending document row?     → start one document pass (oldest row)
-4. Nothing                   → sleep
-   (while slots remain, repeat from 1)
+lock(inflight)            -- the selection critical section
+  -- highest-priority eligible unit, in order; take the first, claim it,
+  -- release the lock; the claim is in-memory only (see "Concurrency",
+  -- "Item 2 — crash-resume"):
+  1. a pending cron row whose bound job name(s) aren't already in flight
+        → claim it (TryLock the bound job name(s)) — will run the bound digest(s)
+  2. else the oldest pending document row not already in the in-flight set
+        → claim its row id — will run one document pass
+  3. else nothing eligible
+        → block on the wake `sync.Cond` (arrival / completion / timer)
+unlock(inflight)
+
+run the claimed work (no lock held)  →  commit  →  drop the claim  →  loop
 ```
 
 - **Cron before documents** (decided): cron rows are scheduled work that is
@@ -299,7 +326,13 @@ same check against the inbox:
   The reverse ordering can starve a digest for hours behind a 50-file
   dropbox burst draining serially. Cron rows are rare and consumed in one
   cycle each, so documents cannot starve under this ordering.
-- Event rows are invisible to this loop — no step asks about them. They are
+- **At-most-one-in-flight is a `TryLock` per work key**, not central
+  enforcement: key = **job name** for digests/lint (their work is chosen by a
+  shared selector, so two concurrent runs of one entry would read the same
+  pending rows), key = **inbox row id** for the document pass (so the pool
+  isn't serialized — many document passes run at once, the guard only stops two
+  workers grabbing the *same* row). Details under "Concurrency — Item 1".
+- Event rows are invisible to selection — no step asks about them. They are
   touched only *inside* digest runs, via the batch table's selectors.
 - Authorization is unchanged in substance: a document row authorizes work by
   existing; batch work is still authorized by schedule — the cron row exists
@@ -308,9 +341,9 @@ same check against the inbox:
 - Three row roles fall out: **document** causes work immediately; **cron**
   causes work on schedule; **event** never causes anything — it waits to be
   swept up.
-- A cron row no batch entry binds is stamped immediately by the dispatcher
-  as a no-op (otherwise it would sit pending forever); config knowledge
-  lives only in the dispatcher/batch table, never in consumers.
+- A cron row no batch entry binds is stamped immediately by the selecting
+  worker as a no-op (otherwise it would sit pending forever); config knowledge
+  lives only in the workers' `jobs` config, never in consumers.
 
 ### Stamping — who clears `integrated_by`, and when
 
@@ -321,22 +354,29 @@ moment the promise becomes true — never earlier.**
   The run that consumes them stamps them **inside its end-of-run
   transaction**, atomically with the pages/registry writes. The stamp
   exists if and only if the content does; a crash on either side of the
-  commit leaves a consistent world (both or neither). Stamping at dispatch
+  commit leaves a consistent world (both or neither). Stamping at claim
   time would let a crash mid-run orphan the row as "done" with nothing
   written.
 - **Cron rows** promise "the digests bound to this trigger will run." No
   run consumes them (they match no selector), and one trigger can legally
   bind two digests — two runs, two separate transactions — so there is no
-  single transaction the stamp could ride in. Instead the **dispatcher**
-  stamps the cron row in its own small UPDATE once **all** bound digest
-  runs have **succeeded** (not merely completed — a failed run blocks the
-  stamp; the pending cron row is the retry authorization, see "Failure
-  policy → Batch failures").
-- The dispatcher procedure is uniform — start the bound run(s) (an
-  iteration of one for a document), and when all succeed, stamp the
-  causing row *if still unstamped*. For documents the run's atomic stamp
-  already happened, so the dispatcher's after-stamp is a no-op; it only
-  ever bites for rows no run consumes (cron).
+  single transaction the stamp could ride in. Instead the cron row is
+  stamped by a **worker-local completion-time join**: the worker finishing
+  a bound digest run queries "do all bound entries for this `caused_by` now
+  have a *succeeded* run?"; if yes, it stamps the cron row with
+  `UPDATE inbox SET integrated_by=… WHERE id=? AND integrated_by=''`. The
+  `WHERE integrated_by=''` makes a double-stamp race (two workers finishing
+  the last two entries at once) a harmless no-op. The stamp fires only once
+  **all** bound digest runs have **succeeded** (not merely completed — a
+  failed run leaves the join unsatisfied and the cron row pending, which is
+  the retry authorization, see "Failure policy → Batch failures").
+- The procedure is uniform — a worker runs the claimed work (an iteration of
+  one for a document), and on completion stamps the causing row *if still
+  unstamped*. For documents the run's atomic stamp already happened inside
+  the commit, so the after-stamp is a no-op; the completion-time join only
+  ever bites for rows no single run consumes (cron). This is identical to
+  the earlier design's "stamp once all bound runs succeeded," run as a query
+  at completion instead of from central tracking.
 - The cron stamp's crash window (digests committed, stamp not yet written)
   is accepted because **re-firing is mechanically idempotent**: boot finds
   the cron row pending → re-runs the bound digests → their selectors query
@@ -386,8 +426,8 @@ Eager rules: **one document per run** — no debounce, no combined
 multi-document passes; quality stays per-document. Runs execute
 concurrently on the worker pool (see "Concurrency — the worker pool";
 this replaces the earlier strictly-serial single-flight proposal, which
-was never agreed). Dispatch order stays oldest-first, so a burst
-(50-file dropbox dump) is still *dispatched* as an orderly queue in
+was never agreed). Selection order stays oldest-first, so a burst
+(50-file dropbox dump) is still *selected* as an orderly queue in
 arrival order; commits may complete out of order (forfeited explicitly,
 see Concurrency).
 
@@ -415,15 +455,67 @@ batch:
 
 ### Concurrency — the worker pool
 
-Integration runs execute on a pool of `WIKI_INTEGRATION_WORKERS` workers
-(config, default **4**). This **replaces the single-flight proposal**
-(which was recorded as a proposal and never agreed). The dispatcher stays
-**one goroutine** — it alone starts runs, so every dispatch decision
-(in-flight checks, slot accounting) is plain code with no locks; only the
-runs themselves are concurrent. Merge buffers page writes in memory during
-the run; the database is touched only by the milliseconds-long end-of-run
-commit, never while an LLM thinks. Safety rests on the mechanisms below,
-each matched to a hazard.
+Integration runs execute on a pool of `WIKI_INTEGRATION_WORKERS` **identical
+workers** (config, default **4**). This **replaces the single-flight proposal**
+(which was recorded as a proposal and never agreed). There is no central
+dispatcher: each worker self-selects its next unit of work in the selection
+critical section (see "Selection"), and selection is the *only* serialized
+point — the run itself holds no lock. The mutex-guarded selection critical
+section **is** the lone dispatcher of the earlier design, re-expressed as a
+lock; the two are correctness-, crash-, and contention-equivalent (Items 1–3
+below), and the worker model was chosen on **legibility** (explicit over
+implicit, mechanical verification — see the status block). Merge buffers page
+writes in memory during the run; the database is touched only by the
+milliseconds-long end-of-run commit, never while an LLM thinks. Safety rests on
+the mechanisms below, each matched to a hazard.
+
+**Item 1 — at-most-one-in-flight is a `TryLock` per work key, not central
+enforcement.** The rule is a non-blocking `TryLock` keyed by the work item,
+which every (identical) worker computes from the item's kind:
+
+- **Digests and lint jobs → key = job name** (`crm-digest`, `lint-dups`). Their
+  work is chosen by a *shared selector*, so two concurrent runs of the same
+  entry would read the same pending rows before either stamps. A worker tries
+  the lock; if held, that job "is not a current option" and the worker moves
+  on. Different job names run concurrently (selectors partition).
+- **Document pass → key = inbox row id**, NOT the integrator. A single lock for
+  the whole document pass would serialize the very pool we built to run
+  documents concurrently. The dedup is per-row: many document passes run at
+  once, the guard only stops two workers grabbing the *same* row.
+
+This is the in-flight set re-expressed as locks; it costs one mutex where a
+lone dispatcher cost zero, and a mutex is trivial.
+
+**Item 2 — crash-resume rides one rule already in the design: stamp only at
+commit, never at claim.** There are three row states but only **two are
+durable** — pending (`integrated_by=''`) and done (`integrated_by=<run id>`,
+written only inside the end-of-run commit). "In progress" is **not durable**:
+it is membership in the in-memory in-flight set (RAM only). Because "done" is
+stamped only inside the closing transaction (atomic with the page/registry
+writes), a crash can only ever leave a row **pending** — the partial run wrote
+nothing, so restart simply re-selects it. Crash-resume is automatic and needs
+no cleanup; dedup is in RAM precisely so a crash ignores it (the set wipes on
+crash, restart begins empty, the DB is the sole truth). The durable `running`
+row in `runs` is kept — but for **accounting, not dedup or resume**: it is the
+status record the MCP poll resolves through, and it is how *process death* gets
+counted — a clean failure marks its own run `failed`; a process that dies
+mid-run writes nothing, so the **boot sweep flips orphaned `running` →
+`crashed`** and a crashed run counts one attempt toward `WIKI_RUN_ATTEMPTS_MAX`
+(see "Runs and the commit"). The `running` row does **not** gate re-selection
+(selection keys off `integrated_by` + the in-memory set), so the boot sweep
+reconciles *accounting*, not *resume*.
+
+**Item 3 — SQLite contention is identical to the lone-dispatcher model.** The
+per-run DB write footprint is the same in both: one `running` insert at start,
+one end-of-run commit, and *no* DB write for the dedup claim (it is the
+in-memory set). Selection is a serialized critical section (one worker selects
+at a time under the mutex) — the same one-at-a-time selection the lone
+dispatcher did, not N concurrent select-reads; under WAL reads don't block the
+writer regardless. The only real write contention in *either* model is N
+workers' commits occasionally queuing on SQLite's single writer —
+milliseconds-long, "never while an LLM thinks," a non-event at this scale.
+Both need WAL + `busy_timeout` equally; there is no SQLite-contention argument
+that distinguishes the two models.
 
 **Lost page updates → optimistic commit.** Two runs touching one page is
 the classic lost update: each reads, thinks for minutes, rewrites the
@@ -472,16 +564,16 @@ output — no special-case code path. Bounds: **cap of 3 commit attempts,
 then fail cleanly** — `status=failed`, error names **conflict-retry
 exhaustion** (the in-run commit-retry budget is exhausted, by conflicts —
 distinguishable from real failures; the term is deliberately not plain
-"retry exhaustion," which would blur it with the dispatch-level retry
+"retry exhaustion," which would blur it with the run-level retry
 budget, the dead-letter threshold: two different budgets, 3 commit
 attempts inside one run vs. N runs per causing row), inbox row stays pending, the normal
-re-dispatch machinery takes over (one more run row; the eventual re-run
+re-selection machinery takes over (one more run row; the eventual re-run
 re-pays extract+resolve — accepted, it's the rare path and the
 already-designed recovery shape). In-run retries are deliberately
 **unspaced**: each retry *is* a merge call — minutes long, high natural
 latency variance — already spaced and jittered for free; scheduled sleep
-on top burns a worker slot exactly when slots are scarce. Post-exhaustion
-re-dispatch **is** delayed: oldest-first dispatch would otherwise send the
+on top burns a worker exactly when workers are scarce. Post-exhaustion
+re-selection **is** delayed: oldest-first selection would otherwise send the
 exhausted row straight back to the front of the queue, into the same storm
 that beat it, at full pipeline cost. The delay mechanism and formula are
 **finalized in "Failure policy"** (`ineligible_until` on inbox, set on
@@ -503,20 +595,22 @@ are another cost the run paid.
 by optimistic commit like everyone else's; event rows need their own
 rules:
 
-- **At most one in-flight run per batch-table entry name**,
-  dispatcher-enforced (one map lookup; the dispatcher is one goroutine, so
-  check-then-start has no race). Two concurrent runs of the *same* entry —
-  legal whenever two of its cron rows are pending, e.g. boot finds
-  yesterday's alongside today's — would both select the same pending event
-  rows *before either stamps* and compile them into pages twice; the page
-  version check cannot catch it (both commits look valid — it catches
+- **At most one in-flight run per batch-table entry name**, enforced by the
+  job-name `TryLock` of Item 1 (a worker that can't take the lock skips that
+  entry and moves on — no central check-then-start). Two concurrent runs of
+  the *same* entry — legal whenever two of its cron rows are pending, e.g.
+  boot finds yesterday's alongside today's — would both select the same
+  pending event rows *before either stamps* and compile them into pages twice;
+  the page version check cannot catch it (both commits look valid — it catches
   stale prose, not duplicate claims). Run *serially* the same pair is
   already safe: the second run finds a drained selector and completes as
-  an empty run — the locked re-fire idempotency. The rule adds no new
+  an empty run — the locked re-fire idempotency. The `TryLock` adds no new
   safety property; it forces same-entry runs back into the serial order
   where the idempotency the design already paid for actually works. The
-  skipped cron row just stays pending (durable authorization waiting is
-  its designed behavior) and fires on a later wake. Different entries
+  locked-out cron row just stays pending (durable authorization waiting is
+  its designed behavior) and fires on a later wake — when re-picked, the
+  other run has drained that entry's selector, so it succeeds as a cheap empty
+  run and the all-succeeded join then stamps the cron row. Different entries
   concurrent = fine: selectors partition event rows.
 - **Stamp by id list, never by selector.** The end-of-run transaction
   stamps exactly the row ids compile read at run start — never
@@ -529,6 +623,34 @@ rules:
   the pool — Accept was always concurrent — promoted from implementation
   accident to stated invariant; it is the stamping principle applied:
   a row compile never read had no promise fulfilled.)
+- **A cron row is a tiny fan-out, not one run.** The worker that claims a cron
+  row looks up the bound job entries for that trigger (config; every worker has
+  it) and runs each bound digest; each digest run is its own `runs` row with
+  `caused_by = cron-row-id`, stamps its event rows by id-list at commit, and
+  the cron row itself is stamped by the all-succeeded join (see "Stamping").
+  Crash mid-digest leaves the cron row pending → restart re-picks it → bound
+  digests re-run → already-stamped event rows are drained (cheap empty runs):
+  the same re-fire idempotency, uniform with documents.
+- **Open sub-question (not yet decided): the claimable unit for digests.**
+  *Framing 1* — a worker grabs the **cron row** (one claim, like any row) and
+  runs all its bound entries sequentially; simplest selection, matches the
+  "cron row is just another claim" model, needs the leave-pending-if-locked-out
+  handling above. *Framing 2* — the claimable unit is a single
+  **`(cron-row, entry)` pair**, so two workers naturally run two entries of one
+  trigger concurrently and the stamp is a pure completion-time join with no
+  leave-pending case; costs a selection step that expands cron rows into entry
+  candidates. Both are correct and contention-equivalent; decide at build.
+
+**Event-consumption semantics (confirmed).** Two distinct guarantees, two
+mechanisms: **partition is the routing guarantee** — selectors are required to
+partition the event rows and boot refuses to start on overlap (and surfaces any
+consumed-but-unmatched source), so two digests never *target* the same row;
+**the stamp is the once-only guarantee** — a set `integrated_by` removes the row
+from all future *pending* queries, making consumption final. Exactly one
+integrator consumes each content row, permanently (the stamp is one run id,
+never an array, never cleared). Cron rows are the exception to "consumed by an
+integrator": no run consumes a cron row as content — it is *authorization*,
+stamped by the all-bound-runs-succeeded join, not a content sweep.
 
 **Ordering — forfeited explicitly.** Single-flight integrated documents
 in strict arrival order; the pool commits out of order (doc A, arrived
@@ -541,7 +663,7 @@ today), and merge is therefore already required to be order-tolerant —
 claims carry their own resolved dates, corroboration adds citations,
 contradictions keep both sides. The pool reordering commits by minutes
 adds nothing serial hadn't already imposed at the scale of years. What
-the pool does *not* reorder: dispatch stays oldest-first, so arrival
+the pool does *not* reorder: selection stays oldest-first, so arrival
 order remains the fairness order for who gets a worker — no starvation.
 
 ## Integration — the document pass
@@ -1155,14 +1277,14 @@ granularity, notification) follow below.
 delay mechanism, no failure-type dispatch.** The mechanism is as proposed in
 the concurrency walk: a nullable epoch-ms column on `inbox`; the pending
 predicate gains `AND (ineligible_until IS NULL OR ineligible_until <= now)`;
-the dispatcher gains a fourth wake source — a timer armed at sleep time to
-the earliest future `ineligible_until`. Rationale for the uniform rule: the
-argument that motivated the delay for conflict-retry exhaustion ("oldest-first
-sends the failed row straight back to the front of the queue, into the same
-conditions that beat it") applies verbatim to every transient failure — an
-API outage that failed the run at minute 2 is still down at minute 3 when
-oldest-first re-dispatches it; immediate re-dispatch burns a worker slot and
-a counted attempt for nothing. And dispatching on failure type is impossible
+the workers gain a fourth wake source — a timer (the wake `sync.Cond`/channel
+broadcast) armed to the earliest future `ineligible_until`. Rationale for the
+uniform rule: the argument that motivated the delay for conflict-retry
+exhaustion ("oldest-first sends the failed row straight back to the front of
+the queue, into the same conditions that beat it") applies verbatim to every
+transient failure — an API outage that failed the run at minute 2 is still down
+at minute 3 when oldest-first re-selects it; immediate re-selection burns a
+worker and a counted attempt for nothing. And dispatching on failure type is impossible
 anyway: code cannot reliably tell transient from persistent — that is
 exactly why the dead-letter threshold exists (persistent failures reveal
 themselves by exhausting retries, not by self-identifying). Poison input
@@ -1262,7 +1384,7 @@ including conflict-retry exhaustion.** This overturns the recorded instinct
   empirically falsified that assumption (a hot-page pathology, a bug making
   every commit collide), and the threshold is precisely the instrument that
   detects falsified transience.
-- **An exempt type reopens the hole the frame closes.** Each re-dispatch
+- **An exempt type reopens the hole the frame closes.** Each re-run
   re-pays extract + resolve + merge; a failure type that never counts
   retries forever at full pipeline cost — unbounded LLM spend with no human
   signal, the silent budget burn dead-letter was locked to stop.
@@ -1287,16 +1409,16 @@ failure whose policy step was deferred to boot. Rationale:
 
 - **Failure is the only moment the inputs change.** The count moves only
   when a run fails, so that is the one honest decision point. A
-  dispatch-time check would re-run the count query on every wake for every
+  selection-time check would re-run the count query on every wake for every
   pending row — paying repeatedly to re-derive a fact knowable once.
-- **The row's state stays coherent.** With a dispatch-time check, a row
-  past the threshold sits "pending" in every query until the dispatcher
-  happens to look at it — the dead-letter view, alerting, and the status
+- **The row's state stays coherent.** With a selection-time check, a row
+  past the threshold sits "pending" in every query until a worker
+  happens to select it — the dead-letter view, alerting, and the status
   verb would all lie in the gap. Failure-time marking means `dead_at` is
   true the moment it becomes true.
-- **The dispatcher stays policy-free.** Its loop remains pure mechanism —
-  slots, ordering, the pending predicate. Retry policy lives in one place
-  (the failure path), not smeared into dispatch.
+- **Selection stays policy-free.** The worker loop remains pure mechanism —
+  the in-flight set, ordering, the pending predicate. Retry policy lives in one
+  place (the failure path), not smeared into selection.
 - **Notification (since settled — see "Eventplane producer") gets a
   natural home for free**: dead-lettering notifies via the
   `wiki.row_dead_lettered` outbox event, fired from the same spot,
@@ -1321,17 +1443,17 @@ per attempt is already the locked vocabulary.
 
 ### Batch failures — a failed run blocks the cron row's stamp
 
-**Locked: the dispatcher stamps a cron row only when all bound batch-
-integrator runs have *succeeded*, not merely completed — and the blocked
+**Locked: the cron row's all-succeeded join stamps it only when all bound
+batch-integrator runs have *succeeded*, not merely completed — and the blocked
 stamp is itself the retry mechanism, uniform with documents.** A batch
 run's causing row (`runs.caused_by`) is the cron row, so the locked policy
 applies to it with zero new machinery: a failure sets `ineligible_until`
-on the cron row (the timer wake re-dispatches the batch run within the
+on the cron row (the timer wake re-selects the batch run within the
 cycle), `WIKI_RUN_ATTEMPTS_MAX` failures set its `dead_at`. Rationale:
 
 - **Releasing the stamp orphans the retry.** A pending cron row is the
-  locked "durable batch authorization" — the only thing that makes the
-  dispatcher start batch work. Stamp it after a failure and nothing
+  locked "durable batch authorization" — the only thing that makes a
+  worker select batch work. Stamp it after a failure and nothing
   re-runs the work: the unswept event rows sit pending until the *next*
   scheduled cycle, so a transient API blip silently costs a whole day's
   cadence. Blocking lets the existing backoff machinery retry within the
@@ -1343,8 +1465,8 @@ cycle), `WIKI_RUN_ATTEMPTS_MAX` failures set its `dead_at`. Rationale:
   does real work.
 - **Uniformity.** "Failure leaves the causing row pending; the policy
   delays and eventually dead-letters it" is now one sentence true of every
-  integrator. The dispatcher's stamp rule changes one word: all bound runs
-  *succeeded*.
+  integrator. The cron-row stamp rule (the worker-local all-succeeded join)
+  changes one word: all bound runs *succeeded*.
 
 ### Batch dead-letter granularity — the cron row only, never event rows
 
@@ -1450,7 +1572,7 @@ staleness). Rationale:
 **Locked (re-confirmed after the jobs were walked: every job's recovery,
 concurrency, and failure story came from machinery already paid for; the
 only adaptation needed was selector-less config entries).** Lint jobs
-run on the existing spine: dispatched by the one dispatcher, executing on the
+run on the existing spine: self-selected by the workers, executing on the
 worker pool, one `runs` row per attempt, failure policy applied to the
 causing row verbatim. Jobs bind to **trigger names**; a trigger is a **row**,
 regardless of door:
@@ -1459,7 +1581,7 @@ regardless of door:
   cron:<name>`) — unchanged.
 - A manual MCP verb (e.g. `lint_run(job)`) is just another thin front door:
   it `Accept`s a trigger row (`source: mcp:<caller>`) and returns the usual
-  receipt. The dispatcher keys on which trigger the row authorizes, never on
+  receipt. Selection keys on which trigger the row authorizes, never on
   which door delivered it. Lint is therefore cron-triggered *and*
   on-demand — not exclusively scheduled.
 
@@ -1470,7 +1592,7 @@ in-flight rule already handles manual-during-scheduled overlap (the second
 row waits, then runs cheap/empty if the work is drained); and it
 generalizes for free — the same verb shape can fire a digest early
 ("run crm-digest now"). Keeps the invariants: every front door ends at
-`Accept`; the dispatcher's only signal is the contentless nudge.
+`Accept`; the workers' only wake signal is the contentless nudge.
 
 The config and vocabulary questions this raised are settled below ("Config
 and vocabulary — one `jobs` config").
@@ -1597,8 +1719,8 @@ free). After commit the loser id appears nowhere except immutable history
 **Locked: run shape — one run per trigger sweeping all eligible pairs
 serially, with one database transaction per pair (never one for the whole
 run).** Rationale: one-run-per-trigger is the digest's existing shape, and
-per-pair runs would force the dispatcher to read `dup_flags` — lint
-internals leaking into the policy-free component. Per-pair transactions
+per-pair runs would force selection to read `dup_flags` — lint
+internals leaking into the policy-free selection component. Per-pair transactions
 put "completely or not at all" at the right grain: each merge commits
 alone (judge → fold → the five steps + close the dup row); if pair 7 of 10
 fails, pairs 1–6 stay merged — each was a complete operation. Recovery is
@@ -1782,8 +1904,8 @@ yet — it's the merge prompt's problem.
 ### Config and vocabulary — one `jobs` config, "integrator" narrows
 
 **Locked: the batch table generalizes into one `jobs` config list**
-(config, not a database table — the name/trigger/selector binding the
-dispatcher reads): `name`, `trigger`, and `select` legal only for
+(config, not a database table — the name/trigger/selector binding that
+selection reads): `name`, `trigger`, and `select` legal only for
 digest-kind entries. Lint entries bind name → trigger with no selector
 (their inputs are `dup_flags` / `stale_notes` / the registry, never inbox
 rows).
@@ -1801,14 +1923,14 @@ jobs:
     trigger: cron.weekly
 ```
 
-Rationale: the dispatcher treats both kinds identically — pending trigger
-row → look up bound jobs → start runs, at-most-one-in-flight per name,
+Rationale: selection treats both kinds identically — pending trigger
+row → look up bound jobs → run them, at-most-one-in-flight per name,
 stamp when all succeeded; two config lists would give one mechanism two
 parallel registries. The startup checks (selector partition/coverage)
 apply to the subset with selectors. Manual triggering needs no extra
 config — the MCP verb fires any named trigger.
 
-**Locked vocabulary:** a **job** is anything the dispatcher can start.
+**Locked vocabulary:** a **job** is anything a worker can select and start.
 **Integrators** (document pass, digests) are the subset that consume
 inbox rows; **lint jobs** are the subset that maintain existing content.
 A **run** is one execution of one job; `runs.integrator` renames to
@@ -2323,7 +2445,7 @@ Rationale:
   table.
 - The dup_flags/stale_notes precedent verbatim: same pattern, separate
   tables, no genericism for things different in kind (ask has no
-  causing row, no dispatcher, no retries).
+  causing row, no selection/in-flight claim, no retries).
 - Lifecycle mirrors runs where honest: insert `running` at start,
   finalize at end, boot sweep marks orphans `crashed` — no policy
   step, just truthful status; spend on crashed asks stays visible.
@@ -2395,13 +2517,19 @@ budget knobs (max turns / tokens / wall clock) → config defaults.
   columns (`ineligible_until`, `dead_at`, `requeued_at`) land in schema
   finals.
 - **Concurrency rule** — settled (see "Concurrency — the worker pool"):
-  worker pool (config, default 4) replacing the never-agreed single-flight
-  proposal; optimistic commit with page versions; alias-UNIQUE as the
-  duplicate-minting guard; shared conflict loop (cap 3, fail cleanly,
-  `conflicts` counter on runs); two digest rules (one in-flight run per
-  batch entry; stamp by id list); arrival-order integration explicitly
+  **N identical self-selecting workers, no central dispatcher** (config,
+  default 4) replacing the never-agreed single-flight proposal; at-most-one-
+  in-flight is a `TryLock` per work key (job name for digests/lint, inbox row
+  id for documents) over an in-memory in-flight set; crash-resume rides
+  stamp-only-at-commit (in-flight is RAM, wiped on crash); SQLite contention
+  identical to the lone-dispatcher model; optimistic commit with page versions;
+  alias-UNIQUE as the duplicate-minting guard; shared conflict loop (cap 3,
+  fail cleanly, `conflicts` counter on runs); two digest rules (one in-flight
+  run per batch entry; stamp by id list); arrival-order integration explicitly
   forfeited. Remaining: the `ineligible_until` mechanism is finalized in
-  failure policy, and the `pages.version` column lands in schema finals.
+  failure policy; the `pages.version` column lands in schema finals; and the
+  claimable unit for digests (Framing 1 cron-row vs Framing 2
+  `(cron-row, entry)` pair) is an open build-time sub-question.
 - **Subject taxonomy depth** — mostly settled (type tests, freeform
   prompt-anchored `kind`, salience gate in the extract prompt shape).
   Remaining: confirm `kind` column lands in the `subjects` schema final.
