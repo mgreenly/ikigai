@@ -213,12 +213,31 @@ Rules that keep it honest:
   pins, the moment Part II's report (P16) swaps a default model or prompt this
   tier silently re-validates that the new pick at least *runs* — so a config
   change can't quietly ship a prompt the model chokes on.
+- **Administered at named checkpoints, not merely present.** A tier that is "in
+  the tree but never in the unit gate" is built and then never read: the unit
+  gate mocks every LLM (from P6a onward) and a phase is *done* when it compiles
+  and those mocked tests pass, so an integrator with a placeholder prompt (prompts
+  are deferred config defaults — "Open items") can reach "all green" while its
+  live `(prompt, model, effort)` triple has never once produced parseable,
+  schema-valid output. To close that gap the orchestrator (or the coordinator)
+  **runs the accumulated tier, with keys present, at three checkpoints**: after
+  **P6a** (the first LLM site — extract — lands; catches an unparseable-JSON /
+  wrong-model-id / mis-shaped-schema failure at the *first* site that has one,
+  ~5 phases before P11 and while the fix is one prompt), after **P7a** (the first
+  full document-pass slice — extract + match + merge live), and after **P11** (the
+  full pipeline). A **red checkpoint pauses the march for investigation** — this
+  is an explicit orchestrator stop-and-look, **not** a hard CI/deploy gate (the
+  advisory, non-gating stance above is unchanged for the same
+  nondeterminism-and-cost reasons). The checkpoints are *when the already-built
+  signal is read*, nothing more.
 
 Like the enablement obligations, this adds **no new phases** — it grows one slice
 at a time inside the call-site phases that already exist. Each of **P6a–P11**
 contributes its slice as its call sites land (see each phase's *Integration test*
 line), so the full end-to-end real-model liveness check exists the moment P11
-closes rather than being bolted on at the end.
+closes rather than being bolted on at the end — and the three checkpoints above
+(after P6a, P7a, P11) are where the `/finish` march actually *runs* that signal,
+so a hollow integrator can't ride a green unit gate all the way to P11 unnoticed.
 
 ---
 
