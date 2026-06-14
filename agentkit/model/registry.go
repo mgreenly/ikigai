@@ -129,6 +129,39 @@ func ModelPricing(r Resolved) PricingSpec {
 	return PricingSpec{}
 }
 
+// EmbeddingPricingSpec carries the per-million input-token rate for an
+// embeddings model. R-ZZLK-I9CK: every billed model declares its rate so
+// the per-call cost_usd (P0c) is real, not zero. Embeddings bill only on
+// input tokens; there is no output or cache tier (the response is the
+// vector, not generated tokens).
+type EmbeddingPricingSpec struct {
+	InputPerM float64 // USD per million input tokens
+}
+
+// ComputeCost returns the USD cost of embedding inputTokens tokens.
+func (p EmbeddingPricingSpec) ComputeCost(inputTokens int) float64 {
+	return float64(inputTokens) / 1e6 * p.InputPerM
+}
+
+// embeddingRegistry: bare embeddings-model ID -> pricing. The chat
+// modelSpec is chat-shaped (efforts, maxOutputTokens), so embeddings get a
+// dedicated pricing table rather than a chat-registry row. R-ZZLK-I9CK.
+//
+// text-embedding-3-large: https://platform.openai.com/pricing (as of 2026-05),
+// $0.13 per million input tokens; output/cache = 0 (no such tier).
+var embeddingRegistry = map[string]EmbeddingPricingSpec{
+	"text-embedding-3-large": {InputPerM: 0.13},
+}
+
+// EmbeddingPricing returns the EmbeddingPricingSpec for the named
+// embeddings model. The bool is false when the model is unregistered, so a
+// caller can refuse to ship a model with unknown pricing (R-ZZLK-I9CK)
+// rather than silently bill zero.
+func EmbeddingPricing(model string) (EmbeddingPricingSpec, bool) {
+	spec, ok := embeddingRegistry[model]
+	return spec, ok
+}
+
 // registry: provider -> bare model ID -> spec. The keys carry any
 // suffix that distinguishes context variants (e.g. "[1m]"); the
 // resolved bare ID is matched verbatim.

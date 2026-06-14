@@ -652,7 +652,7 @@ key, fully offline); structured-output, effort, and error-mapping cases mirror
 the ikigai-cli tests; **all agent-backed services still build** (prompts,
 dropbox, wiki) — the reason this seam is isolated.
 
-## [ ] P0b — agentkit embeddings client (`agentkit/embed`)
+## [x] P0b — agentkit embeddings client (`agentkit/embed`)
 
 *Shared-library expansion; a **net-new** capability with no prior art
 (`/mnt/projects/ikigai-cli` has no embeddings). Embeddings are **not** a generation call,
