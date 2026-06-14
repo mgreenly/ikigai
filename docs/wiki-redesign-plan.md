@@ -84,21 +84,52 @@ forbids for the DDL). The `Manifest` is the in-memory work order, **never
 persisted** (the run id is its durable identity), **empty-capable** (a stub emits
 a minimal one). Its fields, each tagged with the consumer that reads it:
 
-- **`subjects[]`** — extracted/compiled subjects, each annotated with its resolved
-  **subject_id** and **target page** (first read by P6b2, the first producer; §4.4).
-- **generalized `{text, cites[]}` claim shape** per subject — the document pass
-  fills `cites` with the one inbox row id; compile fills per-claim cites (read by
-  P7a's merge and P8's compile; §4.3, §5).
-- **write-set pages** = the manifest's pages exactly (read by P7a's merge; §4.4).
-- **`occurred_at`** — first-writer-wins, events only (read by P7a's commit; §4.1).
-- **merge's `superseded` source** — the dropped-citation declarations the §6.1
-  gate checks (populated by merge, read by P7a; §6.1).
-- **per-page base `version` slot** — the `pages.version` the page was read at
-  (design §3: "the manifest records the version merge read"); **populated at
-  merge-read time in P7a**, **read by P7b's** optimistic-commit
-  `WHERE subject=? AND version=?` guard.
-- **re-run-merge-for-one-page handle** — the second thing P7b's conflict loop
-  needs (read by P7b; §3).
+- **`subjects[]`, addressable by `subject_id`** — extracted/compiled subjects,
+  **individually addressable** so a conflict can re-enter the existing stage
+  functions for *one* subject without reshaping the type (one page per subject —
+  §4.1, `pages.subject` — so every per-page slot below hangs off its `subjects[]`
+  entry, never a manifest-global scalar). Each entry carries (a) the **extracted
+  fields** — `type, kind, name, aliases, claims[]` (extract/compile emit them;
+  merge reads `type`/`kind` for routing and `name`/`aliases` for the
+  identity-establishing lead — §4.2, §5) — **plus** (b) the **resolution
+  annotations**: the resolved **subject_id** and **target page** (first read by
+  P6b2, the first producer; §4.4), the per-subject base `version` slot, the
+  per-subject `occurred_at`, and the per-page `superseded` and `stale_notes`
+  carriers below (§4.4).
+- **generalized `{text, cites[]}` claim shape** per subject — on each `subjects[]`
+  entry's `claims[]`; the document pass fills `cites` with the one inbox row id;
+  compile fills per-claim cites (read by P7a's merge and P8's compile; §4.3, §5).
+- **write-set pages** = exactly the **target pages named by `subjects[]`** (each
+  addressable by subject_id), **not a separate parallel structure**: P6b2 populates
+  the write set as exactly the subjects' target pages, and P7a's merge write set is
+  that set verbatim — "the manifest's pages, exactly" (populated by P6b2, read by
+  P7a's merge; §4.4).
+- **per-subject `occurred_at`** — first-writer-wins, **events only**, a property of
+  each event subject (so it lives on the relevant `subjects[]` entry, not as one
+  manifest scalar — §4.1 `subjects.occurred_at`) (read by P7a's commit; §4.1).
+- **per-page `superseded`** — the dropped-citation declarations the §6.1 gate
+  checks, carried **per page on the `subjects[]` entry** so P7b's re-run can
+  re-validate the gate against the *re-run's* fresh `superseded` (populated by
+  merge, read by P7a; on a P7b conflict re-merge it is **re-derived** from the new
+  merge output, never the stale original; §6.1).
+- **per-subject base `version` slot** — the `pages.version` the page was read at,
+  one per `subjects[]` entry (design §3: "the manifest records the version merge
+  read"; one page per subject ⇒ the base version is per subject, never a
+  manifest-global scalar); **populated at merge-read time in P7a**, **read by P7b's**
+  per-page optimistic-commit `WHERE subject=? AND version=?` guard.
+- **per-subject re-merge handle** — the second thing P7b's conflict loop needs: not
+  a diagnosis step but the structural requirement that a **single subject's slice**
+  (its `claims[]`, target page, base `version`) be re-merged/re-resolved in
+  isolation. The conflicting page/subject is identified by the failing
+  `WHERE subject=? AND version=?` (P7b) or the alias `UNIQUE` violation (P7b2) — no
+  diagnosis (§3) — and the subject-addressability above is what lets the retry
+  re-enter the existing stage functions for that one subject (read by P7b/P7b2; §3).
+- **`stale_notes[]`** — the stale-note set merge produces while folding (subject,
+  note, `cites`; the `id`/`run_id`/`status` are filled at write time per §12 #4):
+  the carrier through which merge signals which `stale_notes` the end-of-run
+  transaction must write **in its existing commit**, so P7a's transaction owns the
+  write rather than reaching into merge's side effects (populated by merge, read by
+  P7a's end-of-run transaction; §6 / §12 #4).
 - **`dup_pairs[]`** — candidate duplicate subject pairs to flag, each in canonical
   order (smaller ULID first): the pairs resolve's many-ids arm surfaces (P6b) and
   match's side channel reports (P6b2), **assembled into the manifest by P6b2** (the
@@ -1129,10 +1160,14 @@ fills its real default," and merge's real default is P7a2's job.*
   subject's claims as prose (weave new, corroborate known with the new citation,
   corral contradictions with both sides + citations). Tools: read + write pages
   only.
-- **The one end-of-run transaction**, made real: updated/created pages + registry
+- **The one end-of-run transaction**, made real: updated/created pages (= the
+  manifest's write-set pages = the subjects' target pages, exactly) + registry
   inserts + `dup_flags` (inserted from the manifest's `dup_pairs` via `FlagDup`,
-  canonical order) + the run row + `integrated_by` (and `occurred_at`
-  first-writer-wins from the manifest). Zero mid-run partial writes. This fills
+  canonical order) + the `stale_notes` merge appended (from the manifest's
+  `stale_notes[]` carrier, with their `cites` — §6) + the run row + `integrated_by`
+  (and `occurred_at` first-writer-wins from the manifest, events only). Zero mid-run
+  partial writes — the manifest carries the whole write set, so nothing reaches the
+  DB outside this commit. This fills
   the generic end-of-run transaction wrapper P4 built and tested with stubs — now
   writing real pages/registry. **Merge records the base `version` it read for
   each page into the manifest's per-page version slot** (the value P7b's guard
@@ -1140,9 +1175,12 @@ fills its real default," and merge's real default is P7a2's job.*
   write, but the **conflict-handling `WHERE`-guard and the conflict loops are
   P7b/P7b2**: P7a is the single-writer happy path.
 - **`stale_notes` writer hook**: when merge touches a read-only neighbor page it
-  contradicts, it appends a `stale_notes` row (with `cites`) **in its existing
-  commit** (design §6). This is the producer side `lint-stale` (P9c) consumes —
-  built here so P9c's work-list is not empty by construction.
+  contradicts, it surfaces a stale note (subject, note, `cites`) **through the
+  manifest's `stale_notes[]` carrier** (per the *Manifest canonicity* enumeration),
+  which the end-of-run transaction writes **in its existing commit** (design §6) —
+  the transaction owns the write, never reaching into merge's side effects. This is
+  the producer side `lint-stale` (P9c) consumes — built here so P9c's work-list is
+  not empty by construction.
 - Replace the P4 document-pass **stub** with this real integrator — the **same
   `Integrator` interface**, emitting the **same `Manifest`**, so the spine is
   unchanged (the swap is mechanical, exactly as P4 set up and tested).
@@ -1233,9 +1271,12 @@ bundled with the §6.1 gate and a full concurrency suite overran one cold start)
   post-exhaustion re-selection delayed via `ineligible_until` (P5). Built here
   with the lost-update loop as its first user; P7b2's duplicate-mint arm reuses it
   unchanged.
-- **Citation-preservation gate** (§6.1): merge also emits a `superseded` list;
-  at commit, `old − new` citations must equal the declared list, else **failed
-  call** (retried in-run, never committed).
+- **Citation-preservation gate** (§6.1): merge also emits a `superseded` list
+  (the manifest's per-page `superseded` carrier); at commit, `old − new` citations
+  must equal the declared list, else **failed call** (retried in-run, never
+  committed). On a conflict-driven re-merge, the gate runs against the **re-run's
+  fresh `superseded`** (re-derived from the new merge output), never the stale
+  original.
 
 **Touches:** `wiki/internal/{integrate,page,run}/`.
 **Verify:** the conflict-loop bound retries and exhausts cleanly; the lost-update

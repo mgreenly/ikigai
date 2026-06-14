@@ -455,8 +455,10 @@ sweep marks orphaned `running` rows `crashed`; thereafter indistinguishable
 from failed to retry logic).
 
 **One SQLite transaction at end of run** writes everything: updated/created
-pages, registry inserts, dup flags, the run row, `integrated_by`. Mid-run there
-are zero partial writes.
+pages, registry inserts, dup flags, the `stale_notes` merge appended (§6, with
+their `cites`), `occurred_at` (first-writer-wins, events only — §4.1), the run
+row, `integrated_by`. Mid-run there are zero partial writes — "writes everything"
+is literally the whole write set, nothing reaches the DB outside this commit.
 
 **Stamping principle:** a row is stamped by whatever fulfills its promise, at
 the moment the promise becomes true, never earlier. Document/event rows are
