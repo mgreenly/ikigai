@@ -1400,7 +1400,7 @@ onto it. Structure only.
 
 ---
 
-## [ ] P8 — Digest pass: compile + the jobs config + digest concurrency
+## [x] P8 — Digest pass: compile + the jobs config + digest concurrency
 
 *Design §5, §3 (cron rows as durable batch authorization), §6 (jobs config). The
 first reuse of the shared resolve→merge→commit pipeline.*
