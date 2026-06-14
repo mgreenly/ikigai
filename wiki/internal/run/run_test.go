@@ -11,6 +11,7 @@ import (
 
 	"wiki/internal/db"
 	"wiki/internal/integrate"
+	"wiki/internal/page"
 
 	_ "modernc.org/sqlite"
 )
@@ -33,6 +34,7 @@ func newStore(t *testing.T) (*Store, *sql.DB) {
 		DB:    conn,
 		NewID: func() string { n++; return fmt.Sprintf("run-%02d", n) },
 		Now:   func() time.Time { return time.Unix(1, 0).UTC() },
+		Pages: page.NewStore(conn),
 	})
 	if err != nil {
 		t.Fatalf("new store: %v", err)

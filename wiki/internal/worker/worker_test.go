@@ -11,6 +11,7 @@ import (
 
 	"wiki/internal/db"
 	"wiki/internal/integrate"
+	"wiki/internal/page"
 	"wiki/internal/run"
 
 	_ "modernc.org/sqlite"
@@ -43,6 +44,10 @@ func newRuns(t *testing.T, conn *sql.DB) *run.Store {
 			n++
 			return fmt.Sprintf("run-%04d", n)
 		},
+		// P7a: the end-of-run transaction writes the Manifest's pages/registry, so
+		// the spine tests (which drive a POPULATED stub Manifest through it) need the
+		// real Pages write surface wired.
+		Pages: page.NewStore(conn),
 	})
 	if err != nil {
 		t.Fatalf("run.New: %v", err)

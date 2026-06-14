@@ -92,6 +92,16 @@ type Subject struct {
 
 	// --- (b) resolution annotations (resolve/merge fill; the commit reads) ---
 
+	// PageTitle and PageBody are the rewritten prose page merge produces for this
+	// subject's target page (Manifest canonicity / §4.4 "rewritten prose pages").
+	// Merge's read+write-page work is CAPTURED into these slots rather than written
+	// directly, so the end-of-run transaction owns the only write and there are zero
+	// mid-run partial writes (§4.5). Populated by merge in P7a; read by P7a's
+	// end-of-run transaction (the page upsert + the pages_fts sync). One page per
+	// subject (§4.1), so the content lives here, never as a manifest-global scalar.
+	PageTitle string
+	PageBody  string
+
 	// SubjectID is the resolved subject id (an existing registry id, or a freshly
 	// minted ULID for a new subject). First read by P6b2, the first producer
 	// (§4.4). It is also the addressing key for the whole entry.

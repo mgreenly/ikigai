@@ -21,9 +21,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"strings"
 	"time"
 
 	"wiki/internal/integrate"
+	"wiki/internal/page"
 )
 
 // Status values for the runs.status column (design §4.5).
@@ -72,9 +74,24 @@ type rowDeadLetteredPayload struct {
 	LastError string `json:"last_error"`
 }
 
+// Pages is the registry/pages write surface the end-of-run transaction applies
+// inside its commit (design §4.5). It is *page.Store narrowed to an interface so
+// run is testable with a fake and so the dependency is explicit. Every method
+// takes the commit's *sql.Tx — the writes land atomically with the run's terminal
+// `succeeded` (zero mid-run partial writes). A nil Pages keeps Commit's pre-P7a
+// behavior (terminal status + inbox stamp only) — used by cron/digest no-op runs
+// whose Manifest carries no pages.
+type Pages interface {
+	EnsureSubject(ctx context.Context, tx *sql.Tx, subj page.Subject, createdByRun string) error
+	InsertAlias(ctx context.Context, tx *sql.Tx, a page.Alias) error
+	UpsertPage(ctx context.Context, tx *sql.Tx, subject, title, body string) error
+	FlagDup(ctx context.Context, tx *sql.Tx, a, b string) error
+	InsertStaleNote(ctx context.Context, tx *sql.Tx, id, subject, note, cites, runID string) error
+}
+
 // Store owns the runs table on db. Constructed once at the composition root; the
-// id minter, clock, randomness, retry threshold, and eventplane outbox are
-// injectable for tests.
+// id minter, clock, randomness, retry threshold, eventplane outbox, and the pages
+// write surface are injectable for tests.
 type Store struct {
 	db          *sql.DB
 	newID       func() string
@@ -82,6 +99,7 @@ type Store struct {
 	randFloat   func() float64 // [0,1) jitter source (design §7 random(2–4))
 	attemptsMax int
 	outbox      Outbox
+	pages       Pages
 }
 
 // Options configures a Store. DB is required; the rest default to production.
@@ -98,6 +116,11 @@ type Options struct {
 	// Outbox emits wiki.row_dead_lettered in the dead-letter transaction (design
 	// §8). Nil disables the event (the mark still happens) — for tests/no-eventplane.
 	Outbox Outbox
+	// Pages is the registry/pages write surface applied inside the end-of-run
+	// commit (design §4.5). Nil keeps the pre-P7a behavior (status + stamp only) —
+	// a Manifest carrying subjects then commits its terminal status but writes no
+	// pages, which is only correct for an empty (cron/digest no-op) Manifest.
+	Pages Pages
 }
 
 // New validates options and returns a ready Store.
@@ -112,6 +135,7 @@ func New(opts Options) (*Store, error) {
 		randFloat:   opts.RandFloat,
 		attemptsMax: opts.AttemptsMax,
 		outbox:      opts.Outbox,
+		pages:       opts.Pages,
 	}
 	if s.newID == nil {
 		s.newID = newULID
@@ -168,12 +192,15 @@ func (s *Store) Commit(ctx context.Context, runID, causedBy string, m *integrate
 	}
 	defer tx.Rollback()
 
-	// --- The Manifest-consuming write set lands here in P7a (pages, registry,
-	// dup_flags, stale_notes, pages_fts). P4 freezes the transaction shape and its
-	// Manifest input; the spine round-trips a populated Manifest through it. The
-	// WriteSet is derived from the manifest's subjects (never a parallel
-	// structure) so a future P7a fills page writes against exactly these pages. ---
-	_ = m.WriteSet()
+	// --- The Manifest-consuming write set (P7a): pages, registry inserts,
+	// dup_flags, stale_notes, and the pages_fts sync — all inside this one
+	// transaction (design §4.5). The write set is derived from the manifest's
+	// subjects (m.WriteSet()), never a parallel structure. A nil Pages surface
+	// keeps the pre-P7a behavior (terminal status + stamp only), correct only for
+	// an empty (cron/digest no-op) Manifest. ---
+	if err := s.applyManifest(ctx, tx, runID, m); err != nil {
+		return err
+	}
 
 	finishedAt := s.now().UTC().UnixMilli()
 	if _, err := tx.ExecContext(ctx,
@@ -197,6 +224,76 @@ func (s *Store) Commit(ctx context.Context, runID, causedBy string, m *integrate
 
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("run: commit: %w", err)
+	}
+	return nil
+}
+
+// applyManifest writes the Manifest's pages, registry inserts, dup_flags, and
+// stale_notes inside the end-of-run transaction (design §4.5). It runs per-subject
+// in manifest order (deterministic), then folds the manifest's dup_pairs and
+// stale_notes. A nil Pages surface (cron/digest no-op runs) is a no-op as long as
+// the Manifest carries no subjects; a non-empty Manifest with no Pages surface is
+// a wiring bug and is rejected loudly rather than silently dropping page writes.
+func (s *Store) applyManifest(ctx context.Context, tx *sql.Tx, runID string, m *integrate.Manifest) error {
+	if s.pages == nil {
+		if len(m.Subjects) > 0 || len(m.DupPairs) > 0 || len(m.StaleNotes) > 0 {
+			return fmt.Errorf("run: commit has a populated Manifest but no Pages write surface wired")
+		}
+		return nil
+	}
+
+	for i := range m.Subjects {
+		subj := m.Subjects[i]
+		if subj.SubjectID == "" {
+			return fmt.Errorf("run: manifest subject %d (%q) has no resolved id", i, subj.Name)
+		}
+
+		// Registry: the subjects row (idempotent; occurred_at first-writer-wins) and
+		// every alias key for this subject's surface forms.
+		canonical := strings.TrimSpace(subj.Name)
+		if err := s.pages.EnsureSubject(ctx, tx, page.Subject{
+			ID:            subj.SubjectID,
+			Type:          subj.Type,
+			Kind:          subj.Kind,
+			CanonicalName: canonical,
+			OccurredAt:    subj.OccurredAt,
+		}, runID); err != nil {
+			return fmt.Errorf("run: %w", err)
+		}
+		for _, norm := range page.KeySet(subj.Name, subj.Aliases) {
+			if err := s.pages.InsertAlias(ctx, tx, page.Alias{
+				Type:      subj.Type,
+				Norm:      norm,
+				SubjectID: subj.SubjectID,
+			}); err != nil {
+				return fmt.Errorf("run: %w", err)
+			}
+		}
+
+		// The page: write merge's rewritten prose body + title, keeping pages_fts in
+		// sync (the §4.5 external-content sync, per-page, no triggers).
+		if subj.TargetPage != "" {
+			if err := s.pages.UpsertPage(ctx, tx, subj.TargetPage, subj.PageTitle, subj.PageBody); err != nil {
+				return fmt.Errorf("run: %w", err)
+			}
+		}
+	}
+
+	// dup_flags from the manifest's candidate pairs (canonical order; FlagDup sorts
+	// and is the only inserter).
+	for _, p := range m.DupPairs {
+		if err := s.pages.FlagDup(ctx, tx, p.SubjectA, p.SubjectB); err != nil {
+			return fmt.Errorf("run: %w", err)
+		}
+	}
+
+	// stale_notes the merge agent surfaced — written here, in the existing commit
+	// (the transaction owns the write, never merge's side effects — §6).
+	for _, sn := range m.StaleNotes {
+		if err := s.pages.InsertStaleNote(ctx, tx, s.newID(), sn.Subject, sn.Note,
+			strings.Join(sn.Cites, " "), runID); err != nil {
+			return fmt.Errorf("run: %w", err)
+		}
 	}
 	return nil
 }

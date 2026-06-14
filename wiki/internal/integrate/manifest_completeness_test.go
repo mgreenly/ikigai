@@ -40,6 +40,9 @@ func TestManifestCompleteness(t *testing.T) {
 		// resolution annotations on each subject entry.
 		{Subject{}, "SubjectID", "P6b2 first producer (§4.4); the addressing key (§3)"},
 		{Subject{}, "TargetPage", "P6b2 write set = subjects' target pages (§4.4)"},
+		// per-subject merged page content — merge produces, the commit writes.
+		{Subject{}, "PageTitle", "P7a end-of-run page upsert + pages_fts sync (§4.4/§4.5)"},
+		{Subject{}, "PageBody", "P7a end-of-run page upsert + pages_fts sync (§4.4/§4.5)"},
 		// per-subject base version slot.
 		{Subject{}, "BaseVersion", "P7b optimistic-commit WHERE subject=? AND version=? (§3)"},
 		// per-subject occurred_at — first-writer-wins, events only.

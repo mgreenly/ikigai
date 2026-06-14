@@ -113,6 +113,14 @@ a minimal one). Its fields, each tagged with the consumer that reads it:
 - **generalized `{text, cites[]}` claim shape** per subject — on each `subjects[]`
   entry's `claims[]`; the document pass fills `cites` with the one inbox row id;
   compile fills per-claim cites (read by P7a's merge and P8's compile; §4.3, §5).
+- **per-subject merged page content (`page_title`, `page_body`)** — the rewritten
+  prose page merge produces for this subject's target page (§4.4: "rewritten prose
+  pages"). Merge's read+write-page work is **captured** into these slots rather than
+  written directly, so the end-of-run transaction owns the only write and there are
+  **zero mid-run partial writes** (§4.5). Populated by merge in P7a, read by P7a's
+  end-of-run transaction (the page upsert + the `pages_fts` sync). One page per
+  subject (§4.1), so the content lives on the `subjects[]` entry, never a
+  manifest-global scalar.
 - **write-set pages** = exactly the **target pages named by `subjects[]`** (each
   addressable by subject_id), **not a separate parallel structure**: P6b2 populates
   the write set as exactly the subjects' target pages, and P7a's merge write set is
@@ -1194,7 +1202,7 @@ in P7a.
 
 ---
 
-## [ ] P7a — Document pass: merge core + the plain end-of-run commit (happy path)
+## [x] P7a — Document pass: merge core + the plain end-of-run commit (happy path)
 
 *Design §4.4, §4.5, §6 (the `stale_notes` writer). Closes the document-pass
 loop — the airtight transaction the whole spine was built for — on the
