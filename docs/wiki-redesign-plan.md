@@ -85,23 +85,60 @@ instead of the schema. Splitting never disturbs downstream numbering:
 phases nearest the budget — to re-audit whenever a standing requirement touches
 them — are the densest call-site units, the ones carrying the system's hardest
 prompts (extract, match, merge) bundled with the resolve/commit machinery:
-**P6b**, **P7a**, **P7a2**, and **P7b**. **P7a2 was carved off P7a under exactly
-this rule** (the merge prompt + its whole validation surface overran the airtight
-transaction it shipped with — see P7a2).
+**P6b2**, **P7a**, and **P7a2**. **Three phases were carved off under exactly this
+rule:** **P7a2** off P7a (the merge prompt + its whole validation surface overran
+the airtight transaction it shipped with — see P7a2); **P6b2** off P6b (the match
+prompt + its validation surface overran the mechanical resolution arms — P6b is now
+the zero-LLM resolve/candidates half, P6b2 the match+manifest half); and **P7b2**
+off P7b (the duplicate-mint conflict arm carved from the optimistic commit +
+lost-update loop + §6.1 gate it was bundled with). These pre-emptive splits move a
+runtime budget gamble into a design-time decision rather than trusting an
+overrunning cold-start subagent to notice and split itself.
+
+## Phase completion is a checklist, not a green gate (a standing rule)
+
+The phase-budget re-check above is a *design-time* defense — split a phase before
+the march if it won't fit. This rule is its *boundary-time* backstop, for the phase
+that overruns anyway. The failure it guards is the one the re-check rule names: a
+subagent that runs out mid-phase **commits a partial integrator that still passes
+its mocked unit gate**, and every sequential phase after it builds on the
+corruption. The hole is that `/finish`'s done-criterion — "it compiles and its
+mocked tests pass" (`docs/README.md`) — is satisfied by a *partial* phase: a missing
+conflict arm, an unwired gate, or an un-populated manifest field does not fail
+`go test ./...` when every LLM is mocked and the absent piece simply has no test
+yet.
+
+So the rule: a dense integrator phase is **done only when every named deliverable in
+its body is present and individually tested**, not merely when the suite is green.
+Each such phase carries a **`Deliverable gate`** line in its `Verify` block
+enumerating its load-bearing pieces; the coordinator confirms each is present and
+covered *before closing the phase*. This converts "a partial integrator rode a green
+mocked gate into the next phase" from a silent, propagating corruption into a **loud
+failure at the boundary that introduced it** — the same move the prompt gates made
+for placeholder prompts (*Prompt-default validation*), applied to partial
+*implementations*. It is pinned to a phase's `Verify` — the gate `/finish` actually
+enforces — for the same reason the checkpoints are: a rule addressed only to "the
+orchestrator" never fires (see *Integration testing*).
+
+This adds **no new phase** and no new mechanism the orchestrator doesn't already
+run; it only makes "done" mean *complete*, not merely *green*. The phases that carry
+the line are the spine integrators where a partial commit is both likely and
+load-bearing: **P6b, P6b2, P7a, P7a2, P7b, P7b2, P8**.
 
 ## Dependency chain
 
 ```
 Part I — the wiki service
-P0a ──▶ P0b ──▶ P0c ──▶ P1 ──▶ P2 ──▶ P3 ──▶ P4 ──▶ P5 ──▶ P6a ──▶ P6b ──┐
-oai     embed   cost+   schema scaffold ingest spine failure extract resolve│
-chat    lib     a-eff   (stubs) policy  doors                       +match  │
-                                                                            │
-    ┌───────────────────────────────────────────────────────────────────────┘
+P0a ──▶ P0b ──▶ P0c ──▶ P1 ──▶ P2 ──▶ P3 ──▶ P4 ──▶ P5 ──▶ P6a ──▶ P6b ──▶ P6b2 ──┐
+oai     embed   cost+   schema scaffold ingest spine failure extract resolve  match │
+chat    lib     a-eff   (stubs) policy  doors                       +cands  +manifest│
+                                                                                     │
+    ┌────────────────────────────────────────────────────────────────────────────────┘
     ▼
-   P7a ──▶ P7a2 ──▶ P7b ──▶ P8 ──▶ P9a ──▶ P9b ──▶ P9c ──▶ P10 ──▶ P11 ──▶ P11k ──▶ P11d ──┐
-   merge   merge    commit  digest dups    sweep   stale   read    embed   keyed   first    │
-   core    gate     +conflict                                              gate    deploy   │
+   P7a ──▶ P7a2 ──▶ P7b ──▶ P7b2 ──▶ P8 ──▶ P9a ──▶ P9b ──▶ P9c ──▶ P10 ──▶ P11 ──▶ P11k ──▶ P11d ──┐
+   merge   merge    commit  dup-     digest dups    sweep   stale   read    embed   keyed   first    │
+   core    gate     +lost-  mint                                                    gate    deploy   │
+                    update                                                                           │
    (P11k: keys-REQUIRED, HALT-not-SKIP — the Part-I exit gate; P11d: first prod deploy to int) ▼
 Part II — the evaluation harness     P12 ──▶ P13 ──▶ P14 ──▶ P15 ──▶ P16 ──▶ P16d
                                      design  rig    scorers  test    sweep   re-
@@ -115,16 +152,17 @@ Part II — the evaluation harness     P12 ──▶ P13 ──▶ P14 ──▶
 > the stub swap), and **P9** (three lint jobs that "differ wildly in shape and
 > cost," design §6) each overran the one-subagent-cold-start budget the whole
 > `/finish` model rests on (`docs/README.md`). They are split: **P6 → P6a**
-> (registry primitives + `normalize` + extract) **/ P6b** (resolve + candidates +
-> match + the manifest), cut along the `subjects[]` data contract design §4.2
-> already pins; **P7 → P7a** (merge core + the plain happy-path commit + the
-> stub swap) **/ P7a2** (the real merge prompt + its offline gate, the second
-> integration checkpoint, and the merge eval hook — carved off because the
-> merge prompt is the system's hardest and arrives bundled with the airtight
-> transaction) **/ P7b** (optimistic commit + conflict loops + the §6.1 gate); **P9 →
-> P9a** (`lint-dups` + the shared lint plumbing) **/ P9b** (`lint-sweep`,
-> zero-LLM) **/ P9c** (`lint-stale`). The chain is otherwise unchanged —
-> sub-letters keep every downstream edge intact.
+> (registry primitives + `normalize` + extract) **/ P6b** (resolve + candidates,
+> zero-LLM) **/ P6b2** (match + the manifest), cut along the `subjects[]` data
+> contract design §4.2 pins and then along the match-call boundary; **P7 → P7a**
+> (merge core + the plain happy-path commit + the stub swap) **/ P7a2** (the real
+> merge prompt + its offline gate, the second integration checkpoint, and the
+> merge eval hook — carved off because the merge prompt is the system's hardest
+> and arrives bundled with the airtight transaction) **/ P7b** (optimistic commit
+> + the lost-update loop + the §6.1 gate) **/ P7b2** (the duplicate-mint conflict
+> arm); **P9 → P9a** (`lint-dups` + the shared lint plumbing) **/ P9b**
+> (`lint-sweep`, zero-LLM) **/ P9c** (`lint-stale`). The chain is otherwise
+> unchanged — sub-letters keep every downstream edge intact.
 
 Numeric order satisfies every edge. P0a–P0c (the shared-library work) underpin
 every LLM call site (P2's wrapper) and the embedding lane (P11), and let Part II
@@ -132,12 +170,14 @@ sweep OpenAI models. P0b (embeddings) is P11's only hard dependency and P0a
 (OpenAI chat) is what Part II's OpenAI sweep needs, so both could be resequenced
 next to those consumers; they are front-loaded here to keep P1–P16 numbering
 stable. P1 (schema) and P2 (scaffold) underpin everything else. P4's spine needs
-P3's inbox rows to select. P6b consumes P6a's extracted `subjects[]`. P7a closes
-the document-pass loop P6a–P6b open (its merge runs against a placeholder default
+P3's inbox rows to select. P6b consumes P6a's extracted `subjects[]`; P6b2 takes
+P6b's resolution outcome to match and assemble the manifest. P7a closes
+the document-pass loop P6a–P6b2 open (its merge runs against a placeholder default
 prompt under mocks); P7a2 then lands merge's real config-default prompt and the
 validation surface that proves it (offline gate, the second integration
 checkpoint, the eval hook); P7b hardens its commit (optimistic concurrency + the
-two conflict loops + the §6.1 gate). P8 reuses P6b–P7's resolve→merge→commit.
+lost-update loop + the §6.1 gate) and P7b2 adds the duplicate-mint arm. P8 reuses
+P6b–P7b2's resolve→merge→commit.
 P9a lands the shared lint plumbing P9b/P9c reuse; P9c consumes the `stale_notes`
 P7a's merge writes. P10's read side needs pages to exist (P7+). P11 (the embedding lane) is designed now but
 **sequenced last** — FTS5-first is build ordering only (design §9.3). **P11k** then
@@ -186,17 +226,17 @@ re-checked in that phase's **Eval hook**:
    retrieval lanes (candidates / search / sweep). This is design §10 made
    mechanical — the `internal/llm` seam (P2) plus a callable entry point per site.
 2. **Every deferred knob is a config value, not a constant** — the harness tunes
-   them: `WIKI_MATCH_EXCERPT_CHARS` (P6b), candidate FTS thresholds (P6b), per-lane
+   them: `WIKI_MATCH_EXCERPT_CHARS` (P6b2), candidate FTS thresholds (P6b), per-lane
    sweep thresholds (P9b), RRF `k` and `WIKI_EMBED_MODEL`/`WIKI_EMBED_DIMS` (P11),
    the ask turn/token/wall-clock budget (P10).
 3. **Outputs preserve the dangerous-direction signal** so an asymmetric scorer
    can read it: match returns its binary verdict **and** the `dup_pairs`
-   side-channel as distinct outputs (P6b); compile emits per-claim `cites` and
+   side-channel as distinct outputs (P6b2); compile emits per-claim `cites` and
    `occurred_at` (P8); the dup judge's ternary `merge | dismiss | can't-tell-yet`
    is preserved verbatim (P9a). Don't lump these into a single pass/fail.
 4. **Free goldens are captured, not discarded** — the design's by-products are
    the harness's real-data anchors: `asks.question` (and answer/citations) stored
-   (P10); the dup side-channel and `dup_flags` (P6b/P9a); ingested documents + their
+   (P10); the dup side-channel and `dup_flags` (P6b2/P9a); ingested documents + their
    extract output reachable for extract goldens (P3/P6a). Nothing in these phases
    may drop data the research doc names as a golden source.
 5. **Mechanical invariants stay deterministically checkable** — citation
@@ -348,7 +388,7 @@ The plan hard-gates (a) and leaves (b) advisory, via two mechanisms:
    not free-floating.
 
 Mechanism 1 grows one `Verify` line at a time inside the call-site phases that
-already exist (P6a, P6b, P7a2, P8, P9a, P9c, P10) and adds **no new phase**
+already exist (P6a, P6b2, P7a2, P8, P9a, P9c, P10) and adds **no new phase**
 (but see the phase-budget re-check rule — these added `Verify` slices are exactly
 what split P7a2 off P7a); mechanism 2 adds exactly **one** phase — **P11k**, the keyed Part-I validation gate
 at the P11→P12 boundary — the single keyed, live-model step the otherwise-phase-only
@@ -709,8 +749,8 @@ is verifiable before any real integrator does.*
     each downstream consumer reads* — transcribed from the design, not whittled to
     the stub's minimal needs — so no field a later consumer needs is discovered
     only after the contract is frozen (the failure this split is built to prevent:
-    P7b, the densest cold-start unit, silently reshaping a spine type):
-    - **P6b** (first real producer): resolved subject_id, target page, claims.
+    a downstream concurrency phase — P7b/P7b2 — silently reshaping a spine type):
+    - **P6b2** (first real producer): resolved subject_id, target page, claims.
     - **P7a** (merge + commit): the write-set pages, the `{text, cites[]}` claims,
       `occurred_at` (first-writer-wins, §4.1), merge's `superseded` source, and
       the point that **populates the per-page base `version`** at merge-read time.
@@ -779,8 +819,9 @@ crashed orphans count one attempt. Time-driven tests with an injected clock.
 ## P6a — Document pass: registry primitives + extract (manifest input)
 
 *Design §4.2, §4.1 (registry). The first real integrator's front half: the page
-registry, the `normalize` function, and the extract call. Resolve/match/manifest
-are P6b; merge/commit close the loop in P7a/P7b. Split from the old monolithic P6
+registry, the `normalize` function, and the extract call. Resolve and candidates
+are P6b, match and the manifest P6b2; merge/commit close the loop in P7a–P7b2.
+Split from the old monolithic P6
 — two of the system's hardest prompts (extract, match) plus the candidates design
 in one phase overran the one-subagent cold-start budget — cut along the
 extract-output data contract (§4.2) so each half carries one hard prompt.*
@@ -823,21 +864,56 @@ extract output is reachable as a golden alongside its source document
 **Integration test:** the standing tier's first slice (extract half) — real
 extract on a blunt fixture document through the **live pinned triple**: assert
 extract returns schema-valid `subjects[]` (required fields present, claims free of
-pronouns / document-relative refs). Match's slice lands in P6b; no page assertions
+pronouns / document-relative refs). Match's slice lands in P6b2; no page assertions
 yet — the commit lands in P7a.
 
 ---
 
-## P6b — Document pass: resolve + match + the manifest (manifest out)
+## P6b — Document pass: resolve + candidates (the mechanical resolution half)
 
-*Design §4.3, §4.1 (registry). The first real integrator's resolution half: the
-mechanical resolve arms, the candidates step, the match call, and the manifest.
-Consumes P6a's extracted `subjects[]`; merge/commit close it in P7a/P7b.*
+*Design §4.3, §4.1 (registry). The first real integrator's **mechanical**
+resolution arms and the candidate-retrieval step — **zero LLM, fully
+deterministic**. The match judgment and the manifest are **P6b2**; merge/commit
+close the loop in P7a–P7b2. Carved off P6b under the phase-budget re-check rule:
+the match prompt (one of the system's two hardest) plus its whole validation
+surface (prompt gate + eval hook + a live integration slice) overran the
+resolution arms it shipped with — the same cut, along the match call boundary,
+that split P7a2 off P7a. Consumes P6a's extracted `subjects[]`.*
 
 - **Resolve**: per subject build the key set, one alias query → **one id**
-  (resolved, no LLM) / **many ids** (straight to match, dup-flag the pair) /
-  **zero ids** → candidates: two FTS queries (name/alias vs registry names; claim
-  text vs page bodies), **zero candidates → create, no LLM**.
+  (resolved, no LLM) / **many ids** (the candidate set is those subjects → hand
+  to P6b2's match, dup-flag the pair) / **zero ids** → candidates: two FTS queries
+  (name/alias vs registry names; claim text vs page bodies), **zero candidates →
+  create, no LLM**.
+- **Candidates**: the two FTS queries (same type, top ~5, deterministic) are the
+  shortlist builder match consumes; the candidate FTS thresholds are config
+  (eval-harness knobs), not constants.
+- **The P6b→P6b2 seam** is the resolution outcome per subject: **resolved** (one
+  id), **create** (zero candidates), or a **shortlist** (the candidate subjects)
+  handed to match. P6b never calls an LLM and never assembles the manifest — that
+  is P6b2's job.
+
+**Touches:** `wiki/internal/{integrate,page,llm,config}/`.
+**Verify:** resolve's three arms (one/many/zero ids) deterministic; candidates'
+two FTS queries return the shortlist; the resolved/create/shortlist outcome is the
+P6b2 seam. No LLM, no writes to pages.
+**Deliverable gate (boundary — see *Phase completion is a checklist, not a green gate*):**
+resolve (three arms), candidates (two FTS queries), and the resolution-outcome
+seam are each present and individually tested before the phase closes.
+**Eval hook:** the candidates retrieval lane registered as a harness-callable site
+(obligation 1); the candidate FTS thresholds are config (obligation 2).
+
+---
+
+## P6b2 — Document pass: match + the manifest (manifest out)
+
+*Design §4.3, §4.1 (registry), §10. **No new resolution mechanics** — P6b's arms
+already produce the shortlist. This phase lands the **match LLM call**, its real
+config-default prompt + validation surface, and the **manifest** the document
+pass hands downstream. Carved off P6b under the phase-budget re-check rule (see
+P6b). Consumes P6b's resolution outcome; merge/commit close the loop in
+P7a–P7b2.*
+
 - **Match**: the one resolution LLM call — structured, tool-less, judges the
   shortlist at once, **binary** `same(id) | no_match`; identity not similarity;
   **doubt is no_match**; candidate-pair side channel feeds `dup_flags`. Excerpt =
@@ -847,22 +923,24 @@ Consumes P6a's extracted `subjects[]`; merge/commit close it in P7a/P7b.*
   — every extracted subject annotated with its resolved subject_id + target page
   + claims; the document pass fills the generalized `{text, cites[]}` claim shape
   with the one inbox row id. The **per-page base `version` slot is part of the
-  pinned type** but is filled at merge-read time (P7a), not here — P6b leaves it
-  unset, per P4's field obligations. P6b is the type's first real producer; its
+  pinned type** but is filled at merge-read time (P7a), not here — P6b2 leaves it
+  unset, per P4's field obligations. P6b2 is the type's first real producer; its
   in-memory, never-persisted nature (the run id is its durable identity) is P4's
   contract.
 
 **Touches:** `wiki/internal/{integrate,page,llm,config}/`.
-**Verify:** resolve's three arms (one/many/zero ids) deterministic; match binary
-contract; manifest assembled correctly. No writes to pages yet.
+**Verify:** match binary contract; manifest assembled correctly from P6b's
+resolution outcome. No writes to pages yet.
+**Deliverable gate (boundary — see *Phase completion is a checklist, not a green gate*):**
+the match call, the match prompt-default gate, and manifest population are each
+present and individually tested before the phase closes.
 **Prompt gate (standing, offline — see *Prompt-default validation*):** the match
 config-default prompt is non-placeholder and carries its five §4.3 sections; the
 match parser schema-validates a committed, hand-authored, schema-faithful response fixture into
 the binary `same(id) | no_match` verdict plus the `dup_pairs` side-channel.
 Deterministic, key-independent.
-**Eval hook:** match and the candidates retrieval lane registered as
-harness-callable sites (obligation 1); `WIKI_MATCH_EXCERPT_CHARS` and the
-candidate FTS thresholds are config (obligation 2); match returns its verdict
+**Eval hook:** match registered as a harness-callable site (obligation 1);
+`WIKI_MATCH_EXCERPT_CHARS` is config (obligation 2); match returns its verdict
 **and** the `dup_pairs` side-channel as distinct outputs (obligation 3).
 **Integration test:** the standing tier's match slice — real match on a blunt
 fixture (live pinned triple): assert match returns a clean binary verdict whose
@@ -876,7 +954,7 @@ in P7a.
 *Design §4.4, §4.5, §6 (the `stale_notes` writer). Closes the document-pass
 loop — the airtight transaction the whole spine was built for — on the
 **single-pass happy path**; **P7a2** lands merge's real prompt + validation
-surface, then P7b hardens the commit for concurrency. Split from the old
+surface, then P7b/P7b2 harden the commit for concurrency. Split from the old
 monolithic P7, then **P7a2 carved off this phase under the phase-budget re-check
 rule** (the merge prompt is the system's hardest and shipped bundled with the
 airtight transaction). Merge here runs against a **placeholder config-default
@@ -900,7 +978,7 @@ fills its real default," and merge's real default is P7a2's job.*
   each page into the manifest's per-page version slot** (the value P7b's guard
   will consume — design §3's "the version merge read"); `version` is bumped per
   write, but the **conflict-handling `WHERE`-guard and the conflict loops are
-  P7b**: P7a is the single-writer happy path.
+  P7b/P7b2**: P7a is the single-writer happy path.
 - **`stale_notes` writer hook**: when merge touches a read-only neighbor page it
   contradicts, it appends a `stale_notes` row (with `cites`) **in its existing
   commit** (design §6). This is the producer side `lint-stale` (P9c) consumes —
@@ -917,6 +995,10 @@ guard has it); a `stale_notes` row is appended when merge contradicts a neighbor
 provenance chain (answer-less: page cites inbox id → `ReadPayload`). End-to-end
 test through the spine. The merge prompt's offline gate, the integration
 checkpoint, and the eval hook are **P7a2** (next), not here.
+**Deliverable gate (boundary — see *Phase completion is a checklist, not a green gate*):**
+the real pages/registry end-of-run transaction, the stub→real `Integrator` swap,
+the populated per-page base `version` slot, and the `stale_notes` writer hook are
+each present and individually tested before the phase closes.
 
 ---
 
@@ -942,6 +1024,10 @@ transaction had already filled.*
 **Touches:** `wiki/internal/{integrate,config}/`, a committed merge response fixture.
 **Verify:** P7a's happy-path and concurrency tests still pass with the real
 default prompt wired in (the swap is prompt-only — no spine change).
+**Deliverable gate (boundary — see *Phase completion is a checklist, not a green gate*):**
+the real merge config-default prompt and its prompt-default gate are present and
+individually tested before the phase closes (P7a2 ships no new spine behavior, so
+this is its load-bearing deliverable set).
 **Prompt gate (standing, offline — see *Prompt-default validation*):** the merge
 config-default prompt is non-placeholder and carries its six §4.4 sections,
 including the `superseded` obligation (§6.1); merge's output parser schema-validates
@@ -966,38 +1052,78 @@ subject + alias exist. Structure only — never whether the prose is *good*.
 
 ---
 
-## P7b — Document pass: optimistic commit + conflict loops + the §6.1 gate
+## P7b — Document pass: optimistic commit + the lost-update loop + the §6.1 gate
 
-*Design §3 (optimistic commit / conflict loops), §6.1. Hardens P7a's commit for
-the N-worker pool: the two conflict types, the bounded retry, and the
-citation-preservation gate. Split from the old P7 so the intricate concurrency
-machinery is its own cold-start unit on top of a working merge+commit.*
+*Design §3 (optimistic commit / the lost-update conflict), §6.1. Hardens P7a's
+commit for the N-worker pool with the **page-update** race: the version-guarded
+commit, the re-run-merge-only loop, the bounded retry it shares with P7b2, and
+the citation-preservation gate. The **duplicate-mint** race is **P7b2**, built on
+this phase's bound. Split from the old P7 so the concurrency machinery is its own
+cold-start unit on top of a working merge+commit; the second conflict arm is
+carved into P7b2 under the phase-budget re-check rule (two distinct conflict types
+bundled with the §6.1 gate and a full concurrency suite overran one cold start).*
 
 - **Optimistic commit**: the commit guarded by `WHERE subject=? AND version=?`
   — the version read from **the manifest's per-page base-`version` slot (pinned
   in P4, populated by merge in P7a)**, so P7b consumes an existing field and
   reshapes nothing; zero rows → conflict → roll back, re-read, **re-run merge
-  only** for that page, recommit. **Duplicate-subject minting** caught by
-  `UNIQUE(type, norm)` → roll back → **restart at resolve** for the colliding
-  subject only (never re-extract).
-- **Conflict loop** (shared by both conflict types): cap **3 commit attempts**
-  then fail naming **conflict-retry exhaustion**; `conflicts` counted on `runs`;
-  post-exhaustion re-selection delayed via `ineligible_until` (P5).
+  only** for that page, recommit (the **lost-update** conflict type).
+- **The conflict-loop bound** (reused by P7b2): cap **3 commit attempts** then
+  fail naming **conflict-retry exhaustion**; `conflicts` counted on `runs`;
+  post-exhaustion re-selection delayed via `ineligible_until` (P5). Built here
+  with the lost-update loop as its first user; P7b2's duplicate-mint arm reuses it
+  unchanged.
 - **Citation-preservation gate** (§6.1): merge also emits a `superseded` list;
   at commit, `old − new` citations must equal the declared list, else **failed
   call** (retried in-run, never committed).
 
 **Touches:** `wiki/internal/{integrate,page,run}/`.
-**Verify:** conflict loop retries and exhausts cleanly; the lost-update conflict
-re-runs merge only; duplicate-mint restarts at resolve; the citation gate rejects
-undeclared loss; `conflicts` counted on `runs`; post-exhaustion delay applied.
-Concurrency tests on top of P7a's happy path.
+**Verify:** the conflict-loop bound retries and exhausts cleanly; the lost-update
+conflict re-runs merge only; the citation gate rejects undeclared loss;
+`conflicts` counted on `runs`; post-exhaustion delay applied. Concurrency tests on
+top of P7a's happy path. (Duplicate-mint is P7b2.)
+**Deliverable gate (boundary — see *Phase completion is a checklist, not a green gate*):**
+the version-guarded commit, the lost-update loop, the shared 3-attempt bound, and
+the §6.1 gate are each present and individually tested before the phase closes.
 **Eval hook:** the third mechanical invariant — citation preservation — now
 exposed as the same deterministic pass/fail the harness scores merge on
 (completing obligation 5 for merge alongside P7a2's two).
 **Integration test:** re-ingest a fixture that forces a re-merge and assert the
 §6.1 citation-preservation gate holds through a conflict-driven re-run (live
 pinned triple). Structure only.
+
+---
+
+## P7b2 — Document pass: the duplicate-mint conflict
+
+*Design §3 (the duplicate-subject-minting conflict). **No new commit core** —
+P7b's optimistic commit and the conflict-loop bound already run. This phase adds
+the **second** conflict arm: two runs minting the same not-yet-registered subject.
+Carved off P7b under the phase-budget re-check rule (see P7b). Reuses P7b's bound
+and the existing stage functions; reshapes nothing.*
+
+- **Duplicate-subject minting** caught by `UNIQUE(type, norm)` → roll back →
+  **restart at resolve** for the colliding subject only (the lookup now hits the
+  winner's freshly-committed aliases). **Extract is never re-entered** — nothing
+  another run did invalidates what *this* document said.
+- **Reuses P7b's conflict-loop bound** verbatim: the same 3-attempt cap,
+  `conflicts`-on-`runs` counting, and post-exhaustion `ineligible_until` delay —
+  the duplicate-mint arm is a second entry point into the existing loop, not a new
+  one. A *found-it* alias attachment hitting UNIQUE on the same subject_id is a
+  harmless `ON CONFLICT DO NOTHING`; a different subject_id is bridging evidence
+  routed through this same arm.
+
+**Touches:** `wiki/internal/{integrate,page,run}/`.
+**Verify:** duplicate-mint restarts at resolve (not extract); the loser's restart
+resolves onto the winner's subject; the shared bound caps and exhausts cleanly
+across both conflict types; a same-subject_id alias collision is a no-op.
+Concurrency tests on top of P7b.
+**Deliverable gate (boundary — see *Phase completion is a checklist, not a green gate*):**
+the UNIQUE-caught restart-at-resolve arm and its reuse of P7b's bound are present
+and individually tested before the phase closes.
+**Integration test:** force two concurrent runs to mint the same subject (live
+pinned triple) and assert exactly one subject is created, the loser re-resolving
+onto it. Structure only.
 
 ---
 
@@ -1036,6 +1162,10 @@ from P4 replaced.
 digest(s); compile goldens; completion-time join stamps the cron row only when
 all bound runs succeeded; partition-overlap refusal at boot; batch failure
 leaves the cron row pending.
+**Deliverable gate (boundary — see *Phase completion is a checklist, not a green gate*):**
+the `jobs` config + boot partition check, compile (its prompt gate), the cron
+fan-out wiring, the completion-time join stamp, and the batch failure policy are
+each present and individually tested before the phase closes.
 **Prompt gate (standing, offline — see *Prompt-default validation*):** the compile
 config-default prompt is non-placeholder and carries extract's six-section skeleton
 with its four §5 deltas; the compile parser schema-validates a committed,
@@ -1279,7 +1409,7 @@ human handoff rather than an autonomous step.*
   model, effort)` triple. This produces the **recorded non-skipped green run** the
   P6a / P7a2 / P11 checkpoints each owe the exit obligation.
 - **Capture and commit the recorded real-model fixtures.** For every call-site
-  prompt gate (P6a extract, P6b match, P7a2 merge, P8 compile, P9a judge + fold, P9c
+  prompt gate (P6a extract, P6b2 match, P7a2 merge, P8 compile, P9a judge + fold, P9c
   stale repair, P10 ask), capture one real-model response from the live triple and
   commit it, **replacing the hand-authored stub fixture** the offline gate shipped
   with. From here on the offline (a-ii) parser/schema test runs against *real*
