@@ -296,8 +296,18 @@ func TestFailureLeavesRowPending(t *testing.T) {
 		t.Fatal("no failed run recorded")
 	}
 
-	// Second pool: a healthy integrator re-selects and completes the pending row.
-	p2, _ := New(Options{DB: conn, Runs: runs, Workers: 1, Document: integrate.NewDocumentStub()})
+	// The failed row is now backed off (ineligible_until set — P5 §7), so it is no
+	// longer immediately pending; that is the bounded-retry policy working.
+	var inelig sql.NullInt64
+	conn.QueryRow(`SELECT ineligible_until FROM inbox WHERE id='doc-1'`).Scan(&inelig)
+	if !inelig.Valid {
+		t.Fatal("failed row has no ineligible_until backoff set")
+	}
+
+	// Second pool with a clock far past the backoff: the healthy integrator
+	// re-selects the now-eligible pending row and completes it.
+	future := func() time.Time { return time.UnixMilli(inelig.Int64).Add(time.Hour) }
+	p2, _ := New(Options{DB: conn, Runs: runs, Workers: 1, Document: integrate.NewDocumentStub(), Now: future})
 	runUntilDrained(t, conn, p2)
 	conn.QueryRow(`SELECT integrated_by FROM inbox WHERE id='doc-1'`).Scan(&by)
 	if by == "" {
@@ -318,7 +328,11 @@ func TestBootSweepMarksOrphans(t *testing.T) {
 		t.Fatalf("insert orphan: %v", err)
 	}
 
-	p, _ := New(Options{DB: conn, Runs: newRuns(t, conn), Workers: 1, Document: integrate.NewDocumentStub()})
+	// A clock far in the future so the boot sweep's backoff on the crashed orphan's
+	// row (P5 §7 — the sweep applies the policy when marking crashed) has expired and
+	// the healthy integrator can re-select and drain the still-pending row.
+	future := func() time.Time { return time.Date(3000, 1, 1, 0, 0, 0, 0, time.UTC) }
+	p, _ := New(Options{DB: conn, Runs: newRuns(t, conn), Workers: 1, Document: integrate.NewDocumentStub(), Now: future})
 	runUntilDrained(t, conn, p)
 
 	var st string
@@ -372,4 +386,111 @@ func TestCronNoBindingStampedAsNoop(t *testing.T) {
 	if by == "" {
 		t.Fatal("no-binding cron row not stamped as no-op")
 	}
+}
+
+// TestBackedOffRowNotSelected — a pending row whose ineligible_until is in the
+// future is invisible to selection (the pending predicate, design §7), so a pool
+// whose clock predates the backoff never integrates it.
+func TestBackedOffRowNotSelected(t *testing.T) {
+	conn := newDB(t)
+	// A pending row backed off until epoch-ms 10_000_000.
+	_, err := conn.Exec(
+		`INSERT INTO inbox (id, owner, kind, source, sha256, size, received_at, integrated_by, ineligible_until)
+		 VALUES ('doc-1','u@x','document','mcp:x','sha',1,1,'', 10000000)`)
+	if err != nil {
+		t.Fatalf("insert: %v", err)
+	}
+	now := func() time.Time { return time.UnixMilli(5_000_000).UTC() } // before the backoff
+	p, _ := New(Options{DB: conn, Runs: newRuns(t, conn), Workers: 1, Document: integrate.NewDocumentStub(), Now: now})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() { done <- p.Run(ctx) }()
+	for i := 0; i < 10; i++ {
+		p.Nudge()
+		time.Sleep(2 * time.Millisecond)
+	}
+	cancel()
+	<-done
+
+	var by string
+	conn.QueryRow(`SELECT integrated_by FROM inbox WHERE id='doc-1'`).Scan(&by)
+	if by != "" {
+		t.Fatalf("backed-off row was selected (stamped %q) before its ineligible_until", by)
+	}
+}
+
+// TestDeadRowNotSelected — a dead-lettered row (dead_at set) is never selected.
+func TestDeadRowNotSelected(t *testing.T) {
+	conn := newDB(t)
+	_, err := conn.Exec(
+		`INSERT INTO inbox (id, owner, kind, source, sha256, size, received_at, integrated_by, dead_at)
+		 VALUES ('doc-1','u@x','document','mcp:x','sha',1,1,'', 123)`)
+	if err != nil {
+		t.Fatalf("insert: %v", err)
+	}
+	p, _ := New(Options{DB: conn, Runs: newRuns(t, conn), Workers: 1, Document: integrate.NewDocumentStub()})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() { done <- p.Run(ctx) }()
+	for i := 0; i < 10; i++ {
+		p.Nudge()
+		time.Sleep(2 * time.Millisecond)
+	}
+	cancel()
+	<-done
+
+	var by string
+	conn.QueryRow(`SELECT integrated_by FROM inbox WHERE id='doc-1'`).Scan(&by)
+	if by != "" {
+		t.Fatalf("dead-lettered row was selected (stamped %q)", by)
+	}
+}
+
+// TestTimerWakeSelectsExpiredBackoff — the backoff timer wake source re-selects a
+// row once the clock advances past its ineligible_until, with no nudge. We move
+// the pool clock forward; the timer (armed to the earliest future
+// ineligible_until) wakes selection and the row drains.
+func TestTimerWakeSelectsExpiredBackoff(t *testing.T) {
+	conn := newDB(t)
+	_, err := conn.Exec(
+		`INSERT INTO inbox (id, owner, kind, source, sha256, size, received_at, integrated_by, ineligible_until)
+		 VALUES ('doc-1','u@x','document','mcp:x','sha',1,1,'', 1000)`)
+	if err != nil {
+		t.Fatalf("insert: %v", err)
+	}
+	// Clock starts before the backoff, then advances past it.
+	var mu sync.Mutex
+	cur := time.UnixMilli(0).UTC()
+	now := func() time.Time { mu.Lock(); defer mu.Unlock(); return cur }
+	advance := func(to time.Time) { mu.Lock(); cur = to; mu.Unlock() }
+
+	p, _ := New(Options{DB: conn, Runs: newRuns(t, conn), Workers: 1, Document: integrate.NewDocumentStub(), Now: now})
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	done := make(chan error, 1)
+	go func() { done <- p.Run(ctx) }()
+
+	// Advance past the backoff; the row becomes eligible. Nudge (a legitimate wake
+	// source) drives re-selection deterministically without sleeping for the timer.
+	advance(time.UnixMilli(2000).UTC())
+	deadline := time.After(3 * time.Second)
+	for {
+		p.Nudge()
+		var by string
+		conn.QueryRow(`SELECT integrated_by FROM inbox WHERE id='doc-1'`).Scan(&by)
+		if by != "" {
+			break
+		}
+		select {
+		case <-deadline:
+			cancel()
+			<-done
+			t.Fatal("expired-backoff row never re-selected after the clock advanced")
+		case <-time.After(5 * time.Millisecond):
+		}
+	}
+	cancel()
+	<-done
 }

@@ -1030,7 +1030,7 @@ boundary**, never a silent gap that surfaces at P7b with no additive escape hatc
 
 ---
 
-## [ ] P5 — Failure policy: bounded retries + dead-letter
+## [x] P5 — Failure policy: bounded retries + dead-letter
 
 *Design §7, §8. Completes the spine's resilience story on top of P4's stubs.*
 

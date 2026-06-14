@@ -133,7 +133,7 @@ func TestFailLeavesRowPending(t *testing.T) {
 	s, conn := newStore(t)
 	insertInbox(t, conn, "doc-1", "document", "mcp:x")
 	id, _ := s.Begin(context.Background(), "document-pass", "doc-1")
-	if err := s.Fail(context.Background(), id, errors.New("boom")); err != nil {
+	if err := s.Fail(context.Background(), id, "doc-1", errors.New("boom")); err != nil {
 		t.Fatalf("fail: %v", err)
 	}
 	if got := statusOf(t, conn, id); got != StatusFailed {

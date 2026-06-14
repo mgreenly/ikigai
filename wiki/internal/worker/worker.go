@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"log/slog"
 	"sync"
+	"time"
 
 	"wiki/internal/integrate"
 )
@@ -34,7 +35,7 @@ import (
 type Runs interface {
 	Begin(ctx context.Context, job, causedBy string) (string, error)
 	Commit(ctx context.Context, runID, causedBy string, m *integrate.Manifest, stampInbox bool) error
-	Fail(ctx context.Context, runID string, runErr error) error
+	Fail(ctx context.Context, runID, causedBy string, runErr error) error
 	StampCron(ctx context.Context, runID, cronRowID string, boundJobs []string) (bool, error)
 	SweepOrphans(ctx context.Context) (int64, error)
 }
@@ -46,6 +47,7 @@ type Pool struct {
 	db   *sql.DB
 	runs Runs
 	log  *slog.Logger
+	now  func() time.Time
 
 	workers int
 
@@ -73,6 +75,9 @@ type Options struct {
 	Document integrate.Integrator
 	Cron     map[string]integrate.Integrator
 	Bindings map[string][]string
+	// Now is the clock used for the pending predicate and the backoff timer wake
+	// source (design §7). Defaults to time.Now; injectable for time-driven tests.
+	Now func() time.Time
 }
 
 // New validates options and returns a ready Pool with its wake Cond initialized.
@@ -94,11 +99,15 @@ func New(opts Options) (*Pool, error) {
 		db:       opts.DB,
 		runs:     opts.Runs,
 		log:      opts.Logger,
+		now:      opts.Now,
 		workers:  w,
 		document: opts.Document,
 		cron:     opts.Cron,
 		bindings: opts.Bindings,
 		inflight: make(map[string]struct{}),
+	}
+	if p.now == nil {
+		p.now = time.Now
 	}
 	if p.cron == nil {
 		p.cron = map[string]integrate.Integrator{}
@@ -117,6 +126,73 @@ func (p *Pool) Nudge() {
 	p.mu.Lock()
 	p.cond.Broadcast()
 	p.mu.Unlock()
+}
+
+// nowMillis is the pool clock in epoch ms — the basis of the pending predicate's
+// ineligible_until comparison and the backoff timer.
+func (p *Pool) nowMillis() int64 { return p.now().UTC().UnixMilli() }
+
+// timerWake is the fourth wake source (design §7): a backed-off row's
+// ineligible_until is in the future, so no nudge will fire when it becomes
+// eligible. This goroutine arms a timer to the EARLIEST future ineligible_until
+// among pending rows and broadcasts the wake when it arrives, so selection
+// re-scans exactly when a row's backoff expires. It re-polls on every wake (the
+// timer is an optimization, not the truth — like the nudge), so a newly-failed
+// row's nearer deadline is always picked up.
+func (p *Pool) timerWake(ctx context.Context) {
+	for {
+		next, ok := p.earliestBackoff(ctx)
+		var timer *time.Timer
+		var c <-chan time.Time
+		if ok {
+			d := time.Until(next)
+			if d < 0 {
+				d = 0
+			}
+			timer = time.NewTimer(d)
+			c = timer.C
+		}
+		// With no future deadline, c is nil and we only wake on a re-poll tick so a
+		// freshly-armed backoff (set after this pass) is eventually noticed.
+		var poll <-chan time.Time
+		if !ok {
+			t := time.NewTimer(time.Minute)
+			poll = t.C
+			defer t.Stop()
+		}
+		select {
+		case <-ctx.Done():
+			if timer != nil {
+				timer.Stop()
+			}
+			return
+		case <-c:
+			p.mu.Lock()
+			p.cond.Broadcast()
+			p.mu.Unlock()
+		case <-poll:
+		}
+		if timer != nil {
+			timer.Stop()
+		}
+	}
+}
+
+// earliestBackoff returns the soonest future ineligible_until among pending,
+// not-dead rows (the rows the backoff timer must wake for). ok is false when no
+// such row exists.
+func (p *Pool) earliestBackoff(ctx context.Context) (time.Time, bool) {
+	now := p.nowMillis()
+	var ms sql.NullInt64
+	err := p.db.QueryRowContext(ctx,
+		`SELECT MIN(ineligible_until) FROM inbox
+		  WHERE integrated_by = '' AND dead_at IS NULL
+		    AND ineligible_until IS NOT NULL AND ineligible_until > ?`, now,
+	).Scan(&ms)
+	if err != nil || !ms.Valid {
+		return time.Time{}, false
+	}
+	return time.UnixMilli(ms.Int64).UTC(), true
 }
 
 // Run launches the worker goroutines and blocks until ctx is cancelled and they
@@ -140,6 +216,10 @@ func (p *Pool) Run(ctx context.Context) error {
 		p.cond.Broadcast()
 		p.mu.Unlock()
 	}()
+
+	// The backoff timer wake source (design §7): wakes selection when the earliest
+	// future ineligible_until arrives, so a backed-off row is re-selected on time.
+	go p.timerWake(ctx)
 
 	var wg sync.WaitGroup
 	wg.Add(p.workers)
@@ -214,10 +294,13 @@ func (p *Pool) selectWork(ctx context.Context) (claim, bool) {
 //
 // Called with p.mu held.
 func (p *Pool) selectCron(ctx context.Context) (claim, bool) {
+	now := p.nowMillis()
 	rows, err := p.db.QueryContext(ctx,
 		`SELECT id, source FROM inbox
-		  WHERE kind = 'event' AND source LIKE 'cron:%' AND integrated_by = ''
-		  ORDER BY id ASC`)
+		  WHERE kind = 'event' AND source LIKE 'cron:%'
+		    AND integrated_by = '' AND dead_at IS NULL
+		    AND (ineligible_until IS NULL OR ineligible_until <= ?)
+		  ORDER BY id ASC`, now)
 	if err != nil {
 		if p.log != nil {
 			p.log.Error("worker: cron scan", slog.String("err", err.Error()))
@@ -283,10 +366,13 @@ func (p *Pool) selectCron(ctx context.Context) (claim, bool) {
 //
 // Called with p.mu held.
 func (p *Pool) selectDocument(ctx context.Context) (claim, bool) {
+	now := p.nowMillis()
 	rows, err := p.db.QueryContext(ctx,
 		`SELECT id FROM inbox
-		  WHERE kind = 'document' AND integrated_by = ''
-		  ORDER BY id ASC`)
+		  WHERE kind = 'document'
+		    AND integrated_by = '' AND dead_at IS NULL
+		    AND (ineligible_until IS NULL OR ineligible_until <= ?)
+		  ORDER BY id ASC`, now)
 	if err != nil {
 		if p.log != nil {
 			p.log.Error("worker: document scan", slog.String("err", err.Error()))
@@ -337,7 +423,7 @@ func (p *Pool) runClaim(ctx context.Context, c claim) {
 
 	m, err := c.integ.Integrate(ctx, c.unit)
 	if err != nil {
-		if ferr := p.runs.Fail(ctx, runID, err); ferr != nil && p.log != nil {
+		if ferr := p.runs.Fail(ctx, runID, c.unit.CausedBy, err); ferr != nil && p.log != nil {
 			p.log.Error("worker: mark failed", slog.String("err", ferr.Error()))
 		}
 		if p.log != nil {

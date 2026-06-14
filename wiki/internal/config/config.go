@@ -115,6 +115,9 @@ type Config struct {
 	IngestMaxBytes int64
 	// IntegrationWorkers is WIKI_INTEGRATION_WORKERS (default 4): the worker pool.
 	IntegrationWorkers int
+	// RunAttemptsMax is WIKI_RUN_ATTEMPTS_MAX (default 5): the bounded-retry
+	// threshold at which a failing inbox row dead-letters (design §7).
+	RunAttemptsMax int
 
 	// LLM is the per-call-site injection seam (design §10).
 	LLM LLM
@@ -141,6 +144,7 @@ func Load(getenv func(string) string) (*Config, error) {
 		InboxInlineMax:     envInt(getenv, "WIKI_INBOX_INLINE_MAX", 4096),
 		IngestMaxBytes:     int64(envInt(getenv, "WIKI_INGEST_MAX_BYTES", 131072)),
 		IntegrationWorkers: envInt(getenv, "WIKI_INTEGRATION_WORKERS", 4),
+		RunAttemptsMax:     envInt(getenv, "WIKI_RUN_ATTEMPTS_MAX", 5),
 		Embed: Embed{
 			Model: envStr(getenv, "WIKI_EMBED_MODEL", "text-embedding-3-large"),
 			Dims:  envInt(getenv, "WIKI_EMBED_DIMS", 1024),
