@@ -883,16 +883,16 @@ this constraint. Nothing else about the engine belongs here.
 
 These are genuinely undecided or deferred; do **not** treat them as resolved.
 
-- **Schema finals — the consolidated DDL is not yet assembled.** Riders
-  scattered through the design must be folded into one final set of `CREATE`
-  statements: `version INTEGER` on `pages` (optimistic commit); `conflicts` on
-  `runs` (and the `runs.integrator` → `runs.job` rename); `ineligible_until`,
-  `dead_at`, `requeued_at` (all nullable epoch-ms) on `inbox`; `occurred_at`
-  (nullable TEXT ISO-8601 prefix, events only) and confirming `kind` on
-  `subjects`; `judged_version_a/_b` (nullable) on `dup_flags`; the
-  `stale_notes` table; the `page_vectors` table; the `asks` table; the FTS5
-  tables over `pages`; the eventplane system-identity literal (the `owner`
-  value for consumer doors) and the two events' payload shapes.
+- **Schema finals — RESOLVED, see §12.** The consolidated DDL (every table,
+  column, default, constraint, and index), the eventplane system-identity literal
+  (`system@ikigenba`), and both events' payload shapes are now assembled as the
+  authoritative schema in **§12 Consolidated schema**. The riders that were once
+  scattered here — `pages.version`, the `runs.integrator → runs.job` rename and
+  `conflicts`, the `inbox` failure columns, `subjects.kind`/`occurred_at`,
+  `dup_flags.judged_version_a/_b`, `stale_notes`, `page_vectors`, `asks`, the FTS5
+  table — and the gaps that lived only in the decision log (`aliases.type`,
+  `dup_flags.run_id`, the full `stale_notes` columns) are reconciled in §12's
+  preamble. P1 transcribes §12; it does not re-derive the schema.
 
 - **Exact prompts.** Only rough section-shapes exist for extract, match, merge,
   compile, and ask, and for the three lint calls (dup judge, fold, stale
@@ -920,3 +920,193 @@ These are genuinely undecided or deferred; do **not** treat them as resolved.
 cross-subject / temporal-span ask goldens that gate `related` — are tracked in
 the decision log but are out of scope here per the evaluation-engine boundary;
 they consume this design, they do not gate it.)
+
+## 12. Consolidated schema (the schema final)
+
+This is the **single authoritative schema** for the service — every table,
+column, type, default, constraint, and index, plus the named literals the schema
+depends on. It resolves Open-Item #1 by assembling the riders that were
+scattered across §2.2, §3, §4.1, §4.5, §5, §6, §7, §9.2, and §9.3 (and several
+that lived only in the decision log) into one place.
+
+**This section is canonical.** P1 *transcribes* it into timestamped migrations;
+it does not re-derive the DDL from the prose above. If a later phase needs a
+column/constraint/index, it must be added **here first** (then a new migration) —
+§12 and the database never diverge. Committed migrations are immutable
+(`CLAUDE.md`), so a gap found later is closed by a **new** corrective migration,
+never by editing an existing one.
+
+> **Reconciliations made while assembling §12** (each was a place the prose or a
+> DDL one-liner was incomplete or contradictory — flagged, not silently
+> resolved):
+> 1. **`aliases.type` is a real column.** The lookup `… WHERE type=? AND norm IN
+>    (keys)` (§4.3) and `UNIQUE(type, norm)` both require it, yet the one-liner
+>    `aliases(norm, subject_id, …)` omitted it. Added.
+> 2. **`subjects.page` is dropped** as redundant — pages are keyed by
+>    `pages.subject` (= `subjects.id`); there is exactly one page per subject, so
+>    a back-pointer column adds nothing and risks drift. (The §4.1 / decision-log
+>    one-liner listed it.)
+> 3. **`dup_flags.run_id`** (which lint-dups run decided merge/dismiss) lived only
+>    in the decision log, not in §6 here. Included.
+> 4. **`stale_notes` columns** (`subject, note, cites, run_id, status`) were prose
+>    in §6; pinned here. Added an `id` ULID PK (consistent with the sibling tables;
+>    lets the repair address each note for its per-note disposition).
+> 5. **`pages` columns pinned** to `(subject, title, body, version)`. `type`/`kind`
+>    are not duplicated (they live on `subjects`); `title` is denormalized from the
+>    frontmatter for the search verb's whole-page result and FTS5.
+> 6. **`runs.integrator` → `runs.job`** rename applied; a `runs(caused_by)` index
+>    added (the §7 failure-count query and provenance both key on it).
+> 7. **System-identity literal** pinned to `system@ikigenba` (provisional — the one
+>    genuinely new product decision here; `owner` is otherwise an email, so this is
+>    clearly non-human and suite-namespaced).
+
+### 12.1 Legacy teardown (runs before the new DDL)
+
+The legacy `wiki/` migrations `002_wiki.sql` / `003_feed_offset.sql` are frozen
+and immutable; they **still replay forward on every database** — including a
+freshly-wiped box DB — so wiping data alone does not clean the schema. The first
+**new** migration (`bin/new-migration wiki drop_legacy`, timestamped so it sorts
+after the frozen `00N_*` files and before the consolidated DDL) drops what they
+created. The wiki holds no data worth keeping (the `int` box DB is disposable),
+so this teardown is unconditional:
+
+```sql
+DROP TABLE IF EXISTS wiki_ingest;
+DROP TABLE IF EXISTS wiki_jobs;
+DROP TABLE IF EXISTS feed_offset;
+-- (plus any indexes those migrations created)
+```
+
+`001_schema_migrations.sql` is the shared appkit bookkeeping table and **stays**.
+
+### 12.2 The consolidated DDL
+
+Relationships are documented in comments rather than enforced with `FOREIGN KEY`
+constraints (the suite's app-level-invariant style — "a stale id reachable
+anywhere is a bug to crash on", §6); `UNIQUE` and `CHECK` are the constraints the
+design relies on the database to enforce.
+
+```sql
+-- inbox — accepted-but-not-yet-integrated arrivals (§2.2)
+CREATE TABLE inbox (
+  id               TEXT PRIMARY KEY,            -- ULID; identifies the ARRIVAL
+  owner            TEXT NOT NULL,               -- X-Owner-Email, or 'system@ikigenba' (consumer doors); attribution, never isolation
+  kind             TEXT NOT NULL,               -- 'document' | 'event'
+  source           TEXT NOT NULL,               -- one prefixed string: url:… dropbox:… mcp:… crm:… cron:…
+  sha256           TEXT NOT NULL,               -- content identity, always computed (both storage paths)
+  size             INTEGER NOT NULL,
+  mime             TEXT NOT NULL DEFAULT '',
+  content          BLOB,                        -- inline payload (≤ WIKI_INBOX_INLINE_MAX); NULL if spilled
+  blob             INTEGER NOT NULL DEFAULT 0,  -- 1 = bytes at blobs/<aa>/<sha256>
+  title            TEXT NOT NULL DEFAULT '',
+  tags             TEXT NOT NULL DEFAULT '[]',  -- JSON array, caller-supplied
+  received_at      INTEGER NOT NULL,            -- epoch ms; the ONLY inbox timestamp
+  integrated_by    TEXT NOT NULL DEFAULT '',    -- run id; '' = pending; permanent once set (never cleared)
+  ineligible_until INTEGER,                     -- nullable epoch-ms; backoff (failure policy §7)
+  dead_at          INTEGER,                     -- nullable epoch-ms; dead-letter mark
+  requeued_at      INTEGER                      -- nullable epoch-ms; retry-counter scope (§7)
+);
+CREATE INDEX inbox_integrated_by ON inbox (integrated_by);  -- pending scan; no owner-scoped variant exists
+CREATE INDEX inbox_sha256        ON inbox (sha256);
+-- No UNIQUE on sha256: two arrivals of identical content are two rows (§2.2).
+
+-- subjects — the registry: every subject ever minted (§4.1)
+CREATE TABLE subjects (
+  id             TEXT PRIMARY KEY,          -- ULID
+  type           TEXT NOT NULL,             -- 'entity' | 'event' | 'concept' (closed set, §4.1)
+  kind           TEXT NOT NULL DEFAULT '',  -- freeform, prompt-anchored subtype
+  canonical_name TEXT NOT NULL,             -- chosen by lint on merge
+  created_by_run TEXT NOT NULL,             -- → runs.id; the run that minted this subject
+  occurred_at    TEXT                       -- nullable ISO-8601 prefix; type='event' only; first-writer-wins (§4.1)
+);
+
+-- aliases — every name a subject has been known by (§4.3)
+CREATE TABLE aliases (
+  type       TEXT NOT NULL,   -- = subjects.type of subject_id (required by the lookup and the UNIQUE)
+  norm       TEXT NOT NULL,   -- normalize(name): NFKC, casefold, trim, collapse ws, strip diacritics
+  subject_id TEXT NOT NULL,   -- → subjects.id
+  UNIQUE (type, norm)         -- duplicate-mint guard (§3); also the per-name lookup key
+);
+-- Resolution: SELECT DISTINCT subject_id FROM aliases WHERE type=? AND norm IN (keys)
+
+-- pages — one prose page per subject (§4.1, §4.4)
+CREATE TABLE pages (
+  subject TEXT PRIMARY KEY,           -- = subjects.id (the page's true key)
+  title   TEXT NOT NULL DEFAULT '',   -- frontmatter title; denormalized for the search verb + FTS5
+  body    TEXT NOT NULL,              -- full page markdown: thin frontmatter + prose, inline [inbox-id] citations
+  version INTEGER NOT NULL DEFAULT 0  -- optimistic-commit guard (§3); bumped on every write
+);
+-- type/kind are NOT stored here — they live on subjects (joined when a whole page is returned, §9.3).
+
+-- pages_fts — FTS5 over page text (§9.3); kept current inside the end-of-run commit
+CREATE VIRTUAL TABLE pages_fts USING fts5(
+  title, body,
+  content='pages', content_rowid='rowid'  -- external-content; synced in the commit (no automatic triggers)
+);
+
+-- runs — one execution of one job (§4.5); the provenance key
+CREATE TABLE runs (
+  id          TEXT PRIMARY KEY,           -- ULID
+  job         TEXT NOT NULL,              -- 'document-pass' | 'crm-digest' | 'lint-dups' | … (renamed from 'integrator')
+  caused_by   TEXT NOT NULL,              -- → inbox.id of the causing row
+  status      TEXT NOT NULL,              -- 'running' | 'succeeded' | 'failed' | 'crashed'
+  started_at  INTEGER NOT NULL,           -- epoch ms
+  finished_at INTEGER,                    -- epoch ms; nullable until terminal
+  usage       TEXT,                       -- token/cost accounting (JSON); nullable
+  conflicts   INTEGER NOT NULL DEFAULT 0, -- optimistic-commit retries within this run (§3)
+  error       TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX runs_caused_by ON runs (caused_by);  -- provenance + the §7 since-requeue COUNT(*)
+
+-- dup_flags — candidate duplicate pairs (§6); evidence, never a verdict
+CREATE TABLE dup_flags (
+  subject_a        TEXT NOT NULL,                -- always the smaller ULID
+  subject_b        TEXT NOT NULL,                -- always the larger ULID
+  status           TEXT NOT NULL DEFAULT 'open', -- 'open' | 'merged' | 'dismissed'
+  judged_version_a INTEGER,                      -- nullable; pages.version of A at last judge (re-judge gate, §6)
+  judged_version_b INTEGER,                      -- nullable; pages.version of B at last judge
+  run_id           TEXT,                         -- nullable; the lint-dups run that decided merge/dismiss
+  UNIQUE (subject_a, subject_b),                 -- one row per pair; FlagDup is the only inserter
+  CHECK (subject_a < subject_b)                  -- mis-ordered insert crashes, never silently duplicates
+);
+
+-- stale_notes — staleness side channel (§6); flag-only writers, lint-stale repairs
+CREATE TABLE stale_notes (
+  id      TEXT PRIMARY KEY,             -- ULID (addresses each note for its per-note disposition)
+  subject TEXT NOT NULL,                -- whose page looks stale
+  note    TEXT NOT NULL,                -- what the writer observed (a sentence or two)
+  cites   TEXT NOT NULL,                -- inbox id(s) of the new evidence that makes the repair legal
+  run_id  TEXT NOT NULL,                -- → runs.id; who noticed
+  status  TEXT NOT NULL DEFAULT 'open'  -- 'open' | 'repaired' | 'dismissed'
+);
+-- No UNIQUE: notes aren't canonical pairs; per-subject batching merges duplicates at repair time (§6).
+
+-- page_vectors — embedding lane (§9.3); async catch-up, brute-force cosine in Go
+CREATE TABLE page_vectors (
+  subject          TEXT PRIMARY KEY,  -- = pages.subject
+  embedded_version INTEGER NOT NULL,  -- pages.version at embed time (drives the catch-up work list only)
+  model            TEXT NOT NULL,     -- provider/model id + dims, e.g. text-embedding-3-large@1024
+  vector           BLOB NOT NULL      -- float32 array
+);
+
+-- asks — read-side ask accounting (§9.2); deliberately separate from runs
+CREATE TABLE asks (
+  id          TEXT PRIMARY KEY,  -- ULID
+  owner       TEXT NOT NULL,     -- who asked (attribution; golden candidates)
+  question    TEXT NOT NULL,
+  status      TEXT NOT NULL,     -- 'running' | 'succeeded' | 'failed' | 'crashed'
+  started_at  INTEGER NOT NULL,  -- epoch ms
+  finished_at INTEGER,
+  usage       TEXT,              -- token/cost accounting (JSON); nullable
+  error       TEXT NOT NULL DEFAULT ''
+);
+```
+
+### 12.3 Named literals (pinned)
+
+- **Eventplane system-identity** (`inbox.owner` for consumer doors, where no
+  human acted): **`system@ikigenba`**.
+- **`wiki.row_dead_lettered`** payload: `{ inbox_id, source, title, last_error }`
+  (emitted by the failure-path code that sets `dead_at`, in that transaction, §8).
+- **`wiki.ingest_refused`** payload: `{ door, source, size, cap }` (a plain
+  outbox write at the door, pre-accept, §8).

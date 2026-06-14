@@ -43,6 +43,26 @@ the two contracts every integrator hands off through — the `Manifest` type and
 the `Integrator` interface — *before* any real integrator exists; P6a–P8 then
 fill behavior into those fixed shapes instead of re-deriving the seam.
 
+## Schema canonicity (a standing rule)
+
+The complete, final SQLite schema lives in **one place — design §12
+("Consolidated schema")** — and it is authoritative. P1 *transcribes* §12 into
+migrations; no phase re-derives the DDL from prose. Two rules bind every phase:
+
+- **No phase silently changes the schema shape.** A column, constraint, or index
+  a phase needs must already be in §12. If it isn't, the phase **adds it to §12
+  first** (and says so in its commit), then writes the migration — so §12 and the
+  database never diverge.
+- **Committed migrations are immutable** (`CLAUDE.md`, `bin/check-migrations`).
+  Any later phase that finds the live schema lacking something §12 names adds a
+  **new** corrective migration via `bin/new-migration` — it never edits an earlier
+  one. A schema gap is therefore always recoverable forward, never a dead end.
+
+This exists because P1's schema is the foundation of all of Part I, its artifacts
+are immutable, and a P1 self-check written from P1's own reading cannot catch a
+column P1 itself omitted — §12 is the external spec that both the migration and
+the schema test are checked against.
+
 ## Dependency chain
 
 ```
@@ -339,8 +359,9 @@ agent-backed services still build.**
 
 ## P1 — Decisions lock + consolidated schema
 
-*Design §2.2, §4.1, §4.5, §5, §6, §7, §9.2, §9.3, §11. The prerequisite for
-everything; resolves the open schema/fork items before any code depends on them.*
+*Design §12 (the authoritative schema final), plus §2.2, §4.1, §4.5, §5, §6, §7,
+§9.2, §9.3, §11. The prerequisite for everything; resolves the open schema/fork
+items before any code depends on them.*
 
 - **Lock the one build-time fork — the digest claimable unit** (design §11).
   *Framing 1*: claim the whole cron row, run its bound entries sequentially
@@ -376,33 +397,30 @@ everything; resolves the open schema/fork items before any code depends on them.
     migrations replay forward. Create it first (via `bin/new-migration wiki
     drop_legacy`) so its timestamp sorts ahead of the consolidated DDL below;
     `001_schema_migrations.sql` is the shared appkit bookkeeping table and stays.
-- **Assemble the consolidated DDL** as ordered migrations via
+- **Transcribe design §12 (the schema final)** into ordered migrations via
   `bin/new-migration wiki <name>` (never hand-pick a number; never edit a
-  committed migration), landing **after** the drop-legacy migration above. Fold
-  in every rider scattered through the design:
-  - `inbox` (§2.2) incl. the failure-policy columns `ineligible_until`,
-    `dead_at`, `requeued_at` (nullable epoch-ms); indexes `(integrated_by)`,
-    `(sha256)`.
-  - `subjects` (§4.1) incl. `kind` and `occurred_at` (nullable TEXT ISO-8601
-    prefix, events only); `aliases` with `UNIQUE(type, norm)`.
-  - `pages` incl. `version INTEGER` (optimistic commit, §3); FTS5 table(s) over
-    `pages`.
-  - `runs` (§4.5) with `job` (the `integrator` → `job` rename), `caused_by`,
-    `conflicts INTEGER DEFAULT 0`.
-  - `dup_flags` (§6) with `UNIQUE(subject_a, subject_b)`,
-    `CHECK(subject_a < subject_b)`, `status`, `judged_version_a/_b`.
-  - `stale_notes` (§6); `page_vectors` (§9.3); `asks` (§9.2).
-- **Pin the remaining named literals**: the eventplane **system-identity** value
-  for consumer doors (the `owner` for non-human arrivals), and the payload shapes
-  for `wiki.row_dead_lettered` and `wiki.ingest_refused` (§8).
+  committed migration), landing **after** the drop-legacy migration above. §12 is
+  the single source — copy it table for table. Do **not** re-derive the DDL from
+  the scattered riders in §2.2/§4.1/§6/§9.3, and do **not** add, drop, or rename a
+  column/constraint/index relative to §12. If §12 looks wrong or incomplete, **fix
+  §12 first** (and surface it), then transcribe — the migration and §12 must never
+  diverge. §12 already incorporates the gaps a prose reading misses (`aliases.type`,
+  `dup_flags.run_id`, the full `stale_notes` columns, the dropped `subjects.page`),
+  so transcription is mechanical, not a synthesis.
+- **The named literals are already pinned in §12.3** — the eventplane
+  system-identity `owner` value (`system@ikigenba`) and the `wiki.row_dead_lettered`
+  / `wiki.ingest_refused` payload shapes (§8). No literal is invented in this phase.
 
 **Touches:** removal of the legacy `wiki/cmd/wiki/` + `wiki/internal/**` Go tree;
 `wiki/internal/db/migrations/*.sql` (the drop-legacy migration + the consolidated
-DDL); schema test; and the top of this file (locked fork decision).
+DDL transcribed from design §12); schema test; and the top of this file (locked
+fork decision).
 **Verify:** the legacy Go tree is gone (`grep -rn 'wiki_ingest\|wiki_jobs'
 wiki/cmd wiki/internal` is empty); `bin/check-migrations` passes (old migrations
 untouched, only adds); migrations load forward-only and drop the legacy tables;
-downgrade guard intact; schema test asserts every table/column/constraint above.
+downgrade guard intact; the schema test asserts every table/column/constraint/index
+**against design §12** (checked against the external spec, not against this phase's
+own reading — so an omission cannot hide in both the DDL and the test).
 `go test ./wiki/internal/db/...`.
 
 ---
