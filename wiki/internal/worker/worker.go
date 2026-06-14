@@ -55,6 +55,17 @@ type ReMerger interface {
 	ReMerge(ctx context.Context, m *integrate.Manifest, subjectID string) error
 }
 
+// ReResolver is the optional capability an integrator implements to support the
+// DUPLICATE-MINT conflict arm (design §3, P7b2): re-run the RESOLVE stage (and the
+// match+merge that follow) for the colliding subject only, against the winner's
+// freshly-committed aliases — never re-extracting. The document pass
+// (*integrate.Document) satisfies it; an integrator that does not makes a
+// duplicate-mint conflict a clean, non-retryable failure (the same stance as a
+// non-ReMerger facing a lost update — such a run has no resolve stage to re-run).
+type ReResolver interface {
+	ReResolve(ctx context.Context, m *integrate.Manifest, subjectID string) error
+}
+
 // Pool is the worker pool. It owns the in-flight set + its mutex/Cond, the runs
 // lifecycle, and the registered integrators. Constructed once at the composition
 // root; Run launches the goroutines on a context and returns when they drain.
@@ -483,6 +494,7 @@ func (p *Pool) runClaim(ctx context.Context, c claim) {
 // retrying would loop forever on the same stale manifest.
 func (p *Pool) commitWithConflictLoop(ctx context.Context, runID string, c claim, m *integrate.Manifest, stampInbox bool) error {
 	remerger, canReMerge := c.integ.(ReMerger)
+	reresolver, canReResolve := c.integ.(ReResolver)
 
 	for attempt := 1; ; attempt++ {
 		err := p.runs.Commit(ctx, runID, c.unit.CausedBy, m, stampInbox)
@@ -490,8 +502,12 @@ func (p *Pool) commitWithConflictLoop(ctx context.Context, runID string, c claim
 			return nil // committed
 		}
 
-		var conflict *run.ConflictError
-		if !errors.As(err, &conflict) {
+		// Classify the failure into one of the two conflict arms (§3) or a real error.
+		var lostUpdate *run.ConflictError
+		var dupMint *run.DuplicateMintError
+		isLostUpdate := errors.As(err, &lostUpdate)
+		isDupMint := errors.As(err, &dupMint)
+		if !isLostUpdate && !isDupMint {
 			// A real (non-conflict) commit error: fail the run cleanly so the row's
 			// policy applies, and surface it.
 			if ferr := p.runs.Fail(ctx, runID, c.unit.CausedBy, err); ferr != nil && p.log != nil {
@@ -500,16 +516,22 @@ func (p *Pool) commitWithConflictLoop(ctx context.Context, runID string, c claim
 			return err
 		}
 
-		// An optimistic-commit conflict (lost update). Record it on the run.
+		// An optimistic-commit conflict (lost update or duplicate mint). Record it on
+		// the run — the shared collision counter is the same for both arms (§3).
 		if cerr := p.runs.CountConflict(ctx, runID); cerr != nil && p.log != nil {
 			p.log.Error("worker: count conflict", slog.String("err", cerr.Error()))
 		}
 
-		// Bound: cap MaxCommitAttempts, then fail naming conflict-retry exhaustion.
-		if attempt >= run.MaxCommitAttempts || !canReMerge {
+		// Whether this conflict type is recoverable by THIS integrator: a lost update
+		// needs ReMerge, a duplicate mint needs ReResolve.
+		recoverable := (isLostUpdate && canReMerge) || (isDupMint && canReResolve)
+
+		// Bound: cap MaxCommitAttempts (shared by BOTH arms — §3), then fail naming
+		// conflict-retry exhaustion.
+		if attempt >= run.MaxCommitAttempts || !recoverable {
 			failErr := run.ErrConflictRetryExhausted
-			if !canReMerge {
-				failErr = fmt.Errorf("%w (integrator cannot re-merge)", err)
+			if !recoverable {
+				failErr = fmt.Errorf("%w (integrator cannot recover this conflict type)", err)
 			}
 			if ferr := p.runs.Fail(ctx, runID, c.unit.CausedBy, failErr); ferr != nil && p.log != nil {
 				p.log.Error("worker: mark failed after conflict exhaustion", slog.String("err", ferr.Error()))
@@ -517,15 +539,30 @@ func (p *Pool) commitWithConflictLoop(ctx context.Context, runID string, c claim
 			return failErr
 		}
 
-		// Re-run merge ONLY for the conflicting subject (re-reads the fresh base
-		// version into the manifest; never re-extracts or re-resolves — §3). The
-		// re-merge re-derives PageBody/Title/Superseded, so the §6.1 gate on the next
-		// attempt runs against the re-run's FRESH superseded, not the stale original.
-		if rmErr := remerger.ReMerge(ctx, m, conflict.Subject); rmErr != nil {
-			if ferr := p.runs.Fail(ctx, runID, c.unit.CausedBy, rmErr); ferr != nil && p.log != nil {
-				p.log.Error("worker: mark failed after re-merge error", slog.String("err", ferr.Error()))
+		if isLostUpdate {
+			// Re-run merge ONLY for the conflicting subject (re-reads the fresh base
+			// version into the manifest; never re-extracts or re-resolves — §3). The
+			// re-merge re-derives PageBody/Title/Superseded, so the §6.1 gate on the
+			// next attempt runs against the re-run's FRESH superseded, not the stale one.
+			if rmErr := remerger.ReMerge(ctx, m, lostUpdate.Subject); rmErr != nil {
+				if ferr := p.runs.Fail(ctx, runID, c.unit.CausedBy, rmErr); ferr != nil && p.log != nil {
+					p.log.Error("worker: mark failed after re-merge error", slog.String("err", ferr.Error()))
+				}
+				return rmErr
 			}
-			return rmErr
+			continue
+		}
+
+		// A duplicate-mint conflict: RESTART AT RESOLVE for the colliding subject only
+		// (design §3, P7b2). The lookup now hits the winner's freshly-committed aliases,
+		// so this run's subject resolves ONTO the winner instead of re-minting a
+		// duplicate. Extract is never re-entered. Re-resolve re-folds the manifest, so
+		// the next commit's version guard and §6.1 gate run against the right page.
+		if rrErr := reresolver.ReResolve(ctx, m, dupMint.Subject); rrErr != nil {
+			if ferr := p.runs.Fail(ctx, runID, c.unit.CausedBy, rrErr); ferr != nil && p.log != nil {
+				p.log.Error("worker: mark failed after re-resolve error", slog.String("err", ferr.Error()))
+			}
+			return rrErr
 		}
 	}
 }

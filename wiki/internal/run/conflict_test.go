@@ -136,6 +136,68 @@ func TestCommitCitationGateDeclaredSupersededPasses(t *testing.T) {
 	}
 }
 
+// TestCommitDuplicateMintConflict — when a run mints a subject whose alias key
+// (type, norm) is already owned by a DIFFERENT, freshly-committed subject (the
+// duplicate-mint race), the commit returns a *DuplicateMintError naming the losing
+// subject and writes nothing (the transaction rolls back). (P7b2.)
+func TestCommitDuplicateMintConflict(t *testing.T) {
+	s, conn := newStore(t)
+	insertInbox(t, conn, "doc-1", "document", "mcp:x")
+	insertInbox(t, conn, "doc-2", "document", "mcp:y")
+
+	// The winner commits subject "winner" with alias key "acme".
+	r1, _ := s.Begin(context.Background(), "document-pass", "doc-1")
+	if err := s.Commit(context.Background(), r1, "doc-1", docManifest("winner", "v [doc-1]", 0, nil), true); err != nil {
+		t.Fatalf("winner commit: %v", err)
+	}
+
+	// The loser mints a DIFFERENT subject "loser" with the SAME alias "acme" → the
+	// alias UNIQUE collides on a different subject_id → duplicate-mint conflict.
+	r2, _ := s.Begin(context.Background(), "document-pass", "doc-2")
+	err := s.Commit(context.Background(), r2, "doc-2", docManifest("loser", "v [doc-2]", 0, nil), true)
+	var de *DuplicateMintError
+	if !errors.As(err, &de) {
+		t.Fatalf("duplicate mint should yield *DuplicateMintError, got %v", err)
+	}
+	if de.Subject != "loser" {
+		t.Fatalf("conflict subject = %q, want loser", de.Subject)
+	}
+	// It is NOT a lost-update conflict (distinct recovery arm).
+	var ce *ConflictError
+	if errors.As(err, &ce) {
+		t.Fatalf("duplicate mint must not be a *ConflictError: %v", err)
+	}
+	// The loser wrote nothing: no "loser" subject, no "loser" page, alias still winner.
+	var nSubj int
+	conn.QueryRow(`SELECT COUNT(1) FROM subjects WHERE id='loser'`).Scan(&nSubj)
+	if nSubj != 0 {
+		t.Fatalf("loser subject row written despite rollback")
+	}
+	var owner string
+	conn.QueryRow(`SELECT subject_id FROM aliases WHERE type='entity' AND norm='acme'`).Scan(&owner)
+	if owner != "winner" {
+		t.Fatalf("alias owner = %q, want winner", owner)
+	}
+}
+
+// TestCommitSameSubjectAliasReassertion — re-committing a manifest for the SAME
+// subject (re-asserting its own alias) is a harmless no-op, never a conflict.
+func TestCommitSameSubjectAliasReassertion(t *testing.T) {
+	s, conn := newStore(t)
+	insertInbox(t, conn, "doc-1", "document", "mcp:x")
+	insertInbox(t, conn, "doc-2", "document", "mcp:y")
+
+	r1, _ := s.Begin(context.Background(), "document-pass", "doc-1")
+	if err := s.Commit(context.Background(), r1, "doc-1", docManifest("subj-1", "v0 [doc-1]", 0, nil), true); err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	// Same subject_id, same alias, current base version → guarded update, no conflict.
+	r2, _ := s.Begin(context.Background(), "document-pass", "doc-2")
+	if err := s.Commit(context.Background(), r2, "doc-2", docManifest("subj-1", "v1 [doc-1] [doc-2]", 0, nil), true); err != nil {
+		t.Fatalf("same-subject re-assertion must commit cleanly, got: %v", err)
+	}
+}
+
 // TestCountConflict — bumps runs.conflicts (the per-run collision counter §3).
 func TestCountConflict(t *testing.T) {
 	s, conn := newStore(t)

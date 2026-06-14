@@ -1367,7 +1367,7 @@ pinned triple). Structure only.
 
 ---
 
-## [ ] P7b2 — Document pass: the duplicate-mint conflict
+## [x] P7b2 — Document pass: the duplicate-mint conflict
 
 *Design §3 (the duplicate-subject-minting conflict). **No new commit core** —
 P7b's optimistic commit and the conflict-loop bound already run. This phase adds

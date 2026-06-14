@@ -28,16 +28,23 @@ type Stub struct {
 // a base version slot, and a single claim citing the causing row — so the P4
 // round-trip test proves a populated Manifest (including the per-page base
 // version slot) survives the end-of-run transaction.
+//
+// The subject's name/alias are made UNIQUE per causing row (derived from the row
+// id) so each independent document pass mints a GENUINELY distinct subject — not N
+// rows all minting the same alias key, which the P7b2 duplicate-mint guard now
+// (correctly) rejects as a UNIQUE(type, norm) collision. The spine tests drive many
+// concurrent rows that must each commit independently, so each needs its own subject.
 func NewDocumentStub() *Stub {
 	return &Stub{
 		job: "document-pass",
 		build: func(u Unit) *Manifest {
+			name := "stub-subject-" + u.CausedBy
 			return &Manifest{
 				Subjects: []Subject{{
 					Type:        TypeEntity,
 					Kind:        "org",
-					Name:        "stub-subject",
-					Aliases:     []string{"stub-subject"},
+					Name:        name,
+					Aliases:     []string{name},
 					SubjectID:   u.CausedBy, // deterministic, addressable
 					TargetPage:  u.CausedBy,
 					BaseVersion: 0,

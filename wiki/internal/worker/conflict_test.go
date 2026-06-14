@@ -2,6 +2,7 @@ package worker
 
 import (
 	"context"
+	"database/sql"
 	"sync"
 	"testing"
 	"time"
@@ -196,6 +197,191 @@ func TestConflictLoopRecovers(t *testing.T) {
 	integ.mu.Unlock()
 	if rm != 1 {
 		t.Fatalf("re-merge ran %d times, want 1", rm)
+	}
+}
+
+// dupMintIntegrator mints a subject whose alias key collides with a
+// pre-committed winner (the duplicate-mint race). It satisfies BOTH ReMerger and
+// ReResolver. On ReResolve it "restarts at resolve" — flipping the manifest's
+// subject id (and target page) onto the winner, as a real re-resolution hitting the
+// winner's freshly-committed alias would — so the recommit succeeds. reResolveCalls
+// / reMergeCalls record which conflict arm the loop took.
+type dupMintIntegrator struct {
+	loserID  string
+	winnerID string
+	aliasN   string
+
+	mu              sync.Mutex
+	reResolveCalls  int
+	reMergeCalls    int
+	healOnReResolve bool
+}
+
+func (c *dupMintIntegrator) Job() string { return "document-pass" }
+
+func (c *dupMintIntegrator) Integrate(_ context.Context, _ integrate.Unit) (*integrate.Manifest, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.manifest(c.loserID), nil
+}
+
+func (c *dupMintIntegrator) manifest(subjectID string) *integrate.Manifest {
+	return &integrate.Manifest{
+		Subjects: []integrate.Subject{{
+			Type: integrate.TypeEntity, Name: "Acme", Aliases: []string{c.aliasN},
+			SubjectID: subjectID, TargetPage: subjectID, BaseVersion: 0,
+			PageTitle: "Acme", PageBody: "body [x]",
+			Claims: []integrate.Claim{{Text: "c", Cites: []string{"x"}}},
+		}},
+	}
+}
+
+func (c *dupMintIntegrator) ReMerge(_ context.Context, _ *integrate.Manifest, _ string) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.reMergeCalls++
+	return nil
+}
+
+func (c *dupMintIntegrator) ReResolve(_ context.Context, m *integrate.Manifest, subjectID string) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.reResolveCalls++
+	if !c.healOnReResolve {
+		return nil // re-resolution still mints the same loser → stays conflicting
+	}
+	// Restart-at-resolve: the lookup now hits the winner's alias, so this subject
+	// resolves ONTO the winner. Replace the manifest entry's identity in place.
+	for i := range m.Subjects {
+		if m.Subjects[i].SubjectID == subjectID {
+			m.Subjects[i].SubjectID = c.winnerID
+			m.Subjects[i].TargetPage = c.winnerID
+			m.Subjects[i].BaseVersion = 0 // a fresh re-read; the winner's page is at v0 here
+		}
+	}
+	return nil
+}
+
+// seedWinner pre-commits the winner subject + its alias + page, so a colliding mint
+// of the same alias key hits UNIQUE(type, norm) → duplicate-mint conflict.
+func seedWinner(t *testing.T, conn *sql.DB, id, aliasNorm string) {
+	t.Helper()
+	if _, err := conn.Exec(
+		`INSERT INTO subjects (id, type, kind, canonical_name, created_by_run) VALUES (?, 'entity', 'org', 'Acme', 'seed')`, id); err != nil {
+		t.Fatalf("seed subject: %v", err)
+	}
+	if _, err := conn.Exec(
+		`INSERT INTO aliases (type, norm, subject_id) VALUES ('entity', ?, ?)`, aliasNorm, id); err != nil {
+		t.Fatalf("seed alias: %v", err)
+	}
+}
+
+// TestDuplicateMintRestartsAtResolve drives a document that mints a subject whose
+// alias key is already owned by a pre-committed winner. The commit hits the alias
+// UNIQUE → the conflict loop RESTARTS AT RESOLVE (not re-merge), the re-resolution
+// lands the subject on the winner, and the recommit succeeds — exactly one subject
+// exists, the loser having resolved onto the winner.
+func TestDuplicateMintRestartsAtResolve(t *testing.T) {
+	conn := newDB(t)
+	insertDoc(t, conn, "doc-1")
+	runs := newRuns(t, conn)
+	seedWinner(t, conn, "winner", "acme")
+
+	integ := &dupMintIntegrator{loserID: "loser", winnerID: "winner", aliasN: "acme", healOnReResolve: true}
+
+	p, err := New(Options{DB: conn, Runs: runs, Workers: 1, Document: integ})
+	if err != nil {
+		t.Fatalf("new pool: %v", err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() { p.Run(ctx); close(done) }()
+
+	waitUntil(t, func() bool {
+		var stamp string
+		conn.QueryRow(`SELECT integrated_by FROM inbox WHERE id='doc-1'`).Scan(&stamp)
+		return stamp != ""
+	})
+	cancel()
+	<-done
+
+	// The row was stamped by a succeeded run.
+	var status string
+	conn.QueryRow(`SELECT status FROM runs WHERE caused_by='doc-1' ORDER BY started_at DESC LIMIT 1`).Scan(&status)
+	if status != "succeeded" {
+		t.Fatalf("last run status = %q, want succeeded", status)
+	}
+	// Exactly one subject exists (no duplicate "loser" was minted) and the loser
+	// resolved onto the winner.
+	var nLoser int
+	conn.QueryRow(`SELECT COUNT(1) FROM subjects WHERE id='loser'`).Scan(&nLoser)
+	if nLoser != 0 {
+		t.Fatalf("loser subject minted despite restart-at-resolve")
+	}
+	// The conflict loop took the RE-RESOLVE arm, not the re-merge arm.
+	integ.mu.Lock()
+	rr, rm := integ.reResolveCalls, integ.reMergeCalls
+	integ.mu.Unlock()
+	if rr < 1 {
+		t.Fatalf("re-resolve never ran: %d", rr)
+	}
+	if rm != 0 {
+		t.Fatalf("duplicate mint wrongly took the re-merge arm: %d", rm)
+	}
+	// The conflict was counted on the run (shared bound — same counter as P7b).
+	var maxConflicts int
+	conn.QueryRow(`SELECT MAX(conflicts) FROM runs WHERE caused_by='doc-1'`).Scan(&maxConflicts)
+	if maxConflicts < 1 {
+		t.Fatalf("conflict not counted on the run: %d", maxConflicts)
+	}
+}
+
+// TestDuplicateMintExhaustsSharedBound drives a duplicate mint whose re-resolution
+// keeps minting the same colliding subject: every commit conflicts, and after the
+// SHARED MaxCommitAttempts bound (the same one P7b's lost-update arm uses) the run
+// fails cleanly with the row left pending and backoff armed.
+func TestDuplicateMintExhaustsSharedBound(t *testing.T) {
+	conn := newDB(t)
+	insertDoc(t, conn, "doc-1")
+	runs := newRuns(t, conn)
+	seedWinner(t, conn, "winner", "acme")
+
+	// healOnReResolve false → re-resolution stays on the loser → permanent conflict.
+	integ := &dupMintIntegrator{loserID: "loser", winnerID: "winner", aliasN: "acme"}
+
+	p, err := New(Options{DB: conn, Runs: runs, Workers: 1, Document: integ})
+	if err != nil {
+		t.Fatalf("new pool: %v", err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() { p.Run(ctx); close(done) }()
+
+	waitUntil(t, func() bool {
+		var iu *int64
+		conn.QueryRow(`SELECT ineligible_until FROM inbox WHERE id='doc-1'`).Scan(&iu)
+		return iu != nil
+	})
+	cancel()
+	<-done
+
+	var stamp string
+	conn.QueryRow(`SELECT integrated_by FROM inbox WHERE id='doc-1'`).Scan(&stamp)
+	if stamp != "" {
+		t.Fatalf("row stamped despite exhaustion: %q", stamp)
+	}
+	var nFailed int
+	conn.QueryRow(`SELECT COUNT(1) FROM runs WHERE caused_by='doc-1' AND status='failed'`).Scan(&nFailed)
+	if nFailed < 1 {
+		t.Fatalf("expected a failed run, got %d", nFailed)
+	}
+	// The shared bound caps re-resolution at MaxCommitAttempts-1 per run (no re-resolve
+	// after the final attempt).
+	integ.mu.Lock()
+	rr := integ.reResolveCalls
+	integ.mu.Unlock()
+	if rr < 1 {
+		t.Fatalf("re-resolve never ran: %d", rr)
 	}
 }
 

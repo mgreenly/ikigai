@@ -16,6 +16,18 @@ import (
 // (retry) from a real write error (fail).
 var ErrVersionConflict = errors.New("page: optimistic-commit version conflict")
 
+// ErrAliasConflict is the duplicate-mint conflict (design §3, P7b2): an alias row
+// for (type, norm) already exists pointing at a DIFFERENT subject_id than the one
+// this run is minting. Two runs both minted a not-yet-registered subject; SQLite's
+// single writer serializes the commits and the loser's alias insert collides with
+// the winner's freshly-committed alias. The end-of-run transaction rolls back and
+// the conflict loop (P7b2) RESTARTS AT RESOLVE for the colliding subject only — the
+// lookup now hits the winner's aliases. It is a sentinel so the commit can
+// distinguish this bridging-evidence collision (re-resolve) from a real write error.
+// A same-subject_id re-insert is NOT a conflict — it is the harmless idempotent
+// no-op the happy path relies on.
+var ErrAliasConflict = errors.New("page: duplicate-mint alias conflict")
+
 // The write half of the registry/pages layer (design §4.5): the operations the
 // end-of-run transaction (P7a, internal/run) applies inside ONE SQLite
 // transaction. Every method here takes a *sql.Tx — Store never opens its own
@@ -53,24 +65,55 @@ func (s *Store) EnsureSubject(ctx context.Context, tx *sql.Tx, subj Subject, cre
 }
 
 // InsertAlias inserts one alias row (the normalized key → subject), idempotent on
-// the UNIQUE(type, norm) lookup key (design §4.3). A re-seen alias for the SAME
-// subject is a harmless no-op; a collision with a DIFFERENT subject is the
-// duplicate-mint guard and is left to surface as the UNIQUE violation P7b2 handles
-// (here, in the happy path, it would error — which is correct, the happy path
-// never mints a colliding alias). On the happy path we use ON CONFLICT DO NOTHING
-// so re-asserting a subject's own existing aliases is free.
+// the UNIQUE(type, norm) lookup key (design §4.3). It distinguishes the two kinds
+// of UNIQUE(type, norm) collision the design §3 duplicate-mint arm (P7b2) hinges
+// on:
+//
+//   - a re-seen alias for the SAME subject_id is a harmless idempotent no-op (the
+//     happy path re-asserts a subject's own existing aliases for free —
+//     ON CONFLICT DO NOTHING semantics, preserved here);
+//   - an alias whose (type, norm) already points at a DIFFERENT subject_id is the
+//     DUPLICATE-MINT collision: two runs both minted a not-yet-registered subject
+//     and this is the loser. It returns ErrAliasConflict so the end-of-run
+//     transaction rolls back and the conflict loop restarts at resolve for the
+//     colliding subject (the lookup now hits the winner's freshly-committed
+//     aliases). This is also the "bridging evidence" path (a found-it alias
+//     attachment hitting a different subject_id is routed through the same arm —
+//     design §3).
+//
+// The insert uses ON CONFLICT(type, norm) DO NOTHING and then, on a zero-row
+// result, reads the existing owner: same subject → no-op, different subject →
+// ErrAliasConflict. Both the read and the insert run on the commit's *sql.Tx, so
+// the decision sees exactly what the about-to-commit transaction would.
 func (s *Store) InsertAlias(ctx context.Context, tx *sql.Tx, a Alias) error {
 	if a.Norm == "" {
 		return nil // a blank alias never enters the index (KeySet already drops these)
 	}
-	if _, err := tx.ExecContext(ctx,
+	res, err := tx.ExecContext(ctx,
 		`INSERT INTO aliases (type, norm, subject_id) VALUES (?, ?, ?)
 		 ON CONFLICT(type, norm) DO NOTHING`,
 		a.Type, a.Norm, a.SubjectID,
-	); err != nil {
+	)
+	if err != nil {
 		return fmt.Errorf("page: insert alias %q/%q → %q: %w", a.Type, a.Norm, a.SubjectID, err)
 	}
-	return nil
+	if n, _ := res.RowsAffected(); n > 0 {
+		return nil // inserted fresh — no collision
+	}
+	// Zero rows inserted: the (type, norm) key already exists. Read its owner to
+	// tell a same-subject no-op from a different-subject duplicate-mint conflict.
+	var owner string
+	if err := tx.QueryRowContext(ctx,
+		`SELECT subject_id FROM aliases WHERE type = ? AND norm = ?`, a.Type, a.Norm,
+	).Scan(&owner); err != nil {
+		return fmt.Errorf("page: read alias owner %q/%q: %w", a.Type, a.Norm, err)
+	}
+	if owner != a.SubjectID {
+		// A different subject already owns this key — the duplicate-mint loser.
+		return fmt.Errorf("page: alias %q/%q owned by %q, not %q: %w",
+			a.Type, a.Norm, owner, a.SubjectID, ErrAliasConflict)
+	}
+	return nil // same subject re-asserting its own alias — harmless no-op
 }
 
 // UpsertPage writes a page's prose body + frontmatter title and keeps pages_fts

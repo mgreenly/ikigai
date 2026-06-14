@@ -122,3 +122,98 @@ func (d *Document) ReMerge(ctx context.Context, m *Manifest, subjectID string) e
 	}
 	return nil
 }
+
+// ReResolve re-runs the RESOLVE → MATCH → MERGE STAGES for the ONE subject that hit
+// the duplicate-mint conflict (design §3, P7b2: "restart at resolve for the colliding
+// subject only"). The subjectID is the manifest subject id that collided — a
+// freshly-minted subject whose alias insert hit UNIQUE(type, norm) against a
+// concurrent run that minted the same subject first. EXTRACT IS NEVER RE-ENTERED:
+// nothing another run did invalidates what THIS document said; only the identity
+// resolution can change, because the lookup now hits the winner's freshly-committed
+// aliases (so this run's subject resolves ONTO the winner instead of minting a
+// duplicate).
+//
+// It locates the conflicting subject in the manifest by its (now-stale) minted
+// SubjectID, re-resolves that one subject's extracted slice (its type/name/aliases/
+// claims) through the SAME resolver+assembler the first pass used — which, with the
+// winner now in the registry, yields OutcomeResolved onto the winner (or, if the
+// collision was a same-norm-but-genuinely-different case match disambiguates, a fresh
+// id again). The re-resolved subject's annotations (SubjectID, TargetPage, claims)
+// REPLACE the conflicting entry in place, preserving manifest order and every other
+// subject's already-merged content. Merge then re-folds for the whole manifest (its
+// target page now points at the winner), re-reading the fresh base version, so the
+// next commit's version guard and §6.1 gate run against the right page.
+//
+// It is exposed so the worker's conflict loop can re-resolve integrator-agnostically
+// without the run/commit layer importing the resolve/assemble/merge stages.
+func (d *Document) ReResolve(ctx context.Context, m *Manifest, subjectID string) error {
+	idx := -1
+	for i := range m.Subjects {
+		if m.Subjects[i].SubjectID == subjectID {
+			idx = i
+			break
+		}
+	}
+	if idx < 0 {
+		return fmt.Errorf("document: re-resolve: subject %q not in manifest", subjectID)
+	}
+
+	// Re-resolve just this subject's extracted slice (NOT extract — design §3). The
+	// extracted fields are carried verbatim on the manifest entry; only the identity
+	// resolution is recomputed against the now-updated registry.
+	orig := m.Subjects[idx]
+	extracted := Subject{
+		Type:    orig.Type,
+		Kind:    orig.Kind,
+		Name:    orig.Name,
+		Aliases: orig.Aliases,
+		Claims:  orig.Claims,
+	}
+	resolutions, err := d.res.Resolve(ctx, []Subject{extracted})
+	if err != nil {
+		return fmt.Errorf("document: re-resolve (subject %q): %w", subjectID, err)
+	}
+	resolved, err := d.asm.Assemble(ctx, resolutions)
+	if err != nil {
+		return fmt.Errorf("document: re-resolve assemble (subject %q): %w", subjectID, err)
+	}
+	if len(resolved.Subjects) != 1 {
+		return fmt.Errorf("document: re-resolve produced %d subjects, want 1", len(resolved.Subjects))
+	}
+
+	// Replace the conflicting entry in place: take the freshly-resolved identity
+	// annotations (SubjectID, TargetPage) but keep position and let merge re-derive
+	// the page content. Carry forward any dup pairs the re-resolution surfaced.
+	re := resolved.Subjects[0]
+	re.PageTitle = ""
+	re.PageBody = ""
+	re.Superseded = nil
+	re.BaseVersion = 0
+	m.Subjects[idx] = re
+	mergeDupPairs(m, resolved.DupPairs)
+
+	// Re-fold (merge) the whole manifest so the re-targeted subject's page content
+	// and fresh base version are recomputed; other subjects are re-read at their
+	// current versions, which is correct (the commit guards each independently).
+	if _, err := d.merger.Merge(ctx, m); err != nil {
+		return fmt.Errorf("document: re-resolve merge (subject %q): %w", subjectID, err)
+	}
+	return nil
+}
+
+// mergeDupPairs folds new canonical-order dup pairs into the manifest's DupPairs,
+// de-duplicating against what is already there (the re-resolution's match arm may
+// surface a fresh pair).
+func mergeDupPairs(m *Manifest, pairs []DupPair) {
+	seen := make(map[DupPair]struct{}, len(m.DupPairs))
+	for _, p := range m.DupPairs {
+		seen[p] = struct{}{}
+	}
+	for _, p := range pairs {
+		if _, ok := seen[p]; ok {
+			continue
+		}
+		seen[p] = struct{}{}
+		m.DupPairs = append(m.DupPairs, p)
+	}
+}

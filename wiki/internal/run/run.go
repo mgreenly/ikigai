@@ -72,6 +72,26 @@ func (e *ConflictError) Error() string {
 	return fmt.Sprintf("run: optimistic-commit conflict on subject %q (lost update)", e.Subject)
 }
 
+// DuplicateMintError is the SECOND optimistic-commit conflict surfaced by Commit
+// (design §3, P7b2): a subject this run minted as not-yet-registered collided with
+// a concurrent run that minted the same subject first — the loser's alias insert hit
+// UNIQUE(type, norm) against the winner's freshly-committed alias (the DUPLICATE-MINT
+// race). It names the conflicting subject so the conflict loop (runClaim) RESTARTS AT
+// RESOLVE for THAT subject only — never re-extracting (nothing another run did
+// invalidates what this document said), the lookup now hitting the winner's aliases.
+// The transaction was already rolled back when this is returned. It is distinct from
+// *ConflictError (lost update → re-merge) precisely because the recovery differs: a
+// lost update re-runs merge, a duplicate mint re-runs resolve.
+type DuplicateMintError struct {
+	// Subject is the manifest subject id of the colliding freshly-minted subject —
+	// the one the conflict loop re-resolves (its alias now resolves onto the winner).
+	Subject string
+}
+
+func (e *DuplicateMintError) Error() string {
+	return fmt.Sprintf("run: duplicate-mint conflict on subject %q (alias UNIQUE)", e.Subject)
+}
+
 // ErrConflictRetryExhausted is the clean failure when the conflict loop hits
 // MaxCommitAttempts (design §3): distinct from the run-level retry budget, but the
 // run still fails and the row's failure policy applies (the error string names
@@ -306,6 +326,14 @@ func (s *Store) applyManifest(ctx context.Context, tx *sql.Tx, runID string, m *
 				Norm:      norm,
 				SubjectID: subj.SubjectID,
 			}); err != nil {
+				// A different subject already owns this (type, norm) key → the
+				// duplicate-mint race (design §3, P7b2). Surface a *DuplicateMintError
+				// naming the subject so the conflict loop re-resolves THAT subject only
+				// (its alias now lands on the winner). The transaction is rolled back by
+				// the deferred Rollback when this returns.
+				if errors.Is(err, page.ErrAliasConflict) {
+					return &DuplicateMintError{Subject: subj.SubjectID}
+				}
 				return fmt.Errorf("run: %w", err)
 			}
 		}

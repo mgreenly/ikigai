@@ -3,6 +3,7 @@ package page
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"testing"
 )
 
@@ -169,5 +170,72 @@ func TestReadVersionNoPage(t *testing.T) {
 	}
 	if v != 0 {
 		t.Fatalf("version = %d, want 0 for a no-page subject", v)
+	}
+}
+
+// TestInsertAliasSameSubjectIsNoOp proves re-asserting a subject's OWN existing
+// alias is a harmless idempotent no-op (the happy-path re-assertion P7b2 must not
+// turn into a conflict).
+func TestInsertAliasSameSubjectIsNoOp(t *testing.T) {
+	conn := newTestDB(t)
+	s := NewStore(conn)
+	insertSubject(t, conn, "subj-1", TypeEntity, "Acme")
+
+	withTx(t, conn, func(tx *sql.Tx) {
+		a := Alias{Type: TypeEntity, Norm: "acme", SubjectID: "subj-1"}
+		if err := s.InsertAlias(context.Background(), tx, a); err != nil {
+			t.Fatalf("first insert: %v", err)
+		}
+		// Re-insert the same (type, norm) → same subject: idempotent no-op, no error.
+		if err := s.InsertAlias(context.Background(), tx, a); err != nil {
+			t.Fatalf("same-subject re-insert must be a no-op, got: %v", err)
+		}
+	})
+
+	var n int
+	conn.QueryRow(`SELECT COUNT(1) FROM aliases WHERE type=? AND norm='acme'`, TypeEntity).Scan(&n)
+	if n != 1 {
+		t.Fatalf("alias rows = %d, want exactly 1", n)
+	}
+}
+
+// TestInsertAliasDifferentSubjectConflicts proves the DUPLICATE-MINT guard (P7b2):
+// an alias whose (type, norm) already points at a DIFFERENT subject_id returns
+// ErrAliasConflict (so the end-of-run transaction rolls back and the conflict loop
+// restarts at resolve).
+func TestInsertAliasDifferentSubjectConflicts(t *testing.T) {
+	conn := newTestDB(t)
+	s := NewStore(conn)
+	insertSubject(t, conn, "winner", TypeEntity, "Acme")
+	insertSubject(t, conn, "loser", TypeEntity, "Acme")
+
+	// The winner commits the alias first.
+	withTx(t, conn, func(tx *sql.Tx) {
+		if err := s.InsertAlias(context.Background(), tx,
+			Alias{Type: TypeEntity, Norm: "acme", SubjectID: "winner"}); err != nil {
+			t.Fatalf("winner insert: %v", err)
+		}
+	})
+
+	// The loser mints the same (type, norm) against a DIFFERENT subject → conflict.
+	// Roll back the loser's tx before reading on the conn: an open write tx holds
+	// SQLite's write lock and a separate-connection read would deadlock until
+	// busy_timeout (the very hazard ReadPageTx documents).
+	tx, err := conn.BeginTx(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("begin: %v", err)
+	}
+	err = s.InsertAlias(context.Background(), tx,
+		Alias{Type: TypeEntity, Norm: "acme", SubjectID: "loser"})
+	tx.Rollback()
+	if !errors.Is(err, ErrAliasConflict) {
+		t.Fatalf("different-subject alias must yield ErrAliasConflict, got: %v", err)
+	}
+
+	// The winner's alias is untouched.
+	var owner string
+	conn.QueryRow(`SELECT subject_id FROM aliases WHERE type=? AND norm='acme'`, TypeEntity).Scan(&owner)
+	if owner != "winner" {
+		t.Fatalf("alias owner = %q, want winner (loser must not overwrite)", owner)
 	}
 }
