@@ -229,6 +229,29 @@ func (s *Store) ReadPayload(row Row) ([]byte, error) {
 	return b, nil
 }
 
+// GetRow loads the path-discriminating fields of one inbox row by id, ready to
+// hand to ReadPayload. It is the read side's follow-a-citation primitive (design
+// §9.2 read_source): ask's inner agent resolves an inbox id back to its original
+// arrival's bytes. ok=false (no error) when no row carries the id.
+func (s *Store) GetRow(ctx context.Context, id string) (row Row, title string, ok bool, err error) {
+	var (
+		content []byte
+		blob    int
+	)
+	e := s.db.QueryRowContext(ctx,
+		`SELECT sha256, content, blob, title FROM inbox WHERE id = ?`, id,
+	).Scan(&row.SHA256, &content, &blob, &title)
+	if e == sql.ErrNoRows {
+		return Row{}, "", false, nil
+	}
+	if e != nil {
+		return Row{}, "", false, fmt.Errorf("inbox: get row %q: %w", id, e)
+	}
+	row.Content = content
+	row.Blob = blob != 0
+	return row, title, true, nil
+}
+
 // writeBlob writes bytes to the content-addressed path with write → fsync →
 // (caller inserts row) ordering. An already-present blob (identical content
 // previously spilled) is left as-is — the path is content-addressed, so the

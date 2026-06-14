@@ -34,9 +34,9 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.MatchExcerptChars != 600 {
 		t.Errorf("MatchExcerptChars = %d, want 600", cfg.MatchExcerptChars)
 	}
-	// Sites whose owning phase has not yet landed carry a placeholder prompt; a
-	// landed site carries its real config-default prompt (extract — P6a; match — P6b2;
-	// merge — P7a2; compile — P8; lint dup-judge + fold — P9a; lint stale — P9c).
+	// Every site now carries its real config-default prompt (extract — P6a; match —
+	// P6b2; merge — P7a2; compile — P8; lint dup-judge + fold — P9a; lint stale —
+	// P9c; ask — P10). No site is a placeholder anymore.
 	realDefaults := map[string]string{
 		"extract":        DefaultExtractPrompt,
 		"match":          DefaultMatchPrompt,
@@ -45,6 +45,7 @@ func TestLoadDefaults(t *testing.T) {
 		"lint_dup_judge": DefaultLintDupJudgePrompt,
 		"lint_fold":      DefaultLintFoldPrompt,
 		"lint_stale":     DefaultLintStalePrompt,
+		"ask":            DefaultAskPrompt,
 	}
 	for _, s := range cfg.LLM.sites() {
 		if want, ok := realDefaults[s.Name]; ok {

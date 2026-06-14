@@ -1,9 +1,10 @@
 // Package mcp implements wiki's minimal MCP transport for the /mcp endpoint and
-// its tool surface. P2 ships the SKELETON: the JSON-RPC 2.0 transport, the tool
-// registration (ingest_text, ingest_url, a status verb, search, ask, timeline),
-// and the two live cross-cutting tools (health, reflection). The domain tools
-// return a not-implemented error until their owning phases land (ingest in P3,
-// search/ask/timeline on the read side, P10).
+// its tool surface: the JSON-RPC 2.0 transport, the tool registration
+// (ingest_text, ingest_url, status, lint_run, search, ask, timeline), and the two
+// live cross-cutting tools (health, reflection). The write doors dispatch to the
+// ingest service (P3); the read tools (search / ask / timeline) dispatch to the
+// read side (P10) via the Reader seam. A door whose service is nil returns a
+// not-wired error result rather than a silent no-op.
 //
 // The transport speaks JSON-RPC 2.0 over plain HTTP POST (no SSE/streaming),
 // responding with Content-Type: application/json. It carries NO token logic:
@@ -46,6 +47,7 @@ type Handler struct {
 	subscriptions func() []consumer.Subscription
 	ingest        Ingester
 	lint          LintRunner
+	reader        Reader
 }
 
 // Ingester is the interactive ingest front-door surface the MCP write doors
@@ -56,6 +58,20 @@ type Ingester interface {
 	IngestText(ctx context.Context, owner, title, source, tags string, text []byte) (inbox.Receipt, error)
 	IngestURL(ctx context.Context, owner, url, tags string) (inbox.Receipt, error)
 	StatusAny(ctx context.Context, id string) (any, error)
+}
+
+// Reader is the read side the search / ask / timeline tools dispatch to (design
+// §9, internal/read). A nil Reader leaves the read tools as not-implemented stubs
+// (the scaffold shape before the read service is wired). The methods return plain
+// serializable values so the mcp package stays decoupled from the read package's
+// concrete types.
+type Reader interface {
+	// Search runs the public search verb: registry-first whole-page hits.
+	Search(ctx context.Context, query string, limit int) (any, error)
+	// Ask runs the hosted-ask agent and returns the page-cited answer.
+	Ask(ctx context.Context, owner, question string) (any, error)
+	// Timeline lists event subjects in [from, to] (ISO-8601 prefixes).
+	Timeline(ctx context.Context, from, to string, limit int) (any, error)
 }
 
 // LintRunner is the on-demand lint trigger surface the lint_run verb dispatches to
@@ -77,7 +93,7 @@ type LintRunner interface {
 func NewHandler(version, service string,
 	health func(context.Context) (map[string]any, error),
 	events outbox.Registry, subscriptions func() []consumer.Subscription,
-	ingest Ingester, lint LintRunner) *Handler {
+	ingest Ingester, lint LintRunner, reader Reader) *Handler {
 	return &Handler{
 		version:       version,
 		service:       service,
@@ -86,6 +102,7 @@ func NewHandler(version, service string,
 		subscriptions: subscriptions,
 		ingest:        ingest,
 		lint:          lint,
+		reader:        reader,
 	}
 }
 
@@ -146,9 +163,12 @@ func (h *Handler) dispatchTool(ctx context.Context, name string, argsRaw json.Ra
 		return h.toolStatus(ctx, argsRaw)
 	case "lint_run":
 		return h.toolLintRun(ctx, argsRaw, id)
-	case "search", "ask", "timeline":
-		// Read-side tools land on the read side (P10).
-		return toolResultErr("not implemented: " + name + " (scaffold)"), nil
+	case "search":
+		return h.toolSearch(ctx, argsRaw)
+	case "ask":
+		return h.toolAsk(ctx, argsRaw, id)
+	case "timeline":
+		return h.toolTimeline(ctx, argsRaw)
 	case "health":
 		return h.toolHealth(ctx, id)
 	case "reflection":
@@ -269,6 +289,74 @@ func (h *Handler) toolLintRun(ctx context.Context, raw json.RawMessage, id Ident
 		return toolResultErr(err.Error()), nil
 	}
 	return toolResultJSON(map[string]any{"id": rec.ID, "job": a.Job})
+}
+
+// toolSearch is the public search verb (design §9.3): registry-first whole-page
+// hits, rank order only. 'query' required; 'limit' optional (the read service
+// clamps it to the default/cap contract).
+func (h *Handler) toolSearch(ctx context.Context, raw json.RawMessage) (map[string]any, error) {
+	if h.reader == nil {
+		return toolResultErr("read not wired"), nil
+	}
+	var a struct {
+		Query string `json:"query"`
+		Limit int    `json:"limit"`
+	}
+	if err := unmarshalArgs(raw, &a); err != nil {
+		return nil, err
+	}
+	if strings.TrimSpace(a.Query) == "" {
+		return toolResultErr("search: 'query' is required"), nil
+	}
+	res, err := h.reader.Search(ctx, a.Query, a.Limit)
+	if err != nil {
+		return toolResultErr(err.Error()), nil
+	}
+	return toolResultJSON(map[string]any{"hits": res})
+}
+
+// toolAsk is the hosted-ask verb (design §9.1/§9.2): synchronous, read-only,
+// returns the page-cited answer. 'question' required; the caller's identity is the
+// asks-row owner (attribution + eval golden).
+func (h *Handler) toolAsk(ctx context.Context, raw json.RawMessage, id Identity) (map[string]any, error) {
+	if h.reader == nil {
+		return toolResultErr("read not wired"), nil
+	}
+	var a struct {
+		Question string `json:"question"`
+	}
+	if err := unmarshalArgs(raw, &a); err != nil {
+		return nil, err
+	}
+	if strings.TrimSpace(a.Question) == "" {
+		return toolResultErr("ask: 'question' is required"), nil
+	}
+	res, err := h.reader.Ask(ctx, id.OwnerEmail, a.Question)
+	if err != nil {
+		return toolResultErr(err.Error()), nil
+	}
+	return toolResultJSON(res)
+}
+
+// toolTimeline is the public timeline verb (design §9.2): list event subjects in
+// a date window. Both bounds optional (ISO-8601 prefixes); 'limit' optional.
+func (h *Handler) toolTimeline(ctx context.Context, raw json.RawMessage) (map[string]any, error) {
+	if h.reader == nil {
+		return toolResultErr("read not wired"), nil
+	}
+	var a struct {
+		From  string `json:"from"`
+		To    string `json:"to"`
+		Limit int    `json:"limit"`
+	}
+	if err := unmarshalArgs(raw, &a); err != nil {
+		return nil, err
+	}
+	res, err := h.reader.Timeline(ctx, a.From, a.To, a.Limit)
+	if err != nil {
+		return toolResultErr(err.Error()), nil
+	}
+	return toolResultJSON(map[string]any{"events": res})
 }
 
 // receiptResult renders the MCP receipt contract: inbox id + sha256 + dup flag.

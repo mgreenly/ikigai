@@ -1557,7 +1557,7 @@ Structure only.
 
 ---
 
-## [ ] P10 — The read side: ask + search + timeline
+## [x] P10 — The read side: ask + search + timeline
 
 *Design §9.1, §9.2 (tools 1–5; `related` deferred), §9.3 (search verb contract,
 lexical-only for now). Needs pages (P7+).*

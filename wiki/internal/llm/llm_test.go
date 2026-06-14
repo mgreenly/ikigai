@@ -51,7 +51,7 @@ func TestNotWiredWithoutFactory(t *testing.T) {
 	if _, err := w.Structured(context.Background(), site, nil, nil); !errors.Is(err, ErrNotWired) {
 		t.Errorf("Structured without factory: want ErrNotWired, got %v", err)
 	}
-	if _, err := w.Agent(context.Background(), site, nil, nil); !errors.Is(err, ErrNotWired) {
+	if _, err := w.Agent(context.Background(), site, nil, nil, AgentBudget{}, nil); !errors.Is(err, ErrNotWired) {
 		t.Errorf("Agent without factory: want ErrNotWired, got %v", err)
 	}
 }

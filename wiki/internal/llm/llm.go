@@ -21,8 +21,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"strings"
+	"time"
 
 	"agentkit/model"
 	"agentkit/provider"
@@ -186,11 +188,119 @@ func (w *Wrapper) bindAccounting(client Client, site config.CallSite) {
 	ls.SetLogger(w.logger.With(slog.String("call_site", site.Name)))
 }
 
-// Agent runs a tool-using agent loop for the ask call site. P2 wires the seam;
-// the loop body lands in P10. Returns ErrNotWired until a factory is configured.
-func (w *Wrapper) Agent(ctx context.Context, site config.CallSite, msgs []provider.Message, tools []provider.Tool) (*StructuredResult, error) {
-	if _, err := w.resolveClient(site); err != nil {
+// ToolDispatch executes a tool the model requested and returns the result text
+// (the tool_result block content). A non-nil error is surfaced to the model as an
+// is_error tool_result so the loop keeps going (a tool failure is recoverable
+// information, not a run-ending crash) — the same stance agentkit's agent loop
+// takes. The read side (P10) supplies this for ask's six read tools.
+type ToolDispatch func(ctx context.Context, name string, input json.RawMessage) (string, error)
+
+// AgentBudget bounds an Agent run server-side (design §9.1): a max turn count, a
+// cumulative token ceiling, and a wall-clock deadline. All three are
+// config-injected (eval obligation 2 — the harness tunes them), never constants
+// at the site. A zero field means "unbounded on that axis" (the caller's config
+// normally sets all three).
+type AgentBudget struct {
+	MaxTurns  int
+	MaxTokens int
+	MaxWall   time.Duration
+}
+
+// Agent runs a tool-using agent loop for the ask call site (design §9.1): it
+// streams the model, dispatches every tool_use block through dispatch, appends
+// both turns to history, and re-invokes — until the model returns a non-tool stop
+// reason (the final cited answer) or the budget is exhausted. The model and
+// effort come entirely from the injected CallSite (obligation 1); the loop body
+// is config-injected and the harness sweeps the site by swapping the triple.
+//
+// It is deliberately NOT the agentkit wire-session loop: ask is read-only, owns
+// its own tools, and wants a plain text answer (not a wire transcript). Driving
+// provider.Client.Stream directly keeps the read path free of the run/session
+// machinery the write spine needs. Returns ErrNotWired until a factory is wired.
+func (w *Wrapper) Agent(ctx context.Context, site config.CallSite, msgs []provider.Message, tools []provider.Tool, budget AgentBudget, dispatch ToolDispatch) (*StructuredResult, error) {
+	client, err := w.resolveClient(site)
+	if err != nil {
 		return nil, err
 	}
-	return nil, ErrNotWired
+	w.bindAccounting(client, site)
+
+	if budget.MaxWall > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, budget.MaxWall)
+		defer cancel()
+	}
+
+	req := w.buildRequest(site, nil, msgs, tools)
+
+	var totalTokens int
+	for turn := 0; ; turn++ {
+		if budget.MaxTurns > 0 && turn >= budget.MaxTurns {
+			return nil, fmt.Errorf("llm: ask exceeded max turns (%d)", budget.MaxTurns)
+		}
+		events, err := client.Stream(ctx, req)
+		if err != nil {
+			return nil, err
+		}
+
+		var (
+			text       strings.Builder
+			toolUses   []provider.EventToolUse
+			respBlocks []provider.Block
+			stop       string
+		)
+		for ev := range events {
+			switch e := ev.(type) {
+			case provider.EventTextDelta:
+				text.WriteString(e.Text)
+			case provider.EventThinking:
+				respBlocks = append(respBlocks, provider.ThinkingBlock{Text: e.Text, Signature: e.Signature})
+			case provider.EventToolUse:
+				toolUses = append(toolUses, e)
+				respBlocks = append(respBlocks, provider.ToolUseBlock{ID: e.ID, Name: e.Name, Input: e.Input})
+			case provider.EventUsage:
+				totalTokens += e.InputTokens + e.OutputTokens
+			case provider.EventDone:
+				stop = e.StopReason
+			}
+		}
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		if budget.MaxTokens > 0 && totalTokens > budget.MaxTokens {
+			return nil, fmt.Errorf("llm: ask exceeded token budget (%d)", budget.MaxTokens)
+		}
+
+		if stop != "tool_use" || len(toolUses) == 0 {
+			// Terminal turn: the assistant's final text is the cited answer.
+			raw := strings.TrimSpace(text.String())
+			return &StructuredResult{Raw: raw, Parsed: json.RawMessage(raw)}, nil
+		}
+
+		// Assemble the assistant turn (text first, then tool-use blocks) for history.
+		asst := make([]provider.Block, 0, len(respBlocks)+1)
+		if t := strings.TrimSpace(text.String()); t != "" {
+			asst = append(asst, provider.TextBlock{Text: t})
+		}
+		asst = append(asst, respBlocks...)
+
+		// Dispatch each tool; a dispatch error becomes an is_error tool_result so the
+		// loop continues (a tool failure is information, not a crash).
+		results := make([]provider.Block, 0, len(toolUses))
+		for _, tu := range toolUses {
+			out, derr := dispatch(ctx, tu.Name, tu.Input)
+			if derr != nil {
+				results = append(results, provider.ToolResultBlock{ToolUseID: tu.ID, Content: derr.Error(), IsError: true})
+				continue
+			}
+			results = append(results, provider.ToolResultBlock{ToolUseID: tu.ID, Content: out})
+		}
+
+		newMsgs := make([]provider.Message, len(req.Messages), len(req.Messages)+2)
+		copy(newMsgs, req.Messages)
+		newMsgs = append(newMsgs,
+			provider.Message{Role: provider.RoleAssistant, Blocks: asst},
+			provider.Message{Role: provider.RoleUser, Blocks: results},
+		)
+		req.Messages = newMsgs
+	}
 }

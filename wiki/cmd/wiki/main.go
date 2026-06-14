@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"appkit"
 
@@ -29,10 +30,17 @@ import (
 	"wiki/internal/consume"
 	"wiki/internal/db"
 	"wiki/internal/events"
-	"wiki/internal/ingest"
 	"wiki/internal/inbox"
+	"wiki/internal/ingest"
+	"wiki/internal/llm"
 	"wiki/internal/mcp"
+	"wiki/internal/page"
 	"wiki/internal/producer"
+	"wiki/internal/read"
+
+	"agentkit/model"
+	"agentkit/provider/anthropic"
+	"agentkit/provider/openai"
 
 	"eventplane/consumer"
 	"eventplane/outbox"
@@ -116,9 +124,32 @@ func main() {
 
 			ingestSvc := ingest.New(box, rt.DB(), prod, nil)
 
+			// The read side (design §9, P10): the page registry store, the lexical
+			// retriever, the search/timeline verbs, and the hosted-ask agent over the
+			// config-injected ask triple + server-side budget. Strictly read-only.
+			pageStore := page.NewStore(rt.DB())
+			readSvc := read.NewService(pageStore, read.NewStoreRetriever(pageStore),
+				read.SearchLimits{Default: cfg.SearchLimitDefault, Cap: cfg.SearchLimitCap})
+			askWrapper := llm.New(clientFactory(os.Getenv), rt.Logger())
+			askStore := read.NewAskStore(rt.DB())
+			asker := read.NewAsker(readSvc, askWrapper, box, askStore, cfg.LLM.Ask, llm.AgentBudget{
+				MaxTurns:  cfg.AskMaxTurns,
+				MaxTokens: cfg.AskMaxTokens,
+				MaxWall:   time.Duration(cfg.AskMaxWallSeconds) * time.Second,
+			})
+			reader := read.NewMCPReader(readSvc, asker)
+
+			// Boot sweep (design §9.2): a synchronous ask in flight when the process
+			// died left a `running` asks row no retry will finish — mark orphans crashed.
+			if n, err := askStore.SweepOrphans(context.Background()); err != nil {
+				rt.Logger().Warn("ask orphan sweep failed", "error", err)
+			} else if n > 0 {
+				rt.Logger().Info("swept orphaned asks", "count", n)
+			}
+
 			rt.Handle("POST /mcp", rt.RequireIdentity(
 				mcp.NewHandler(rt.Version(), rt.Service(), rt.Health(),
-					rt.Events(), rt.Subscriptions(), ingestSvc, nil)))
+					rt.Events(), rt.Subscriptions(), ingestSvc, nil, reader)))
 			return nil
 		},
 		// Producer fires after Handlers: inject the constructed outbox into the
@@ -140,6 +171,23 @@ func main() {
 			func(ctx context.Context) error { return runLedgerConsumer(ctx, rt, box, prod) },
 		},
 	})
+}
+
+// clientFactory resolves a call site's model id to a provider streaming client
+// (the internal/llm seam): claude-* → anthropic, gpt-* → openai (the P0a
+// backend), keyed purely on the resolved provider. Keys reach the process via
+// the .envrc pattern (ANTHROPIC_API_KEY / OPENAI_API_KEY) — presence-gated here:
+// an absent key yields an unconstructed client, which surfaces as a call error
+// rather than a startup crash (the read side degrades, it does not panic).
+func clientFactory(getenv func(string) string) llm.ClientFactory {
+	return func(r model.Resolved) (llm.Client, error) {
+		switch r.Provider {
+		case model.ProviderOpenAI:
+			return openai.New(getenv("OPENAI_API_KEY"), r.BareID)
+		default:
+			return anthropic.New(getenv("ANTHROPIC_API_KEY"), r.BareID)
+		}
+	}
 }
 
 // dbPath resolves the SQLite file path the same way appkit/config does

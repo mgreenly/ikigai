@@ -16,7 +16,7 @@ import (
 func newTestHandler() *Handler {
 	return NewHandler("1", "wiki",
 		func(ctx context.Context) (map[string]any, error) { return map[string]any{"ok": true}, nil },
-		events.Registry, nil, nil, nil)
+		events.Registry, nil, nil, nil, nil)
 }
 
 // fakeIngester is a stand-in Ingester for the front-door dispatch tests.
@@ -45,7 +45,7 @@ func (f *fakeIngester) StatusAny(_ context.Context, id string) (any, error) {
 func newHandlerWithIngest(in Ingester) *Handler {
 	return NewHandler("1", "wiki",
 		func(ctx context.Context) (map[string]any, error) { return map[string]any{"ok": true}, nil },
-		events.Registry, nil, in, nil)
+		events.Registry, nil, in, nil, nil)
 }
 
 func rpc(t *testing.T, h *Handler, body string) map[string]any {
@@ -113,8 +113,9 @@ func TestReflectionLive(t *testing.T) {
 	}
 }
 
-// TestDomainToolsStubbed: the domain tools return a not-implemented error result
-// (isError) until their owning phases land.
+// TestDomainToolsStubbed: with no wired service (nil ingest / nil reader), every
+// domain tool returns an error result (isError) — a not-wired refusal, never a
+// silent no-op that would hide a missing wiring.
 func TestDomainToolsStubbed(t *testing.T) {
 	h := newTestHandler()
 	for _, name := range []string{"ingest_text", "ingest_url", "status", "search", "ask", "timeline", "lint_run"} {

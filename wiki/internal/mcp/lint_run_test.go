@@ -24,7 +24,7 @@ func (f *fakeLintRunner) LintRun(_ context.Context, owner, job string) (inbox.Re
 func newHandlerWithLint(l LintRunner) *Handler {
 	return NewHandler("1", "wiki",
 		func(ctx context.Context) (map[string]any, error) { return map[string]any{"ok": true}, nil },
-		events.Registry, nil, nil, l)
+		events.Registry, nil, nil, l, nil)
 }
 
 // TestLintRunAcceptsTrigger: lint_run forwards the job + authenticated owner to the

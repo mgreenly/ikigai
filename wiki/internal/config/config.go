@@ -139,6 +139,21 @@ type Config struct {
 	// constant at the call site — fed to integrate's manifest assembler.
 	MatchExcerptChars int
 
+	// AskMaxTurns is WIKI_ASK_MAX_TURNS (default 12): the ask inner agent's
+	// server-side turn ceiling (design §9.1). An eval-harness knob (obligation 2) —
+	// a tunable budget, never a constant at the ask call site.
+	AskMaxTurns int
+	// AskMaxTokens is WIKI_ASK_MAX_TOKENS (default 60000): the ask inner agent's
+	// cumulative token ceiling across its turns (design §9.1). Eval-harness knob.
+	AskMaxTokens int
+	// AskMaxWallSeconds is WIKI_ASK_MAX_WALL_SECONDS (default 90): the ask inner
+	// agent's wall-clock deadline in seconds (design §9.1). Eval-harness knob.
+	AskMaxWallSeconds int
+	// SearchLimitDefault / SearchLimitCap are the search verb's limit contract
+	// (design §9.3): default 3, cap 10.
+	SearchLimitDefault int
+	SearchLimitCap     int
+
 	// LLM is the per-call-site injection seam (design §10).
 	LLM LLM
 	// Embed is the embeddings model/dims (P11's vector lane).
@@ -168,6 +183,11 @@ func Load(getenv func(string) string) (*Config, error) {
 		CandidateLimit:     envInt(getenv, "WIKI_CANDIDATE_LIMIT", 5),
 		SweepLimit:         envInt(getenv, "WIKI_SWEEP_LIMIT", 5),
 		MatchExcerptChars:  envInt(getenv, "WIKI_MATCH_EXCERPT_CHARS", 600),
+		AskMaxTurns:        envInt(getenv, "WIKI_ASK_MAX_TURNS", 12),
+		AskMaxTokens:       envInt(getenv, "WIKI_ASK_MAX_TOKENS", 60000),
+		AskMaxWallSeconds:  envInt(getenv, "WIKI_ASK_MAX_WALL_SECONDS", 90),
+		SearchLimitDefault: envInt(getenv, "WIKI_SEARCH_LIMIT_DEFAULT", 3),
+		SearchLimitCap:     envInt(getenv, "WIKI_SEARCH_LIMIT_CAP", 10),
 		Embed: Embed{
 			Model: envStr(getenv, "WIKI_EMBED_MODEL", "text-embedding-3-large"),
 			Dims:  envInt(getenv, "WIKI_EMBED_DIMS", 1024),
@@ -181,7 +201,7 @@ func Load(getenv func(string) string) (*Config, error) {
 	cfg.LLM.Match = loadSite(getenv, "match", "WIKI_MATCH", "claude-haiku-4-5", "", DefaultMatchPrompt)
 	cfg.LLM.Merge = loadSite(getenv, "merge", "WIKI_MERGE", "claude-sonnet-4-6", "high", DefaultMergePrompt)
 	cfg.LLM.Compile = loadSite(getenv, "compile", "WIKI_COMPILE", "claude-sonnet-4-6", "medium", DefaultCompilePrompt)
-	cfg.LLM.Ask = loadSite(getenv, "ask", "WIKI_ASK", "claude-sonnet-4-6", "medium", placeholderPrompt)
+	cfg.LLM.Ask = loadSite(getenv, "ask", "WIKI_ASK", "claude-sonnet-4-6", "medium", DefaultAskPrompt)
 	cfg.LLM.LintDupJudge = loadSite(getenv, "lint_dup_judge", "WIKI_LINT_DUP", "claude-sonnet-4-6", "medium", DefaultLintDupJudgePrompt)
 	cfg.LLM.LintFold = loadSite(getenv, "lint_fold", "WIKI_LINT_FOLD", "claude-sonnet-4-6", "high", DefaultLintFoldPrompt)
 	cfg.LLM.LintStale = loadSite(getenv, "lint_stale", "WIKI_LINT_STALE", "claude-sonnet-4-6", "medium", DefaultLintStalePrompt)
