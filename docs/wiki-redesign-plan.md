@@ -1767,7 +1767,7 @@ II having been validated only by mocks. With **P11d** the service is now live on
 documents and real `asks` rows as they accrue (enablement obligation 4), not
 synthetic data alone.
 
-## [ ] P12 — Eval design lock
+## [x] P12 — Eval design lock
 
 *Research doc "Open questions for the design doc." A plan executes a settled
 design; the research fixes the *what* and *shape* but leaves six questions open.
