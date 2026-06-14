@@ -1667,7 +1667,7 @@ now has an end-to-end real-model liveness check.
 
 ---
 
-## [ ] P11k — Keyed Part-I validation gate (keys required)
+## [x] P11k — Keyed Part-I validation gate (keys required)
 
 *The single keyed, live-model step the otherwise-phase-only `/finish` march needs an
 explicit owner for (see *Prompt-default validation*, mechanism 2). It ships no new

@@ -184,25 +184,22 @@ func TestMergePromptDefaultGate(t *testing.T) {
 		t.Error("merge default prompt missing the lead-discipline (identity-in-the-lead) obligation")
 	}
 
-	// (a-ii) the parser + schema validate a committed, schema-faithful fixture into
-	// a page-write + superseded list.
-	raw, err := os.ReadFile(filepath.Join("testdata", "merge_response.json"))
+	// (a-ii) the parser + schema validate the committed RECORDED real-model fixture
+	// (P11k) into a page-write — so parser/schema drift is caught against real
+	// output. The recorded fresh-page merge legitimately declares no superseded /
+	// stale notes; those folds are exercised by TestApplyMergeWriteSet and
+	// TestMergeAppendsStaleNotes against their own fixtures.
+	raw, err := os.ReadFile(filepath.Join("testdata", "merge_recorded.json"))
 	if err != nil {
-		t.Fatalf("read fixture: %v", err)
+		t.Fatalf("read recorded fixture: %v", err)
 	}
 	manifest := manifestForMergeFixture()
 	if _, err := ApplyMerge(manifest, string(raw)); err != nil {
-		t.Fatalf("committed fixture must parse + validate: %v", err)
+		t.Fatalf("recorded fixture must parse + validate: %v", err)
 	}
 	s := manifest.Subjects[0]
 	if strings.TrimSpace(s.PageBody) == "" {
-		t.Fatal("fixture should produce a non-empty page body")
-	}
-	if len(s.Superseded) == 0 {
-		t.Fatal("fixture should exercise the §6.1 superseded declaration")
-	}
-	if len(manifest.StaleNotes) == 0 {
-		t.Fatal("fixture should exercise the §6 stale-notes side channel")
+		t.Fatal("recorded fixture should produce a non-empty page body")
 	}
 }
 

@@ -1,1 +1,4 @@
-{"verdict": "merge", "canonical_name": "Acme Corporation"}
+{
+  "canonical_name": "Apple Inc.",
+  "verdict": "merge"
+}

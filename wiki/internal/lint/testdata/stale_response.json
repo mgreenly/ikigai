@@ -1,8 +1,11 @@
 {
-  "title": "Initech",
-  "body": "Initech is a software company that was acquired by Globex in 2021. [01HX0000000000000000000001] [01HX0000000000000000000002]",
-  "superseded": [],
+  "body": "Initech is a software company based in Austin that was acquired by Globex Corporation in 2021. [01HXBLUNTINBOX0000000000010] [01HXBLUNTINBOX0000000000011]",
   "dispositions": [
-    {"note_id": "01HNOTE00000000000000000001", "status": "repaired"}
-  ]
+    {
+      "note_id": "01HNOTE0000000000000000001",
+      "status": "repaired"
+    }
+  ],
+  "superseded": [],
+  "title": "Initech"
 }

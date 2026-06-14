@@ -208,19 +208,20 @@ func TestMatchPromptDefaultGate(t *testing.T) {
 		t.Error("match default prompt missing the identity / doubt-is-no_match polarity")
 	}
 
-	// (a-ii) the parser + schema validate a committed, schema-faithful fixture.
-	raw, err := os.ReadFile(filepath.Join("testdata", "match_response.json"))
+	// (a-ii) the parser + schema validate the committed RECORDED real-model fixture
+	// (P11k) — so parser/schema drift is caught against real output. The recorded
+	// blunt-pair drive yields a same-verdict resolving to an offered candidate; the
+	// dup_pairs side channel is exercised independently by
+	// TestMatchDupPairsSideChannel.
+	raw, err := os.ReadFile(filepath.Join("testdata", "match_recorded.json"))
 	if err != nil {
-		t.Fatalf("read fixture: %v", err)
+		t.Fatalf("read recorded fixture: %v", err)
 	}
-	v, err := ParseMatch(string(raw), validIDs("01A", "01B"))
+	v, err := ParseMatch(string(raw), validIDs("01HXCANDIDATEAPPLEINC000001", "01HXCANDIDATEAPPLEREC000002"))
 	if err != nil {
-		t.Fatalf("committed fixture must parse: %v", err)
+		t.Fatalf("recorded fixture must parse: %v", err)
 	}
-	if v.Same != "01A" {
-		t.Fatalf("fixture verdict = %q, want same(01A)", v.Same)
-	}
-	if len(v.DupPairs) == 0 {
-		t.Fatal("fixture should exercise the dup_pairs side channel")
+	if v.Same != "01HXCANDIDATEAPPLEINC000001" {
+		t.Fatalf("recorded verdict = %q, want same(01HXCANDIDATEAPPLEINC000001)", v.Same)
 	}
 }

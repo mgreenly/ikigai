@@ -41,6 +41,19 @@ func loadFixture(t *testing.T) string {
 	return string(b)
 }
 
+// loadRecordedFixture reads a P11k recorded real-model fixture (captured from the
+// live triple by capture_integration_test.go). The offline (a-ii) prompt-default
+// gates parse THESE so parser/schema drift is caught against real output; the
+// content-pinned golden tests keep using the deterministic *_response.json fixtures.
+func loadRecordedFixture(t *testing.T, name string) string {
+	t.Helper()
+	b, err := os.ReadFile(filepath.Join("testdata", name))
+	if err != nil {
+		t.Fatalf("read recorded fixture %s: %v", name, err)
+	}
+	return string(b)
+}
+
 // TestExtractGolden drives the full Extract path with a mocked LLM against the
 // committed schema-faithful fixture and asserts the parsed []Subject (the §4.2
 // contract / the P6b seam): required fields present, claims stamped with the
@@ -201,13 +214,14 @@ func TestExtractPromptDefaultGate(t *testing.T) {
 		t.Error("extract default prompt missing the dialog-awareness clause")
 	}
 
-	// (a-ii) the parser + schema validate a committed, schema-faithful fixture.
-	subs, err := ParseExtract(loadFixture(t), "01HX4ZTESTINBOXROWID0000001")
+	// (a-ii) the parser + schema validate the committed RECORDED real-model fixture
+	// (P11k) — so parser/schema drift is caught against real output.
+	subs, err := ParseExtract(loadRecordedFixture(t, "extract_recorded.json"), "01HXBLUNTFIXTUREINBOXROW001")
 	if err != nil {
-		t.Fatalf("committed fixture must parse: %v", err)
+		t.Fatalf("recorded fixture must parse: %v", err)
 	}
 	if len(subs) == 0 {
-		t.Fatal("committed fixture parsed to zero subjects")
+		t.Fatal("recorded fixture parsed to zero subjects")
 	}
 }
 

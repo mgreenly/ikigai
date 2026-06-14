@@ -175,12 +175,13 @@ func TestCompilePromptDefaultGate(t *testing.T) {
 		}
 	}
 
-	// The parser + schema validate a committed, schema-faithful fixture into
-	// subjects[] carrying per-claim cites + occurred_at.
+	// The parser + schema validate the committed RECORDED real-model fixture (P11k)
+	// into subjects[] carrying per-claim cites + occurred_at — so parser/schema
+	// drift is caught against real output.
 	valid := map[string]struct{}{"01EVTA": {}, "01EVTB": {}}
-	subs, err := ParseCompile(loadCompileFixture(t), valid)
+	subs, err := ParseCompile(loadRecordedFixture(t, "compile_recorded.json"), valid)
 	if err != nil {
-		t.Fatalf("committed fixture must parse: %v", err)
+		t.Fatalf("recorded fixture must parse: %v", err)
 	}
 	if len(subs) == 0 {
 		t.Fatal("committed fixture parsed to zero subjects")

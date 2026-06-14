@@ -1,8 +1,11 @@
 {
   "answer": "Dana Lee is the CEO of Acme Corp.",
   "citations": [
-    {"subject": "01HACMECORPSUBJECTID0001", "title": "Acme Corp"}
+    {
+      "subject": "01HACMECORPSUBJECTID0001",
+      "title": "Acme Corp"
+    }
   ],
-  "sources": [],
-  "found": true
+  "found": true,
+  "sources": []
 }
