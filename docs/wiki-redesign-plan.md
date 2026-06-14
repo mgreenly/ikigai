@@ -1165,7 +1165,11 @@ fills its real default," and merge's real default is P7a2's job.*
   inserts + `dup_flags` (inserted from the manifest's `dup_pairs` via `FlagDup`,
   canonical order) + the `stale_notes` merge appended (from the manifest's
   `stale_notes[]` carrier, with their `cites` — §6) + the run row + `integrated_by`
-  (and `occurred_at` first-writer-wins from the manifest, events only). Zero mid-run
+  (and `occurred_at` first-writer-wins from the manifest, events only) + the
+  **`pages_fts` external-content sync** for each written page (explicit FTS5
+  `'delete'` with the OLD title/body — held from merge's read — then re-insert at
+  the page's `rowid`; **no triggers**, per design §12/§4.5; per-page, not a
+  rebuild). Zero mid-run
   partial writes — the manifest carries the whole write set, so nothing reaches the
   DB outside this commit. This fills
   the generic end-of-run transaction wrapper P4 built and tested with stubs — now
@@ -1190,13 +1194,18 @@ fills its real default," and merge's real default is P7a2's job.*
 swap leaves the spine green (P4's concurrency tests still pass); the manifest's
 per-page base `version` slot is populated with the value merge read (so P7b's
 guard has it); a `stale_notes` row is appended when merge contradicts a neighbor;
+after the commit, `pages_fts` is consistent with `pages` for every written page —
+a `MATCH` over a newly-created page returns it, and after a page **update** the
+OLD body no longer matches while the NEW body does (proving the `'delete'`-then-insert
+sync, not a stale append);
 provenance chain (answer-less: page cites inbox id → `ReadPayload`). End-to-end
 test through the spine. The merge prompt's offline gate, the integration
 checkpoint, and the eval hook are **P7a2** (next), not here.
 **Deliverable gate (boundary — see *Phase completion is a checklist, not a green gate*):**
-the real pages/registry end-of-run transaction, the stub→real `Integrator` swap,
-the populated per-page base `version` slot, and the `stale_notes` writer hook are
-each present and individually tested before the phase closes.
+the real pages/registry end-of-run transaction, the `pages_fts` external-content
+sync, the stub→real `Integrator` swap, the populated per-page base `version` slot,
+and the `stale_notes` writer hook are each present and individually tested before
+the phase closes.
 
 ---
 

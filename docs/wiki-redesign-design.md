@@ -457,8 +457,21 @@ from failed to retry logic).
 **One SQLite transaction at end of run** writes everything: updated/created
 pages, registry inserts, dup flags, the `stale_notes` merge appended (§6, with
 their `cites`), `occurred_at` (first-writer-wins, events only — §4.1), the run
-row, `integrated_by`. Mid-run there are zero partial writes — "writes everything"
-is literally the whole write set, nothing reaches the DB outside this commit.
+row, `integrated_by`, and the `pages_fts` sync for every page in the write set.
+Because §12 makes `pages_fts` an external-content FTS5 index with **no triggers**,
+the commit syncs it explicitly and per-page (never a full rebuild): a *created*
+page inserts the FTS row at the page's `rowid`
+(`INSERT INTO pages_fts(rowid, title, body) VALUES (…)`), while an *updated* page
+first issues the FTS5 `'delete'` command with the **OLD** title/body — in hand
+because merge already read the page (§3, "the version merge read") — and only
+then re-inserts the new row
+(`INSERT INTO pages_fts(pages_fts, rowid, title, body) VALUES ('delete', …)`
+then the plain insert). A bare `DELETE FROM pages_fts WHERE rowid=…` is **wrong**
+here: external-content FTS5 re-reads the column values from the already-updated
+`pages` content row at delete time, so it would strip the wrong tokens and let
+the index silently diverge. Mid-run there are zero partial writes — "writes
+everything" is literally the whole write set, nothing reaches the DB outside this
+commit.
 
 **Stamping principle:** a row is stamped by whatever fulfills its promise, at
 the moment the promise becomes true, never earlier. Document/event rows are
