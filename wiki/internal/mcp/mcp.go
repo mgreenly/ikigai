@@ -23,6 +23,8 @@ import (
 
 	"eventplane/consumer"
 	"eventplane/outbox"
+
+	"wiki/internal/inbox"
 )
 
 // Identity is the authenticated caller, as told to us authoritatively by nginx
@@ -42,21 +44,35 @@ type Handler struct {
 	health        func(context.Context) (map[string]any, error)
 	events        outbox.Registry
 	subscriptions func() []consumer.Subscription
+	ingest        Ingester
+}
+
+// Ingester is the interactive ingest front-door surface the MCP write doors
+// dispatch to (design §2.1, internal/ingest.Service). A nil Ingester leaves the
+// write/status tools as not-implemented stubs — the scaffold shape (P2) before
+// the ingest service is wired (P3).
+type Ingester interface {
+	IngestText(ctx context.Context, owner, title, source, tags string, text []byte) (inbox.Receipt, error)
+	IngestURL(ctx context.Context, owner, url, tags string) (inbox.Receipt, error)
+	StatusAny(ctx context.Context, id string) (any, error)
 }
 
 // NewHandler builds a Handler. version/service/health populate the health
 // envelope; health is the optional per-service reporter (nil → details is {}).
 // events is the published-event registry and subscriptions the live subscription
-// provider, both rendered by reflection.
+// provider, both rendered by reflection. ingest is the interactive write/status
+// surface (nil → the write doors stay not-implemented stubs).
 func NewHandler(version, service string,
 	health func(context.Context) (map[string]any, error),
-	events outbox.Registry, subscriptions func() []consumer.Subscription) *Handler {
+	events outbox.Registry, subscriptions func() []consumer.Subscription,
+	ingest Ingester) *Handler {
 	return &Handler{
 		version:       version,
 		service:       service,
 		health:        health,
 		events:        events,
 		subscriptions: subscriptions,
+		ingest:        ingest,
 	}
 }
 
@@ -109,8 +125,14 @@ func (h *Handler) handleToolCall(ctx context.Context, w http.ResponseWriter, req
 
 func (h *Handler) dispatchTool(ctx context.Context, name string, argsRaw json.RawMessage, id Identity) (map[string]any, error) {
 	switch name {
-	case "ingest_text", "ingest_url", "status", "search", "ask", "timeline":
-		// Domain tools land in their owning phases (ingest P3, read side P10).
+	case "ingest_text":
+		return h.toolIngestText(ctx, argsRaw, id)
+	case "ingest_url":
+		return h.toolIngestURL(ctx, argsRaw, id)
+	case "status":
+		return h.toolStatus(ctx, argsRaw)
+	case "search", "ask", "timeline":
+		// Read-side tools land on the read side (P10).
 		return toolResultErr("not implemented: " + name + " (scaffold)"), nil
 	case "health":
 		return h.toolHealth(ctx, id)
@@ -137,6 +159,104 @@ func (h *Handler) toolHealth(ctx context.Context, id Identity) (map[string]any, 
 	env["owner_email"] = id.OwnerEmail
 	env["client_id"] = id.ClientID
 	return toolResultJSON(env)
+}
+
+// toolIngestText is the ingest_text write door (§2.1). It Accepts the text as a
+// document under the authenticated caller's identity and returns the receipt
+// (inbox id + sha256 + dup flag — NOT a job id). An oversized payload returns the
+// refusal as a tool error (and the door has already emitted wiki.ingest_refused).
+func (h *Handler) toolIngestText(ctx context.Context, raw json.RawMessage, id Identity) (map[string]any, error) {
+	if h.ingest == nil {
+		return toolResultErr("ingest not wired"), nil
+	}
+	var a struct {
+		Text   string   `json:"text"`
+		Title  string   `json:"title"`
+		Source string   `json:"source"`
+		Tags   []string `json:"tags"`
+	}
+	if err := unmarshalArgs(raw, &a); err != nil {
+		return nil, err
+	}
+	if strings.TrimSpace(a.Text) == "" {
+		return toolResultErr("ingest_text: 'text' is required"), nil
+	}
+	rec, err := h.ingest.IngestText(ctx, id.OwnerEmail, a.Title, a.Source, tagsJSON(a.Tags), []byte(a.Text))
+	if err != nil {
+		return toolResultErr(err.Error()), nil
+	}
+	return receiptResult(rec.ID, rec.SHA256, rec.Dup)
+}
+
+// toolIngestURL is the ingest_url write door (§2.1): fetch + extract server-side
+// then Accept, returning the same receipt as ingest_text.
+func (h *Handler) toolIngestURL(ctx context.Context, raw json.RawMessage, id Identity) (map[string]any, error) {
+	if h.ingest == nil {
+		return toolResultErr("ingest not wired"), nil
+	}
+	var a struct {
+		URL  string   `json:"url"`
+		Tags []string `json:"tags"`
+	}
+	if err := unmarshalArgs(raw, &a); err != nil {
+		return nil, err
+	}
+	if strings.TrimSpace(a.URL) == "" {
+		return toolResultErr("ingest_url: 'url' is required"), nil
+	}
+	rec, err := h.ingest.IngestURL(ctx, id.OwnerEmail, a.URL, tagsJSON(a.Tags))
+	if err != nil {
+		return toolResultErr(err.Error()), nil
+	}
+	return receiptResult(rec.ID, rec.SHA256, rec.Dup)
+}
+
+// toolStatus polls the integration state of an inbox id (§2.1).
+func (h *Handler) toolStatus(ctx context.Context, raw json.RawMessage) (map[string]any, error) {
+	if h.ingest == nil {
+		return toolResultErr("ingest not wired"), nil
+	}
+	var a struct {
+		ID string `json:"id"`
+	}
+	if err := unmarshalArgs(raw, &a); err != nil {
+		return nil, err
+	}
+	if strings.TrimSpace(a.ID) == "" {
+		return toolResultErr("status: 'id' is required"), nil
+	}
+	st, err := h.ingest.StatusAny(ctx, a.ID)
+	if err != nil {
+		return toolResultErr(err.Error()), nil
+	}
+	return toolResultJSON(st)
+}
+
+// receiptResult renders the MCP receipt contract: inbox id + sha256 + dup flag.
+func receiptResult(id, sha256 string, dup bool) (map[string]any, error) {
+	return toolResultJSON(map[string]any{"id": id, "sha256": sha256, "dup": dup})
+}
+
+// tagsJSON renders a string slice as a JSON-array string for inbox.Accept (the
+// tags column is a JSON array). An empty/nil slice becomes "[]".
+func tagsJSON(tags []string) string {
+	if len(tags) == 0 {
+		return "[]"
+	}
+	b, err := json.Marshal(tags)
+	if err != nil {
+		return "[]"
+	}
+	return string(b)
+}
+
+// unmarshalArgs decodes a tools/call arguments object, treating an absent
+// arguments field as an empty object.
+func unmarshalArgs(raw json.RawMessage, v any) error {
+	if len(raw) == 0 {
+		return nil
+	}
+	return json.Unmarshal(raw, v)
 }
 
 // toolReflection self-describes wiki's edges in the event graph. No event_type →

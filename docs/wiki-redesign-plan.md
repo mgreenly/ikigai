@@ -901,7 +901,7 @@ without it (obligations 1–2). A trivial test swaps the triple on a stub site.
 
 ---
 
-## [ ] P3 — The ingest side: `Accept`, the inbox, front doors
+## [x] P3 — The ingest side: `Accept`, the inbox, front doors
 
 *Design §2.1, §2.2, §8. The whole write path, no integration yet.*
 

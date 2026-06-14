@@ -10,12 +10,42 @@ import (
 	"testing"
 
 	"wiki/internal/events"
+	"wiki/internal/inbox"
 )
 
 func newTestHandler() *Handler {
 	return NewHandler("1", "wiki",
 		func(ctx context.Context) (map[string]any, error) { return map[string]any{"ok": true}, nil },
-		events.Registry, nil)
+		events.Registry, nil, nil)
+}
+
+// fakeIngester is a stand-in Ingester for the front-door dispatch tests.
+type fakeIngester struct {
+	lastOwner, lastTitle, lastSource, lastTags string
+	lastText                                   []byte
+	lastURL                                    string
+	rec                                        inbox.Receipt
+	statusState                                map[string]any
+}
+
+func (f *fakeIngester) IngestText(_ context.Context, owner, title, source, tags string, text []byte) (inbox.Receipt, error) {
+	f.lastOwner, f.lastTitle, f.lastSource, f.lastTags, f.lastText = owner, title, source, tags, text
+	return f.rec, nil
+}
+
+func (f *fakeIngester) IngestURL(_ context.Context, owner, url, tags string) (inbox.Receipt, error) {
+	f.lastOwner, f.lastURL, f.lastTags = owner, url, tags
+	return f.rec, nil
+}
+
+func (f *fakeIngester) StatusAny(_ context.Context, id string) (any, error) {
+	return f.statusState, nil
+}
+
+func newHandlerWithIngest(in Ingester) *Handler {
+	return NewHandler("1", "wiki",
+		func(ctx context.Context) (map[string]any, error) { return map[string]any{"ok": true}, nil },
+		events.Registry, nil, in)
 }
 
 func rpc(t *testing.T, h *Handler, body string) map[string]any {
@@ -94,6 +124,64 @@ func TestDomainToolsStubbed(t *testing.T) {
 		if result["isError"] != true {
 			t.Errorf("%q: expected isError stub result, got %v", name, result)
 		}
+	}
+}
+
+// TestIngestTextReceipt: ingest_text dispatches to the Ingester with the
+// authenticated owner and returns the receipt (id + sha256 + dup) — not a job id.
+func TestIngestTextReceipt(t *testing.T) {
+	fake := &fakeIngester{rec: inbox.Receipt{ID: "01ARR", SHA256: "abc123", Dup: false}}
+	h := newHandlerWithIngest(fake)
+	out := rpc(t, h, `{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"ingest_text","arguments":{"text":"hello world","title":"T","tags":["a","b"]}}}`)
+	var r map[string]any
+	if err := json.Unmarshal([]byte(toolText(t, out)), &r); err != nil {
+		t.Fatalf("receipt: %v", err)
+	}
+	if r["id"] != "01ARR" || r["sha256"] != "abc123" || r["dup"] != false {
+		t.Errorf("receipt = %v", r)
+	}
+	if fake.lastOwner != "owner@example.com" {
+		t.Errorf("owner = %q, want the authenticated caller", fake.lastOwner)
+	}
+	if string(fake.lastText) != "hello world" {
+		t.Errorf("text = %q", fake.lastText)
+	}
+	if fake.lastTags != `["a","b"]` {
+		t.Errorf("tags = %q, want a JSON array string", fake.lastTags)
+	}
+}
+
+// TestIngestTextRequiresText: a missing 'text' is a tool error, not a panic.
+func TestIngestTextRequiresText(t *testing.T) {
+	h := newHandlerWithIngest(&fakeIngester{})
+	out := rpc(t, h, `{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"ingest_text","arguments":{}}}`)
+	if out["result"].(map[string]any)["isError"] != true {
+		t.Errorf("expected isError for missing text")
+	}
+}
+
+// TestIngestURLReceipt: ingest_url forwards the url + owner and returns a receipt.
+func TestIngestURLReceipt(t *testing.T) {
+	fake := &fakeIngester{rec: inbox.Receipt{ID: "01URL", SHA256: "def456", Dup: true}}
+	h := newHandlerWithIngest(fake)
+	out := rpc(t, h, `{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"ingest_url","arguments":{"url":"https://x.test/p"}}}`)
+	var r map[string]any
+	_ = json.Unmarshal([]byte(toolText(t, out)), &r)
+	if r["id"] != "01URL" || r["dup"] != true {
+		t.Errorf("receipt = %v", r)
+	}
+	if fake.lastURL != "https://x.test/p" {
+		t.Errorf("url = %q", fake.lastURL)
+	}
+}
+
+// TestStatusDispatch: status polls the Ingester by id.
+func TestStatusDispatch(t *testing.T) {
+	fake := &fakeIngester{statusState: map[string]any{"id": "01ARR", "state": "pending"}}
+	h := newHandlerWithIngest(fake)
+	out := rpc(t, h, `{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"status","arguments":{"id":"01ARR"}}}`)
+	if !strings.Contains(toolText(t, out), `"state":"pending"`) {
+		t.Errorf("status: %s", toolText(t, out))
 	}
 }
 
