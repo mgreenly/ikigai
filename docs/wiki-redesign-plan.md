@@ -932,7 +932,7 @@ only post-`Accept`; crash before integration loses nothing. Unit + table tests.
 
 ---
 
-## [ ] P4 — The dispatcher-free worker spine (stubbed integrators)
+## [x] P4 — The dispatcher-free worker spine (stubbed integrators)
 
 *Design §3, §4.5 (runs lifecycle). The seam-forcing phase: the spine exists and
 is verifiable before any real integrator does.*
