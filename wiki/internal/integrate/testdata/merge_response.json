@@ -1,0 +1,17 @@
+{
+  "pages": [
+    {
+      "subject": "01HSUBJGLOBEX0000000000001",
+      "title": "Globex Corp",
+      "body": "Globex Corp, also known as Globex, is a multinational conglomerate headquartered in Springfield. [01HXINBOX0000000000000000] In 2021 it acquired Initech, expanding into enterprise software. [01HXINBOX0000000000000001]",
+      "superseded": ["01HXINBOX0000000000000009"]
+    }
+  ],
+  "stale_notes": [
+    {
+      "subject": "01HSUBJINITECH000000000001",
+      "note": "Initech is described on its page as independent, but Globex acquired it in 2021.",
+      "cites": ["01HXINBOX0000000000000001"]
+    }
+  ]
+}

@@ -170,7 +170,7 @@ func Load(getenv func(string) string) (*Config, error) {
 	// shared placeholder; a landed site (extract, P6a) passes its real default.
 	cfg.LLM.Extract = loadSite(getenv, "extract", "WIKI_EXTRACT", "claude-sonnet-4-6", "medium", DefaultExtractPrompt)
 	cfg.LLM.Match = loadSite(getenv, "match", "WIKI_MATCH", "claude-haiku-4-5", "", DefaultMatchPrompt)
-	cfg.LLM.Merge = loadSite(getenv, "merge", "WIKI_MERGE", "claude-sonnet-4-6", "high", placeholderPrompt)
+	cfg.LLM.Merge = loadSite(getenv, "merge", "WIKI_MERGE", "claude-sonnet-4-6", "high", DefaultMergePrompt)
 	cfg.LLM.Compile = loadSite(getenv, "compile", "WIKI_COMPILE", "claude-sonnet-4-6", "medium", placeholderPrompt)
 	cfg.LLM.Ask = loadSite(getenv, "ask", "WIKI_ASK", "claude-sonnet-4-6", "medium", placeholderPrompt)
 	cfg.LLM.LintDupJudge = loadSite(getenv, "lint_dup_judge", "WIKI_LINT_DUP", "claude-sonnet-4-6", "medium", placeholderPrompt)

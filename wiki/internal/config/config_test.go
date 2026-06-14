@@ -35,10 +35,12 @@ func TestLoadDefaults(t *testing.T) {
 		t.Errorf("MatchExcerptChars = %d, want 600", cfg.MatchExcerptChars)
 	}
 	// Sites whose owning phase has not yet landed carry a placeholder prompt; a
-	// landed site carries its real config-default prompt (extract — P6a; match — P6b2).
+	// landed site carries its real config-default prompt (extract — P6a; match — P6b2;
+	// merge — P7a2).
 	realDefaults := map[string]string{
 		"extract": DefaultExtractPrompt,
 		"match":   DefaultMatchPrompt,
+		"merge":   DefaultMergePrompt,
 	}
 	for _, s := range cfg.LLM.sites() {
 		if want, ok := realDefaults[s.Name]; ok {

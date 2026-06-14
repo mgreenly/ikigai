@@ -1272,7 +1272,7 @@ the phase closes.
 
 ---
 
-## [ ] P7a2 — Document pass: the real merge prompt + its validation surface
+## [x] P7a2 — Document pass: the real merge prompt + its validation surface
 
 *Design §4.4, §6.1, §10. **No new spine behavior** — P7a's merge already runs and
 commits. This phase writes merge's **real config-default prompt** — the system's
