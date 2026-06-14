@@ -599,7 +599,7 @@ skipped.**
 
 ---
 
-## [ ] P0a — agentkit OpenAI chat backend (Responses API)
+## [x] P0a — agentkit OpenAI chat backend (Responses API)
 
 *Shared-library expansion; the deepest chat prerequisite. A near-mechanical
 **port** of the proven backend in the sibling repo `/mnt/projects/ikigai-cli`

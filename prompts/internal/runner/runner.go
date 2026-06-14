@@ -24,6 +24,7 @@ import (
 	"agentkit/model"
 	"agentkit/provider"
 	"agentkit/provider/anthropic"
+	"agentkit/provider/openai"
 	"agentkit/tools"
 	"agentkit/wire"
 	"prompts/internal/prompt"
@@ -32,15 +33,33 @@ import (
 )
 
 // clientFactory builds a provider.Client from an API key and the resolved
-// bare model ID. It defaults to anthropic.New (wrapped to the interface
-// return type) but is injectable so tests can supply a fake client and never
+// bare model ID. It defaults to defaultClientFactory (which dispatches on the
+// model prefix) but is injectable so tests can supply a fake client and never
 // make a real API call.
+//
+// The apiKey argument is the legacy Anthropic key the runner reads from the
+// environment; the OpenAI key is read from OPENAI_API_KEY at the composition
+// root here (the ANTHROPIC_API_KEY pattern) so the runner's call site stays
+// unchanged. An absent OPENAI_API_KEY surfaces as a clean construction error
+// from openai.New ("OpenAI models unavailable"), not a panic.
 type clientFactory func(apiKey, model string) (provider.Client, error)
 
-// defaultClientFactory adapts anthropic.New to the clientFactory shape: it
-// returns the concrete *anthropic.Client as a provider.Client, normalizing a
-// typed-nil on the error path.
+// defaultClientFactory dispatches on the resolved bare model ID's provider
+// prefix: gpt-* → openai.New (keyed from OPENAI_API_KEY), everything else →
+// anthropic.New (keyed from the passed-in apiKey). It returns the concrete
+// backend as a provider.Client, normalizing a typed-nil on the error path.
 func defaultClientFactory(apiKey, modelID string) (provider.Client, error) {
+	resolved, err := model.Resolve(modelID)
+	if err != nil {
+		return nil, err
+	}
+	if resolved.Provider == model.ProviderOpenAI {
+		c, err := openai.New(os.Getenv("OPENAI_API_KEY"), modelID)
+		if err != nil {
+			return nil, err
+		}
+		return c, nil
+	}
 	c, err := anthropic.New(apiKey, modelID)
 	if err != nil {
 		return nil, err
