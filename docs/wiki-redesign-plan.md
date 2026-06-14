@@ -99,13 +99,13 @@ chat    lib     a-eff   (stubs) policy  doors                       +match  │
                                                                             │
     ┌───────────────────────────────────────────────────────────────────────┘
     ▼
-   P7a ──▶ P7a2 ──▶ P7b ──▶ P8 ──▶ P9a ──▶ P9b ──▶ P9c ──▶ P10 ──▶ P11 ──▶ P11k ──┐
-   merge   merge    commit  digest dups    sweep   stale   read    embed   keyed   │
-   core    gate     +conflict                                              gate    │
-   (P11k: keys-REQUIRED, HALT-not-SKIP — the Part-I exit gate)                     ▼
-Part II — the evaluation harness     P12 ──▶ P13 ──▶ P14 ──▶ P15 ──▶ P16
-                                     design  rig    scorers  test    sweep
-                                     lock                    sets    +report
+   P7a ──▶ P7a2 ──▶ P7b ──▶ P8 ──▶ P9a ──▶ P9b ──▶ P9c ──▶ P10 ──▶ P11 ──▶ P11k ──▶ P11d ──┐
+   merge   merge    commit  digest dups    sweep   stale   read    embed   keyed   first    │
+   core    gate     +conflict                                              gate    deploy   │
+   (P11k: keys-REQUIRED, HALT-not-SKIP — the Part-I exit gate; P11d: first prod deploy to int) ▼
+Part II — the evaluation harness     P12 ──▶ P13 ──▶ P14 ──▶ P15 ──▶ P16 ──▶ P16d
+                                     design  rig    scorers  test    sweep   re-
+                                     lock                    sets    +report deploy
 ```
 
 > **Phase-sizing note.** The old monolithic **P6** (registry primitives +
@@ -143,7 +143,10 @@ P7a's merge writes. P10's read side needs pages to exist (P7+). P11 (the embeddi
 **sequenced last** — FTS5-first is build ordering only (design §9.3). **P11k** then
 gates the Part-I→Part-II boundary: the keyed validation phase that discharges the
 Part-I exit obligation (the three integration checkpoints each green at least once)
-before any harness exists. **Part II starts only after P11k**: every inference site
+before any harness exists. **P11d** then takes the validated service to production
+— the first deploy to `int` — so real ingests and `asks` start accruing as Part
+II's real-data goldens (enablement obligation 4) while the harness is built.
+**Part II starts only after P11k**: every inference site
 must exist, be harness-callable, **and** have been proven live — not mock-only —
 before the harness that scores them can be built (research doc's
 production-code-path principle). P12 resolves the eval design before any harness
@@ -350,6 +353,23 @@ already exist (P6a, P6b, P7a2, P8, P9a, P9c, P10) and adds **no new phase**
 what split P7a2 off P7a); mechanism 2 adds exactly **one** phase — **P11k**, the keyed Part-I validation gate
 at the P11→P12 boundary — the single keyed, live-model step the otherwise-phase-only
 `/finish` march needs an explicit owner for.
+
+## Keys present before the march (a standing precondition)
+
+The integration checkpoints (P6a / P7a2 / P11) and the keyed exit gate (P11k)
+deliver their early-warning value only if the live `(prompt, model, effort)`
+triples can actually run; absent keys they emit `INTEGRATION CHECKPOINT SKIPPED —
+no keys` and defer the whole live-model signal to one late P11k big-bang. So the
+precondition: **before the `/finish` march starts, both `ANTHROPIC_API_KEY` and
+`OPENAI_API_KEY` are wired into the local environment** via the `.envrc` pattern
+sourced from `~/.secrets/` — `wiki/.envrc` adds the `OPENAI_API_KEY` export beside
+its existing `ANTHROPIC_API_KEY` one, then `direnv allow`. With both present the
+checkpoints fire at their designed points instead of skipping, so a broken prompt
+/ wrong model id / rejected effort surfaces ~5 phases before P11 "while the fix is
+one prompt." One `OPENAI_API_KEY` covers OpenAI chat **and** embeddings (one key,
+both endpoints — design §9.3); there is no separate embeddings key. These are the
+**local/dev** credentials that run the march and the keyed P11k gate; the **box**
+credentials are seeded separately by `wiki/bin/secrets` in the deploy phase (P11d).
 
 ---
 
@@ -595,9 +615,16 @@ P1 has already `git rm`ed the legacy `wiki/` Go tree, so `internal/` starts
   stubs returning not-implemented; the `reflection` + `health` tools live.
 - eventplane producer: declare the outbox and the **two** event types (§8); not
   yet emitted. eventplane **consumer** doors deferred to P3.
+- **Box secret wiring for OpenAI**: the rewrite adds an OpenAI dependency
+  (embeddings always; chat wherever a site pins `gpt-*`), so `wiki/bin/secrets` —
+  which today seeds only `ANTHROPIC_API_KEY` + `WIKI_OWNER` — gains an
+  `OPENAI_API_KEY` key (same `resolve()` from `~/.secrets/`, masked, never
+  printed), and `wiki/.envrc` exports `OPENAI_API_KEY` for local dev. The box-side
+  seeding *run* is P11d; this phase lands the committed script + `.envrc` change so
+  `bin/ship`'s `main`-HEAD build carries it.
 
-**Touches:** `wiki/cmd/wiki/`, `wiki/internal/{config,llm,mcp}/`, manifest emit,
-`go.work`.
+**Touches:** `wiki/cmd/wiki/`, `wiki/internal/{config,llm,mcp}/`, `wiki/bin/secrets`,
+`wiki/.envrc`, manifest emit, `go.work`.
 **Verify:** all verbs dispatch; `manifest`/`version` correct; MCP server starts
 and lists tools; `go build` under `GOWORK=off`; no legacy package remains
 (`grep -rn wiki_ingest wiki/internal wiki/cmd` empty); all 7 services still build.
@@ -1278,6 +1305,47 @@ when keys/network are absent rather than passing. **This phase, uniquely, is not
 
 ---
 
+## P11d — First production deploy to `int`
+
+*The wiki rewrite goes live. A keyed, box-side human step like P11k — **not** a
+`/finish`-autonomous phase (it ssh-es to the box and runs `opsctl`). Placed at the
+Part I→Part II boundary so the live service starts accruing the real-data goldens
+Part II anchors against (enablement obligation 4: ingested documents for extract,
+the `asks` table for ask). Deploys the **provisional** config defaults — P16's
+report later swaps in the tuned ones (re-deploy: P16d).*
+
+Follows the suite deploy model (`CLAUDE.md`); this replaces an already-running
+legacy wiki, so it is a clean cutover on a disposable box DB, not a fresh install:
+
+- **Seed box secrets.** `aws sso login --profile int`, then **`wiki/bin/secrets`**
+  → non-destructive read-modify-write of the wiki's slice of
+  `/ikigenba/int/app-config`: `ANTHROPIC_API_KEY` + the new `OPENAI_API_KEY`
+  (P2's script change) + `WIKI_OWNER`. Other apps' keys in the shared blob are
+  left untouched.
+- **Verify service plumbing.** `opsctl init-box` is already done for the box and
+  `opsctl setup wiki` likewise (the legacy unit/dirs exist) — confirm, don't
+  re-create. A genuinely fresh box would need both first.
+- **Ship + stage + deploy** (from the `main` worktree): `bin/bump wiki major` (a
+  clean rewrite is a major bump) → `bin/ship wiki` → `ssh int sudo opsctl stage
+  wiki v<ver> --artifact /tmp/wiki-v<ver>` → `ssh int sudo opsctl deploy wiki
+  v<ver>`. `deploy` regenerates `etc/manifest.env`, backs up the DB (the schema
+  advances), `migrate`s (the drop-legacy migration then the consolidated DDL),
+  atomic-swaps `current`, restarts the unit, prunes.
+- **Restart the dashboard** so it re-reads the new wiki manifest — the MCP tool
+  surface changed (`ingest_text` / `ingest_url` / a status verb / `search` / `ask`
+  / `timeline`).
+
+**Touches:** no product code — operator actions plus the already-committed P2
+`wiki/bin/secrets` / `wiki/.envrc` change.
+**Verify:** `opsctl status` shows wiki on the new version; `opsctl tail wiki` is
+clean; MCP `health` / `reflection` are live through the dashboard; an `ingest_text`
+round-trips to a page; **the embedding lane is actually active** (a `page_vectors`
+row appears via catch-up, not a silent lexical-only fallback) — the live proof that
+both `OPENAI_API_KEY` and `ANTHROPIC_API_KEY` reached the running process. Rollback
+is `ssh int sudo opsctl rollback wiki`.
+
+---
+
 # Part II — the evaluation harness
 
 The offline tool of `docs/wiki-evaluation-research.md`: a runner that sweeps
@@ -1289,7 +1357,10 @@ These phases start only after **P11k** (every site exists and is harness-callabl
 **and** the Part-I exit obligation is met) — the three integration checkpoints
 (P6a / P7a2 / P11) each have at least one recorded non-skipped green run, captured by
 the P11k keyed gate (see *Prompt-default validation*), so no call site reaches Part
-II having been validated only by mocks.
+II having been validated only by mocks. With **P11d** the service is now live on
+`int`, so Part II's generators can anchor their goldens against real ingested
+documents and real `asks` rows as they accrue (enablement obligation 4), not
+synthetic data alone.
 
 ## P12 — Eval design lock
 
@@ -1422,11 +1493,37 @@ and licenses the config defaults Part I deferred.*
 - **The feedback loop**: the report's chosen configs become Part I's config
   defaults (the pinned `(prompt, model, effort)` per site, the deferred knobs).
   Document that this is how defaults get set — a human reads the matrix and picks.
+  The chosen defaults are then shipped to `int` by the re-deploy phase (**P16d**).
 
 **Touches:** the harness sweep driver + report renderer.
 **Verify:** an end-to-end sweep on gen-1 produces the report; cost/latency and
 dangerous-direction errors present per config; a worked "pick a config" example;
 re-running re-scores from cache without new paid calls.
+
+## P16d — Re-deploy `int` with the tuned config
+
+*The closing step of the feedback loop: ship the config defaults P16's report
+chose. A keyed, box-side human step, identical in mechanics to P11d — only the
+committed config defaults (and any refreshed prompts) differ. No new product code
+unless the report also licenses `related` (design §9.2) or the vector lane at a
+site, which land as their own ordinary changes first.*
+
+- Update the call-site config defaults to the report's picks — the pinned
+  `(prompt, model, effort)` per site and the deferred knobs
+  (`WIKI_MATCH_EXCERPT_CHARS`, candidate/sweep thresholds, RRF `k`, embed
+  model/dims, ask budget); commit to `main`.
+- `bin/bump wiki minor` → `bin/ship wiki` → `opsctl stage` → `opsctl deploy`,
+  exactly as P11d. Because the integration tier is **pinned to whatever the live
+  config currently pins**, it re-validates that the new picks at least *run*
+  before they serve traffic — a config change can't quietly ship a prompt the
+  model chokes on (*Integration testing*).
+- Restart the dashboard only if the MCP tool surface changed (it usually has not).
+
+**Touches:** `wiki/internal/config/` defaults (+ any prompt files); operator
+deploy actions.
+**Verify:** `opsctl status` shows the new version; the pinned defaults match the
+report's chosen configs; a post-deploy `ask` / `ingest_text` smoke passes on the
+live triples.
 
 # Open items the plan inherits (filled during execution, not blockers)
 
@@ -1437,8 +1534,9 @@ re-running re-scores from cache without new paid calls.
   Only rough section-shapes exist today (design §11).
 - **Exact models per call site + config defaults** (lint cadences, ask budget
   knobs, embed model/dims): pinned as provisional defaults in the owning Part I
-  phase, then **set for real by P16's report** — that feedback loop is the
-  reason Part II is in this plan rather than a separate track.
+  phase, then **set for real by P16's report** and shipped to `int` by **P16d** —
+  that feedback loop is the reason Part II is in this plan rather than a separate
+  track.
 - **The six eval design questions** (judge-model independence, test-set storage,
   harness location + caching, saturation detection, golden authorship-vs-harvest,
   decision presentation) are resolved in **P12**, not left open — they are
