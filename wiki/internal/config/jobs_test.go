@@ -111,3 +111,28 @@ func TestLintEntriesFiltersDigest(t *testing.T) {
 		t.Errorf("weekly bindings = %v, want [lint-dups]", got)
 	}
 }
+
+// TestStandardLintEntriesRegistersSweep: lint-sweep is a registered no-selector
+// lint entry bound to a cron trigger (design §6's jobs yaml), so the worker spine
+// selects it like any other job.
+func TestStandardLintEntriesRegistersSweep(t *testing.T) {
+	entries := StandardLintEntries()
+	var sweep *Job
+	for i := range entries {
+		if entries[i].Kind != JobLint {
+			t.Fatalf("standard lint entry must be JobLint: %+v", entries[i])
+		}
+		if len(entries[i].SourcePrefixes) != 0 {
+			t.Fatalf("a lint entry has no selector: %+v", entries[i])
+		}
+		if entries[i].Name == "lint-sweep" {
+			sweep = &entries[i]
+		}
+	}
+	if sweep == nil {
+		t.Fatal("lint-sweep not registered in StandardLintEntries")
+	}
+	if scheduleName(sweep.Trigger) == "" {
+		t.Fatalf("lint-sweep must bind a cron schedule, got trigger %q", sweep.Trigger)
+	}
+}

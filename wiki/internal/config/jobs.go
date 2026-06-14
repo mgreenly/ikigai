@@ -97,6 +97,21 @@ func (j Jobs) LintEntries() []Job {
 	return out
 }
 
+// StandardLintEntries is the registered set of lint jobs (design §6's jobs yaml),
+// the no-selector entries the composition root folds into the jobs config beside
+// the digest entries. Each binds a stable job name (the runs.job / lint TryLock
+// key the lint package's *JobName constants mirror) to its cron trigger. The names
+// are kept as literals here (config has no dependency on internal/lint) and must
+// stay in sync with the lint package's job-name constants. A lint job appears here
+// only once its job code exists: lint-dups (P9a) and lint-sweep (P9b) are
+// registered; lint-stale registers when P9c lands.
+func StandardLintEntries() []Job {
+	return []Job{
+		{Name: "lint-dups", Kind: JobLint, Trigger: "cron.weekly"},
+		{Name: "lint-sweep", Kind: JobLint, Trigger: "cron.monthly"},
+	}
+}
+
 // scheduleName strips the "cron." trigger prefix to the bare schedule name the
 // worker matches against a "cron:<name>" inbox row's source. A trigger that is not
 // a cron trigger yields "" (it binds no cron schedule).

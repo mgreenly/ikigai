@@ -125,6 +125,14 @@ type Config struct {
 	// at the call site — fed to integrate.NewResolver.
 	CandidateLimit int
 
+	// SweepLimit is WIKI_SWEEP_LIMIT (default 5): the per-lane flag threshold the
+	// zero-LLM lint-sweep (design §6, P9b) uses — the top-N cap on each of the two
+	// candidate FTS queries it runs per subject. Every candidate returned within
+	// this cap (BM25-ranked, settled pairs bouncing off the pair UNIQUE) is flagged.
+	// It is an eval-harness knob (obligation 2) — a tunable per-lane threshold,
+	// never a constant at the call site — fed to lint.NewSweepJob.
+	SweepLimit int
+
 	// MatchExcerptChars is WIKI_MATCH_EXCERPT_CHARS (default 600): the number of
 	// leading page-body characters included in each candidate's match excerpt
 	// (design §4.3). It is an eval-harness knob (obligation 2) — a tunable, never a
@@ -158,6 +166,7 @@ func Load(getenv func(string) string) (*Config, error) {
 		IntegrationWorkers: envInt(getenv, "WIKI_INTEGRATION_WORKERS", 4),
 		RunAttemptsMax:     envInt(getenv, "WIKI_RUN_ATTEMPTS_MAX", 5),
 		CandidateLimit:     envInt(getenv, "WIKI_CANDIDATE_LIMIT", 5),
+		SweepLimit:         envInt(getenv, "WIKI_SWEEP_LIMIT", 5),
 		MatchExcerptChars:  envInt(getenv, "WIKI_MATCH_EXCERPT_CHARS", 600),
 		Embed: Embed{
 			Model: envStr(getenv, "WIKI_EMBED_MODEL", "text-embedding-3-large"),

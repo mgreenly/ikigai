@@ -187,3 +187,79 @@ func TestMergeSubjectsHardDeleteAndRepoint(t *testing.T) {
 		t.Fatalf("winner FTS row not synced (got %d)", n)
 	}
 }
+
+// TestEnumerateSweepSubjects: every subject WITH a page is enumerated, ordered by
+// id, carrying its type, canonical name, normalized aliases, and body; a page-less
+// subject is excluded (it has no FTS content to flag against).
+func TestEnumerateSweepSubjects(t *testing.T) {
+	conn := newTestDB(t)
+	s := NewStore(conn)
+	ctx := context.Background()
+
+	insertSubject(t, conn, "subj-A", TypeEntity, "Acme Corp")
+	insertAlias(t, conn, TypeEntity, "Acme Corp", "subj-A")
+	insertAlias(t, conn, TypeEntity, "Acme", "subj-A")
+	insertPage(t, conn, "subj-A", "Acme Corp", "Acme makes things.")
+
+	insertSubject(t, conn, "subj-B", TypeEntity, "Globex")
+	insertPage(t, conn, "subj-B", "Globex", "Globex is a company.")
+
+	// A page-less subject must be excluded.
+	insertSubject(t, conn, "subj-Z", TypeEntity, "No Page Co")
+
+	got, err := s.EnumerateSweepSubjects(ctx)
+	if err != nil {
+		t.Fatalf("enumerate: %v", err)
+	}
+	if len(got) != 2 {
+		t.Fatalf("want 2 page-backed subjects, got %d (%+v)", len(got), got)
+	}
+	if got[0].SubjectID != "subj-A" || got[1].SubjectID != "subj-B" {
+		t.Fatalf("not ordered by id: %v, %v", got[0].SubjectID, got[1].SubjectID)
+	}
+	if got[0].Body != "Acme makes things." {
+		t.Fatalf("body not loaded: %q", got[0].Body)
+	}
+	if len(got[0].Aliases) != 2 {
+		t.Fatalf("aliases not loaded: %v", got[0].Aliases)
+	}
+}
+
+// TestFlagDupAuto: flags a pair in its own transaction, canonical-ordered and
+// idempotent; a settled (dismissed) pair bounces off the conflict.
+func TestFlagDupAuto(t *testing.T) {
+	conn := newTestDB(t)
+	s := NewStore(conn)
+	ctx := context.Background()
+
+	// Out-of-order args are canonical-ordered.
+	if err := s.FlagDupAuto(ctx, "01B", "01A"); err != nil {
+		t.Fatalf("flag: %v", err)
+	}
+	if st, _ := dupStatus(t, s, "01A", "01B"); st != "open" {
+		t.Fatalf("want open, got %q", st)
+	}
+	// Idempotent re-flag does not error or duplicate.
+	if err := s.FlagDupAuto(ctx, "01A", "01B"); err != nil {
+		t.Fatalf("re-flag: %v", err)
+	}
+	var n int
+	conn.QueryRow(`SELECT COUNT(1) FROM dup_flags WHERE subject_a='01A' AND subject_b='01B'`).Scan(&n)
+	if n != 1 {
+		t.Fatalf("want 1 row, got %d", n)
+	}
+	// Equal/empty ids are dropped.
+	if err := s.FlagDupAuto(ctx, "01A", "01A"); err != nil {
+		t.Fatalf("self-pair: %v", err)
+	}
+	// A settled (dismissed) pair bounces off (DO NOTHING leaves it dismissed).
+	if _, err := conn.Exec(`UPDATE dup_flags SET status='dismissed' WHERE subject_a='01A' AND subject_b='01B'`); err != nil {
+		t.Fatalf("settle: %v", err)
+	}
+	if err := s.FlagDupAuto(ctx, "01A", "01B"); err != nil {
+		t.Fatalf("re-flag settled: %v", err)
+	}
+	if st, _ := dupStatus(t, s, "01A", "01B"); st != "dismissed" {
+		t.Fatalf("settled pair must stay dismissed, got %q", st)
+	}
+}

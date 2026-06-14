@@ -62,6 +62,101 @@ func (s *Store) OpenDupPairs(ctx context.Context) ([]DupPair, error) {
 	return out, rows.Err()
 }
 
+// SweepSubject is one subject's self-description the zero-LLM lint-sweep (design
+// §6, P9b) builds its two candidate FTS queries from: the subject's id+type drive
+// the type-scoped candidate query and the self-exclusion; CanonicalName + Aliases
+// form the name/alias query (FTS lane 1); Body forms the claim/body query (FTS
+// lane 2). It mirrors what the document pass feeds Candidates, but sourced from an
+// EXISTING registry subject rather than an extracted one — the sweep co-examines
+// pages that disjoint integration-time writers never saw together (Bob-from-email
+// vs Robert-from-CRM). A subject with no page row has an empty Body (its
+// name/alias query still runs).
+type SweepSubject struct {
+	SubjectID     string
+	Type          Type
+	CanonicalName string
+	Aliases       []string
+	Body          string
+}
+
+// EnumerateSweepSubjects returns every registry subject that has a page (only a
+// subject with FTS content can be a candidate, so a page-less subject can neither
+// be flagged nor flag others), each with the fields lint-sweep builds its two
+// candidate queries from. It is read-only and ordered by id so a sweep walks the
+// registry deterministically (the property the per-job test and the eval-harness
+// threshold scoring rely on). Aliases are the normalized keys (the same key space
+// resolution and the name/alias FTS lane operate in).
+func (s *Store) EnumerateSweepSubjects(ctx context.Context) ([]SweepSubject, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT s.id, s.type, s.canonical_name, p.body
+		FROM subjects s
+		JOIN pages p ON p.subject = s.id
+		ORDER BY s.id`)
+	if err != nil {
+		return nil, fmt.Errorf("page: enumerate sweep subjects: %w", err)
+	}
+	defer rows.Close()
+	var out []SweepSubject
+	for rows.Next() {
+		var ss SweepSubject
+		if err := rows.Scan(&ss.SubjectID, &ss.Type, &ss.CanonicalName, &ss.Body); err != nil {
+			return nil, fmt.Errorf("page: enumerate sweep subjects scan: %w", err)
+		}
+		out = append(out, ss)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	// Fill each subject's normalized alias list (one extra query per subject; the
+	// sweep is a wide, rare-cadence scan, so a per-subject alias read is acceptable
+	// and keeps the enumeration query a simple join).
+	for i := range out {
+		aliasRows, err := s.db.QueryContext(ctx,
+			`SELECT norm FROM aliases WHERE subject_id = ? ORDER BY norm`, out[i].SubjectID)
+		if err != nil {
+			return nil, fmt.Errorf("page: enumerate sweep aliases: %w", err)
+		}
+		for aliasRows.Next() {
+			var a string
+			if err := aliasRows.Scan(&a); err != nil {
+				aliasRows.Close()
+				return nil, fmt.Errorf("page: enumerate sweep alias scan: %w", err)
+			}
+			out[i].Aliases = append(out[i].Aliases, a)
+		}
+		if err := aliasRows.Err(); err != nil {
+			aliasRows.Close()
+			return nil, err
+		}
+		aliasRows.Close()
+	}
+	return out, nil
+}
+
+// FlagDupAuto inserts one candidate-duplicate pair (canonical order, idempotent)
+// in its OWN short transaction — the form lint-sweep needs, which (unlike the
+// document-pass FlagDup that rides the end-of-run tx) has no surrounding
+// transaction. It is flag-only: the pair UNIQUE makes it idempotent and a settled
+// (merged/dismissed) pair bounces off (ON CONFLICT DO NOTHING). Equal/empty ids
+// are dropped (a subject is never its own duplicate).
+func (s *Store) FlagDupAuto(ctx context.Context, a, b string) error {
+	if a == b || a == "" || b == "" {
+		return nil
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("page: begin flag-dup tx: %w", err)
+	}
+	defer tx.Rollback()
+	if err := s.FlagDup(ctx, tx, a, b); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("page: commit flag-dup: %w", err)
+	}
+	return nil
+}
+
 // DupSubject is the full evidence the dup judge reads for one side of a pair
 // (design §6: "both full pages + complete alias lists"). CanonicalName + the full
 // (normalized) alias list + the whole page body — never a truncated excerpt: the

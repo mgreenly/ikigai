@@ -1505,7 +1505,7 @@ passes the §6.1 citation gate. Blunt pairs only — subtle identity stays Part 
 
 ---
 
-## [ ] P9b — Lint: `lint-sweep` (semantic duplicate sweep, zero-LLM)
+## [x] P9b — Lint: `lint-sweep` (semantic duplicate sweep, zero-LLM)
 
 *Design §6. The proactive walker that flags duplicates built from disjoint
 streams (Bob-from-email vs Robert-from-CRM). Depends on P9a's `FlagDup` + jobs
