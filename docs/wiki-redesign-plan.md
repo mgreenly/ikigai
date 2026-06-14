@@ -688,7 +688,7 @@ response over an `httptest` server** (offline, no live key); an absent key is a
 clean construction refusal, not a panic; **all agent-backed services still
 build.**
 
-## [ ] P0c — Per-call usage/cost logging + Anthropic effort parity
+## [x] P0c — Per-call usage/cost logging + Anthropic effort parity
 
 *Shared-library cross-cutting slice. Makes the AI library emit **one jsonl line
 per API call** (chat and embed, every backend) into the app's structured log,

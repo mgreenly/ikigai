@@ -17,11 +17,15 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
+	"agentkit/accounting"
+	"agentkit/model"
 	"agentkit/provider"
 	"agentkit/trace"
 )
@@ -39,12 +43,21 @@ type Client struct {
 	http    *http.Client
 	// R-92NN-7DNI: optional trace writer; nil means no tracing.
 	tracer *trace.Tracer
+	// P0c: optional accounting sink; nil means no usage/cost record.
+	logger *slog.Logger
 }
 
 // SetTracer attaches t to the client. Subsequent Stream calls emit
 // HTTP_REQ, HTTP_RESP, and SSE trace lines to t.
 func (c *Client) SetTracer(t *trace.Tracer) {
 	c.tracer = t
+}
+
+// SetLogger attaches an accounting sink. Subsequent Stream calls emit one
+// usage/cost slog record per completed request (P0c). The caller pre-binds
+// call-site attribution onto logger; a nil logger is a no-op.
+func (c *Client) SetLogger(l *slog.Logger) {
+	c.logger = l
 }
 
 // SetBaseURL overrides the default API base URL. Used in tests to redirect
@@ -121,13 +134,33 @@ func (c *Client) Stream(ctx context.Context, req provider.Request) (<-chan provi
 	c.tracer.LogResponse(resp.StatusCode, resp.Header, nil)
 
 	out := make(chan provider.Event)
+	acct := &acctContext{
+		logger:   c.logger,
+		provider: string(model.ProviderOpenAI),
+		model:    c.model,
+		effort:   effort,
+		pricing:  model.ModelPricing(model.Resolved{Provider: model.ProviderOpenAI, BareID: c.model}),
+		start:    time.Now(),
+	}
 	go func() {
 		defer close(out)
 		defer resp.Body.Close()
-		p := &sseParser{ctx: ctx, out: out, items: map[int]*itemState{}, tracer: c.tracer}
+		p := &sseParser{ctx: ctx, out: out, items: map[int]*itemState{}, tracer: c.tracer, acct: acct}
 		p.run(resp.Body)
 	}()
 	return out, nil
+}
+
+// acctContext carries everything the parser needs to emit the one P0c
+// accounting record at response.completed, when usage and stop reason are
+// both known.
+type acctContext struct {
+	logger   *slog.Logger
+	provider string
+	model    string
+	effort   string
+	pricing  model.PricingSpec
+	start    time.Time
 }
 
 // buildPayload translates a [provider.Request] into the JSON shape the
@@ -434,6 +467,8 @@ type sseParser struct {
 	inputTokens  int
 	outputTokens int
 	tracer       *trace.Tracer
+	// P0c: accounting context; the record is emitted at response.completed.
+	acct *acctContext
 }
 
 func (p *sseParser) emit(e provider.Event) bool {
@@ -611,6 +646,24 @@ func (p *sseParser) handle(event, data string) {
 		stopReason := "end_turn"
 		if p.hadToolUse {
 			stopReason = "tool_use"
+		}
+		// P0c: one accounting record per completed request.
+		if p.acct != nil {
+			accounting.Log(p.acct.logger, accounting.Record{
+				Provider:        p.acct.provider,
+				Model:           p.acct.model,
+				Effort:          p.acct.effort,
+				InputTokens:     d.Response.Usage.InputTokens,
+				OutputTokens:    d.Response.Usage.OutputTokens,
+				CacheReadTokens: d.Response.Usage.InputTokensDetails.CachedTokens,
+				CostUSD: p.acct.pricing.ComputeCost(
+					d.Response.Usage.InputTokens,
+					d.Response.Usage.OutputTokens,
+					d.Response.Usage.InputTokensDetails.CachedTokens,
+					0),
+				DurationMS: accounting.DurationSince(p.acct.start),
+				StopReason: stopReason,
+			})
 		}
 		p.emit(provider.EventDone{StopReason: stopReason})
 

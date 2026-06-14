@@ -15,11 +15,15 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
+	"time"
 
+	"agentkit/accounting"
 	"agentkit/embed"
+	mdl "agentkit/model"
 	"agentkit/provider"
 )
 
@@ -33,6 +37,15 @@ type Client struct {
 	apiKey  string
 	baseURL string
 	http    *http.Client
+	// P0c: optional accounting sink; nil means no usage/cost record.
+	logger *slog.Logger
+}
+
+// SetLogger attaches an accounting sink. Subsequent Embed calls emit one
+// usage/cost slog record per call (P0c). The caller pre-binds call-site
+// attribution onto logger; a nil logger is a no-op.
+func (c *Client) SetLogger(l *slog.Logger) {
+	c.logger = l
 }
 
 // New constructs a [Client]. apiKey must be the value of OPENAI_API_KEY; an
@@ -84,9 +97,11 @@ type embeddingsResponse struct {
 // texts slice is a no-op that returns an empty result without a network call.
 func (c *Client) Embed(ctx context.Context, model string, dims int, texts []string) (embed.Result, error) {
 	if len(texts) == 0 {
+		// No API call is made, so no accounting record is emitted.
 		return embed.Result{Vectors: [][]float32{}}, nil
 	}
 
+	start := time.Now()
 	body, err := json.Marshal(embeddingsRequest{
 		Model:          model,
 		Input:          texts,
@@ -141,6 +156,19 @@ func (c *Client) Embed(ctx context.Context, model string, dims int, texts []stri
 			return embed.Result{}, &provider.Error{Kind: provider.ErrServer, Msg: "response missing a vector"}
 		}
 	}
+
+	// P0c: one accounting record per Embed (one API call). Embeddings bill
+	// only on input tokens; there is no output/cache tier and no stop reason.
+	// An unregistered model yields a zero rate (cost 0) rather than blocking
+	// the record — pricing-presence enforcement is the composition root's job.
+	pricing, _ := mdl.EmbeddingPricing(model)
+	accounting.Log(c.logger, accounting.Record{
+		Provider:    string(mdl.ProviderOpenAI),
+		Model:       model,
+		InputTokens: parsed.Usage.PromptTokens,
+		CostUSD:     pricing.ComputeCost(parsed.Usage.PromptTokens),
+		DurationMS:  accounting.DurationSince(start),
+	})
 
 	return embed.Result{
 		Vectors:     vectors,

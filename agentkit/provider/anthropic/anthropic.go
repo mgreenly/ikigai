@@ -19,11 +19,15 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
+	"agentkit/accounting"
+	"agentkit/model"
 	"agentkit/provider"
 	"agentkit/trace"
 )
@@ -56,12 +60,22 @@ type Client struct {
 	http    *http.Client
 	// R-92NN-7DNI: optional trace writer; nil means no tracing.
 	tracer *trace.Tracer
+	// P0c: optional accounting sink; nil means no usage/cost record.
+	logger *slog.Logger
 }
 
 // SetTracer attaches t to the client. Subsequent Stream calls emit
 // HTTP_REQ, HTTP_RESP, and SSE trace lines to t.
 func (c *Client) SetTracer(t *trace.Tracer) {
 	c.tracer = t
+}
+
+// SetLogger attaches an accounting sink. Subsequent Stream calls emit one
+// usage/cost slog record per completed request (P0c). The caller pre-binds
+// call-site attribution (e.g. call_site, run_id) onto logger; a nil logger
+// is a no-op.
+func (c *Client) SetLogger(l *slog.Logger) {
+	c.logger = l
 }
 
 // New constructs a [Client]. apiKey must be the value of the
@@ -134,12 +148,33 @@ func (c *Client) Stream(ctx context.Context, req provider.Request) (<-chan provi
 	c.tracer.LogResponse(resp.StatusCode, resp.Header, nil)
 
 	out := make(chan provider.Event)
+	start := time.Now()
+	acct := &acctContext{
+		logger:   c.logger,
+		provider: string(model.ProviderAnthropic),
+		model:    c.model,
+		effort:   req.Effort,
+		pricing:  model.ModelPricing(model.Resolved{Provider: model.ProviderAnthropic, BareID: wireModel}),
+		start:    start,
+	}
 	go func() {
 		defer close(out)
 		defer resp.Body.Close()
-		(&sseParser{ctx: ctx, out: out, blocks: map[int]*blockState{}, tracer: c.tracer}).run(resp.Body)
+		(&sseParser{ctx: ctx, out: out, blocks: map[int]*blockState{}, tracer: c.tracer, acct: acct}).run(resp.Body)
 	}()
 	return out, nil
+}
+
+// acctContext carries everything the parser needs to emit the one P0c
+// accounting record at stream completion, when token usage and stop reason
+// are both known.
+type acctContext struct {
+	logger   *slog.Logger
+	provider string
+	model    string
+	effort   string
+	pricing  model.PricingSpec
+	start    time.Time
 }
 
 // buildPayload translates a provider.Request into the JSON shape
@@ -170,7 +205,40 @@ func buildPayload(model string, req provider.Request) map[string]any {
 	if len(req.Tools) > 0 {
 		payload["tools"] = translateTools(req.Tools)
 	}
+	// P0c (effort parity): wire req.Effort → adaptive (extended) thinking on
+	// the Messages API. Previously effort was silently dropped here. An empty
+	// or "none" effort sends no thinking block (the model's default); any
+	// supported level enables extended thinking with the mapped token budget.
+	if budget := effortThinkingBudget(req.Effort); budget > 0 {
+		payload["thinking"] = map[string]any{
+			"type":          "enabled",
+			"budget_tokens": budget,
+		}
+	}
 	return payload
+}
+
+// effortThinkingBudget maps the provider-neutral effort vocabulary onto an
+// Anthropic extended-thinking token budget. An empty effort or "none"
+// returns 0 (no thinking block). The ladder mirrors the registry effort
+// vocabulary (low|medium|high|xhigh|max) so a higher effort buys a larger
+// reasoning budget.
+func effortThinkingBudget(effort string) int {
+	switch strings.ToLower(strings.TrimSpace(effort)) {
+	case "low":
+		return 4096
+	case "medium":
+		return 8192
+	case "high":
+		return 16384
+	case "xhigh":
+		return 32768
+	case "max":
+		return 65536
+	default:
+		// "" or "none" or any unrecognized value: no extended thinking.
+		return 0
+	}
 }
 
 func translateMessages(msgs []provider.Message) []any {
@@ -278,6 +346,8 @@ type sseParser struct {
 	cacheCreationInputTokens int
 	// R-92NN-7DNI: optional tracer; nil means no SSE-level tracing.
 	tracer *trace.Tracer
+	// P0c: accounting context; the record is emitted at message_stop.
+	acct *acctContext
 }
 
 func (p *sseParser) emit(e provider.Event) bool {
@@ -466,6 +536,22 @@ func (p *sseParser) handle(event, data string) {
 		sr := p.stopReason
 		if sr == "" {
 			sr = "end_turn"
+		}
+		// P0c: one accounting record per completed request, at the point usage
+		// and stop reason are both known.
+		if p.acct != nil {
+			accounting.Log(p.acct.logger, accounting.Record{
+				Provider:        p.acct.provider,
+				Model:           p.acct.model,
+				Effort:          p.acct.effort,
+				InputTokens:     p.inputTokens,
+				OutputTokens:    p.outputTokens,
+				CacheReadTokens: p.cacheReadInputTokens,
+				CostUSD: p.acct.pricing.ComputeCost(
+					p.inputTokens, p.outputTokens, p.cacheReadInputTokens, p.cacheCreationInputTokens),
+				DurationMS: accounting.DurationSince(p.acct.start),
+				StopReason: sr,
+			})
 		}
 		p.emit(provider.EventDone{StopReason: sr})
 	}
