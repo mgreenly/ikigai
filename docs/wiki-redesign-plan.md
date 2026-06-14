@@ -1111,7 +1111,7 @@ yet — the commit lands in P7a.
 
 ---
 
-## [ ] P6b — Document pass: resolve + candidates (the mechanical resolution half)
+## [x] P6b — Document pass: resolve + candidates (the mechanical resolution half)
 
 *Design §4.3, §4.1 (registry). The first real integrator's **mechanical**
 resolution arms and the candidate-retrieval step — **zero LLM, fully

@@ -119,6 +119,12 @@ type Config struct {
 	// threshold at which a failing inbox row dead-letters (design §7).
 	RunAttemptsMax int
 
+	// CandidateLimit is WIKI_CANDIDATE_LIMIT (default 5): the per-query FTS
+	// candidate shortlist size resolution's zero-ids arm builds (design §4.3 "top
+	// ~5"). It is an eval-harness knob (obligation 2) — a tunable, never a constant
+	// at the call site — fed to integrate.NewResolver.
+	CandidateLimit int
+
 	// LLM is the per-call-site injection seam (design §10).
 	LLM LLM
 	// Embed is the embeddings model/dims (P11's vector lane).
@@ -145,6 +151,7 @@ func Load(getenv func(string) string) (*Config, error) {
 		IngestMaxBytes:     int64(envInt(getenv, "WIKI_INGEST_MAX_BYTES", 131072)),
 		IntegrationWorkers: envInt(getenv, "WIKI_INTEGRATION_WORKERS", 4),
 		RunAttemptsMax:     envInt(getenv, "WIKI_RUN_ATTEMPTS_MAX", 5),
+		CandidateLimit:     envInt(getenv, "WIKI_CANDIDATE_LIMIT", 5),
 		Embed: Embed{
 			Model: envStr(getenv, "WIKI_EMBED_MODEL", "text-embedding-3-large"),
 			Dims:  envInt(getenv, "WIKI_EMBED_DIMS", 1024),
