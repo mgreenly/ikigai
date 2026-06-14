@@ -63,6 +63,64 @@ are immutable, and a P1 self-check written from P1's own reading cannot catch a
 column P1 itself omitted — §12 is the external spec that both the migration and
 the schema test are checked against.
 
+## Manifest canonicity (a standing rule)
+
+The `Manifest` is the load-bearing **swap-boundary contract** P4 freezes *before*
+any real integrator exists — the spine and its end-of-run transaction consume it,
+never integrator-specific data, which is the whole "swap is mechanical" bet of the
+Sizing principle and the plan's self-declared dominant risk ("the design's
+correctness lives in the **seams**"). It is the seam's equivalent of the schema,
+and it gets the same discipline as *Schema canonicity* above — for the same reason
+and against the same failure.
+
+The danger is that, unlike the schema, the design **never consolidates the
+manifest**: it is described only as scattered prose (design §3 the version slot,
+§4.4 the annotations, §4.5 the commit, §5 the generalized claim, §6.1 the
+`superseded` source), with no §12-style authoritative section. So the complete
+cross-phase contract lives in **one place: the enumeration below** — and it is
+authoritative. P4 *transcribes* it into the `Manifest` Go type; **no phase
+re-derives the contract from the design's prose** (the very anti-pattern §12
+forbids for the DDL). The `Manifest` is the in-memory work order, **never
+persisted** (the run id is its durable identity), **empty-capable** (a stub emits
+a minimal one). Its fields, each tagged with the consumer that reads it:
+
+- **`subjects[]`** — extracted/compiled subjects, each annotated with its resolved
+  **subject_id** and **target page** (first read by P6b2, the first producer; §4.4).
+- **generalized `{text, cites[]}` claim shape** per subject — the document pass
+  fills `cites` with the one inbox row id; compile fills per-claim cites (read by
+  P7a's merge and P8's compile; §4.3, §5).
+- **write-set pages** = the manifest's pages exactly (read by P7a's merge; §4.4).
+- **`occurred_at`** — first-writer-wins, events only (read by P7a's commit; §4.1).
+- **merge's `superseded` source** — the dropped-citation declarations the §6.1
+  gate checks (populated by merge, read by P7a; §6.1).
+- **per-page base `version` slot** — the `pages.version` the page was read at
+  (design §3: "the manifest records the version merge read"); **populated at
+  merge-read time in P7a**, **read by P7b's** optimistic-commit
+  `WHERE subject=? AND version=?` guard.
+- **re-run-merge-for-one-page handle** — the second thing P7b's conflict loop
+  needs (read by P7b; §3).
+
+Two rules bind every phase, mirroring *Schema canonicity*:
+
+- **No phase silently reshapes the `Manifest`.** A field a phase needs must already
+  be in the enumeration above. If it isn't, the phase **adds it here first** (and
+  says so in its commit), then updates the type and every producer — so the
+  contract and its consumers never diverge.
+- **The type is not immutable — and that is the danger, not a reprieve.** A schema
+  gap is recoverable forward via a *new* migration; a `Manifest` field discovered
+  missing at P7b has **no additive escape hatch** — it forces editing the committed
+  type *and* every producer already written against it (P6b2, P7a), across phases
+  that strictly-sequentially built on the frozen shape. That is precisely the
+  "downstream concurrency phase silently reshaping a spine type" failure P4 exists
+  to prevent. So the "add here first" discipline is the *only* defense: the field
+  set must be complete at P4 and checked against this enumeration, never discovered
+  at runtime.
+
+This exists for the same reason *Schema canonicity* does: a P4 self-check written
+from P4's own reading cannot catch a field P4 itself omitted — this enumeration is
+the **external spec** that both the `Manifest` type and P4's completeness test are
+checked against, exactly what §12 is for the schema.
+
 ## Phase-budget re-check (a standing rule)
 
 The Sizing principle above is the one invariant the whole `/finish` model rests
@@ -791,31 +849,28 @@ is verifiable before any real integrator does.*
     **generalized `{text, cites[]}` claim shape** (the document pass fills `cites`
     with the one inbox row id; compile fills per-claim cites — §4.3, §5). Defined
     **empty-capable** so a stub can emit a minimal one (the stub fills the version
-    slot with a dummy value to round-trip it — see Verify).
+    slot with a dummy value to round-trip it — see Verify). Its **complete** field
+    set, and the consumer that reads each field, are fixed by the *Manifest
+    canonicity* standing rule above — the authoritative contract P4 transcribes
+    into the Go type (the seam's §12), not re-derived from prose here.
   - **`Integrator`** — the interface the document-pass stub, the cron/no-op stub,
     the real document pass (P7a), and the real compile (P8) **all** satisfy:
     claim → run → produce a `Manifest`. The shared resolve→merge→commit pipeline
     and the end-of-run transaction consume a `Manifest`, never integrator-specific
     data — which is exactly what lets merge "not tell which integrator ran" (P8).
-  - **Manifest field obligations (the §12-style canonicity rule for the seam).**
-    The `Manifest` is pinned here against an explicit enumeration of *every field
-    each downstream consumer reads* — transcribed from the design, not whittled to
-    the stub's minimal needs — so no field a later consumer needs is discovered
-    only after the contract is frozen (the failure this split is built to prevent:
-    a downstream concurrency phase — P7b/P7b2 — silently reshaping a spine type):
-    - **P6b2** (first real producer): resolved subject_id, target page, claims.
-    - **P7a** (merge + commit): the write-set pages, the `{text, cites[]}` claims,
-      `occurred_at` (first-writer-wins, §4.1), merge's `superseded` source, and
-      the point that **populates the per-page base `version`** at merge-read time.
-    - **P7b** (optimistic commit): **reads the per-page base `version`** (design
-      §3) plus a re-run-merge-for-one-page handle — the two things the conflict
-      loop needs.
-    - **P8** (compile): per-claim `cites` (the generalized claim shape carries
-      these).
-
-    Any field a later phase finds missing is added **here first** (and the
-    producers updated), exactly as a schema gap is added to §12 first — the seam
-    and its consumers never diverge.
+  - **Manifest field obligations — transcribed from *Manifest canonicity*, not
+    re-derived here.** P4 pins the `Manifest` type against the authoritative field
+    enumeration in the *Manifest canonicity* standing rule above (the external
+    spec — the seam's §12), **not** against P4's own reading of the design's
+    scattered prose. Every field each downstream consumer reads (P6b2, P7a, P7b,
+    P8) is named there with its consumer; P4 transcribes that contract into the Go
+    type **in full**, not whittled to the stub's minimal needs — so no field a
+    later consumer needs is discovered only after the contract is frozen (the
+    failure this split is built to prevent: a downstream concurrency phase —
+    P7b/P7b2 — silently reshaping a spine type). A field a later phase finds
+    missing is added **to that enumeration first** (and the producers updated),
+    exactly as a schema gap is added to §12 first — the seam and its consumers
+    never diverge.
 - `internal/run`: the `runs` lifecycle — insert `running` before execution (the
   one write outside the commit); the **generic end-of-run transaction wrapper**
   that **takes a `Manifest` and** atomically writes the run's terminal
@@ -835,9 +890,11 @@ cron-before-document priority; crash between claim and commit leaves the row
 **pending** and restart re-selects it; boot sweep marks orphans `crashed`;
 selection stays oldest-first (no starvation). The stub integrators **implement
 the `Integrator` interface and round-trip a `Manifest` that carries every field
-obligation above — including a populated per-page base `version` slot** through
-the end-of-run transaction, so the seam's *completeness* (not merely its
-existence) is a tested property *here*, not a P7b-time audit. Concurrency tests.
+named in the *Manifest canonicity* standing rule (the external spec, not P4's own
+reading) — including a populated per-page base `version` slot** through the
+end-of-run transaction, so the seam's *completeness* (not merely its existence) is
+a tested property *here*, checked against the canonical contract, not a P7b-time
+audit. Concurrency tests.
 
 ---
 
