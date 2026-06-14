@@ -929,6 +929,15 @@ depends on. It resolves Open-Item #1 by assembling the riders that were
 scattered across §2.2, §3, §4.1, §4.5, §5, §6, §7, §9.2, and §9.3 (and several
 that lived only in the decision log) into one place.
 
+**Two eventplane tables live outside §12.2's application DDL by design.** The
+consumer cursor store (`feed_offset`) and the producer `outbox` are owned by the
+**eventplane library** (`consumer.SchemaSQL` / `outbox.SchemaSQL`), not by this
+service; each is established by its own migration whose body must stay
+byte-identical to the library constant (§12.1). They are therefore **not**
+reproduced in the §12.2 DDL below — their source of truth is the library, and
+duplicating them here would invite drift. Their absence from §12.2 is deliberate,
+not an omission.
+
 **This section is canonical.** P1 *transcribes* it into timestamped migrations;
 it does not re-derive the DDL from the prose above. If a later phase needs a
 column/constraint/index, it must be added **here first** (then a new migration) —
@@ -966,18 +975,49 @@ The legacy `wiki/` migrations `002_wiki.sql` / `003_feed_offset.sql` are frozen
 and immutable; they **still replay forward on every database** — including a
 freshly-wiped box DB — so wiping data alone does not clean the schema. The first
 **new** migration (`bin/new-migration wiki drop_legacy`, timestamped so it sorts
-after the frozen `00N_*` files and before the consolidated DDL) drops what they
-created. The wiki holds no data worth keeping (the `int` box DB is disposable),
-so this teardown is unconditional:
+after the frozen `00N_*` files and before the consolidated DDL) drops what the
+**dead, wiki-specific** legacy tables created. The wiki holds no data worth
+keeping (the `int` box DB is disposable), so this teardown is unconditional:
 
 ```sql
-DROP TABLE IF EXISTS wiki_ingest;
-DROP TABLE IF EXISTS wiki_jobs;
-DROP TABLE IF EXISTS feed_offset;
--- (plus any indexes those migrations created)
+DROP TABLE IF EXISTS wiki_ingest;   -- 002_wiki.sql; superseded by inbox (§2.2)
+DROP TABLE IF EXISTS wiki_jobs;     -- 002_wiki.sql; superseded by runs + asks (§4.5, §9.2)
+-- indexes drop automatically with their parent table (SQLite); no explicit DROP INDEX needed.
 ```
 
+**`feed_offset` is NOT dropped — it is the eventplane consumer cursor store the
+new design still depends on.** It is owned by the library (`consumer.SchemaSQL`),
+not by the old wiki: the frozen `003_feed_offset.sql` merely *applies* it (single
+migration authority per DB file), and that migration stays in the set and keeps
+establishing the table on every database. The new design's eventplane consumer
+doors (§2.1) read and commit cursors here exactly as before — so dropping it would
+break the consume side. (The body comment in `003_feed_offset.sql` still describes
+the retired `raw/` idempotency rationale; that comment is stale but the file is
+immutable and its **DDL** — the table — remains correct and library-owned. The new
+consumer effect is `Accept`, which is hash-idempotent, so the "no dedup table"
+decision still holds.)
+
 `001_schema_migrations.sql` is the shared appkit bookkeeping table and **stays**.
+
+**New producer outbox migration.** The old wiki was **consumer-only** and so
+carries no outbox migration; the new design is an eventplane **producer** (§8,
+emits `wiki.row_dead_lettered` and `wiki.ingest_refused`). Like every producer
+service (`crm`, `ledger`), the wiki must apply the library-owned outbox DDL
+(`outbox.SchemaSQL`) through its own migration runner. Add it as a **new**
+migration (`bin/new-migration wiki outbox`, sorting after the frozen `00N_*`
+files), byte-identical to `outbox.SchemaSQL` and asserted so by a migration test
+(the established `003_outbox.sql` pattern), establishing:
+
+```sql
+CREATE TABLE outbox (
+  seq        INTEGER PRIMARY KEY AUTOINCREMENT,
+  event_id   TEXT    NOT NULL,
+  type       TEXT    NOT NULL,
+  payload    TEXT    NOT NULL,
+  created_at TEXT    NOT NULL
+);
+CREATE INDEX idx_outbox_created_at ON outbox(created_at);
+```
 
 ### 12.2 The consolidated DDL
 

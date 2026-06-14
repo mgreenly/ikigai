@@ -180,8 +180,21 @@ orchestrator" never fires (see *Integration testing*).
 
 This adds **no new phase** and no new mechanism the orchestrator doesn't already
 run; it only makes "done" mean *complete*, not merely *green*. The phases that carry
-the line are the spine integrators where a partial commit is both likely and
-load-bearing: **P6b, P6b2, P7a, P7a2, P7b, P7b2, P8**.
+the line are the **immutable foundation (P1)** and the spine integrators where a
+partial commit is both likely and load-bearing: **P1, P6b, P6b2, P7a, P7a2, P7b,
+P7b2, P8**. **P1 belongs on this list for the strongest reason of all:** its
+artifacts are *immutable* (the §12 schema, transcribed into committed migrations),
+so a partial commit there — a cold-start subagent that runs out after transcribing
+seven of nine tables, or that omits the `outbox` byte-identity test — is recoverable
+only by *forward corrective migrations across an already-marching build*, the
+costliest recovery in the plan, at its least-recoverable phase. And it is exactly
+the failure this rule guards: a partial migration set rides a green
+`go test ./wiki/internal/db/...` because the un-transcribed tables simply have no
+test yet (the schema test the same subagent wrote covers only what it reached). The
+§12-cross-check in P1's `Verify` states the *intent*, but only a boundary checklist
+forces the coordinator to confirm **every** §12 table, both library-owned
+migrations, and the locked fork decision are present before P1 closes — independent
+of whether the green suite happens to cover them all.
 
 ## Dependency chain
 
@@ -693,12 +706,26 @@ items before any code depends on them.*
     `bin/check-migrations` forbids it (immutability is CI-enforced; the obvious
     "just delete `002_wiki.sql`" reflex trips a red build). Instead make the
     **first new migration a drop-legacy step** —
-    `DROP TABLE IF EXISTS wiki_ingest; DROP TABLE IF EXISTS wiki_jobs;
-    DROP TABLE IF EXISTS feed_offset;` (plus their indexes) — so every DB, fresh
-    box or existing, converges to the clean schema *after* the frozen old
-    migrations replay forward. Create it first (via `bin/new-migration wiki
-    drop_legacy`) so its timestamp sorts ahead of the consolidated DDL below;
+    `DROP TABLE IF EXISTS wiki_ingest; DROP TABLE IF EXISTS wiki_jobs;` (indexes
+    drop automatically with their parent table) — so every DB, fresh box or
+    existing, converges to the clean schema *after* the frozen old migrations
+    replay forward. Create it first (via `bin/new-migration wiki drop_legacy`) so
+    its timestamp sorts ahead of the consolidated DDL below;
     `001_schema_migrations.sql` is the shared appkit bookkeeping table and stays.
+  - **Do NOT drop `feed_offset`** (design §12.1) — it is the eventplane consumer
+    cursor store, owned by the library (`consumer.SchemaSQL`) and merely *applied*
+    by the frozen `003_feed_offset.sql`, which stays in the set and keeps creating
+    it. The new design's consumer doors (§2.1) still read/commit cursors there;
+    dropping it breaks the consume side. (`003`'s body comment about the retired
+    `raw/` store is stale, but the file is immutable and its DDL stays correct.)
+  - **Add the producer `outbox` migration** (design §12.1) — the old wiki was
+    consumer-only and carries no outbox table, but the rewrite is an eventplane
+    **producer** (§8). Like `crm`/`ledger`'s `003_outbox.sql`, add a **new**
+    migration (`bin/new-migration wiki outbox`) whose body is **byte-identical to
+    `outbox.SchemaSQL`** (`CREATE TABLE outbox (...) ; CREATE INDEX
+    idx_outbox_created_at ...`), and a `migrations_outbox_test.go` asserting that
+    byte-identity (the established producer pattern). Without it the §8 outbox
+    writes (`wiki.row_dead_lettered`, `wiki.ingest_refused`) have no table.
 - **Transcribe design §12 (the schema final)** into ordered migrations via
   `bin/new-migration wiki <name>` (never hand-pick a number; never edit a
   committed migration), landing **after** the drop-legacy migration above. §12 is
@@ -714,16 +741,30 @@ items before any code depends on them.*
   / `wiki.ingest_refused` payload shapes (§8). No literal is invented in this phase.
 
 **Touches:** removal of the legacy `wiki/cmd/wiki/` + `wiki/internal/**` Go tree;
-`wiki/internal/db/migrations/*.sql` (the drop-legacy migration + the consolidated
-DDL transcribed from design §12); schema test; and the top of this file (locked
-fork decision).
+`wiki/internal/db/migrations/*.sql` (the drop-legacy migration, the new `outbox`
+migration, + the consolidated DDL transcribed from design §12); schema test +
+`migrations_outbox_test.go` (byte-identity to `outbox.SchemaSQL`); and the top of
+this file (locked fork decision).
 **Verify:** the legacy Go tree is gone (`grep -rn 'wiki_ingest\|wiki_jobs'
 wiki/cmd wiki/internal` is empty); `bin/check-migrations` passes (old migrations
 untouched, only adds); migrations load forward-only and drop the legacy tables;
 downgrade guard intact; the schema test asserts every table/column/constraint/index
 **against design §12** (checked against the external spec, not against this phase's
-own reading — so an omission cannot hide in both the DDL and the test).
-`go test ./wiki/internal/db/...`.
+own reading — so an omission cannot hide in both the DDL and the test). After
+migrate, **`feed_offset` and `outbox` both exist** (consumer cursor preserved,
+producer outbox added) and the `outbox` migration is byte-identical to
+`outbox.SchemaSQL`. `go test ./wiki/internal/db/...`.
+**Deliverable gate (boundary — see *Phase completion is a checklist, not a green gate*):**
+because P1's artifacts are immutable and underpin all of Part I, the coordinator
+confirms each load-bearing deliverable is present and individually covered *before
+closing the phase* — not merely that the suite is green: (1) the locked digest-fork
+decision recorded at the top of this file; (2) the legacy Go tree removed; (3) the
+drop-legacy migration; (4) the `outbox` migration **and** its `migrations_outbox_test.go`
+byte-identity assertion; (5) `feed_offset` preserved (not dropped); (6) **every** §12
+table, index, and constraint transcribed (all nine application tables plus
+`pages_fts`); and (7) the schema test asserting that full set against the external
+§12 spec. A missing item here is a **loud failure at this boundary**, never a silent
+partial that a green mocked DB test carries into the immutable foundation.
 
 ---
 
