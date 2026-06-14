@@ -15,18 +15,29 @@ func TestLoadDatasetBareArray(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadDataset: %v", err)
 	}
-	if len(ds.Cases) != 2 {
-		t.Fatalf("want 2 cases, got %d", len(ds.Cases))
+	// P15 grew the match set beyond P13's seed pair (blunt -> subtle), so assert the
+	// floor and find the seed case by id rather than pinning an exact count/order.
+	if len(ds.Cases) < 2 {
+		t.Fatalf("want >=2 cases, got %d", len(ds.Cases))
 	}
-	if ds.Cases[0].Site != "match" || ds.Cases[0].CaseID != "match-0001" {
-		t.Errorf("unexpected first case: %+v", ds.Cases[0])
+	var seed *Case
+	for i := range ds.Cases {
+		if ds.Cases[i].CaseID == "match-0001" {
+			seed = &ds.Cases[i]
+		}
+		if ds.Cases[i].Site != "match" {
+			t.Errorf("case %s: site = %q, want match", ds.Cases[i].CaseID, ds.Cases[i].Site)
+		}
+		if ds.Cases[i].Generation != 1 {
+			t.Errorf("case %s: generation = %d, want 1", ds.Cases[i].CaseID, ds.Cases[i].Generation)
+		}
 	}
-	if ds.Cases[0].Generation != 1 {
-		t.Errorf("want generation 1, got %d", ds.Cases[0].Generation)
+	if seed == nil {
+		t.Fatal("seed case match-0001 not found")
 	}
-	// The input must round-trip as the match site's shape.
+	// The seed input must round-trip as the match site's shape.
 	var mi matchInput
-	if err := json.Unmarshal(ds.Cases[0].Input, &mi); err != nil {
+	if err := json.Unmarshal(seed.Input, &mi); err != nil {
 		t.Fatalf("decode case input: %v", err)
 	}
 	if mi.Incoming.Name != "Apple Inc." || len(mi.Candidates) != 2 {
@@ -43,14 +54,16 @@ func TestLoadBundle(t *testing.T) {
 	if b.Dataset != "datasets/gen-1.json" {
 		t.Errorf("bundle dataset = %q", b.Dataset)
 	}
-	if len(ds.Cases) != 2 {
-		t.Errorf("want 2 cases, got %d", len(ds.Cases))
+	if len(ds.Cases) < 2 {
+		t.Errorf("want >=2 cases, got %d", len(ds.Cases))
 	}
 	if len(dsBytes) == 0 {
 		t.Error("dataset bytes empty")
 	}
-	if promptBytes != nil {
-		t.Errorf("expected nil prompt bytes for an empty-prompt bundle, got %d bytes", len(promptBytes))
+	// P15's match bundle now names a prompt artifact (the production prompt is just a
+	// prompt artifact — eval design q3), so prompt bytes are present.
+	if len(promptBytes) == 0 {
+		t.Error("expected the bundle's named prompt artifact bytes, got none")
 	}
 }
 
@@ -112,16 +125,18 @@ func TestRunnerCachesSecondRun(t *testing.T) {
 	fc := &fakeCall{}
 	grid := []ModelEffort{{Model: "claude-haiku-4-5"}}
 
+	want := int32(len(ds.Cases)) // one call per case for the single grid point
+
 	r1 := NewRunner("match", fc.call, cache, cap, dsBytes, promptBytes, config.DefaultMatchPrompt)
 	res1, err := r1.Run(context.Background(), ds, grid)
 	if err != nil {
 		t.Fatalf("first Run: %v", err)
 	}
-	if len(res1) != 2 {
-		t.Fatalf("want 2 results, got %d", len(res1))
+	if len(res1) != len(ds.Cases) {
+		t.Fatalf("want %d results, got %d", len(ds.Cases), len(res1))
 	}
-	if got := atomic.LoadInt32(&fc.n); got != 2 {
-		t.Fatalf("first run should make 2 calls, made %d", got)
+	if got := atomic.LoadInt32(&fc.n); got != want {
+		t.Fatalf("first run should make %d calls, made %d", want, got)
 	}
 	for _, r := range res1 {
 		if r.Cached {
@@ -135,8 +150,8 @@ func TestRunnerCachesSecondRun(t *testing.T) {
 	if err != nil {
 		t.Fatalf("second Run: %v", err)
 	}
-	if got := atomic.LoadInt32(&fc.n); got != 2 {
-		t.Errorf("second run made paid calls (total %d, want 2) — cache not reproducing", got)
+	if got := atomic.LoadInt32(&fc.n); got != want {
+		t.Errorf("second run made paid calls (total %d, want %d) — cache not reproducing", got, want)
 	}
 	for _, r := range res2 {
 		if !r.Cached {

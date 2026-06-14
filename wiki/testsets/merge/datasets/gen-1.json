@@ -1,0 +1,75 @@
+[
+  {
+    "case_id": "merge-0001",
+    "site": "merge",
+    "generation": 1,
+    "failure_tag": "blunt_new_page",
+    "input": {
+      "subjects": [
+        {
+          "subject_id": "01HXMERGESUBJZEPHYR000001",
+          "type": "entity",
+          "name": "Zephyr Airlines",
+          "claims": [
+            {
+              "text": "Zephyr Airlines is a regional carrier based in Denver.",
+              "cites": [
+                "01HXMERGEINBOX0000000001"
+              ]
+            }
+          ],
+          "base_page": ""
+        }
+      ]
+    },
+    "gold": {
+      "write_set": [
+        "01HXMERGESUBJZEPHYR000001"
+      ],
+      "old_bodies": {},
+      "must_survive": [
+        "01HXMERGEINBOX0000000001"
+      ],
+      "source_text": "Zephyr Airlines is a regional carrier based in Denver.",
+      "lead_name": "Zephyr Airlines"
+    }
+  },
+  {
+    "case_id": "merge-0002",
+    "site": "merge",
+    "generation": 1,
+    "failure_tag": "cite_preservation_trap",
+    "input": {
+      "subjects": [
+        {
+          "subject_id": "01HXMERGESUBJACME0000002",
+          "type": "entity",
+          "name": "Acme Corporation",
+          "claims": [
+            {
+              "text": "Acme expanded to Detroit in 1960.",
+              "cites": [
+                "01HXMERGEINBOX0000000003"
+              ]
+            }
+          ],
+          "base_page": "Acme Corporation is a manufacturer founded in 1947 [01HXMERGEINBOX0000000002]."
+        }
+      ]
+    },
+    "gold": {
+      "write_set": [
+        "01HXMERGESUBJACME0000002"
+      ],
+      "old_bodies": {
+        "01HXMERGESUBJACME0000002": "Acme Corporation is a manufacturer founded in 1947 [01HXMERGEINBOX0000000002]."
+      },
+      "must_survive": [
+        "01HXMERGEINBOX0000000002",
+        "01HXMERGEINBOX0000000003"
+      ],
+      "source_text": "Acme Corporation is a manufacturer founded in 1947. Acme expanded to Detroit in 1960.",
+      "lead_name": "Acme Corporation"
+    }
+  }
+]

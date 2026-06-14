@@ -1,0 +1,77 @@
+[
+  {
+    "case_id": "compile-0001",
+    "site": "compile",
+    "generation": 1,
+    "failure_tag": "blunt_single_event",
+    "input": {
+      "events": [
+        {
+          "inbox_id": "01HXCOMPILEINBOX00000001",
+          "occurred_at": "2024-10",
+          "text": "Acme reported Q3 revenue up 5 percent."
+        }
+      ]
+    },
+    "gold": {
+      "subjects": [
+        {
+          "type": "event",
+          "name": "Acme Q3 earnings",
+          "occurred_at": "2024-10",
+          "claims": [
+            {
+              "text": "Acme reported Q3 revenue up 5 percent.",
+              "cites": [
+                "01HXCOMPILEINBOX00000001"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "case_id": "compile-0002",
+    "site": "compile",
+    "generation": 1,
+    "failure_tag": "multi_event_fold",
+    "input": {
+      "events": [
+        {
+          "inbox_id": "01HXCOMPILEINBOX00000002",
+          "occurred_at": "2024-10",
+          "text": "Acme reported Q3 revenue up 5 percent."
+        },
+        {
+          "inbox_id": "01HXCOMPILEINBOX00000003",
+          "occurred_at": "2024-10",
+          "text": "Acme raised its full-year guidance."
+        }
+      ]
+    },
+    "gold": {
+      "subjects": [
+        {
+          "type": "event",
+          "name": "Acme Q3 earnings",
+          "occurred_at": "2024-10",
+          "claims": [
+            {
+              "text": "Acme reported Q3 revenue up 5 percent.",
+              "cites": [
+                "01HXCOMPILEINBOX00000002"
+              ]
+            },
+            {
+              "text": "Acme raised its full-year guidance.",
+              "cites": [
+                "01HXCOMPILEINBOX00000003"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+]

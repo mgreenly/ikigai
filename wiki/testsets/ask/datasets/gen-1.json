@@ -1,0 +1,85 @@
+[
+  {
+    "case_id": "ask-0001",
+    "site": "ask",
+    "generation": 1,
+    "failure_tag": "blunt_answerable",
+    "input": {
+      "question": "Where is Zephyr Airlines based?",
+      "wiki_ids": [
+        "01HXWIKIPAGEACME00000000001",
+        "01HXWIKIPAGEACMEHIST0000002",
+        "01HXWIKIPAGEZEPHYR000000003",
+        "01HXWIKIPAGEORCHID000000004"
+      ]
+    },
+    "gold": {
+      "answer": "Zephyr Airlines is based in Denver.",
+      "supporting": [
+        "01HXWIKIPAGEZEPHYR000000003"
+      ],
+      "should_abstain": false,
+      "spans": {
+        "01HXWIKIPAGEZEPHYR000000003": "based in Denver"
+      },
+      "page_bodies": {
+        "01HXWIKIPAGEZEPHYR000000003": "Zephyr Airlines [01HXWIKIINBOXZEPHYR000001] is a regional carrier based in Denver. It operates 14 routes across the Rocky Mountain region and was founded in 2003."
+      }
+    }
+  },
+  {
+    "case_id": "ask-0002",
+    "site": "ask",
+    "generation": 1,
+    "failure_tag": "gap_abstain",
+    "input": {
+      "question": "What is the salary of Acme's chief executive?",
+      "wiki_ids": [
+        "01HXWIKIPAGEACME00000000001",
+        "01HXWIKIPAGEACMEHIST0000002",
+        "01HXWIKIPAGEZEPHYR000000003",
+        "01HXWIKIPAGEORCHID000000004"
+      ]
+    },
+    "gold": {
+      "answer": "",
+      "supporting": null,
+      "should_abstain": true,
+      "spans": null,
+      "page_bodies": {
+        "01HXWIKIPAGEACME00000000001": "Acme Corporation [01HXWIKIINBOXACME0000000001] is a manufacturing company founded in 1947 in Toledo, Ohio. Its current chief executive is Dana Reyes [01HXWIKIINBOXACME0000000002]. Acme makes industrial fasteners and hydraulic presses."
+      }
+    }
+  },
+  {
+    "case_id": "ask-0003",
+    "site": "ask",
+    "generation": 1,
+    "failure_tag": "contradiction_surface",
+    "input": {
+      "question": "When was Acme Corporation founded?",
+      "wiki_ids": [
+        "01HXWIKIPAGEACME00000000001",
+        "01HXWIKIPAGEACMEHIST0000002",
+        "01HXWIKIPAGEZEPHYR000000003",
+        "01HXWIKIPAGEORCHID000000004"
+      ]
+    },
+    "gold": {
+      "answer": "Sources disagree: one page says Acme was founded in 1947, another says it was incorporated in 1949.",
+      "supporting": [
+        "01HXWIKIPAGEACME00000000001",
+        "01HXWIKIPAGEACMEHIST0000002"
+      ],
+      "should_abstain": false,
+      "spans": {
+        "01HXWIKIPAGEACME00000000001": "founded in 1947",
+        "01HXWIKIPAGEACMEHIST0000002": "incorporated"
+      },
+      "page_bodies": {
+        "01HXWIKIPAGEACME00000000001": "Acme Corporation [01HXWIKIINBOXACME0000000001] is a manufacturing company founded in 1947 in Toledo, Ohio. Its current chief executive is Dana Reyes [01HXWIKIINBOXACME0000000002]. Acme makes industrial fasteners and hydraulic presses.",
+        "01HXWIKIPAGEACMEHIST0000002": "Records suggest Acme Corporation [01HXWIKIINBOXACMEHIST00001] was incorporated in 1949, two years after it began trading. The company expanded to Detroit in 1960."
+      }
+    }
+  }
+]

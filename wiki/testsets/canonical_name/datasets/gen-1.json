@@ -1,0 +1,34 @@
+[
+  {
+    "case_id": "canonical_name-0001",
+    "site": "canonical_name",
+    "generation": 1,
+    "failure_tag": "prefer_formal",
+    "input": {
+      "variants": [
+        "IBM",
+        "International Business Machines",
+        "ibm"
+      ]
+    },
+    "gold": {
+      "name": "International Business Machines"
+    }
+  },
+  {
+    "case_id": "canonical_name-0002",
+    "site": "canonical_name",
+    "generation": 1,
+    "failure_tag": "prefer_owner_casing",
+    "input": {
+      "variants": [
+        "apple inc",
+        "Apple Inc.",
+        "APPLE"
+      ]
+    },
+    "gold": {
+      "name": "Apple Inc."
+    }
+  }
+]

@@ -1,0 +1,63 @@
+[
+  {
+    "case_id": "search-0001",
+    "site": "search",
+    "generation": 1,
+    "failure_tag": "blunt_keyword",
+    "input": {
+      "query": "Zephyr Airlines",
+      "corpus": [
+        "01HXWIKIPAGEACME00000000001",
+        "01HXWIKIPAGEACMEHIST0000002",
+        "01HXWIKIPAGEZEPHYR000000003",
+        "01HXWIKIPAGEORCHID000000004"
+      ]
+    },
+    "gold": {
+      "relevant": [
+        "01HXWIKIPAGEZEPHYR000000003"
+      ]
+    }
+  },
+  {
+    "case_id": "search-0002",
+    "site": "search",
+    "generation": 1,
+    "failure_tag": "missed_relevant",
+    "input": {
+      "query": "Acme Corporation history",
+      "corpus": [
+        "01HXWIKIPAGEACME00000000001",
+        "01HXWIKIPAGEACMEHIST0000002",
+        "01HXWIKIPAGEZEPHYR000000003",
+        "01HXWIKIPAGEORCHID000000004"
+      ]
+    },
+    "gold": {
+      "relevant": [
+        "01HXWIKIPAGEACMEHIST0000002",
+        "01HXWIKIPAGEACME00000000001"
+      ]
+    }
+  },
+  {
+    "case_id": "search-0003",
+    "site": "search",
+    "generation": 1,
+    "failure_tag": "semantic_no_keyword",
+    "input": {
+      "query": "how to care for houseplants",
+      "corpus": [
+        "01HXWIKIPAGEACME00000000001",
+        "01HXWIKIPAGEACMEHIST0000002",
+        "01HXWIKIPAGEZEPHYR000000003",
+        "01HXWIKIPAGEORCHID000000004"
+      ]
+    },
+    "gold": {
+      "relevant": [
+        "01HXWIKIPAGEORCHID000000004"
+      ]
+    }
+  }
+]

@@ -1872,7 +1872,7 @@ entirely from cache (zero paid calls).
 **Verify:** each scorer against hand-built known-good/known-bad inputs;
 dangerous-direction rates reported separately, never lumped into accuracy.
 
-## [ ] P15 — Per-site test sets / generators
+## [x] P15 — Per-site test sets / generators
 
 *Research doc piece 3. One generator per site producing versioned
 `(dataset + prompt)` bundles (generations); shared corpora are the structural
@@ -1897,6 +1897,30 @@ saving.*
 **Touches:** the harness generators + committed test-set bundles.
 **Verify:** a gen-1 bundle exists for every site; the adversarial pass ran; the
 harness loads a bundle by name; the shared corpora feed their multiple consumers.
+
+> **P15 done (2026-06-14).** Generators live at `wiki/internal/eval/gen` (one
+> `*_sites.go` per group + shared `corpus.go`), with `cmd/wiki-eval-gen` writing the
+> committed bundles. A gen-1 `(dataset + prompt)` bundle now exists for **all ten
+> sites** under `wiki/testsets/<site>/{datasets,prompts,bundles}/` in the eval-design
+> q3 layout. **Shared corpora** are the structural saving: one synthetic identity
+> corpus feeds match/dup_judge/candidates/sweep, one synthetic wiki feeds ask/search
+> (asserted by `TestSharedCorporaFeedMultipleConsumers`). Goldens are
+> synthetic-first (the live `int` real-data anchor does not yet exist — the documented
+> default path); the **adversarial verification pass** is a deterministic offline
+> check (`gen_test.go`): every gen-1 case's ideal output is re-scored through the
+> REAL P14 scorers and must earn headline 1 with no dangerous-axis activation
+> (catches a self-contradictory gold), and the blunt traps (match false-merge, ask
+> fabrication, merge undeclared cite-loss) are proven to actually fire their axis.
+> Each generator spans blunt→subtle with per-case `failure_tag`s (generations are
+> the only escalation — no per-case difficulty labels). Proven LIVE end-to-end: the
+> expanded match gen-1 bundle ran through `wiki-eval` against the real match call
+> site (5 cases, `claude-haiku-4-5`, structurally valid output) and reproduced
+> entirely from cache on a second run (0 paid calls). P13's match seed pair is
+> preserved as `match-0001`/`match-0002`; the match bundle now names its prompt
+> artifact, so the two P13 eval tests pinning "exactly 2 cases / nil prompt" were
+> loosened to count-robust floors. The cross-subject/temporal-span ask goldens that
+> would un-gate `related` (design §9.2) are seeded as the ask `contradiction_surface`
+> case; un-gating `related` remains P16's measured decision.
 
 ## [ ] P16 — The sweep + report
 

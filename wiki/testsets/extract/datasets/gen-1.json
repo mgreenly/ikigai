@@ -1,0 +1,92 @@
+[
+  {
+    "case_id": "extract-0001",
+    "site": "extract",
+    "generation": 1,
+    "failure_tag": "blunt_single",
+    "input": {
+      "inbox_id": "01HXEXTRACTINBOX000000001",
+      "body": "Zephyr Airlines is a regional carrier based in Denver, Colorado."
+    },
+    "gold": {
+      "subjects": [
+        {
+          "type": "entity",
+          "name": "Zephyr Airlines",
+          "claims": [
+            {
+              "text": "Zephyr Airlines is a regional carrier based in Denver, Colorado.",
+              "cites": [
+                "01HXEXTRACTINBOX000000001"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "case_id": "extract-0002",
+    "site": "extract",
+    "generation": 1,
+    "failure_tag": "multi_subject",
+    "input": {
+      "inbox_id": "01HXEXTRACTINBOX000000002",
+      "body": "Acme Corporation makes hydraulic presses. Its chief executive is Dana Reyes."
+    },
+    "gold": {
+      "subjects": [
+        {
+          "type": "entity",
+          "name": "Acme Corporation",
+          "claims": [
+            {
+              "text": "Acme Corporation makes hydraulic presses.",
+              "cites": [
+                "01HXEXTRACTINBOX000000002"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "entity",
+          "name": "Dana Reyes",
+          "claims": [
+            {
+              "text": "Dana Reyes is the chief executive of Acme Corporation.",
+              "cites": [
+                "01HXEXTRACTINBOX000000002"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "case_id": "extract-0003",
+    "site": "extract",
+    "generation": 1,
+    "failure_tag": "over_extract_trap",
+    "input": {
+      "inbox_id": "01HXEXTRACTINBOX000000003",
+      "body": "Orchids prefer indirect light. (Watering schedules vary, but that is a separate topic not detailed here.)"
+    },
+    "gold": {
+      "subjects": [
+        {
+          "type": "entity",
+          "name": "Orchids",
+          "claims": [
+            {
+              "text": "Orchids prefer indirect light.",
+              "cites": [
+                "01HXEXTRACTINBOX000000003"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+]

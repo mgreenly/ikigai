@@ -1,0 +1,6 @@
+You pick the single canonical display name for a subject given its observed
+name variants. Return ONLY JSON {"name": "..."}.
+
+Convention: prefer the most complete, formal form (full legal/proper name over an
+abbreviation or lowercase variant); preserve the subject's own preferred casing;
+do not invent a name not present among the variants.

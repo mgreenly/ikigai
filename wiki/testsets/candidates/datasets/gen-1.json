@@ -1,0 +1,74 @@
+[
+  {
+    "case_id": "candidates-0001",
+    "site": "candidates",
+    "generation": 1,
+    "failure_tag": "missed_exact_name",
+    "input": {
+      "query": "Apple Inc.",
+      "corpus": [
+        "01HXIDCORPUSAPPLEINC0000001",
+        "01HXIDCORPUSAPPLEREC0000002",
+        "01HXIDCORPUSIBM000000000003",
+        "01HXIDCORPUSMERCURYPLT00004",
+        "01HXIDCORPUSMERCURYELE00005",
+        "01HXIDCORPUSFREDMERCURY0006",
+        "01HXIDCORPUSTIMCOOK00000007"
+      ]
+    },
+    "gold": {
+      "relevant": [
+        "01HXIDCORPUSAPPLEINC0000001"
+      ]
+    }
+  },
+  {
+    "case_id": "candidates-0002",
+    "site": "candidates",
+    "generation": 1,
+    "failure_tag": "missed_homonym",
+    "input": {
+      "query": "Apple",
+      "corpus": [
+        "01HXIDCORPUSAPPLEINC0000001",
+        "01HXIDCORPUSAPPLEREC0000002",
+        "01HXIDCORPUSIBM000000000003",
+        "01HXIDCORPUSMERCURYPLT00004",
+        "01HXIDCORPUSMERCURYELE00005",
+        "01HXIDCORPUSFREDMERCURY0006",
+        "01HXIDCORPUSTIMCOOK00000007"
+      ]
+    },
+    "gold": {
+      "relevant": [
+        "01HXIDCORPUSAPPLEINC0000001",
+        "01HXIDCORPUSAPPLEREC0000002"
+      ]
+    }
+  },
+  {
+    "case_id": "candidates-0003",
+    "site": "candidates",
+    "generation": 1,
+    "failure_tag": "missed_homonym",
+    "input": {
+      "query": "Mercury",
+      "corpus": [
+        "01HXIDCORPUSAPPLEINC0000001",
+        "01HXIDCORPUSAPPLEREC0000002",
+        "01HXIDCORPUSIBM000000000003",
+        "01HXIDCORPUSMERCURYPLT00004",
+        "01HXIDCORPUSMERCURYELE00005",
+        "01HXIDCORPUSFREDMERCURY0006",
+        "01HXIDCORPUSTIMCOOK00000007"
+      ]
+    },
+    "gold": {
+      "relevant": [
+        "01HXIDCORPUSMERCURYPLT00004",
+        "01HXIDCORPUSMERCURYELE00005",
+        "01HXIDCORPUSFREDMERCURY0006"
+      ]
+    }
+  }
+]

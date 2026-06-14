@@ -1,0 +1,47 @@
+[
+  {
+    "case_id": "sweep-0001",
+    "site": "sweep",
+    "generation": 1,
+    "failure_tag": "missed_obvious_pair",
+    "input": {
+      "query": "near-duplicate organizations",
+      "corpus": [
+        "01HXIDCORPUSAPPLEINC0000001",
+        "01HXIDCORPUSAPPLEREC0000002",
+        "01HXIDCORPUSIBM000000000003",
+        "01HXIDCORPUSMERCURYPLT00004",
+        "01HXIDCORPUSMERCURYELE00005",
+        "01HXIDCORPUSFREDMERCURY0006",
+        "01HXIDCORPUSTIMCOOK00000007",
+        "01HXIDCORPUSIBMDUP000000008"
+      ]
+    },
+    "gold": {
+      "relevant": [
+        "01HXIDCORPUSIBM000000000003|01HXIDCORPUSIBMDUP000000008"
+      ]
+    }
+  },
+  {
+    "case_id": "sweep-0002",
+    "site": "sweep",
+    "generation": 1,
+    "failure_tag": "false_pair_homonym",
+    "input": {
+      "query": "Mercury duplicates",
+      "corpus": [
+        "01HXIDCORPUSAPPLEINC0000001",
+        "01HXIDCORPUSAPPLEREC0000002",
+        "01HXIDCORPUSIBM000000000003",
+        "01HXIDCORPUSMERCURYPLT00004",
+        "01HXIDCORPUSMERCURYELE00005",
+        "01HXIDCORPUSFREDMERCURY0006",
+        "01HXIDCORPUSTIMCOOK00000007"
+      ]
+    },
+    "gold": {
+      "relevant": []
+    }
+  }
+]
