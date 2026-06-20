@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # bin/check-migrations — CI guard for service schema migrations.
 #
-#   bin/check-migrations
+#   bin/check-migrations [service ...]
 #
-# Scans every <service>/internal/db/migrations/ directory in the repo and enforces
+# Scans selected <service>/internal/db/migrations/ directories in the repo and enforces
 # the three rules of docs/adr-migration-timestamps.md, failing CI (non-zero exit
 # with a precise message naming the offending file) on any violation:
 #
@@ -32,12 +32,14 @@ usage() {
 bin/check-migrations — CI guard: naming, uniqueness, and immutability of service migrations.
 
 Usage:
-  bin/check-migrations
+  bin/check-migrations [service ...]
 
-Scans every <service>/internal/db/migrations/ directory and enforces:
+Scans selected <service>/internal/db/migrations/ directories and enforces:
   1. Naming      — every *.sql starts with digits then '_' (legacy NNN_ or 14-digit timestamp).
   2. Uniqueness  — no two files in one service share the same numeric prefix.
   3. Immutability — no edit/delete/rename of a migration already on origin/main (only adds).
+
+With no service arguments, scans every service.
 
 Exits non-zero, naming the offending file, on any violation.
 
@@ -46,10 +48,12 @@ Flags:
 USAGE
 }
 
+services=()
 for arg in "$@"; do
   case "$arg" in
     -h|--help) usage; exit 0 ;;
-    *)         echo "!! unexpected argument: $arg" >&2; usage >&2; exit 2 ;;
+    -*)        echo "!! unexpected flag: $arg" >&2; usage >&2; exit 2 ;;
+    *)         services+=("$arg") ;;
   esac
 done
 
@@ -67,14 +71,41 @@ prefix_of() {
 
 # --- discover the migration dirs --------------------------------------------
 mig_dirs=()
-for d in */internal/db/migrations; do
-  [ -d "$d" ] && mig_dirs+=("$d")
-done
+if [ "${#services[@]}" -eq 0 ]; then
+  for d in */internal/db/migrations; do
+    [ -d "$d" ] && mig_dirs+=("$d")
+  done
+else
+  for service in "${services[@]}"; do
+    d="${service}/internal/db/migrations"
+    if [ ! -d "$d" ]; then
+      echo "!! no migrations directory for service '${service}': ${d}" >&2
+      fail=1
+      continue
+    fi
+    mig_dirs+=("$d")
+  done
+fi
 
 if [ "${#mig_dirs[@]}" -eq 0 ]; then
-  echo "!! no */internal/db/migrations directories found under $REPO" >&2
+  if [ "${#services[@]}" -eq 0 ]; then
+    echo "!! no */internal/db/migrations directories found under $REPO" >&2
+  else
+    echo "!! no requested service migration directories found under $REPO" >&2
+  fi
   exit 1
 fi
+
+path_is_checked_migration() {
+  local path="$1"
+  local dir
+  for dir in "${mig_dirs[@]}"; do
+    case "$path" in
+      "$dir"/*.sql) return 0 ;;
+    esac
+  done
+  return 1
+}
 
 # --- checks 1 & 2: naming + per-service uniqueness --------------------------
 for dir in "${mig_dirs[@]}"; do
@@ -130,14 +161,11 @@ if [ -n "$merge_base" ]; then
   # Status letters: A added (ok), M modified, D deleted, R### renamed.
   while IFS= read -r -d '' status; do
     IFS= read -r -d '' path || break
-    case "$path" in
-      */internal/db/migrations/*.sql) ;;
-      *)
-        # rename emits oldpath then newpath; consume the newpath token too.
-        case "$status" in R*|C*) IFS= read -r -d '' _newpath || true ;; esac
-        continue
-        ;;
-    esac
+    if ! path_is_checked_migration "$path"; then
+      # rename emits oldpath then newpath; consume the newpath token too.
+      case "$status" in R*|C*) IFS= read -r -d '' _newpath || true ;; esac
+      continue
+    fi
 
     case "$status" in
       A)
