@@ -11,7 +11,7 @@ anywhere but on a phase line, so the anchored grep matches only phase lines.
 Phase 01 ✅ realizes D1, D2 — module wires agentkit (published, no replace) and the service skeleton builds prod-shaped and serves, failing loud without ANTHROPIC_API_KEY
 Phase 02 ✅ realizes D3 — the phase-1 data model: five-table schema, normalize, and the domain stores (incl. page-write-with-FTS-sync)
 Phase 03 ✅ realizes D5 — the LLM seam: stripCodeFence, the generic JSON[T] json-mode helper with bounded retry, and Converse
-Phase 04 ⬜ realizes D6 — the extract stage: source text → subjects+claims over llm.JSON, salience gate + honest-empty
+Phase 04 ✅ realizes D6 — the extract stage: source text → subjects+claims over llm.JSON, salience gate + honest-empty
 Phase 05 ⬜ realizes D7 — the compile stage: full recompile from claims with three-layer 12k enforcement
 Phase 06 ⬜ realizes D8 — the retrieval seam: FTS5 keyword lane + Retriever interface + registry-first pin + SearchLimits
 Phase 07 ⬜ realizes D4 — the ingest pipeline: fire-and-return Ingest, JobStatus, and the single integrate/commit worker
