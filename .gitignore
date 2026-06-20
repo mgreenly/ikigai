@@ -32,3 +32,6 @@
 
 # --- wiki-eval harness output cache (P13): pure memoization, content-addressed ---
 .wiki-eval-cache/
+
+# --- wiki build-loop ephemeral brief (gather creates, verify deletes; never committed) ---
+/wiki/docs/brief.md
