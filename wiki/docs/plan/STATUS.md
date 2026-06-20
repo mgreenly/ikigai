@@ -16,4 +16,4 @@ Phase 05 ✅ realizes D7 — the compile stage: full recompile from claims with 
 Phase 06 ✅ realizes D8 — the retrieval seam: FTS5 keyword lane + Retriever interface + registry-first pin + SearchLimits
 Phase 07 ✅ realizes D4 — the ingest pipeline: fire-and-return Ingest, JobStatus, and the single integrate/commit worker
 Phase 08 ✅ realizes D9 — ask: the deterministic honest-empty gate + grounded, cited, read-only agent
-Phase 09 ⬜ realizes D10 — the eight-verb MCP tool surface behind RequireIdentity, with owner attribution
+Phase 09 ✅ realizes D10 — the eight-verb MCP tool surface behind RequireIdentity, with owner attribution
