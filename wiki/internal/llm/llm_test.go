@@ -12,7 +12,6 @@ import (
 )
 
 func TestConverseBuildsFreshConfiguredConversation(t *testing.T) {
-	// R-J8QP-BETB
 	var log bytes.Buffer
 	prov := &scriptedProvider{}
 	client := New(prov, &log)
@@ -50,17 +49,58 @@ func TestConverseBuildsFreshConfiguredConversation(t *testing.T) {
 	}
 }
 
+func TestStripCodeFence(t *testing.T) {
+	// R-J8QP-BETB
+	tests := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{
+			name: "json fence",
+			in:   " \n```json\n{\"title\":\"fenced\",\"count\":3}\n```\n",
+			want: `{"title":"fenced","count":3}`,
+		},
+		{
+			name: "bare fence",
+			in:   "```\n{\"title\":\"bare fence\",\"count\":4}\n```",
+			want: `{"title":"bare fence","count":4}`,
+		},
+		{
+			name: "bare json",
+			in:   " \n{\"title\":\"bare\",\"count\":5}\n",
+			want: `{"title":"bare","count":5}`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := stripCodeFence(tt.in)
+			if got != tt.want {
+				t.Fatalf("stripCodeFence() = %q, want %q", got, tt.want)
+			}
+			var decoded jsonFixture
+			if err := json.Unmarshal([]byte(got), &decoded); err != nil {
+				t.Fatalf("stripped response is not parseable JSON: %v", err)
+			}
+		})
+	}
+}
+
 func TestJSONSendsToollessGenerationAndValidates(t *testing.T) {
 	// R-J9YL-P6K0
+	// R-JEU7-89IS
 	temp := 0.0
-	prov := &scriptedProvider{responses: []string{`{"title":"ok","count":2}`}}
+	prov := &scriptedProvider{responses: []string{"```json\n{\"title\":\"ok\",\"count\":2}\n```"}}
 	site := CallSite{
 		Model:       "json-model",
 		Temperature: &temp,
 		Reasoning:   agentkit.DisableReasoning(),
 		System:      "json only",
 	}
+	validated := false
 	got, err := JSON(context.Background(), New(prov, nil), site, "make json", func(v *jsonFixture) error {
+		validated = true
 		if v.Title == "" {
 			return errors.New("title required")
 		}
@@ -71,6 +111,9 @@ func TestJSONSendsToollessGenerationAndValidates(t *testing.T) {
 	}
 	if got.Title != "ok" || got.Count != 2 {
 		t.Fatalf("JSON result = %#v, want parsed response", got)
+	}
+	if !validated {
+		t.Fatal("validate was not called")
 	}
 	if len(prov.requests) != 1 {
 		t.Fatalf("requests len = %d, want 1", len(prov.requests))
@@ -87,21 +130,8 @@ func TestJSONSendsToollessGenerationAndValidates(t *testing.T) {
 	}
 }
 
-func TestJSONStripsMarkdownCodeFence(t *testing.T) {
-	// R-JCEE-GQ1E
-	prov := &scriptedProvider{responses: []string{"```json\n{\"title\":\"fenced\",\"count\":3}\n```"}}
-
-	got, err := JSON(context.Background(), New(prov, nil), CallSite{Model: "json-model"}, "make fenced json", nilJSONFixture)
-	if err != nil {
-		t.Fatalf("JSON returned error: %v", err)
-	}
-	if got.Title != "fenced" || got.Count != 3 {
-		t.Fatalf("JSON result = %#v, want fenced JSON decoded", got)
-	}
-}
-
 func TestJSONRetriesWithCorrectivePromptOnValidationFailure(t *testing.T) {
-	// R-JDMA-UHS3
+	// R-JCEE-GQ1E
 	prov := &scriptedProvider{responses: []string{
 		`{"title":"","count":1}`,
 		`{"title":"fixed","count":4}`,
@@ -134,7 +164,7 @@ func TestJSONRetriesWithCorrectivePromptOnValidationFailure(t *testing.T) {
 }
 
 func TestJSONReturnsErrorAfterRetryBudgetWithoutSilentZero(t *testing.T) {
-	// R-JEU7-89IS
+	// R-JCEE-GQ1E
 	prov := &scriptedProvider{responses: []string{`not-json`, `also-not-json`}}
 	site := CallSite{Model: "json-model", MaxParseRetries: 1}
 
@@ -150,6 +180,39 @@ func TestJSONReturnsErrorAfterRetryBudgetWithoutSilentZero(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "2 attempt") {
 		t.Fatalf("error = %v, want retry count context", err)
+	}
+}
+
+func TestJSONBuildsFreshConversationForEachCall(t *testing.T) {
+	// R-JDMA-UHS3
+	prov := &scriptedProvider{responses: []string{
+		`{"title":"first","count":1}`,
+		`{"title":"second","count":2}`,
+	}}
+	client := New(prov, nil)
+	site := CallSite{Model: "json-model"}
+
+	first, err := JSON(context.Background(), client, site, "make first json", nilJSONFixture)
+	if err != nil {
+		t.Fatalf("first JSON returned error: %v", err)
+	}
+	second, err := JSON(context.Background(), client, site, "make second json", nilJSONFixture)
+	if err != nil {
+		t.Fatalf("second JSON returned error: %v", err)
+	}
+	if first.Title != "first" || second.Title != "second" {
+		t.Fatalf("JSON results = %#v and %#v, want independent responses", first, second)
+	}
+	if len(prov.requests) != 2 {
+		t.Fatalf("requests len = %d, want one provider call per JSON call", len(prov.requests))
+	}
+	firstTexts := requestTexts(prov.requests[0])
+	secondTexts := requestTexts(prov.requests[1])
+	if len(firstTexts) != 1 || firstTexts[0] != "make first json" {
+		t.Fatalf("first request texts = %#v, want only first prompt", firstTexts)
+	}
+	if len(secondTexts) != 1 || secondTexts[0] != "make second json" {
+		t.Fatalf("second request texts = %#v, want no accumulated history from first call", secondTexts)
 	}
 }
 
