@@ -8,7 +8,7 @@ reads only that phase's `docs/plan/phase-NN.md`, builds it, and on completion
 flips that one marker. This file deliberately carries **no bare status glyph**
 anywhere but on a phase line, so the anchored grep matches only phase lines.
 
-Phase 01 ⬜ realizes D1, D2 — module wires agentkit (published, no replace) and the service skeleton builds prod-shaped and serves, failing loud without ANTHROPIC_API_KEY
+Phase 01 ✅ realizes D1, D2 — module wires agentkit (published, no replace) and the service skeleton builds prod-shaped and serves, failing loud without ANTHROPIC_API_KEY
 Phase 02 ⬜ realizes D3 — the phase-1 data model: five-table schema, normalize, and the domain stores (incl. page-write-with-FTS-sync)
 Phase 03 ⬜ realizes D5 — the LLM seam: stripCodeFence, the generic JSON[T] json-mode helper with bounded retry, and Converse
 Phase 04 ⬜ realizes D6 — the extract stage: source text → subjects+claims over llm.JSON, salience gate + honest-empty
