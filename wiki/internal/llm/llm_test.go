@@ -252,11 +252,18 @@ func TestJSONRetriesWithCorrectivePromptOnValidationFailure(t *testing.T) {
 
 func TestJSONRetriesWithCorrectivePromptOnMalformedJSON(t *testing.T) {
 	// R-JCEE-GQ1E
+	temp := 0.0
 	prov := &scriptedProvider{responses: []string{
 		`not-json`,
 		`{"title":"parsed","count":7}`,
 	}}
-	site := CallSite{Model: "json-model", MaxParseRetries: 1}
+	site := CallSite{
+		Model:           "json-model",
+		Temperature:     &temp,
+		Reasoning:       agentkit.DisableReasoning(),
+		System:          "json only",
+		MaxParseRetries: 1,
+	}
 
 	got, err := JSON(context.Background(), New(prov, nil), site, "make parseable json", nilJSONFixture)
 	if err != nil {
@@ -267,6 +274,14 @@ func TestJSONRetriesWithCorrectivePromptOnMalformedJSON(t *testing.T) {
 	}
 	if len(prov.requests) != 2 {
 		t.Fatalf("requests len = %d, want initial plus retry", len(prov.requests))
+	}
+	for i, req := range prov.requests {
+		if req.Model != site.Model || req.System != site.System || len(req.Tools) != 0 {
+			t.Fatalf("request %d config = %#v, want model/system and no tools", i, req)
+		}
+		if req.Gen.Temperature == nil || *req.Gen.Temperature != temp || !req.Gen.Reasoning.Disabled() {
+			t.Fatalf("request %d gen settings = %#v, want pinned temperature and disabled reasoning", i, req.Gen)
+		}
 	}
 	texts := requestTexts(prov.requests[1])
 	if len(texts) != 3 {
