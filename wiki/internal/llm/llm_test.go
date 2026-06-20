@@ -67,6 +67,16 @@ func TestStripCodeFence(t *testing.T) {
 			want: `{"title":"bare fence","count":4}`,
 		},
 		{
+			name: "inline json fence",
+			in:   " ```JSON {\"title\":\"inline\",\"count\":6} ``` ",
+			want: `{"title":"inline","count":6}`,
+		},
+		{
+			name: "inline bare fence",
+			in:   "```{\"title\":\"inline bare\",\"count\":7}```",
+			want: `{"title":"inline bare","count":7}`,
+		},
+		{
 			name: "bare json",
 			in:   " \n{\"title\":\"bare\",\"count\":5}\n",
 			want: `{"title":"bare","count":5}`,

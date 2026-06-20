@@ -124,15 +124,31 @@ func stripCodeFence(text string) string {
 		return s
 	}
 
-	firstLineEnd := strings.IndexByte(s, '\n')
-	if firstLineEnd < 0 {
+	body := strings.TrimPrefix(s, "```")
+	lastFence := strings.LastIndex(body, "```")
+	if lastFence < 0 {
 		return s
 	}
-	lastFence := strings.LastIndex(s, "```")
-	if lastFence <= firstLineEnd {
-		return s
+	return strings.TrimSpace(stripFenceInfo(body[:lastFence]))
+}
+
+func stripFenceInfo(body string) string {
+	body = strings.TrimSpace(body)
+	if newline := strings.IndexByte(body, '\n'); newline >= 0 {
+		info := strings.TrimSpace(body[:newline])
+		if info == "" || strings.EqualFold(info, "json") {
+			return body[newline+1:]
+		}
+		return body
 	}
-	return strings.TrimSpace(s[firstLineEnd+1 : lastFence])
+
+	if strings.EqualFold(body, "json") {
+		return ""
+	}
+	if fields := strings.Fields(body); len(fields) > 1 && strings.EqualFold(fields[0], "json") {
+		return strings.TrimSpace(strings.TrimPrefix(body, fields[0]))
+	}
+	return body
 }
 
 func correctivePrompt(original string, err error) string {
