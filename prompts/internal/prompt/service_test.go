@@ -257,6 +257,34 @@ func TestValidateConfigRejectsShortModelAliasBeforeMissingAPIKey(t *testing.T) {
 	}
 }
 
+func TestValidateConfigAcceptsSupportedProvidersWithInjectedKeys(t *testing.T) {
+	// R-JVR2-WAUP
+	// R-JWYZ-A2LE
+	// R-JY6V-NUC3
+	env := fakeEnv(map[string]string{
+		"ANTHROPIC_API_KEY": "sk-test",
+		"OPENAI_API_KEY":    "sk-test",
+		"GEMINI_API_KEY":    "sk-test",
+		"ZAI_API_KEY":       "sk-test",
+	})
+	tests := []struct {
+		name string
+		cfg  Config
+	}{
+		{"anthropic", Config{Provider: "anthropic", Model: testAnthropicModel}},
+		{"openai", Config{Provider: "openai", Model: testOpenAIModel}},
+		{"google", Config{Provider: "google", Model: testGoogleModel}},
+		{"zai", Config{Provider: "zai", Model: testZaiModel}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := validateConfig(tt.cfg, env); err != nil {
+				t.Fatalf("validateConfig(%+v): %v", tt.cfg, err)
+			}
+		})
+	}
+}
+
 func TestValidateConfigUsesProviderSpecificEnvVar(t *testing.T) {
 	// R-JY6V-NUC3
 	tests := []struct {
