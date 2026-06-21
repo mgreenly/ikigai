@@ -138,6 +138,54 @@ func TestAskPropagatesRetrievalErrors(t *testing.T) {
 	}
 }
 
+func TestAskParsesDecoratedFinalAnswerJSON(t *testing.T) {
+	// R-7SXQ-B9AX
+	cases := []struct {
+		name string
+		text string
+	}{
+		{
+			name: "fenced",
+			text: "```json\n" + answerText("Ada wrote the note.") + "\n```",
+		},
+		{
+			name: "preamble and trailing commentary",
+			text: "Here is the grounded answer:\n" + answerText("Ada wrote the note.") + "\nI used only the wiki context.",
+		},
+		{
+			name: "stray leading backtick",
+			text: "`" + answerText("Ada wrote the note."),
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := context.Background()
+			prov := &askProvider{responses: []*agentkit.RoundTrip{textRoundTrip(tc.text)}}
+			rs := retrieve.NewService(nil, &fakeRetriever{hits: []retrieve.Hit{{
+				SubjectID: "subject-ada",
+				Title:     "Ada",
+				Snippet:   "Ada wrote the note.",
+			}}}, retrieve.SearchLimits{Default: 8, Cap: 8})
+
+			got, err := New(rs, nil, nil, llm.New(prov, nil), llm.CallSite{Model: "ask-model"}, 0, 0).Ask(ctx, "owner-1", "who wrote the note?")
+			if err != nil {
+				t.Fatalf("Ask returned error: %v", err)
+			}
+			if !got.Found || got.Text != "Ada wrote the note." {
+				t.Fatalf("Ask = %+v, want found answer text from decorated JSON", got)
+			}
+			if want := []Citation{{Subject: "subject-ada", Title: "Ada"}}; !reflect.DeepEqual(got.Citations, want) {
+				t.Fatalf("citations = %+v, want %+v", got.Citations, want)
+			}
+		})
+	}
+}
+
+func answerText(text string) string {
+	return `{"found":true,"text":"` + text + `","citations":[{"Subject":"subject-ada","Title":"Ada"}]}`
+}
+
 type fakeRetriever struct {
 	hits []retrieve.Hit
 	err  error

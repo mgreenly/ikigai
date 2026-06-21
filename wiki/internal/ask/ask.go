@@ -186,7 +186,7 @@ type answerJSON struct {
 
 func parseAnswer(text string) (Answer, error) {
 	var in answerJSON
-	if err := json.Unmarshal([]byte(stripCodeFence(text)), &in); err != nil {
+	if err := json.Unmarshal([]byte(llm.ExtractJSON(text)), &in); err != nil {
 		return Answer{}, fmt.Errorf("ask: parse answer JSON: %w", err)
 	}
 	return Answer{
@@ -220,29 +220,6 @@ func messageText(message agentkit.Message) string {
 		}
 	}
 	return b.String()
-}
-
-func stripCodeFence(text string) string {
-	s := strings.TrimSpace(text)
-	if !strings.HasPrefix(s, "```") {
-		return s
-	}
-	body := strings.TrimPrefix(s, "```")
-	last := strings.LastIndex(body, "```")
-	if last < 0 {
-		return s
-	}
-	body = strings.TrimSpace(body[:last])
-	if newline := strings.IndexByte(body, '\n'); newline >= 0 {
-		info := strings.TrimSpace(body[:newline])
-		if info == "" || strings.EqualFold(info, "json") {
-			return strings.TrimSpace(body[newline+1:])
-		}
-	}
-	if fields := strings.Fields(body); len(fields) > 0 && strings.EqualFold(fields[0], "json") {
-		return strings.TrimSpace(strings.TrimPrefix(body, fields[0]))
-	}
-	return body
 }
 
 func sortedSourceIDs(sources map[string]struct{}) []string {
