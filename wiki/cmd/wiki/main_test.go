@@ -138,6 +138,9 @@ func TestBuildCompilerUsesDefaultCompileCallSite(t *testing.T) {
 	if wantSite.Temperature == nil {
 		t.Fatal("compile.DefaultCallSite temperature is nil, want deterministic temperature")
 	}
+	if *wantSite.Temperature != 0 {
+		t.Fatalf("compile.DefaultCallSite temperature = %v, want 0", *wantSite.Temperature)
+	}
 	if !reflect.DeepEqual(wantSite.Reasoning, llm.DisableReasoning()) {
 		t.Fatalf("compile.DefaultCallSite reasoning = %#v, want llm.DisableReasoning()", wantSite.Reasoning)
 	}
