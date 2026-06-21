@@ -94,7 +94,7 @@ func seedRunning(t *testing.T, store *prompt.Store, sb *sandbox.Manager, runsDir
 		OwnerEmail: "owner@example.com",
 		Name:       "n",
 		UserPrompt: "do the thing",
-		Config:     prompt.Config{Provider: "anthropic", Model: "haiku"},
+		Config:     prompt.Config{Provider: "anthropic", Model: "claude-haiku-4-5"},
 		CreatedAt:  now,
 		UpdatedAt:  now,
 	}

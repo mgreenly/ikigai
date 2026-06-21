@@ -63,7 +63,7 @@ func TestSmoke_HandlerAgainstRealServiceAndDB(t *testing.T) {
 
 	// A real prompt with a real NON-cron trigger.
 	p, err := svc.Create(ctx, "owner@example.com", prompt.CreateInput{
-		UserPrompt: "do the thing", Config: prompt.Config{Model: "haiku"},
+		UserPrompt: "do the thing", Config: prompt.Config{Model: "claude-haiku-4-5"},
 	})
 	if err != nil {
 		t.Fatalf("Create: %v", err)

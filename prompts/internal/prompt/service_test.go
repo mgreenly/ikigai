@@ -245,6 +245,18 @@ func TestValidateConfigRejectsUnknownModelBeforeMissingAPIKey(t *testing.T) {
 	}
 }
 
+func TestValidateConfigRejectsShortModelAliasBeforeMissingAPIKey(t *testing.T) {
+	// R-JWYZ-A2LE
+	err := validateConfig(Config{Provider: "anthropic", Model: "sonnet"}, func(key string) string {
+		t.Fatalf("getenv should not be called for a short model alias, got %q", key)
+		return ""
+	})
+	ve := requireValidationError(t, err)
+	if !strings.Contains(ve.Error(), `provider "anthropic" does not support model "sonnet"`) {
+		t.Fatalf("error = %q, want short alias rejection detail", ve.Error())
+	}
+}
+
 func TestValidateConfigUsesProviderSpecificEnvVar(t *testing.T) {
 	// R-JY6V-NUC3
 	tests := []struct {

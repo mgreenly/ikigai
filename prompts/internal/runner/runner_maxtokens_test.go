@@ -13,7 +13,7 @@ import (
 // falling back to a fixed low cap. This is the regression guard for the bug
 // where every run was hard-capped at 4096 output tokens.
 func TestBuildRequest_MaxTokensDefaultsToModelMax(t *testing.T) {
-	resolved, err := model.Resolve("haiku")
+	resolved, err := model.Resolve("claude-haiku-4-5")
 	if err != nil {
 		t.Fatalf("model.Resolve: %v", err)
 	}
@@ -22,7 +22,7 @@ func TestBuildRequest_MaxTokensDefaultsToModelMax(t *testing.T) {
 		t.Fatalf("test precondition: model %q has no registered MaxOutputTokens", resolved.BareID)
 	}
 
-	cfg := prompt.Config{Provider: "anthropic", Model: "haiku"}
+	cfg := prompt.Config{Provider: "anthropic", Model: "claude-haiku-4-5"}
 	req := buildRequest(cfg, "do the thing", "", nil, resolved)
 
 	if req.MaxTokens != want {
@@ -33,12 +33,12 @@ func TestBuildRequest_MaxTokensDefaultsToModelMax(t *testing.T) {
 // TestBuildRequest_MaxTokensHonorsConfig verifies an explicit config value wins
 // over the model default.
 func TestBuildRequest_MaxTokensHonorsConfig(t *testing.T) {
-	resolved, err := model.Resolve("haiku")
+	resolved, err := model.Resolve("claude-haiku-4-5")
 	if err != nil {
 		t.Fatalf("model.Resolve: %v", err)
 	}
 
-	cfg := prompt.Config{Provider: "anthropic", Model: "haiku", MaxTokens: 12345}
+	cfg := prompt.Config{Provider: "anthropic", Model: "claude-haiku-4-5", MaxTokens: 12345}
 	req := buildRequest(cfg, "do the thing", "", nil, resolved)
 
 	if req.MaxTokens != 12345 {

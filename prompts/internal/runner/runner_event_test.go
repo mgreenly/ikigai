@@ -25,12 +25,12 @@ func userBlocks(t *testing.T, req provider.Request) []provider.Block {
 // produces a user message with exactly one block equal to the verbatim user
 // prompt.
 func TestBuildRequest_NoEventSingleBlock(t *testing.T) {
-	resolved, err := model.Resolve("haiku")
+	resolved, err := model.Resolve("claude-haiku-4-5")
 	if err != nil {
 		t.Fatalf("model.Resolve: %v", err)
 	}
 
-	cfg := prompt.Config{Provider: "anthropic", Model: "haiku"}
+	cfg := prompt.Config{Provider: "anthropic", Model: "claude-haiku-4-5"}
 	req := buildRequest(cfg, "do the thing", "", nil, resolved)
 
 	blocks := userBlocks(t, req)
@@ -49,13 +49,13 @@ func TestBuildRequest_NoEventSingleBlock(t *testing.T) {
 // TestBuildRequest_EventSecondBlock verifies an event-triggered run appends a
 // second user block carrying the preamble and the event JSON.
 func TestBuildRequest_EventSecondBlock(t *testing.T) {
-	resolved, err := model.Resolve("haiku")
+	resolved, err := model.Resolve("claude-haiku-4-5")
 	if err != nil {
 		t.Fatalf("model.Resolve: %v", err)
 	}
 
 	event := []byte(`{"source":"crm","type":"contact.created","event_id":"01J","payload":{"id":"c1"}}`)
-	cfg := prompt.Config{Provider: "anthropic", Model: "haiku"}
+	cfg := prompt.Config{Provider: "anthropic", Model: "claude-haiku-4-5"}
 	req := buildRequest(cfg, "do the thing", "", event, resolved)
 
 	blocks := userBlocks(t, req)

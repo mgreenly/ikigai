@@ -54,7 +54,7 @@ func seedRunningRunTrig(t *testing.T, store *Store, name, triggerSource, trigger
 		OwnerEmail: "owner@example.com",
 		Name:       name,
 		UserPrompt: "p",
-		Config:     Config{Provider: "anthropic", Model: "haiku"},
+		Config:     Config{Provider: "anthropic", Model: "claude-haiku-4-5"},
 		CreatedAt:  now,
 		UpdatedAt:  now,
 	}

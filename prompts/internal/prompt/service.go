@@ -124,6 +124,9 @@ func providerModelSupported(provider, modelID string) bool {
 	if err != nil || string(resolved.Provider) != provider {
 		return false
 	}
+	if resolved.BareID != strings.TrimSpace(modelID) {
+		return false
+	}
 	return model.Validate(resolved) == nil
 }
 

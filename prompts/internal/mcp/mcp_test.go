@@ -178,7 +178,7 @@ func TestSetAndClearTrigger(t *testing.T) {
 
 	created := call(t, h, "create", map[string]any{
 		"user_prompt": "hi",
-		"config":      map[string]any{"model": "haiku"},
+		"config":      map[string]any{"model": "claude-haiku-4-5"},
 	})
 	var cv struct {
 		PromptID string `json:"prompt_id"`
@@ -296,7 +296,7 @@ func createPrompt(t *testing.T, h *Handler) string {
 	t.Helper()
 	res := call(t, h, "create", map[string]any{
 		"user_prompt": "do a thing",
-		"config":      map[string]any{"model": "haiku"},
+		"config":      map[string]any{"model": "claude-haiku-4-5"},
 		"name":        "test",
 	})
 	var out struct {
@@ -456,7 +456,7 @@ func TestErrorMapping(t *testing.T) {
 
 	// update/delete are always allowed now (no ErrRunning), even with runs live.
 	upd := call(t, h, "update", map[string]any{
-		"prompt_id": id, "user_prompt": "x", "config": map[string]any{"model": "haiku"},
+		"prompt_id": id, "user_prompt": "x", "config": map[string]any{"model": "claude-haiku-4-5"},
 	})
 	if isError(upd) {
 		t.Fatalf("update while running: want success, got isError %+v", upd)

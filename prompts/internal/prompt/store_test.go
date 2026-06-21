@@ -32,7 +32,7 @@ func seedPrompt(t *testing.T, store *Store, owner string) Prompt {
 		OwnerEmail: owner,
 		Name:       "n",
 		UserPrompt: "p",
-		Config:     Config{Provider: "anthropic", Model: "haiku"},
+		Config:     Config{Provider: "anthropic", Model: "claude-haiku-4-5"},
 		CreatedAt:  now,
 		UpdatedAt:  now,
 	}
@@ -59,7 +59,7 @@ func TestStoreGetNotFound(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetPrompt: %v", err)
 	}
-	if got.Config.Model != "haiku" {
+	if got.Config.Model != "claude-haiku-4-5" {
 		t.Fatalf("config round-trip: %+v", got.Config)
 	}
 }
