@@ -19,3 +19,4 @@ Phase 08 ✅ realizes D9 — ask: the deterministic honest-empty gate + grounded
 Phase 09 ✅ realizes D10 — the eight-verb MCP tool surface behind RequireIdentity, with owner attribution
 Phase 10 ✅ realizes D10 — MCP surface conformance: the full eight-verb surface (ingest/status/ask/subjects/claims/page/health/reflection), bare-named and wired into the composition root, superseding Phase 9's partial health-only surface
 Phase 11 ✅ realizes D10 — MCP input schemas are valid JSON Schema: the object-schema helper omits `required` when empty so `subjects` no longer emits `"required": null`, which made strict clients reject the whole tools/list
+Phase 12 ✅ realizes D6 — `occurred_at` is an optional, format-validated ISO-8601 prefix on every subject type (required only for events, retained as extracted), replacing the empty-unless-event rule that deterministically failed ingests like "Gary Gygax"
