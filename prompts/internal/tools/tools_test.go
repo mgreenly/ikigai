@@ -97,6 +97,20 @@ func TestAllThreadsSandboxRootPerCall(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(filepath.Dir(rootA), "same.txt")); !os.IsNotExist(err) {
 		t.Fatalf("escape probe found unexpected file outside sandbox: %v", err)
 	}
+
+	_, err = findTool(t, toolsA, nameWrite).Call(ctx, mustJSON(t, map[string]any{
+		"file_path": "../escape.txt",
+		"content":   "outside",
+	}))
+	if err == nil {
+		t.Fatalf("Write of path escaping sandbox returned nil error")
+	}
+	if !strings.Contains(err.Error(), "escapes sandbox") {
+		t.Fatalf("Write escape error = %v, want escapes sandbox", err)
+	}
+	if _, err := os.Stat(filepath.Join(filepath.Dir(rootA), "escape.txt")); !os.IsNotExist(err) {
+		t.Fatalf("write escape created unexpected file outside sandbox: %v", err)
+	}
 }
 
 func findTool(t *testing.T, tools []agentkit.Tool, name string) agentkit.Tool {
