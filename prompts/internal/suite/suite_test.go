@@ -3,14 +3,17 @@ package suite
 import (
 	"context"
 	"encoding/json"
-	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
 	"path/filepath"
+	"reflect"
+	"strings"
 	"sync"
 	"testing"
+
+	"github.com/ikigenba/agentkit"
 )
 
 // rpcRequest mirrors the JSON-RPC 2.0 request envelope mcpclient sends, so a peer
@@ -35,6 +38,7 @@ type peer struct {
 	gotClient   string
 
 	tools    []map[string]any // tools/list payload
+	listErr  bool             // tools/list returns a JSON-RPC error
 	callText string           // text returned by tools/call
 	callErr  bool             // isError returned by tools/call
 }
@@ -64,6 +68,10 @@ func newPeer(t *testing.T, tools []map[string]any, callText string, callErr bool
 			p.mu.Lock()
 			p.listed = true
 			p.mu.Unlock()
+			if p.listErr {
+				writeError(t, w, req.ID, -32000, "list failed")
+				return
+			}
 			writeResult(t, w, req.ID, map[string]any{"tools": p.tools})
 		case "tools/call":
 			var params struct {
@@ -86,6 +94,13 @@ func newPeer(t *testing.T, tools []map[string]any, callText string, callErr bool
 		}
 	}))
 	t.Cleanup(p.srv.Close)
+	return p
+}
+
+func newListErrorPeer(t *testing.T) *peer {
+	t.Helper()
+	p := newPeer(t, nil, "", false)
+	p.listErr = true
 	return p
 }
 
@@ -133,27 +148,36 @@ func writeManifest(t *testing.T, root, svc, port string) {
 	}
 }
 
-// freeClosedPort returns a port that is currently free (a listener was opened to
-// claim it, then closed), so a manifest can point at a dead address.
-func freeClosedPort(t *testing.T) string {
-	t.Helper()
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatalf("listen: %v", err)
-	}
-	_, port, err := net.SplitHostPort(ln.Addr().String())
-	if err != nil {
-		t.Fatalf("split host port: %v", err)
-	}
-	ln.Close()
-	return port
-}
-
 func tool(name string) map[string]any {
 	return map[string]any{
 		"name":        name,
 		"description": name + " does a thing",
 		"inputSchema": map[string]any{"type": "object"},
+	}
+}
+
+func hasTool(tools []agentkit.Tool, name string) bool {
+	_, ok := findTool(tools, name)
+	return ok
+}
+
+func findTool(tools []agentkit.Tool, name string) (agentkit.Tool, bool) {
+	for _, tool := range tools {
+		if tool.Name() == name {
+			return tool, true
+		}
+	}
+	return nil, false
+}
+
+func assertJSONEqual(t *testing.T, got json.RawMessage, want any) {
+	t.Helper()
+	var gotValue any
+	if err := json.Unmarshal(got, &gotValue); err != nil {
+		t.Fatalf("unmarshal schema: %v", err)
+	}
+	if !reflect.DeepEqual(gotValue, want) {
+		t.Fatalf("schema = %#v, want %#v", gotValue, want)
 	}
 }
 
@@ -166,12 +190,12 @@ func TestSelfExcluded(t *testing.T) {
 	writeManifest(t, root, "prompts", portOf(t, self.srv.URL))
 	writeManifest(t, root, "crm", portOf(t, crm.srv.URL))
 
-	src := Discover(context.Background(), root, "owner@example.com", "p_123")
+	tools := Discover(context.Background(), root, "owner@example.com", "p_123")
 
-	if src.Owns("ikigenba_prompts_run") {
+	if hasTool(tools, "ikigenba_prompts_run") {
 		t.Error("self tool should not be owned")
 	}
-	if !src.Owns("ikigenba_crm_list") {
+	if !hasTool(tools, "ikigenba_crm_list") {
 		t.Error("crm tool should be owned")
 	}
 	self.mu.Lock()
@@ -182,21 +206,26 @@ func TestSelfExcluded(t *testing.T) {
 	}
 }
 
-// TestDownPeerSkipped: a manifest pointing at a dead port is skipped and
-// discovery still succeeds with the live peer's tools.
-func TestDownPeerSkipped(t *testing.T) {
+// TestToolsListErrorPeerSkipped: a peer whose tools/list returns an error is
+// skipped and discovery still succeeds with the live peer's tools.
+func TestToolsListErrorPeerSkipped(t *testing.T) {
+	// R-K32H-6XAV
 	root := t.TempDir()
 	live := newPeer(t, []map[string]any{tool("list")}, "ok", false)
+	bad := newListErrorPeer(t)
 	writeManifest(t, root, "crm", portOf(t, live.srv.URL))
-	writeManifest(t, root, "ledger", freeClosedPort(t)) // dead
+	writeManifest(t, root, "ledger", portOf(t, bad.srv.URL))
 
-	src := Discover(context.Background(), root, "owner@example.com", "p_123")
+	tools := Discover(context.Background(), root, "owner@example.com", "p_123")
 
-	if !src.Owns("ikigenba_crm_list") {
-		t.Error("live peer's tool missing; down peer broke discovery")
+	if !hasTool(tools, "ikigenba_crm_list") {
+		t.Error("live peer's tool missing; list-error peer broke discovery")
 	}
-	if got := len(src.Descriptors()); got != 1 {
-		t.Errorf("Descriptors len = %d, want 1 (down peer must contribute nothing)", got)
+	if hasTool(tools, "ikigenba_ledger_list") {
+		t.Error("list-error peer contributed a tool; want it skipped")
+	}
+	if got := len(tools); got != 1 {
+		t.Errorf("Discover returned %d tools, want 1 (list-error peer must contribute nothing)", got)
 	}
 }
 
@@ -219,56 +248,56 @@ func TestIdentityHeaders(t *testing.T) {
 	}
 }
 
-// TestDispatchRoutesToOwningPeer: Dispatch routes a discovered tool to the
-// correct peer and flattens the success result into a non-error block.
-func TestDispatchRoutesToOwningPeer(t *testing.T) {
+// TestReachablePeerYieldsQualifiedToolAndDispatches: a reachable peer's listed
+// tool becomes one service-qualified RawTool with its schema and call closure.
+func TestReachablePeerYieldsQualifiedToolAndDispatches(t *testing.T) {
+	// R-K4AD-KP1K
 	root := t.TempDir()
-	crm := newPeer(t, []map[string]any{tool("list")}, "crm-result", false)
-	ledger := newPeer(t, []map[string]any{tool("post")}, "ledger-result", false)
+	schema := map[string]any{
+		"type":       "object",
+		"properties": map[string]any{"q": map[string]any{"type": "string"}},
+	}
+	crm := newPeer(t, []map[string]any{{
+		"name":        "list",
+		"description": "List CRM records",
+		"inputSchema": schema,
+	}}, "crm-result", false)
 	writeManifest(t, root, "crm", portOf(t, crm.srv.URL))
-	writeManifest(t, root, "ledger", portOf(t, ledger.srv.URL))
 
-	src := Discover(context.Background(), root, "owner@example.com", "p_123")
+	tools := Discover(context.Background(), root, "owner@example.com", "p_123")
 
-	block, err := src.Dispatch(context.Background(), "ikigenba_crm_list", json.RawMessage(`{"q":"x"}`))
+	if got := len(tools); got != 1 {
+		t.Fatalf("Discover returned %d tools, want exactly 1", got)
+	}
+	got := tools[0]
+	if got.Name() != "ikigenba_crm_list" {
+		t.Fatalf("tool name = %q, want ikigenba_crm_list", got.Name())
+	}
+	if got.Description() != "List CRM records" {
+		t.Fatalf("description = %q, want List CRM records", got.Description())
+	}
+	assertJSONEqual(t, got.JSONSchema(), schema)
+
+	out, err := got.Call(context.Background(), json.RawMessage(`{"q":"x"}`))
 	if err != nil {
-		t.Fatalf("Dispatch returned a Go error, want nil: %v", err)
+		t.Fatalf("Call returned error: %v", err)
 	}
-	if block.IsError {
-		t.Errorf("block.IsError = true, want false on success")
-	}
-	var content string
-	if err := json.Unmarshal(block.Content, &content); err != nil {
-		t.Fatalf("unmarshal content: %v", err)
-	}
-	if content != "crm-result" {
-		t.Errorf("content = %q, want crm-result", content)
-	}
-	if block.ToolUseID != "" {
-		t.Errorf("ToolUseID = %q, want empty (the loop attaches it)", block.ToolUseID)
+	if out != "crm-result" {
+		t.Errorf("Call output = %q, want crm-result", out)
 	}
 
-	// The crm peer received the call; the ledger peer did not.
 	crm.mu.Lock()
 	crmCalls := append([]string(nil), crm.calledNames...)
 	crm.mu.Unlock()
-	ledger.mu.Lock()
-	ledgerCalls := append([]string(nil), ledger.calledNames...)
-	ledger.mu.Unlock()
 	if len(crmCalls) != 1 || crmCalls[0] != "list" {
 		t.Errorf("crm calledNames = %v, want [list] (peer answers to the bare verb)", crmCalls)
-	}
-	if len(ledgerCalls) != 0 {
-		t.Errorf("ledger calledNames = %v, want none", ledgerCalls)
 	}
 }
 
 // TestSharedBareVerbReQualifiedPerService: peers now register BARE verbs, so two
 // different services both expose the same verb (here `health`). The suite layer
 // must re-qualify each to ikigenba_<svc>_<verb> so BOTH remain reachable under
-// distinct advertised names, and Dispatch must route each to the correct peer —
-// verified via the bare verb each peer's tools/call actually received. This is the
-// regression guard for the silent cross-peer shadowing the bare-verb rename caused.
+// distinct advertised names, and each RawTool must route to the correct peer.
 func TestSharedBareVerbReQualifiedPerService(t *testing.T) {
 	root := t.TempDir()
 	crm := newPeer(t, []map[string]any{tool("health")}, "crm-health", false)
@@ -276,42 +305,36 @@ func TestSharedBareVerbReQualifiedPerService(t *testing.T) {
 	writeManifest(t, root, "crm", portOf(t, crm.srv.URL))
 	writeManifest(t, root, "ledger", portOf(t, ledger.srv.URL))
 
-	src := Discover(context.Background(), root, "owner@example.com", "p_123")
+	tools := Discover(context.Background(), root, "owner@example.com", "p_123")
 
 	// Both services' health tools survive under distinct service-qualified names.
-	if !src.Owns("ikigenba_crm_health") {
+	crmTool, ok := findTool(tools, "ikigenba_crm_health")
+	if !ok {
 		t.Error("crm health tool was shadowed; want ikigenba_crm_health owned")
 	}
-	if !src.Owns("ikigenba_ledger_health") {
+	ledgerTool, ok := findTool(tools, "ikigenba_ledger_health")
+	if !ok {
 		t.Error("ledger health tool was shadowed; want ikigenba_ledger_health owned")
 	}
-	if got := len(src.Descriptors()); got != 2 {
-		t.Errorf("Descriptors len = %d, want 2 (both health tools advertised)", got)
+	if got := len(tools); got != 2 {
+		t.Errorf("Discover returned %d tools, want 2 (both health tools advertised)", got)
 	}
 	names := map[string]bool{}
-	for _, d := range src.Descriptors() {
-		names[d.Name] = true
+	for _, tool := range tools {
+		names[tool.Name()] = true
 	}
 	if !names["ikigenba_crm_health"] || !names["ikigenba_ledger_health"] {
 		t.Errorf("advertised names = %v, want both ikigenba_crm_health and ikigenba_ledger_health", names)
 	}
 
-	// Dispatch each qualified name to its own peer; each peer receives the BARE verb.
-	crmBlock, err := src.Dispatch(context.Background(), "ikigenba_crm_health", nil)
+	// Call each qualified tool; each peer receives the BARE verb.
+	crmContent, err := crmTool.Call(context.Background(), nil)
 	if err != nil {
-		t.Fatalf("crm Dispatch Go error: %v", err)
+		t.Fatalf("crm tool call: %v", err)
 	}
-	ledgerBlock, err := src.Dispatch(context.Background(), "ikigenba_ledger_health", nil)
+	ledgerContent, err := ledgerTool.Call(context.Background(), nil)
 	if err != nil {
-		t.Fatalf("ledger Dispatch Go error: %v", err)
-	}
-
-	var crmContent, ledgerContent string
-	if err := json.Unmarshal(crmBlock.Content, &crmContent); err != nil {
-		t.Fatalf("unmarshal crm content: %v", err)
-	}
-	if err := json.Unmarshal(ledgerBlock.Content, &ledgerContent); err != nil {
-		t.Fatalf("unmarshal ledger content: %v", err)
+		t.Fatalf("ledger tool call: %v", err)
 	}
 	if crmContent != "crm-health" {
 		t.Errorf("crm content = %q, want crm-health (routed to wrong peer)", crmContent)
@@ -342,57 +365,57 @@ func TestWithinServiceDuplicateKeepsFirst(t *testing.T) {
 	crm := newPeer(t, []map[string]any{tool("health"), tool("health")}, "ok", false)
 	writeManifest(t, root, "crm", portOf(t, crm.srv.URL))
 
-	src := Discover(context.Background(), root, "owner@example.com", "p_123")
+	tools := Discover(context.Background(), root, "owner@example.com", "p_123")
 
-	if !src.Owns("ikigenba_crm_health") {
+	if !hasTool(tools, "ikigenba_crm_health") {
 		t.Error("want ikigenba_crm_health owned")
 	}
-	if got := len(src.Descriptors()); got != 1 {
-		t.Errorf("Descriptors len = %d, want 1 (within-service duplicate collapsed)", got)
+	if got := len(tools); got != 1 {
+		t.Errorf("Discover returned %d tools, want 1 (within-service duplicate collapsed)", got)
 	}
 }
 
-// TestDispatchDownstreamIsError: a downstream isError result yields an is_error
-// block with a nil Go error.
+// TestDispatchDownstreamIsError: a downstream isError result yields a
+// non-terminal Go error from the RawTool call.
 func TestDispatchDownstreamIsError(t *testing.T) {
 	root := t.TempDir()
 	crm := newPeer(t, []map[string]any{tool("list")}, "boom", true)
 	writeManifest(t, root, "crm", portOf(t, crm.srv.URL))
 
-	src := Discover(context.Background(), root, "owner@example.com", "p_123")
+	tools := Discover(context.Background(), root, "owner@example.com", "p_123")
+	tool, ok := findTool(tools, "ikigenba_crm_list")
+	if !ok {
+		t.Fatal("missing ikigenba_crm_list")
+	}
 
-	block, err := src.Dispatch(context.Background(), "ikigenba_crm_list", nil)
-	if err != nil {
-		t.Fatalf("Dispatch returned a Go error, want nil: %v", err)
+	out, err := tool.Call(context.Background(), nil)
+	if err == nil {
+		t.Fatal("Call returned nil error, want error for downstream isError")
 	}
-	if !block.IsError {
-		t.Error("block.IsError = false, want true for a downstream isError")
+	if out != "boom" {
+		t.Errorf("Call output = %q, want boom", out)
 	}
-	var content string
-	if err := json.Unmarshal(block.Content, &content); err != nil {
-		t.Fatalf("unmarshal content: %v", err)
-	}
-	if content != "boom" {
-		t.Errorf("content = %q, want boom", content)
+	if !strings.Contains(err.Error(), "boom") {
+		t.Errorf("Call error = %q, want it to include downstream text", err.Error())
 	}
 }
 
-// TestDispatchTransportFailureIsError: a Dispatch against a peer that died after
-// discovery yields an is_error block with a nil Go error (never run-crashing).
+// TestDispatchTransportFailureIsError: a Call against a peer that died after
+// discovery yields a non-terminal Go error.
 func TestDispatchTransportFailureIsError(t *testing.T) {
 	root := t.TempDir()
 	crm := newPeer(t, []map[string]any{tool("list")}, "ok", false)
 	writeManifest(t, root, "crm", portOf(t, crm.srv.URL))
 
-	src := Discover(context.Background(), root, "owner@example.com", "p_123")
+	tools := Discover(context.Background(), root, "owner@example.com", "p_123")
+	tool, ok := findTool(tools, "ikigenba_crm_list")
+	if !ok {
+		t.Fatal("missing ikigenba_crm_list")
+	}
 	crm.srv.Close() // kill the peer after the snapshot
 
-	block, err := src.Dispatch(context.Background(), "ikigenba_crm_list", nil)
-	if err != nil {
-		t.Fatalf("Dispatch returned a Go error, want nil: %v", err)
-	}
-	if !block.IsError {
-		t.Error("block.IsError = false, want true for a transport failure")
+	if _, err := tool.Call(context.Background(), nil); err == nil {
+		t.Fatal("Call returned nil error, want transport error")
 	}
 }
 
@@ -402,14 +425,11 @@ func TestInventoryErrorEmptySource(t *testing.T) {
 	// An unclosed '[' in the root makes inventory.Read's filepath.Glob return a
 	// bad-pattern error, exercising the inventory-error branch (not the empty
 	// match path).
-	src := Discover(context.Background(), "bad[root", "owner@example.com", "p_123")
-	if src == nil {
-		t.Fatal("Discover returned nil, want a non-nil empty source")
+	tools := Discover(context.Background(), "bad[root", "owner@example.com", "p_123")
+	if tools == nil {
+		t.Fatal("Discover returned nil, want a non-nil empty slice")
 	}
-	if got := len(src.Descriptors()); got != 0 {
-		t.Errorf("Descriptors len = %d, want 0", got)
-	}
-	if src.Owns("anything") {
-		t.Error("empty source should own nothing")
+	if got := len(tools); got != 0 {
+		t.Errorf("Discover returned %d tools, want 0", got)
 	}
 }

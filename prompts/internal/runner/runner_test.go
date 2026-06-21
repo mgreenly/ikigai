@@ -10,25 +10,14 @@ import (
 	"testing"
 	"time"
 
-	"agentkit/agent"
 	"agentkit/provider"
-	"agentkit/wire"
 	"prompts/internal/db"
 	"prompts/internal/ids"
 	"prompts/internal/prompt"
 	"prompts/internal/sandbox"
+
+	published "github.com/ikigenba/agentkit"
 )
-
-// fakeToolSource is a minimal agent.ToolSource that owns no tools — enough to
-// be threaded into agent.Run without changing the run's behavior, while letting
-// tests observe that the discover seam was invoked with the run's identity.
-type fakeToolSource struct{}
-
-func (fakeToolSource) Descriptors() []provider.Tool { return nil }
-func (fakeToolSource) Owns(string) bool             { return false }
-func (fakeToolSource) Dispatch(context.Context, string, json.RawMessage) (wire.ToolResultBlock, error) {
-	return wire.ToolResultBlock{}, nil
-}
 
 // fakeClient is a provider.Client whose Stream returns a pre-canned sequence
 // of events. If block is true, Stream emits nothing and instead blocks until
@@ -226,13 +215,13 @@ func TestSpawn_DiscoversSuiteTools(t *testing.T) {
 		gotOwner    string
 		gotPromptID string
 	)
-	r.discover = func(ctx context.Context, owner, promptID string) agent.ToolSource {
+	r.discover = func(ctx context.Context, owner, promptID string) []published.Tool {
 		mu.Lock()
 		calls++
 		gotOwner = owner
 		gotPromptID = promptID
 		mu.Unlock()
-		return fakeToolSource{}
+		return []published.Tool{}
 	}
 
 	r.Spawn(run)
@@ -258,7 +247,7 @@ func TestSpawn_DiscoversSuiteTools(t *testing.T) {
 // TestNew_DefaultDiscoverWired confirms the default construction (no seam
 // override) installs a working discover closure over the configured
 // manifestRoot — a smoke assertion that the default path is wired and returns a
-// non-nil ToolSource (suite.Discover's best-effort contract) without standing up
+// non-nil tool slice (suite.Discover's best-effort contract) without standing up
 // real peers.
 func TestNew_DefaultDiscoverWired(t *testing.T) {
 	ctx := context.Background()
@@ -279,8 +268,8 @@ func TestNew_DefaultDiscoverWired(t *testing.T) {
 	if r.discover == nil {
 		t.Fatalf("New left discover seam nil")
 	}
-	if src := r.discover(ctx, "owner@example.com", "p_123"); src == nil {
-		t.Fatalf("default discover returned nil ToolSource; want non-nil (best-effort contract)")
+	if tools := r.discover(ctx, "owner@example.com", "p_123"); tools == nil {
+		t.Fatalf("default discover returned nil tool slice; want non-nil (best-effort contract)")
 	}
 }
 

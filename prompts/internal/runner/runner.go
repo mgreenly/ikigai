@@ -14,6 +14,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -30,6 +31,8 @@ import (
 	"prompts/internal/prompt"
 	"prompts/internal/sandbox"
 	"prompts/internal/suite"
+
+	published "github.com/ikigenba/agentkit"
 )
 
 // clientFactory builds a provider.Client from an API key and the resolved
@@ -67,18 +70,61 @@ func defaultClientFactory(apiKey, modelID string) (provider.Client, error) {
 	return c, nil
 }
 
+type suiteToolSource []published.Tool
+
+func (s suiteToolSource) Descriptors() []provider.Tool {
+	out := make([]provider.Tool, 0, len(s))
+	for _, tool := range s {
+		out = append(out, provider.Tool{
+			Name:        tool.Name(),
+			InputSchema: tool.JSONSchema(),
+		})
+	}
+	return out
+}
+
+func (s suiteToolSource) Owns(name string) bool {
+	_, ok := s.find(name)
+	return ok
+}
+
+func (s suiteToolSource) Dispatch(ctx context.Context, name string, input json.RawMessage) (wire.ToolResultBlock, error) {
+	tool, ok := s.find(name)
+	if !ok {
+		return wire.ToolResultBlock{}, fmt.Errorf("suite: no peer owns tool %q", name)
+	}
+	text, err := tool.Call(ctx, input)
+	if err != nil {
+		return wire.ToolResultBlock{}, err
+	}
+	block, err := wire.NewToolResultBlock("", false, text)
+	if err != nil {
+		return wire.ToolResultBlock{}, fmt.Errorf("suite: tool %q result encode failed: %w", name, err)
+	}
+	return block, nil
+}
+
+func (s suiteToolSource) find(name string) (published.Tool, bool) {
+	for _, tool := range s {
+		if tool.Name() == name {
+			return tool, true
+		}
+	}
+	return nil, false
+}
+
 // Runner drives run lifecycles. It satisfies prompt.Runner.
 type Runner struct {
 	store     *prompt.Store
 	sandbox   *sandbox.Manager
 	ttl       time.Duration
 	newClient clientFactory
-	// discover snapshots the box's other loopback MCP services as an
-	// agent.ToolSource at run spawn (Surface 2 — in-run suite tools). It
+	// discover snapshots the box's other loopback MCP services as published
+	// agentkit tools at run spawn (Surface 2 — in-run suite tools). It
 	// defaults to a closure over the configured manifestRoot calling
-	// suite.Discover, but is injectable so tests can supply a fake source and
+	// suite.Discover, but is injectable so tests can supply fake tools and
 	// never touch the real inventory or any peer.
-	discover func(ctx context.Context, owner, promptID string) agent.ToolSource
+	discover func(ctx context.Context, owner, promptID string) []published.Tool
 
 	mu      sync.Mutex
 	cancels map[string]context.CancelFunc
@@ -98,7 +144,7 @@ func New(store *prompt.Store, sb *sandbox.Manager, ttl time.Duration, manifestRo
 		sandbox:   sb,
 		ttl:       ttl,
 		newClient: defaultClientFactory,
-		discover: func(ctx context.Context, owner, promptID string) agent.ToolSource {
+		discover: func(ctx context.Context, owner, promptID string) []published.Tool {
 			return suite.Discover(ctx, manifestRoot, owner, promptID)
 		},
 		cancels:       make(map[string]context.CancelFunc),
@@ -219,11 +265,10 @@ func (r *Runner) execute(run prompt.Run) {
 	sandboxRoot := r.sandbox.Root(run.ID)
 
 	// Snapshot the suite's loopback MCP tools available to this run's owner
-	// (Surface 2). Best-effort by contract: never nil, never errors. The agent
-	// loop advertises the source's Descriptors and routes owned tool_use blocks
-	// to it; the built-in tools.All() set is advertised separately by
-	// buildRequest (single source of truth for suite tools is this source).
-	suiteSource := r.discover(ctx, run.OwnerEmail, run.PromptID)
+	// (Surface 2). Best-effort by contract: never nil, never errors. This runner
+	// still executes through the older agent loop, so adapt the published tools at
+	// the boundary; suite.Discover itself does not expose the old ToolSource type.
+	suiteSource := suiteToolSource(r.discover(ctx, run.OwnerEmail, run.PromptID))
 
 	runErr := agent.Run(ctx, client, wireSess, req, agent.Options{SandboxRoot: sandboxRoot, Tools: suiteSource})
 

@@ -1,13 +1,10 @@
 // Package suite owns prompts' suite-specific discovery and identity policy: at
 // run spawn it snapshots the box's other loopback MCP services and exposes their
-// tools to the in-run agent as an agent.ToolSource, talking to each peer on
-// behalf of the run's owner.
+// tools to the in-run agent, talking to each peer on behalf of the run's owner.
 //
 // Discovery is best-effort by design (decision: a down peer must not break a
 // run). An unreadable inventory, an unreachable peer, or a garbled tools/list is
-// logged loud and skipped; Discover never returns an error and never panics, and
-// a downstream tool failure becomes an is_error tool_result rather than a
-// run-crashing Go error (decision #9).
+// logged loud and skipped; Discover never returns an error and never panics.
 //
 // Identity flows in as arguments (composition-root pattern): Discover takes
 // manifestRoot/owner/promptID and reads no environment. The runner reads
@@ -22,12 +19,9 @@ import (
 	"sync"
 	"time"
 
-	"agentkit/agent"
 	"agentkit/mcpclient"
-	"agentkit/provider"
-	"agentkit/wire"
-
 	"appkit/inventory"
+	"github.com/ikigenba/agentkit"
 )
 
 // selfName is the service excluded from discovery: a run must not spawn another
@@ -48,26 +42,20 @@ const clientIDPrefix = "prompts:"
 // manifestRoot, excludes the prompts service itself, and concurrently lists each
 // remaining peer's tools, attaching the run's identity headers. Best-effort:
 // unreachable or garbled peers are logged and skipped; it never returns an error
-// and never panics, always returning a non-nil ToolSource (possibly empty).
-func Discover(ctx context.Context, manifestRoot, owner, promptID string) agent.ToolSource {
+// and never panics, always returning a non-nil slice (possibly empty).
+func Discover(ctx context.Context, manifestRoot, owner, promptID string) []agentkit.Tool {
 	headers := map[string]string{
 		"X-Owner-Email": owner,
 		"X-Client-Id":   clientIDPrefix + promptID,
 	}
 
-	src := &source{
-		tools: map[string]provider.Tool{},
-		owner: map[string]*mcpclient.Client{},
-		verb:  map[string]string{},
-	}
-
 	services, err := inventory.Read(manifestRoot)
 	if err != nil {
 		// Treat an unreadable inventory as zero services: discovery degrades to an
-		// empty source rather than failing the run.
+		// empty slice rather than failing the run.
 		slog.Error("suite discovery: inventory read failed, no suite tools",
 			"manifest_root", manifestRoot, "err", err)
-		return src
+		return []agentkit.Tool{}
 	}
 
 	// Concurrently list tools from every non-self peer. Each peer's result lands
@@ -113,32 +101,38 @@ func Discover(ctx context.Context, manifestRoot, owner, promptID string) agent.T
 	}
 	wg.Wait()
 
-	// Build the index qualified-name -> (tool, owning client, bare verb). Peers now
-	// register BARE verbs (per docs/adr-mcp-tool-bare-names.md), so the same verb
-	// (health, reflection, …) is exposed by every service and is NOT unique across
+	// Build RawTool values. Peers now register BARE verbs, so the same verb
+	// (health, reflection, ...) is exposed by every service and is not unique across
 	// peers. The suite layer re-qualifies each bare verb back to ikigenba_<svc>_<verb>
-	// using the owning service's name, restoring the globally-unique flat namespace
-	// the in-run agent saw before the rename. The dup guard below therefore only
-	// fires on a genuine WITHIN-service duplicate (the same service listing one verb
-	// twice) — log loud and keep the first rather than silently shadow.
+	// using the owning service's name. The duplicate guard below therefore only
+	// fires on a genuine within-service duplicate.
+	tools := make([]agentkit.Tool, 0)
+	seen := map[string]bool{}
 	for _, l := range listings {
 		for _, t := range l.tools {
 			qualified := qualify(l.svc.Name, t.Name)
-			if _, dup := src.owner[qualified]; dup {
+			if seen[qualified] {
 				slog.Error("suite discovery: duplicate tool name within service, keeping first",
 					"tool", qualified, "service", l.svc.Name)
 				continue
 			}
-			src.tools[qualified] = provider.Tool{
-				Name:        qualified,
-				InputSchema: t.InputSchema,
-			}
-			src.owner[qualified] = l.client
-			src.verb[qualified] = t.Name
+			seen[qualified] = true
+			client := l.client
+			bare := t.Name
+			tools = append(tools, agentkit.RawTool(qualified, t.Description, t.InputSchema, func(ctx context.Context, input json.RawMessage) (string, error) {
+				text, isError, err := client.CallTool(ctx, bare, input)
+				if err != nil {
+					return "", fmt.Errorf("suite: tool %q failed: %w", qualified, err)
+				}
+				if isError {
+					return text, fmt.Errorf("suite: tool %q returned error: %s", qualified, text)
+				}
+				return text, nil
+			}))
 		}
 	}
 
-	return src
+	return tools
 }
 
 // qualify reconstructs the service-qualified tool name ikigenba_<svc>_<verb> that
@@ -147,81 +141,4 @@ func Discover(ctx context.Context, manifestRoot, owner, promptID string) agent.T
 // prefix), verb is the bare verb the peer now registers.
 func qualify(svc, verb string) string {
 	return "ikigenba_" + svc + "_" + verb
-}
-
-// source is the concrete agent.ToolSource returned by Discover. It holds the
-// snapshot taken at run spawn, all keyed on the service-qualified tool name
-// (ikigenba_<svc>_<verb>) the in-run agent sees: a qualified-name->descriptor map,
-// a qualified-name->owning-client index, and a qualified-name->bare-verb map used
-// to translate back to the name the peer actually registered at dispatch time. It
-// is read-only after construction and safe for concurrent dispatch.
-type source struct {
-	tools map[string]provider.Tool
-	owner map[string]*mcpclient.Client
-	verb  map[string]string
-}
-
-// Descriptors returns the provider-neutral advertisement for every discovered
-// tool. provider.Tool carries Name and InputSchema only (no description field),
-// so the upstream description is not advertised; the schema round-trips as raw
-// JSON unchanged.
-func (s *source) Descriptors() []provider.Tool {
-	out := make([]provider.Tool, 0, len(s.tools))
-	for _, t := range s.tools {
-		out = append(out, t)
-	}
-	return out
-}
-
-// Owns reports whether name is one of the discovered suite tools (exact match).
-func (s *source) Owns(name string) bool {
-	_, ok := s.owner[name]
-	return ok
-}
-
-// Dispatch routes the named tool to its owning peer's tools/call and flattens
-// the result into a wire.ToolResultBlock. It NEVER returns a non-nil Go error
-// (decision #9): a transport failure or a downstream isError becomes an is_error
-// block so the in-run agent loop continues. The tool_use id is attached by the
-// agent loop, so the returned block carries an empty ToolUseID.
-func (s *source) Dispatch(ctx context.Context, name string, input json.RawMessage) (wire.ToolResultBlock, error) {
-	client, ok := s.owner[name]
-	if !ok {
-		// Owns gates Dispatch, so this should be unreachable; surface it as an
-		// is_error block rather than a Go error to honor the never-crash contract.
-		return errBlock(fmt.Sprintf("suite: no peer owns tool %q", name)), nil
-	}
-
-	// The index is keyed on the service-qualified name the agent sees, but the peer
-	// only answers to the BARE verb it registered (docs/adr-mcp-tool-bare-names.md);
-	// translate back before the outbound tools/call.
-	bare := s.verb[name]
-	text, isError, err := client.CallTool(ctx, bare, input)
-	if err != nil {
-		// Transport / JSON-RPC failure: surface the message as an is_error result.
-		return errBlock(fmt.Sprintf("suite: tool %q failed: %v", name, err)), nil
-	}
-
-	block, berr := wire.NewToolResultBlock("", isError, text)
-	if berr != nil {
-		// Construction failure should never happen for a plain string; fall back to
-		// a minimal is_error block, still without a Go error.
-		return errBlock(fmt.Sprintf("suite: tool %q result encode failed: %v", name, berr)), nil
-	}
-	return block, nil
-}
-
-// errBlock builds a minimal is_error tool_result carrying msg. It tolerates a
-// (practically impossible) marshal failure of a plain string by hand-building
-// the block so the never-crash contract holds even in the degenerate case.
-func errBlock(msg string) wire.ToolResultBlock {
-	block, err := wire.NewToolResultBlock("", true, msg)
-	if err != nil {
-		return wire.ToolResultBlock{
-			Type:    "tool_result",
-			IsError: true,
-			Content: json.RawMessage(`""`),
-		}
-	}
-	return block
 }
