@@ -135,6 +135,12 @@ func TestBuildCompilerUsesDefaultCompileCallSite(t *testing.T) {
 	if req.Model != wantSite.Model {
 		t.Fatalf("request model = %q, want %q from compile.DefaultCallSite", req.Model, wantSite.Model)
 	}
+	if req.System != wantSite.System {
+		t.Fatalf("request system = %q, want %q from compile.DefaultCallSite", req.System, wantSite.System)
+	}
+	if len(req.Tools) != 0 {
+		t.Fatalf("request tools len = %d, want tool-less compile call site", len(req.Tools))
+	}
 	if wantSite.Temperature == nil {
 		t.Fatal("compile.DefaultCallSite temperature is nil, want deterministic temperature")
 	}
@@ -144,7 +150,7 @@ func TestBuildCompilerUsesDefaultCompileCallSite(t *testing.T) {
 	if !reflect.DeepEqual(wantSite.Reasoning, llm.DisableReasoning()) {
 		t.Fatalf("compile.DefaultCallSite reasoning = %#v, want llm.DisableReasoning()", wantSite.Reasoning)
 	}
-	if req.Gen.Temperature == nil || *req.Gen.Temperature != *wantSite.Temperature || !reflect.DeepEqual(req.Gen.Reasoning, agentkit.DisableReasoning()) {
+	if req.Gen.Temperature == nil || *req.Gen.Temperature != *wantSite.Temperature || !req.Gen.Reasoning.Disabled() {
 		t.Fatalf("gen settings = %#v, want compile.DefaultCallSite temperature %v and disabled reasoning", req.Gen, *wantSite.Temperature)
 	}
 }
