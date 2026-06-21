@@ -8,15 +8,18 @@ Each Decision maps to its `docs/design/DNN.md`; every `R-XXXX-XXXX` id maps to i
 - D2 → `docs/design/D02.md` — Service skeleton: package layout, Spec wiring, config/secret composition root — owns R-6RVX-P1IG
 - D3 → `docs/design/D03.md` — The phase-1 data model — owns R-7SNG-0G9A, R-7TVC-E7ZZ, R-7V38-RZQO, R-7WB5-5RHD
 - D4 → `docs/design/D04.md` — The ingest pipeline and worker — owns R-M8RN-87WV, R-M9ZJ-LZNK, R-MB7F-ZRE9, R-MCFC-DJ4Y, R-MDN8-RAVN, R-MG31-IUD1
-- D5 → `docs/design/D05.md` — The LLM seam (`internal/llm`): json-mode helper — owns R-J8QP-BETB, R-J9YL-P6K0, R-JCEE-GQ1E, R-JDMA-UHS3, R-JEU7-89IS
-- D6 → `docs/design/D06.md` — The extract stage (`internal/extract`) — owns R-VYU0-BPAX, R-W01W-PH1M, R-W19T-38SB, R-W2HP-H0J0
-- D7 → `docs/design/D07.md` — The compile stage (`internal/compile`): full recompile, 12k cap — owns R-FQLB-QWS6, R-FT14-IG9K, R-FU90-W809, R-FVGX-9ZQY, R-FWOT-NRHN
+- D5 → `docs/design/D05.md` — The LLM seam (`internal/llm`): json-mode helper — owns R-4BCC-0EHJ, R-J8QP-BETB, R-J9YL-P6K0, R-JCEE-GQ1E, R-JDMA-UHS3, R-JEU7-89IS
+- D6 → `docs/design/D06.md` — The extract stage (`internal/extract`) — owns R-4CK8-E688, R-VYU0-BPAX, R-W19T-38SB, R-W2HP-H0J0, R-XJBY-H8JZ, R-XKJU-V0AO
+- D7 → `docs/design/D07.md` — The compile stage (`internal/compile`): full recompile, 12k cap — owns R-4DS4-RXYX, R-FQLB-QWS6, R-FT14-IG9K, R-FU90-W809, R-FVGX-9ZQY, R-FWOT-NRHN
 - D8 → `docs/design/D08.md` — The retrieval seam (`internal/retrieve`): keyword now, hybrid later — owns R-CLF2-TMI8, R-CMMZ-7E8X, R-CNUV-L5ZM, R-CP2R-YXQB, R-CQAO-CPH0
-- D9 → `docs/design/D09.md` — `ask` (`internal/ask`): grounded, cited, honest-empty agent — owns R-5THH-I3WL, R-5UPD-VVNA, R-5VXA-9NDZ, R-5X56-NF4O, R-5YD3-16VD
-- D10 → `docs/design/D10.md` — The MCP tool surface (`internal/mcp`) + identity — owns R-MUQ4-K1JS, R-MVY0-XTAH, R-MX5X-BL16, R-MYDT-PCRV, R-MZLQ-34IK
+- D9 → `docs/design/D09.md` — `ask` (`internal/ask`): grounded, cited, honest-empty agent — owns R-5THH-I3WL, R-5UPD-VVNA, R-5VXA-9NDZ, R-5X56-NF4O, R-5YD3-16VD, R-7SXQ-B9AX
+- D10 → `docs/design/D10.md` — The MCP tool surface (`internal/mcp`) + identity — owns R-MUQ4-K1JS, R-MVY0-XTAH, R-MX5X-BL16, R-MYDT-PCRV, R-MZLQ-34IK, R-N4KO-2WTZ
 
 ## Verification ids → Decision
 
+- R-4BCC-0EHJ → D5 → `docs/design/D05.md`
+- R-4CK8-E688 → D6 → `docs/design/D06.md`
+- R-4DS4-RXYX → D7 → `docs/design/D07.md`
 - R-5THH-I3WL → D9 → `docs/design/D09.md`
 - R-5UPD-VVNA → D9 → `docs/design/D09.md`
 - R-5VXA-9NDZ → D9 → `docs/design/D09.md`
@@ -24,6 +27,7 @@ Each Decision maps to its `docs/design/DNN.md`; every `R-XXXX-XXXX` id maps to i
 - R-5YD3-16VD → D9 → `docs/design/D09.md`
 - R-6RVX-P1IG → D2 → `docs/design/D02.md`
 - R-7SNG-0G9A → D3 → `docs/design/D03.md`
+- R-7SXQ-B9AX → D9 → `docs/design/D09.md`
 - R-7TVC-E7ZZ → D3 → `docs/design/D03.md`
 - R-7V38-RZQO → D3 → `docs/design/D03.md`
 - R-7WB5-5RHD → D3 → `docs/design/D03.md`
@@ -55,7 +59,9 @@ Each Decision maps to its `docs/design/DNN.md`; every `R-XXXX-XXXX` id maps to i
 - R-MX5X-BL16 → D10 → `docs/design/D10.md`
 - R-MYDT-PCRV → D10 → `docs/design/D10.md`
 - R-MZLQ-34IK → D10 → `docs/design/D10.md`
+- R-N4KO-2WTZ → D10 → `docs/design/D10.md`
 - R-VYU0-BPAX → D6 → `docs/design/D06.md`
-- R-W01W-PH1M → D6 → `docs/design/D06.md`
 - R-W19T-38SB → D6 → `docs/design/D06.md`
 - R-W2HP-H0J0 → D6 → `docs/design/D06.md`
+- R-XJBY-H8JZ → D6 → `docs/design/D06.md`
+- R-XKJU-V0AO → D6 → `docs/design/D06.md`
