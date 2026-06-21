@@ -1,3 +1,0 @@
-retrieval lane: sweep
-This lane is not LLM-prompted; the swept knobs are config values
-(candidate FTS thresholds, per-lane sweep thresholds, RRF k, embed model/dims).

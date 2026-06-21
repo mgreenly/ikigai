@@ -11,7 +11,10 @@ repo="$(cd "$here/.." && pwd)"
 # dev mirror of each service's bin/setup. Generated files are gitignored and
 # overwritten every run, so this stays idempotent.
 mkdir -p "$here/locations"
-for svc in crm cron dropbox gmail ledger notify prompts sites wiki; do
+# nginx.conf puts all scratch paths (client_body/proxy/fastcgi/uwsgi/scgi) under
+# tmp/; nginx won't create the parent itself, so ensure it exists.
+mkdir -p "$here/tmp"
+for svc in crm cron dropbox gmail ledger notify prompts scripts sites wiki; do
 	frag="$repo/$svc/etc/nginx.conf"
 	[ -f "$frag" ] || continue
 	port="$(REGISTRY_ROOT="$repo" "$repo/bin/registry" port "$svc")"

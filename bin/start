@@ -55,22 +55,29 @@ build_svc() {
 # --clean. Resource-id / auth-server defaults already point at the :8080 front
 # door, so only the port and db path need setting here.
 
+# source_up — the per-service .envrc files start with direnv's `source_up` to
+# inherit the repo-root .envrc (GOFLAGS). We source those files in plain bash, not
+# direnv, so provide a shim that does the same inherit. Defined in the parent
+# shell; the run_bg `(...)` subshells inherit it.
+source_up() { source "$repo/.envrc"; }
+
 launch_dashboard() {
 	# dashboard/.envrc supplies GOOGLE_* secrets, DASHBOARD_PUBLIC_BASE_URL
 	# (http://localhost:8080) and DASHBOARD_MANIFEST_ROOT (the repo root, from
 	# which it derives its AS resource list).
 	source "$repo/dashboard/.envrc"
-	exec "$RUN_DIR/bin/dashboard" serve --port 3000 --db "$RUN_DIR/dashboard.db"
+	export DASHBOARD_DB_PATH="$RUN_DIR/dashboard.db"
+	exec "$RUN_DIR/bin/dashboard" serve --port 3000
 }
 
 launch_crm() {
 	export CRM_DB_PATH="$RUN_DIR/crm.db"
-	exec "$RUN_DIR/bin/crm" --port 3001
+	exec "$RUN_DIR/bin/crm" serve --port 3001
 }
 
 launch_ledger() {
 	export LEDGER_DB_PATH="$RUN_DIR/ledger.db"
-	exec "$RUN_DIR/bin/ledger" --port 3002
+	exec "$RUN_DIR/bin/ledger" serve --port 3002
 }
 
 launch_notify() {
@@ -78,18 +85,58 @@ launch_notify() {
 	# bin/registry against the repo-root manifests.
 	source "$repo/notify/.envrc"
 	export NOTIFY_DB_PATH="$RUN_DIR/notify.db"
-	exec "$RUN_DIR/bin/notify" --port 3003
+	exec "$RUN_DIR/bin/notify" serve --port 3003
 }
 
 launch_prompts() {
 	source "$repo/prompts/.envrc"
 	export PROMPTS_DB_PATH="$RUN_DIR/prompts.db"
-	exec "$RUN_DIR/bin/prompts" --port 3004
+	exec "$RUN_DIR/bin/prompts" serve --port 3004
 }
 
 launch_wiki() {
+	# wiki/.envrc supplies ANTHROPIC_API_KEY (from ~/.secrets) for ingest + ask.
+	source "$repo/wiki/.envrc"
 	export WIKI_DB_PATH="$RUN_DIR/wiki.db"
-	exec "$RUN_DIR/bin/wiki" --port 3006
+	exec "$RUN_DIR/bin/wiki" serve --port 3006
+}
+
+launch_dropbox() {
+	# dropbox/.envrc supplies DROPBOX_APP_KEY/SECRET/REFRESH_TOKEN (from ~/.secrets).
+	# The local mirror lives under tmp/ so it's wiped with bin/stop --clean.
+	source "$repo/dropbox/.envrc"
+	export DROPBOX_DB_PATH="$RUN_DIR/dropbox.db"
+	export DROPBOX_MIRROR_PATH="$RUN_DIR/dropbox-mirror"
+	exec "$RUN_DIR/bin/dropbox" serve --port 3005
+}
+
+launch_cron() {
+	# cron holds no secret and needs no extra config.
+	export CRON_DB_PATH="$RUN_DIR/cron.db"
+	exec "$RUN_DIR/bin/cron" serve --port 3007
+}
+
+launch_gmail() {
+	# gmail/.envrc supplies GMAIL_CLIENT_ID/SECRET/REFRESH_TOKEN (from ~/.secrets).
+	source "$repo/gmail/.envrc"
+	export GMAIL_DB_PATH="$RUN_DIR/gmail.db"
+	exec "$RUN_DIR/bin/gmail" serve --port 3008
+}
+
+launch_scripts() {
+	# scripts holds no secret; it's a multi-upstream event-plane consumer whose
+	# SCRIPTS_<SRC>_FEED_URL values default to the loopback /feed of each peer.
+	source "$repo/scripts/.envrc"
+	export SCRIPTS_DB_PATH="$RUN_DIR/scripts.db"
+	exec "$RUN_DIR/bin/scripts" serve --port 3009
+}
+
+launch_sites() {
+	# sites is a pure MCP service; SITES_ROOT is the sandbox root for served sites.
+	export SITES_DB_PATH="$RUN_DIR/sites.db"
+	export SITES_ROOT="$RUN_DIR/sites-root"
+	mkdir -p "$SITES_ROOT"
+	exec "$RUN_DIR/bin/sites" serve --port 3010
 }
 
 launch_nginx() {
@@ -113,7 +160,7 @@ wait_port() {
 }
 
 echo ">> building services"
-for svc in dashboard crm ledger notify prompts wiki; do
+for svc in dashboard crm ledger notify prompts wiki dropbox cron gmail scripts sites; do
 	build_svc "$svc"
 done
 
@@ -123,15 +170,20 @@ echo ">> starting services"
 run_bg dashboard launch_dashboard
 run_bg crm launch_crm
 run_bg ledger launch_ledger
-run_bg notify launch_notify
+run_bg dropbox launch_dropbox
+run_bg cron launch_cron
+run_bg gmail launch_gmail
 run_bg prompts launch_prompts
+run_bg scripts launch_scripts
+run_bg sites launch_sites
 run_bg wiki launch_wiki
+run_bg notify launch_notify
 run_bg nginx launch_nginx
 
 echo ">> waiting for listeners"
-declare -A PORTS=([dashboard]=3000 [crm]=3001 [ledger]=3002 [notify]=3003 [prompts]=3004 [wiki]=3006 [nginx]=8080)
+declare -A PORTS=([dashboard]=3000 [crm]=3001 [ledger]=3002 [notify]=3003 [prompts]=3004 [dropbox]=3005 [wiki]=3006 [cron]=3007 [gmail]=3008 [scripts]=3009 [sites]=3010 [nginx]=8080)
 fail=0
-for name in dashboard crm ledger notify prompts wiki nginx; do
+for name in dashboard crm ledger notify prompts dropbox cron gmail scripts sites wiki nginx; do
 	port="${PORTS[$name]}"
 	if ! running "$name"; then
 		echo "  ✗ $name exited — see tmp/$name.log"
@@ -149,8 +201,9 @@ done
 cat <<EOF
 
 Suite up. Front door: http://localhost:8080  (apex -> dashboard)
-  /srv/crm/    /srv/ledger/    /srv/notify/    /srv/prompts/    /srv/wiki/
-Loopback:  dashboard :3000  crm :3001  ledger :3002  notify :3003  prompts :3004  wiki :3006
+  /srv/crm/  /srv/ledger/  /srv/notify/  /srv/prompts/  /srv/dropbox/  /srv/cron/  /srv/gmail/  /srv/scripts/  /srv/sites/  /srv/wiki/
+Loopback:  dashboard :3000  crm :3001  ledger :3002  notify :3003  prompts :3004
+           dropbox :3005  wiki :3006  cron :3007  gmail :3008  scripts :3009  sites :3010
 Logs: tmp/<svc>.log   Stop: bin/stop   (bin/stop --clean also wipes tmp/ state)
 EOF
 
