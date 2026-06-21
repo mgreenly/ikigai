@@ -17,6 +17,7 @@ import (
 	"appkit/server"
 	agentkit "github.com/ikigenba/agentkit"
 
+	"wiki/internal/compile"
 	"wiki/internal/db"
 	"wiki/internal/llm"
 	"wiki/internal/wiki"
@@ -106,6 +107,7 @@ func TestBuildSpecWiresEightMCPTools(t *testing.T) {
 func TestBuildCompilerUsesDefaultCompileCallSite(t *testing.T) {
 	// R-4DS4-RXYX
 	prov := &capturingProvider{responses: []string{`{"title":"Acme Robotics","body":"Acme Robotics runs a Tulsa lab."}`}}
+	wantSite := compile.DefaultCallSite("root-model")
 	compiler := buildCompiler(wiki.Config{
 		ModelID: "root-model",
 		LLM:     llm.New(prov, nil),
@@ -129,11 +131,14 @@ func TestBuildCompilerUsesDefaultCompileCallSite(t *testing.T) {
 		t.Fatalf("requests len = %d, want 1", len(prov.requests))
 	}
 	req := prov.requests[0]
-	if req.Model != "root-model" {
-		t.Fatalf("request model = %q, want root-model", req.Model)
+	if req.Model != wantSite.Model {
+		t.Fatalf("request model = %q, want %q from compile.DefaultCallSite", req.Model, wantSite.Model)
 	}
-	if req.Gen.Temperature == nil || *req.Gen.Temperature != 0 || !req.Gen.Reasoning.Disabled() {
-		t.Fatalf("gen settings = %#v, want compile default temperature 0 and disabled reasoning", req.Gen)
+	if wantSite.Temperature == nil {
+		t.Fatal("compile.DefaultCallSite temperature is nil, want deterministic temperature")
+	}
+	if req.Gen.Temperature == nil || *req.Gen.Temperature != *wantSite.Temperature || !req.Gen.Reasoning.Disabled() {
+		t.Fatalf("gen settings = %#v, want compile.DefaultCallSite temperature %v and disabled reasoning", req.Gen, *wantSite.Temperature)
 	}
 }
 
