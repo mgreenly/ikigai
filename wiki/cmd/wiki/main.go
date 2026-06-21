@@ -41,7 +41,7 @@ func buildSpec(cfg wiki.Config) appkit.Spec {
 		}
 		db := rt.DB()
 		extractor := extract.New(cfg.LLM, extract.DefaultCallSite(cfg.ModelID))
-		compiler := compile.New(cfg.LLM, llm.CallSite{Model: cfg.ModelID}, nil)
+		compiler := buildCompiler(cfg)
 		svc = wiki.NewService(db, extractor, compiler, time.Now)
 		retriever := retrieve.NewService(db, retrieve.NewKeyword(db), retrieve.SearchLimits{
 			Default: cfg.SearchDefault,
@@ -63,6 +63,10 @@ func buildSpec(cfg wiki.Config) appkit.Spec {
 		func(ctx context.Context) error { return worker.Run(ctx, svc) },
 	}
 	return spec
+}
+
+func buildCompiler(cfg wiki.Config) *compile.Compiler {
+	return compile.New(cfg.LLM, compile.DefaultCallSite(cfg.ModelID), nil)
 }
 
 func serveCommand(args []string) bool {

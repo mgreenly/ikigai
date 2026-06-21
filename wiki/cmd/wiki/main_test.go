@@ -15,8 +15,10 @@ import (
 	"time"
 
 	"appkit/server"
+	agentkit "github.com/ikigenba/agentkit"
 
 	"wiki/internal/db"
+	"wiki/internal/llm"
 	"wiki/internal/wiki"
 )
 
@@ -101,6 +103,40 @@ func TestBuildSpecWiresEightMCPTools(t *testing.T) {
 	}
 }
 
+func TestBuildCompilerUsesDefaultCompileCallSite(t *testing.T) {
+	// R-4DS4-RXYX
+	prov := &capturingProvider{responses: []string{`{"title":"Acme Robotics","body":"Acme Robotics runs a Tulsa lab."}`}}
+	compiler := buildCompiler(wiki.Config{
+		ModelID: "root-model",
+		LLM:     llm.New(prov, nil),
+	})
+
+	title, body, err := compiler.Compile(context.Background(), wiki.Subject{
+		ID:       "subject-acme",
+		Name:     "Acme Robotics",
+		NormName: "acme robotics",
+		Type:     "entity",
+	}, []wiki.Claim{
+		{ID: "claim-001", SubjectID: "subject-acme", Body: "Acme Robotics runs a Tulsa lab."},
+	})
+	if err != nil {
+		t.Fatalf("Compile returned error: %v", err)
+	}
+	if title != "Acme Robotics" || body != "Acme Robotics runs a Tulsa lab." {
+		t.Fatalf("Compile result = %q/%q, want mocked page", title, body)
+	}
+	if len(prov.requests) != 1 {
+		t.Fatalf("requests len = %d, want 1", len(prov.requests))
+	}
+	req := prov.requests[0]
+	if req.Model != "root-model" {
+		t.Fatalf("request model = %q, want root-model", req.Model)
+	}
+	if req.Gen.Temperature == nil || *req.Gen.Temperature != 0 || !req.Gen.Reasoning.Disabled() {
+		t.Fatalf("gen settings = %#v, want compile default temperature 0 and disabled reasoning", req.Gen)
+	}
+}
+
 func withoutAnthropicKey(env []string) []string {
 	out := env[:0]
 	for _, kv := range env {
@@ -123,4 +159,46 @@ func migratedDB(t *testing.T, ctx context.Context) *sql.DB {
 		t.Fatalf("Migrate: %v", err)
 	}
 	return conn
+}
+
+type capturingProvider struct {
+	responses []string
+	requests  []agentkit.Request
+}
+
+func (p *capturingProvider) RoundTrip(_ context.Context, req *agentkit.Request) *agentkit.RoundTrip {
+	p.requests = append(p.requests, cloneRequest(req))
+	text := `{"title":"Untitled","body":"Empty."}`
+	if len(p.responses) > 0 {
+		text = p.responses[0]
+		p.responses = p.responses[1:]
+	}
+	return agentkit.NewRoundTrip(
+		agentkit.Message{Role: agentkit.RoleAssistant, Blocks: []agentkit.Block{agentkit.TextBlock{Text: text}}},
+		agentkit.FinishStop,
+		agentkit.Usage{InputUncached: 1, Output: 1, Total: 2},
+		nil,
+		nil,
+	)
+}
+
+func (p *capturingProvider) Name() string {
+	return "capturing"
+}
+
+func (p *capturingProvider) Pricing(string) (agentkit.Pricing, bool) {
+	return agentkit.Pricing{Tiers: []agentkit.RateTier{{MinInputTokens: 0}}}, true
+}
+
+func cloneRequest(req *agentkit.Request) agentkit.Request {
+	if req == nil {
+		return agentkit.Request{}
+	}
+	return agentkit.Request{
+		Model:    req.Model,
+		System:   req.System,
+		Messages: append([]agentkit.Message(nil), req.Messages...),
+		Tools:    append([]agentkit.Tool(nil), req.Tools...),
+		Gen:      req.Gen,
+	}
 }

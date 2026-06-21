@@ -73,6 +73,30 @@ func TestCompileUsesInjectedCallSiteWithoutTools(t *testing.T) {
 	}
 }
 
+func TestDefaultCallSiteUsesDeterministicReasoningOffSettings(t *testing.T) {
+	// R-4DS4-RXYX
+	site := DefaultCallSite("compile-model")
+	if site.Model != "compile-model" {
+		t.Fatalf("model = %q, want compile-model", site.Model)
+	}
+	if site.Temperature == nil || *site.Temperature != 0 {
+		t.Fatalf("temperature = %#v, want 0", site.Temperature)
+	}
+
+	prov := &scriptedProvider{responses: []string{`{"title":"Acme Robotics","body":"Acme Robotics operates a Tulsa research lab."}`}}
+	compiler := New(llm.New(prov, nil), site, nil)
+	if _, _, err := compiler.Compile(context.Background(), acmeSubject(), acmeClaims()); err != nil {
+		t.Fatalf("Compile returned error: %v", err)
+	}
+	if len(prov.requests) != 1 {
+		t.Fatalf("requests len = %d, want 1", len(prov.requests))
+	}
+	req := prov.requests[0]
+	if req.Gen.Temperature == nil || *req.Gen.Temperature != 0 || !req.Gen.Reasoning.Disabled() {
+		t.Fatalf("gen settings = %#v, want default temperature 0 and disabled reasoning", req.Gen)
+	}
+}
+
 func TestCompileRebuildsFromClaimsWithoutPriorGeneratedBody(t *testing.T) {
 	// R-FU90-W809
 	prov := &scriptedProvider{responses: []string{

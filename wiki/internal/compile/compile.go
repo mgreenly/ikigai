@@ -28,6 +28,16 @@ func New(c *llm.Client, site llm.CallSite, log *slog.Logger) *Compiler {
 	return &Compiler{c: c, site: site, maxTighten: 2, log: log}
 }
 
+// DefaultCallSite returns the production compile-stage generation settings.
+func DefaultCallSite(model string) llm.CallSite {
+	temp := 0.0
+	return llm.CallSite{
+		Model:       model,
+		Temperature: &temp,
+		Reasoning:   llm.DisableReasoning(),
+	}
+}
+
 // Compile rebuilds one subject's page from its complete claim set.
 func (c *Compiler) Compile(ctx context.Context, s wiki.Subject, claims []wiki.Claim) (title, body string, err error) {
 	if c == nil {
