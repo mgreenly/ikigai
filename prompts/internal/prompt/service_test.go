@@ -69,11 +69,19 @@ func newTestService(t *testing.T) (*Service, *Store, *sandbox.Manager, string) {
 }
 
 func validConfig() Config {
-	return Config{Model: "haiku"}
+	return Config{Provider: "anthropic", Model: testAnthropicModel}
 }
 
 const ownerA = "a@example.com"
 const ownerB = "b@example.com"
+
+const (
+	testAnthropicModel  = "claude-haiku-4-5"
+	testAnthropicSonnet = "claude-sonnet-4-6"
+	testOpenAIModel     = "gpt-5.5"
+	testGoogleModel     = "gemini-3.1-pro-preview"
+	testZaiModel        = "glm-5.2"
+)
 
 func mustCreate(t *testing.T, svc *Service, owner string) Prompt {
 	t.Helper()
@@ -199,38 +207,103 @@ func TestRun_NoEventJSON(t *testing.T) {
 	}
 }
 
-func TestConfigValidation(t *testing.T) {
+func TestValidateConfigRejectsUnsupportedProviderFirst(t *testing.T) {
+	// R-JVR2-WAUP
+	err := validateConfig(Config{Provider: "bogus", Model: testAnthropicModel}, func(key string) string {
+		t.Fatalf("getenv should not be called for unsupported provider, got %q", key)
+		return ""
+	})
+	ve := requireValidationError(t, err)
+	if !strings.Contains(ve.Error(), `provider "bogus"`) {
+		t.Fatalf("error = %q, want unsupported provider detail", ve.Error())
+	}
+}
+
+func TestValidateConfigChecksModelAgainstSelectedProvider(t *testing.T) {
+	// R-JWYZ-A2LE
+	env := fakeEnv(map[string]string{"ANTHROPIC_API_KEY": "sk-test", "OPENAI_API_KEY": "sk-test"})
+	err := validateConfig(Config{Provider: "anthropic", Model: testOpenAIModel}, env)
+	ve := requireValidationError(t, err)
+	if !strings.Contains(ve.Error(), "does not support model") {
+		t.Fatalf("error = %q, want provider/model mismatch detail", ve.Error())
+	}
+
+	if err := validateConfig(Config{Provider: "openai", Model: testOpenAIModel}, env); err != nil {
+		t.Fatalf("openai %s should validate with OPENAI_API_KEY: %v", testOpenAIModel, err)
+	}
+}
+
+func TestValidateConfigUsesProviderSpecificEnvVar(t *testing.T) {
+	// R-JY6V-NUC3
+	tests := []struct {
+		name   string
+		cfg    Config
+		envVar string
+	}{
+		{"anthropic", Config{Provider: "anthropic", Model: testAnthropicModel}, "ANTHROPIC_API_KEY"},
+		{"openai", Config{Provider: "openai", Model: testOpenAIModel}, "OPENAI_API_KEY"},
+		{"google", Config{Provider: "google", Model: testGoogleModel}, "GEMINI_API_KEY"},
+		{"zai", Config{Provider: "zai", Model: testZaiModel}, "ZAI_API_KEY"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var requested []string
+			err := validateConfig(tt.cfg, func(key string) string {
+				requested = append(requested, key)
+				return ""
+			})
+			ve := requireValidationError(t, err)
+			if len(requested) != 1 || requested[0] != tt.envVar {
+				t.Fatalf("getenv calls = %v, want [%s]", requested, tt.envVar)
+			}
+			if !strings.Contains(ve.Error(), tt.envVar) {
+				t.Fatalf("error = %q, want missing %s", ve.Error(), tt.envVar)
+			}
+		})
+	}
+}
+
+func TestServiceCreateAndUpdatePreserveValidatedProvider(t *testing.T) {
+	// R-JZES-1M2S
+	t.Setenv("GEMINI_API_KEY", "sk-test")
+	t.Setenv("OPENAI_API_KEY", "sk-test")
 	svc, _, _, _ := newTestService(t)
 	ctx := context.Background()
 
-	t.Run("unknown model", func(t *testing.T) {
-		t.Setenv("ANTHROPIC_API_KEY", "sk-test")
-		_, err := svc.Create(ctx, ownerA, CreateInput{UserPrompt: "p", Config: Config{Model: "totally-bogus"}})
-		var ve *ValidationError
-		if !errors.As(err, &ve) {
-			t.Fatalf("want ValidationError, got %v", err)
-		}
+	created, err := svc.Create(ctx, ownerA, CreateInput{
+		UserPrompt: "p",
+		Config:     Config{Provider: "google", Model: testGoogleModel},
 	})
+	if err != nil {
+		t.Fatalf("Create google config: %v", err)
+	}
+	if created.Config.Provider != "google" || created.Config.Model != testGoogleModel {
+		t.Fatalf("created config = %+v, want google/%s", created.Config, testGoogleModel)
+	}
 
-	t.Run("non-anthropic model", func(t *testing.T) {
-		t.Setenv("ANTHROPIC_API_KEY", "sk-test")
-		for _, m := range []string{"gpt-4o", "gemini-3.1-pro-preview"} {
-			_, err := svc.Create(ctx, ownerA, CreateInput{UserPrompt: "p", Config: Config{Model: m}})
-			var ve *ValidationError
-			if !errors.As(err, &ve) {
-				t.Fatalf("model %q: want ValidationError, got %v", m, err)
-			}
-		}
+	updated, err := svc.Update(ctx, ownerA, created.ID, UpdateInput{
+		UserPrompt: "p2",
+		Config:     Config{Provider: "openai", Model: testOpenAIModel},
 	})
+	if err != nil {
+		t.Fatalf("Update openai config: %v", err)
+	}
+	if updated.Config.Provider != "openai" || updated.Config.Model != testOpenAIModel {
+		t.Fatalf("updated config = %+v, want openai/%s", updated.Config, testOpenAIModel)
+	}
+}
 
-	t.Run("missing api key", func(t *testing.T) {
-		t.Setenv("ANTHROPIC_API_KEY", "")
-		_, err := svc.Create(ctx, ownerA, CreateInput{UserPrompt: "p", Config: validConfig()})
-		var ve *ValidationError
-		if !errors.As(err, &ve) {
-			t.Fatalf("want ValidationError, got %v", err)
-		}
-	})
+func fakeEnv(values map[string]string) func(string) string {
+	return func(key string) string { return values[key] }
+}
+
+func requireValidationError(t *testing.T, err error) *ValidationError {
+	t.Helper()
+	var ve *ValidationError
+	if !errors.As(err, &ve) {
+		t.Fatalf("want ValidationError, got %v", err)
+	}
+	return ve
 }
 
 // TestUpdateDeleteAllowedWhileRunning: with single-flight gone, Update and
@@ -378,23 +451,23 @@ func TestUpdateRevalidatesAndPersists(t *testing.T) {
 	sess := mustCreate(t, svc, ownerA)
 
 	// Update with a bad model is rejected.
-	if _, err := svc.Update(ctx, ownerA, sess.ID, UpdateInput{UserPrompt: "p", Config: Config{Model: "gpt-4o"}}); err == nil {
-		t.Fatalf("Update with non-anthropic model: want error, got nil")
+	if _, err := svc.Update(ctx, ownerA, sess.ID, UpdateInput{UserPrompt: "p", Config: Config{Provider: "anthropic", Model: testOpenAIModel}}); err == nil {
+		t.Fatalf("Update with provider/model mismatch: want error, got nil")
 	}
 
 	// Valid update persists.
-	updated, err := svc.Update(ctx, ownerA, sess.ID, UpdateInput{Name: "renamed", UserPrompt: "new prompt", Config: Config{Model: "sonnet"}})
+	updated, err := svc.Update(ctx, ownerA, sess.ID, UpdateInput{Name: "renamed", UserPrompt: "new prompt", Config: Config{Provider: "anthropic", Model: testAnthropicSonnet}})
 	if err != nil {
 		t.Fatalf("Update: %v", err)
 	}
-	if updated.Name != "renamed" || updated.UserPrompt != "new prompt" || updated.Config.Model != "sonnet" {
+	if updated.Name != "renamed" || updated.UserPrompt != "new prompt" || updated.Config.Model != testAnthropicSonnet {
 		t.Fatalf("update not applied: %+v", updated)
 	}
 	got, err := svc.Get(ctx, ownerA, sess.ID)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
-	if got.UserPrompt != "new prompt" || got.Config.Model != "sonnet" {
+	if got.UserPrompt != "new prompt" || got.Config.Model != testAnthropicSonnet {
 		t.Fatalf("update not persisted: %+v", got.Prompt)
 	}
 }
@@ -520,7 +593,7 @@ func TestRun_MaterializesFrozenInput_SurvivesMutation(t *testing.T) {
 		Name:         "frozen",
 		UserPrompt:   "ORIGINAL user prompt",
 		SystemPrompt: "ORIGINAL system prompt",
-		Config:       Config{Model: "haiku"},
+		Config:       validConfig(),
 	})
 	if err != nil {
 		t.Fatalf("Create: %v", err)
@@ -547,8 +620,8 @@ func TestRun_MaterializesFrozenInput_SurvivesMutation(t *testing.T) {
 	if got := readInput("system_prompt.txt"); got != "ORIGINAL system prompt" {
 		t.Fatalf("system_prompt.txt = %q, want ORIGINAL", got)
 	}
-	if got := readInput("config.json"); !strings.Contains(got, "haiku") {
-		t.Fatalf("config.json = %q, want model haiku", got)
+	if got := readInput("config.json"); !strings.Contains(got, testAnthropicModel) {
+		t.Fatalf("config.json = %q, want model %s", got, testAnthropicModel)
 	}
 
 	// Mutate the prompt mid-run.
@@ -556,7 +629,7 @@ func TestRun_MaterializesFrozenInput_SurvivesMutation(t *testing.T) {
 		Name:         "frozen",
 		UserPrompt:   "MUTATED user prompt",
 		SystemPrompt: "MUTATED system prompt",
-		Config:       Config{Model: "haiku"},
+		Config:       validConfig(),
 	}); err != nil {
 		t.Fatalf("Update: %v", err)
 	}
@@ -610,7 +683,7 @@ func TestImportHappyAndIdempotent(t *testing.T) {
 	}
 	// The imported prompt must be runnable: its config must validate exactly as
 	// Create requires (model resolves to an Anthropic model, key present).
-	if err := validateConfig(p.Config); err != nil {
+	if err := validateConfig(p.Config, os.Getenv); err != nil {
 		t.Fatalf("imported prompt config does not validate (run would reject it): %v", err)
 	}
 	if p.Config.Provider != "anthropic" {
@@ -630,7 +703,7 @@ func TestImportHappyAndIdempotent(t *testing.T) {
 		t.Fatalf("re-import did not update user_prompt: %q", p2.UserPrompt)
 	}
 	// Config survives the re-import (a re-pull is a body refresh, not a config change).
-	if err := validateConfig(p2.Config); err != nil {
+	if err := validateConfig(p2.Config, os.Getenv); err != nil {
 		t.Fatalf("re-imported prompt config does not validate: %v", err)
 	}
 	list, err := store.ListPrompts(ctx, ownerA)

@@ -30,15 +30,28 @@ var (
 )
 
 // Config is the normalized config blob stored as prompts.config_json. It is
-// validated at create/update time (model resolves to an Anthropic model, key
-// present) and stored verbatim as JSON so the schema stays stable as the set
-// of tunables grows.
+// validated at create/update time and stored verbatim as JSON so the schema
+// stays stable as the set of tunables grows.
 type Config struct {
-	Provider    string   `json:"provider"`
-	Model       string   `json:"model"`
-	Effort      string   `json:"effort,omitempty"`
-	MaxTokens   int      `json:"max_tokens,omitempty"`
-	Temperature *float64 `json:"temperature,omitempty"`
+	Provider string `json:"provider"`
+	Model    string `json:"model"`
+
+	Temperature    *float64 `json:"temperature,omitempty"`
+	TopP           *float64 `json:"top_p,omitempty"`
+	MaxTokens      int      `json:"max_tokens,omitempty"`
+	Effort         string   `json:"effort,omitempty"`
+	ThinkingBudget *int     `json:"thinking_budget,omitempty"`
+	ThinkingLevel  string   `json:"thinking_level,omitempty"`
+	Thinking       *bool    `json:"thinking,omitempty"`
+
+	MaxAttempts      int    `json:"max_attempts,omitempty"`
+	BaseDelay        string `json:"base_delay,omitempty"`
+	MaxDelay         string `json:"max_delay,omitempty"`
+	MaxElapsed       string `json:"max_elapsed,omitempty"`
+	IgnoreRetryAfter bool   `json:"ignore_retry_after,omitempty"`
+
+	ToolLoopLimit int    `json:"tool_loop_limit,omitempty"`
+	BaseURL       string `json:"base_url,omitempty"`
 }
 
 // Prompt mirrors the prompts table; Config is carried parsed.

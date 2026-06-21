@@ -88,7 +88,7 @@ func TestService_Create_InlineTriggers(t *testing.T) {
 
 	p, err := svc.Create(ctx, "owner@example.com", CreateInput{
 		UserPrompt: "do the thing",
-		Config:     Config{Model: "haiku"},
+		Config:     validConfig(),
 		Triggers: []TriggerSpec{
 			{Source: "dropbox", EventFilter: "file.created"},
 			{Source: "cron", EventFilter: "cron.nightly"},
@@ -108,7 +108,7 @@ func TestService_Create_InlineTriggers(t *testing.T) {
 	// An invalid inline trigger rejects the whole create — no prompt row written.
 	_, err = svc.Create(ctx, "owner@example.com", CreateInput{
 		UserPrompt: "bad",
-		Config:     Config{Model: "haiku"},
+		Config:     validConfig(),
 		Triggers:   []TriggerSpec{{Source: "ledger", EventFilter: "file.created"}},
 	})
 	if !errors.Is(err, ErrValidation) {

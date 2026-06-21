@@ -84,27 +84,62 @@ type UpdateInput struct {
 	Config       Config
 }
 
-// validateConfig enforces the §5.1 rules: the model resolves, its provider is
-// anthropic, and ANTHROPIC_API_KEY is present (validated per prompt).
-func validateConfig(c Config) error {
-	resolved, err := model.Resolve(c.Model)
-	if err != nil {
-		return validationErrf("invalid config: %v", err)
+var providerEnvVars = map[string]string{
+	"anthropic": "ANTHROPIC_API_KEY",
+	"openai":    "OPENAI_API_KEY",
+	"google":    "GEMINI_API_KEY",
+	"zai":       "ZAI_API_KEY",
+}
+
+var zaiModels = map[string]struct{}{
+	"glm-5.2": {},
+	"glm-5.1": {},
+	"glm-4.7": {},
+	"glm-4.6": {},
+}
+
+// validateConfig enforces the provider/model/key contract for the stored
+// config. getenv is injected so tests can validate the key contract without
+// mutating process-wide environment.
+func validateConfig(c Config, getenv func(string) string) error {
+	envVar, ok := providerEnvVars[c.Provider]
+	if !ok {
+		return validationErrf("invalid config: provider %q is not supported", c.Provider)
 	}
-	if resolved.Provider != model.ProviderAnthropic {
-		return validationErrf("invalid config: model %q resolves to provider %q; only anthropic is supported", c.Model, resolved.Provider)
+	if !providerModelSupported(c.Provider, c.Model) {
+		return validationErrf("invalid config: provider %q does not support model %q", c.Provider, c.Model)
 	}
-	if os.Getenv("ANTHROPIC_API_KEY") == "" {
-		return validationErrf("invalid config: ANTHROPIC_API_KEY is not set")
+	if getenv(envVar) == "" {
+		return validationErrf("invalid config: %s is not set", envVar)
 	}
 	return nil
 }
 
+func providerModelSupported(provider, modelID string) bool {
+	if provider == "zai" {
+		_, ok := zaiModels[modelID]
+		return ok
+	}
+	resolved, err := model.Resolve(modelID)
+	if err != nil || string(resolved.Provider) != provider {
+		return false
+	}
+	return model.Validate(resolved) == nil
+}
+
+func withDefaultProvider(c Config) Config {
+	if c.Provider == "" {
+		c.Provider = "anthropic"
+	}
+	return c
+}
+
 // Create validates config and inserts a prompt. The sandbox is no longer
 // created here — it is per-run, created at Run time keyed by run_id.
-// Config.Provider is normalized to "anthropic".
+// Config.Provider is validated against the configured model and preserved.
 func (s *Service) Create(ctx context.Context, ownerEmail string, in CreateInput) (Prompt, error) {
-	if err := validateConfig(in.Config); err != nil {
+	cfg := withDefaultProvider(in.Config)
+	if err := validateConfig(cfg, os.Getenv); err != nil {
 		return Prompt{}, err
 	}
 	// Validate every inline trigger BEFORE inserting the prompt, so an invalid
@@ -114,9 +149,6 @@ func (s *Service) Create(ctx context.Context, ownerEmail string, in CreateInput)
 			return Prompt{}, err
 		}
 	}
-	cfg := in.Config
-	cfg.Provider = string(model.ProviderAnthropic)
-
 	now := s.nowStr()
 	p := Prompt{
 		ID:           ids.NewULID(),
@@ -189,7 +221,7 @@ func (s *Service) Import(ctx context.Context, owner, sourcePath, name string) (P
 	// normalized to anthropic, exactly as Create does. Config is left as-is on a
 	// re-import (the upsert refreshes name + user_prompt only), so this default
 	// only takes effect on the first import.
-	cfg := Config{Provider: string(model.ProviderAnthropic), Model: importDefaultModel}
+	cfg := Config{Provider: "anthropic", Model: importDefaultModel}
 	return s.store.UpsertPromptBySource(ctx, owner, sourcePath, name, string(data), cfg, s.nowStr())
 }
 
@@ -241,11 +273,10 @@ func (s *Service) Update(ctx context.Context, ownerEmail, id string, in UpdateIn
 	if err != nil {
 		return Prompt{}, err
 	}
-	if err := validateConfig(in.Config); err != nil {
+	cfg := withDefaultProvider(in.Config)
+	if err := validateConfig(cfg, os.Getenv); err != nil {
 		return Prompt{}, err
 	}
-	cfg := in.Config
-	cfg.Provider = string(model.ProviderAnthropic)
 
 	p.Name = in.Name
 	p.UserPrompt = in.UserPrompt
