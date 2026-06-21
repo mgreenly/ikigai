@@ -17,3 +17,4 @@ Phase 06 ✅ realizes D8 — the retrieval seam: FTS5 keyword lane + Retriever i
 Phase 07 ✅ realizes D4 — the ingest pipeline: fire-and-return Ingest, JobStatus, and the single integrate/commit worker
 Phase 08 ✅ realizes D9 — ask: the deterministic honest-empty gate + grounded, cited, read-only agent
 Phase 09 ✅ realizes D10 — the eight-verb MCP tool surface behind RequireIdentity, with owner attribution
+Phase 10 ⬜ realizes D10 — MCP surface conformance: the full eight-verb surface (ingest/status/ask/subjects/claims/page/health/reflection), bare-named and wired into the composition root, superseding Phase 9's partial health-only surface
