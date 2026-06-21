@@ -38,6 +38,17 @@ func New(c *llm.Client, site llm.CallSite) *Extractor {
 	return &Extractor{c: c, site: site}
 }
 
+// DefaultCallSite returns the production extract-stage generation settings.
+func DefaultCallSite(model string) llm.CallSite {
+	temp := 0.0
+	return llm.CallSite{
+		Model:           model,
+		Temperature:     &temp,
+		Reasoning:       llm.DisableReasoning(),
+		MaxParseRetries: 2,
+	}
+}
+
 // Extract extracts subjects and claims from source text.
 func (e *Extractor) Extract(ctx context.Context, h DocumentHeader, text string) ([]ExtractedSubject, error) {
 	if e == nil {

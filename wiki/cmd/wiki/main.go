@@ -40,7 +40,7 @@ func buildSpec(cfg wiki.Config) appkit.Spec {
 			return fmt.Errorf("wiki: no DB handle on router")
 		}
 		db := rt.DB()
-		extractor := extract.New(cfg.LLM, llm.CallSite{Model: cfg.ModelID})
+		extractor := extract.New(cfg.LLM, extract.DefaultCallSite(cfg.ModelID))
 		compiler := compile.New(cfg.LLM, llm.CallSite{Model: cfg.ModelID}, nil)
 		svc = wiki.NewService(db, extractor, compiler, time.Now)
 		retriever := retrieve.NewService(db, retrieve.NewKeyword(db), retrieve.SearchLimits{

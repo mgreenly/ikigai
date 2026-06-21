@@ -8,6 +8,7 @@ import (
 	"io"
 	"reflect"
 	"strings"
+	"unsafe"
 
 	agentkit "github.com/ikigenba/agentkit"
 )
@@ -35,6 +36,13 @@ type CallSite struct {
 	Reasoning       any
 	System          string
 	MaxParseRetries int
+}
+
+type disabledReasoning struct{}
+
+// DisableReasoning requests explicit reasoning-off generation for a call site.
+func DisableReasoning() any {
+	return disabledReasoning{}
 }
 
 // JSON runs a tool-less structured generation and validates the decoded value.
@@ -126,6 +134,10 @@ func setReasoning(gen *agentkit.GenSettings, reasoning any) {
 	}
 
 	field := reflect.ValueOf(gen).Elem().FieldByName("Reasoning")
+	if _, ok := reasoning.(disabledReasoning); ok {
+		setDisabledReasoning(field)
+		return
+	}
 	value := reflect.ValueOf(reasoning)
 	if value.Type().AssignableTo(field.Type()) {
 		field.Set(value)
@@ -134,6 +146,30 @@ func setReasoning(gen *agentkit.GenSettings, reasoning any) {
 	if value.Type().ConvertibleTo(field.Type()) {
 		field.Set(value.Convert(field.Type()))
 	}
+}
+
+func setDisabledReasoning(field reflect.Value) {
+	if !field.IsValid() || !field.CanSet() {
+		return
+	}
+
+	if isIntKind(field.Kind()) {
+		field.SetInt(1)
+		return
+	}
+
+	if field.Kind() != reflect.Struct {
+		return
+	}
+	tag := field.FieldByName("tag")
+	if !tag.IsValid() || !tag.CanAddr() || !isIntKind(tag.Kind()) {
+		return
+	}
+	reflect.NewAt(tag.Type(), unsafe.Pointer(tag.UnsafeAddr())).Elem().SetInt(3)
+}
+
+func isIntKind(k reflect.Kind) bool {
+	return k >= reflect.Int && k <= reflect.Int64
 }
 
 // ExtractJSON carves the first JSON object or array from a decorated reply.

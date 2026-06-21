@@ -332,9 +332,58 @@ func TestExtractRepromptsAfterOccurredAtValidationFailure(t *testing.T) {
 	}
 }
 
+func TestDefaultCallSiteRetriesBadThenGoodExtraction(t *testing.T) {
+	// R-4CK8-E688
+	prov := &scriptedProvider{responses: []string{
+		`{"subjects":[{
+			"type":"place",
+			"kind":"city",
+			"name":"Tulsa",
+			"occurred_at":"",
+			"claims":["Tulsa hosted the meeting."]
+		}]}`,
+		`{"subjects":[{
+			"type":"event",
+			"kind":"meeting",
+			"name":"Tulsa planning meeting",
+			"occurred_at":"2026-06-20",
+			"claims":["Tulsa hosted the planning meeting on June 20, 2026."]
+		}]}`,
+	}}
+	site := DefaultCallSite("extract-model")
+	if site.Model != "extract-model" {
+		t.Fatalf("model = %q, want extract-model", site.Model)
+	}
+	if site.Temperature == nil || *site.Temperature != 0 {
+		t.Fatalf("temperature = %#v, want 0", site.Temperature)
+	}
+	if site.MaxParseRetries != 2 {
+		t.Fatalf("MaxParseRetries = %d, want 2", site.MaxParseRetries)
+	}
+	extractor := New(llm.New(prov, nil), site)
+
+	got, err := extractor.Extract(context.Background(), validHeader(), "Tulsa hosted the planning meeting on June 20, 2026.")
+	if err != nil {
+		t.Fatalf("Extract returned error after default retry: %v", err)
+	}
+	if len(got) != 1 || got[0].Type != "event" || got[0].OccurredAt != "2026-06-20" {
+		t.Fatalf("subjects = %#v, want corrected event from second response", got)
+	}
+	if len(prov.requests) != 2 {
+		t.Fatalf("requests len = %d, want bad response to trigger one re-prompt", len(prov.requests))
+	}
+	req := prov.requests[0]
+	if req.Gen.Temperature == nil || *req.Gen.Temperature != 0 || !req.Gen.Reasoning.Disabled() {
+		t.Fatalf("gen settings = %#v, want default temperature 0 and disabled reasoning", req.Gen)
+	}
+	corrective := strings.Join(requestTexts(prov.requests[1]), "\n")
+	if !strings.Contains(corrective, "previous response") || !strings.Contains(corrective, "type must be entity, event, or concept") {
+		t.Fatalf("corrective prompt = %q, want validation error in re-prompt", corrective)
+	}
+}
+
 func TestExtractUsesInjectedLLMCallSiteWithoutTools(t *testing.T) {
 	// R-W2HP-H0J0
-	temp := 0.0
 	prov := &scriptedProvider{responses: []string{`{"subjects":[{
 		"type":"concept",
 		"kind":"method",
@@ -342,12 +391,7 @@ func TestExtractUsesInjectedLLMCallSiteWithoutTools(t *testing.T) {
 		"occurred_at":"",
 		"claims":["Claim extraction turns source text into self-contained statements."]
 	}]}`}}
-	site := llm.CallSite{
-		Model:       "extract-model",
-		Temperature: &temp,
-		Reasoning:   agentkit.DisableReasoning(),
-		System:      "extract subjects only",
-	}
+	site := DefaultCallSite("extract-model")
 	extractor := New(llm.New(prov, nil), site)
 
 	if _, err := extractor.Extract(context.Background(), validHeader(), "Claim extraction turns source text into statements."); err != nil {
@@ -357,14 +401,14 @@ func TestExtractUsesInjectedLLMCallSiteWithoutTools(t *testing.T) {
 		t.Fatalf("requests len = %d, want 1", len(prov.requests))
 	}
 	req := prov.requests[0]
-	if req.Model != site.Model || req.System != site.System {
-		t.Fatalf("request config = %#v, want injected call site model and system", req)
+	if req.Model != site.Model {
+		t.Fatalf("request model = %q, want %q", req.Model, site.Model)
 	}
 	if len(req.Tools) != 0 {
 		t.Fatalf("request tools len = %d, want tool-less extract generation", len(req.Tools))
 	}
-	if req.Gen.Temperature == nil || *req.Gen.Temperature != temp || !req.Gen.Reasoning.Disabled() {
-		t.Fatalf("gen settings = %#v, want injected temperature and disabled reasoning", req.Gen)
+	if req.Gen.Temperature == nil || *req.Gen.Temperature != 0 || !req.Gen.Reasoning.Disabled() {
+		t.Fatalf("gen settings = %#v, want default temperature 0 and disabled reasoning", req.Gen)
 	}
 }
 
