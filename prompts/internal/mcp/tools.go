@@ -27,7 +27,7 @@ func tool(verb string) string { return toolPrefix + verb }
 // them.
 func toolDescriptors() []map[string]any {
 	return []map[string]any{
-		desc(tool("describe"), "Return a detailed overview of prompts: what a prompt vs a run is, the create→run→poll→read lifecycle, full concurrency, the per-run sandbox, the stream-json output format, and a worked example. Call this first if you're unfamiliar with prompts. Takes no inputs.", obj(map[string]any{})),
+		desc(tool("describe"), "Return a detailed overview of prompts: what a prompt vs a run is, the create→run→poll→read lifecycle, full concurrency, the per-run sandbox, and LogRecord JSONL run output. Config requires provider (anthropic, openai, google, zai) and model; optional keys tune sampling (temperature, top_p), output size (max_tokens), reasoning (effort, thinking_budget, thinking_level, thinking), retry/backoff behavior (max_attempts, base_delay, max_delay, max_elapsed, ignore_retry_after), tool loops (tool_loop_limit), and provider endpoint override (base_url). Call this first if you're unfamiliar with prompts. Takes no inputs.", obj(map[string]any{})),
 
 		desc(tool("health"), "Health + diagnostics for the prompts service. Returns the fixed envelope (status, version, service, details) plus the authenticated caller's identity (owner_email, client_id). Takes no inputs.", obj(map[string]any{})),
 
@@ -124,14 +124,26 @@ func obj(props map[string]any, required ...string) map[string]any {
 
 func typ(t string) map[string]any { return map[string]any{"type": t} }
 
-// configSchema is the shared prompt.Config input schema (model required).
+// configSchema is the shared prompt.Config input schema.
 func configSchema() map[string]any {
 	return obj(map[string]any{
-		"model":       typ("string"),
-		"effort":      typ("string"),
-		"max_tokens":  typ("integer"),
-		"temperature": typ("number"),
-	}, "model")
+		"provider":           typ("string"),
+		"model":              typ("string"),
+		"temperature":        typ("number"),
+		"top_p":              typ("number"),
+		"max_tokens":         typ("integer"),
+		"effort":             typ("string"),
+		"thinking_budget":    typ("integer"),
+		"thinking_level":     typ("string"),
+		"thinking":           typ("string"),
+		"max_attempts":       typ("integer"),
+		"base_delay":         typ("string"),
+		"max_delay":          typ("string"),
+		"max_elapsed":        typ("string"),
+		"ignore_retry_after": typ("boolean"),
+		"tool_loop_limit":    typ("integer"),
+		"base_url":           typ("string"),
+	}, "provider", "model")
 }
 
 // triggersSchema is create's optional inline triggers array: each element is a
