@@ -152,6 +152,67 @@ func TestToolsListAdvertisesConfiguredWikiSurface(t *testing.T) {
 	}
 }
 
+func TestToolsListInputSchemasUseValidRequiredFields(t *testing.T) {
+	// R-N4KO-2WTZ
+	h := gatedHandler(t, NewHandler("test-version", "wiki", nil,
+		WithIngestService(&capturingWiki{}),
+		WithJobStatusService(&capturingWiki{}),
+		WithAskFunc((&capturingAsker{}).Ask),
+		WithSubjectsService(&capturingWiki{}),
+		WithClaimsService(&capturingWiki{}),
+		WithPageService(&capturingWiki{}),
+	))
+	rec := callMCP(t, h, `{"jsonrpc":"2.0","id":"list","method":"tools/list"}`, "owner@example.com")
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rec.Code)
+	}
+	var got struct {
+		Result struct {
+			Tools []struct {
+				Name        string         `json:"name"`
+				InputSchema map[string]any `json:"inputSchema"`
+			} `json:"tools"`
+		} `json:"result"`
+	}
+	decodeJSON(t, rec.Body.Bytes(), &got)
+	if len(got.Result.Tools) == 0 {
+		t.Fatal("tools/list returned no tools")
+	}
+	seenSubjects := false
+	for _, tool := range got.Result.Tools {
+		if tool.InputSchema["type"] != "object" {
+			t.Fatalf("%s schema type = %v, want object", tool.Name, tool.InputSchema["type"])
+		}
+		required, ok := tool.InputSchema["required"]
+		if tool.Name == "subjects" {
+			seenSubjects = true
+			if ok {
+				t.Fatalf("subjects schema required = %#v, want omitted", required)
+			}
+			continue
+		}
+		if !ok {
+			continue
+		}
+		values, ok := required.([]any)
+		if !ok {
+			t.Fatalf("%s schema required = %T, want array of strings", tool.Name, required)
+		}
+		if len(values) == 0 {
+			t.Fatalf("%s schema required is empty, want omitted or non-empty", tool.Name)
+		}
+		for i, value := range values {
+			if _, ok := value.(string); !ok {
+				t.Fatalf("%s schema required[%d] = %T, want string", tool.Name, i, value)
+			}
+		}
+	}
+	if !seenSubjects {
+		t.Fatal("tools/list missing subjects tool")
+	}
+}
+
 func TestReflectionToolReturnsEmptyEventEdges(t *testing.T) {
 	h := gatedHandler(t, NewHandler("test-version", "wiki", nil))
 	rec := callMCP(t, h, `{

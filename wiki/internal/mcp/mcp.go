@@ -481,12 +481,15 @@ func pageTool() map[string]any {
 }
 
 func objectSchema(properties map[string]any, required []string) map[string]any {
-	return map[string]any{
+	schema := map[string]any{
 		"type":                 "object",
 		"additionalProperties": false,
 		"properties":           properties,
-		"required":             required,
 	}
+	if len(required) > 0 {
+		schema["required"] = required
+	}
+	return schema
 }
 
 func notFound(kind, id string) map[string]any {
