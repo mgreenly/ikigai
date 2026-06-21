@@ -233,6 +233,18 @@ func TestValidateConfigChecksModelAgainstSelectedProvider(t *testing.T) {
 	}
 }
 
+func TestValidateConfigRejectsUnknownModelBeforeMissingAPIKey(t *testing.T) {
+	// R-JWYZ-A2LE
+	err := validateConfig(Config{Provider: "openai", Model: "not-a-real-model"}, func(key string) string {
+		t.Fatalf("getenv should not be called for an unsupported model, got %q", key)
+		return ""
+	})
+	ve := requireValidationError(t, err)
+	if !strings.Contains(ve.Error(), `provider "openai" does not support model "not-a-real-model"`) {
+		t.Fatalf("error = %q, want unsupported model detail", ve.Error())
+	}
+}
+
 func TestValidateConfigUsesProviderSpecificEnvVar(t *testing.T) {
 	// R-JY6V-NUC3
 	tests := []struct {
