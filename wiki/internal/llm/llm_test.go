@@ -72,7 +72,7 @@ func TestConverseSnapshotsToolSlice(t *testing.T) {
 	}
 }
 
-func TestStripCodeFence(t *testing.T) {
+func TestExtractJSONFromFencesAndBareJSON(t *testing.T) {
 	// R-J8QP-BETB
 	tests := []struct {
 		name string
@@ -108,13 +108,58 @@ func TestStripCodeFence(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := stripCodeFence(tt.in)
+			got := ExtractJSON(tt.in)
 			if got != tt.want {
-				t.Fatalf("stripCodeFence() = %q, want %q", got, tt.want)
+				t.Fatalf("ExtractJSON() = %q, want %q", got, tt.want)
 			}
 			var decoded jsonFixture
 			if err := json.Unmarshal([]byte(got), &decoded); err != nil {
 				t.Fatalf("stripped response is not parseable JSON: %v", err)
+			}
+		})
+	}
+}
+
+func TestExtractJSONFromDecoratedReplies(t *testing.T) {
+	// R-4BCC-0EHJ
+	tests := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{
+			name: "prose preamble and trailing commentary",
+			in:   "Here is the result:\n{\"title\":\"decorated\",\"count\":8}\nThat should do it.",
+			want: `{"title":"decorated","count":8}`,
+		},
+		{
+			name: "extra backtick fence",
+			in:   "````json\n{\"title\":\"extra ticks\",\"count\":9}\n````",
+			want: `{"title":"extra ticks","count":9}`,
+		},
+		{
+			name: "stray leading backtick",
+			in:   "`{\"title\":\"stray tick\",\"count\":10}",
+			want: `{"title":"stray tick","count":10}`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var unmodified jsonFixture
+			if err := json.Unmarshal([]byte(tt.in), &unmodified); err == nil {
+				t.Fatalf("unmodified reply parsed unexpectedly as %#v", unmodified)
+			} else if !strings.Contains(err.Error(), "invalid character") {
+				t.Fatalf("unmodified parse error = %v, want leading-character failure", err)
+			}
+
+			got := ExtractJSON(tt.in)
+			if got != tt.want {
+				t.Fatalf("ExtractJSON() = %q, want %q", got, tt.want)
+			}
+			var decoded jsonFixture
+			if err := json.Unmarshal([]byte(got), &decoded); err != nil {
+				t.Fatalf("carved response is not parseable JSON: %v", err)
 			}
 		})
 	}

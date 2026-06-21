@@ -59,7 +59,7 @@ func JSON[T any](ctx context.Context, c *Client, site CallSite, userText string,
 		}
 
 		var out T
-		if err := json.Unmarshal([]byte(stripCodeFence(text)), &out); err != nil {
+		if err := json.Unmarshal([]byte(ExtractJSON(text)), &out); err != nil {
 			lastErr = err
 		} else if validate != nil {
 			lastErr = validate(&out)
@@ -136,37 +136,27 @@ func setReasoning(gen *agentkit.GenSettings, reasoning any) {
 	}
 }
 
-func stripCodeFence(text string) string {
+// ExtractJSON carves the first JSON object or array from a decorated reply.
+func ExtractJSON(text string) string {
 	s := strings.TrimSpace(text)
-	if !strings.HasPrefix(s, "```") {
+	firstObject := strings.IndexByte(s, '{')
+	firstArray := strings.IndexByte(s, '[')
+
+	start := firstObject
+	close := byte('}')
+	if firstArray >= 0 && (start < 0 || firstArray < start) {
+		start = firstArray
+		close = ']'
+	}
+	if start < 0 {
 		return s
 	}
 
-	body := strings.TrimPrefix(s, "```")
-	lastFence := strings.LastIndex(body, "```")
-	if lastFence < 0 {
+	end := strings.LastIndexByte(s, close)
+	if end < start {
 		return s
 	}
-	return strings.TrimSpace(stripFenceInfo(body[:lastFence]))
-}
-
-func stripFenceInfo(body string) string {
-	body = strings.TrimSpace(body)
-	if newline := strings.IndexByte(body, '\n'); newline >= 0 {
-		info := strings.TrimSpace(body[:newline])
-		if info == "" || strings.EqualFold(info, "json") {
-			return body[newline+1:]
-		}
-		return body
-	}
-
-	if strings.EqualFold(body, "json") {
-		return ""
-	}
-	if fields := strings.Fields(body); len(fields) > 1 && strings.EqualFold(fields[0], "json") {
-		return strings.TrimSpace(strings.TrimPrefix(body, fields[0]))
-	}
-	return body
+	return strings.TrimSpace(s[start : end+1])
 }
 
 func correctivePrompt(original string, err error) string {
