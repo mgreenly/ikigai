@@ -14,15 +14,17 @@ type CallRecord = llm.CallRecord
 
 // LLMCallStore persists LLM provider-call footprints.
 type LLMCallStore struct {
-	db *sql.DB
+	read  *sql.DB
+	write *sql.DB
 }
 
-func NewLLMCallStore(db *sql.DB) *LLMCallStore {
-	return &LLMCallStore{db: db}
+func NewLLMCallStore(db any) *LLMCallStore {
+	c := mustConns(db)
+	return &LLMCallStore{read: c.Read, write: c.Write}
 }
 
 func (s *LLMCallStore) Record(ctx context.Context, rec llm.CallRecord) error {
-	_, err := s.db.ExecContext(ctx, `
+	_, err := s.write.ExecContext(ctx, `
 		INSERT INTO llm_calls (
 			id, stage, job_id, attempt, provider, model, params, request,
 			response, usage, err, started_at, ended_at
@@ -77,7 +79,7 @@ func (s *LLMCallStore) List(ctx context.Context, f LLMCallFilter, p page.Params)
 		ORDER BY started_at, id
 		LIMIT ?`
 	args = append(args, limit+1)
-	rows, err := s.db.QueryContext(ctx, query, args...)
+	rows, err := s.read.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, "", err
 	}

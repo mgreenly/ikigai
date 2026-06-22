@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 	"unicode"
@@ -120,15 +121,46 @@ func stripDiacritics(s string) string {
 
 // JobStore persists wiki jobs.
 type JobStore struct {
-	db *sql.DB
+	read  *sql.DB
+	write *sql.DB
 }
 
-func NewJobStore(db *sql.DB) *JobStore {
-	return &JobStore{db: db}
+// Conns carries wiki's concurrent read pool and single-writer SQLite handles.
+type Conns struct {
+	Read  *sql.DB
+	Write *sql.DB
+}
+
+func NewJobStore(db any) *JobStore {
+	c := mustConns(db)
+	return &JobStore{read: c.Read, write: c.Write}
+}
+
+func mustConns(db any) Conns {
+	switch v := db.(type) {
+	case Conns:
+		if v.Read == nil {
+			v.Read = v.Write
+		}
+		if v.Write == nil {
+			v.Write = v.Read
+		}
+		if v.Read == nil || v.Write == nil {
+			panic("wiki: nil database handle")
+		}
+		return v
+	case *sql.DB:
+		if v == nil {
+			panic("wiki: nil database handle")
+		}
+		return Conns{Read: v, Write: v}
+	default:
+		panic(fmt.Sprintf("wiki: unsupported database handle %T", db))
+	}
 }
 
 func (s *JobStore) Save(ctx context.Context, job Job) error {
-	_, err := s.db.ExecContext(ctx,
+	_, err := s.write.ExecContext(ctx,
 		`INSERT INTO jobs (id, status) VALUES (?, ?)`,
 		job.ID, job.Status)
 	return err
@@ -139,7 +171,7 @@ func (s *JobStore) InsertIngest(ctx context.Context, job Job) error {
 	if err != nil {
 		return err
 	}
-	_, err = s.db.ExecContext(ctx, `
+	_, err = s.write.ExecContext(ctx, `
 		INSERT INTO jobs (
 			id, owner, source_text, title, tags, source_hash, status, received_at
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -157,14 +189,14 @@ func (s *JobStore) InsertIngest(ctx context.Context, job Job) error {
 
 func (s *JobStore) Get(ctx context.Context, id string) (Job, error) {
 	var job Job
-	err := s.db.QueryRowContext(ctx,
+	err := s.read.QueryRowContext(ctx,
 		`SELECT id, status FROM jobs WHERE id = ?`, id).
 		Scan(&job.ID, &job.Status)
 	return job, err
 }
 
 func (s *JobStore) ClaimPending(ctx context.Context, startedAt time.Time) (Job, bool, error) {
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.write.BeginTx(ctx, nil)
 	if err != nil {
 		return Job{}, false, err
 	}
@@ -205,14 +237,14 @@ func (s *JobStore) ClaimPending(ctx context.Context, startedAt time.Time) (Job, 
 }
 
 func (s *JobStore) Finish(ctx context.Context, id, status string, finishedAt time.Time, jobErr string) error {
-	_, err := s.db.ExecContext(ctx,
+	_, err := s.write.ExecContext(ctx,
 		`UPDATE jobs SET status = ?, finished_at = ?, error = ? WHERE id = ?`,
 		status, formatTime(finishedAt), jobErr, id)
 	return err
 }
 
 func (s *JobStore) FinishWorking(ctx context.Context, id, status string, finishedAt time.Time, jobErr string) (bool, error) {
-	res, err := s.db.ExecContext(ctx,
+	res, err := s.write.ExecContext(ctx,
 		`UPDATE jobs SET status = ?, finished_at = ?, error = ? WHERE id = ? AND status = ?`,
 		status, formatTime(finishedAt), jobErr, id, JobWorking)
 	if err != nil {
@@ -226,7 +258,7 @@ func (s *JobStore) FinishWorking(ctx context.Context, id, status string, finishe
 }
 
 func (s *JobStore) Abort(ctx context.Context, id string, finishedAt time.Time) (AbortResult, error) {
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.write.BeginTx(ctx, nil)
 	if err != nil {
 		return AbortResult{}, err
 	}
@@ -263,7 +295,7 @@ func (s *JobStore) Abort(ctx context.Context, id string, finishedAt time.Time) (
 }
 
 func (s *JobStore) Rerun(ctx context.Context, id string) (RerunResult, error) {
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.write.BeginTx(ctx, nil)
 	if err != nil {
 		return RerunResult{}, err
 	}
@@ -304,7 +336,7 @@ func (s *JobStore) Rerun(ctx context.Context, id string) (RerunResult, error) {
 }
 
 func (s *JobStore) Status(ctx context.Context, id string) (JobStatus, error) {
-	job, err := scanJob(s.db.QueryRowContext(ctx, `
+	job, err := scanJob(s.read.QueryRowContext(ctx, `
 		SELECT id, owner, source_text, title, tags, source_hash, status,
 		       received_at, started_at, finished_at, error
 		FROM jobs
@@ -313,7 +345,7 @@ func (s *JobStore) Status(ctx context.Context, id string) (JobStatus, error) {
 		return JobStatus{}, err
 	}
 
-	rows, err := s.db.QueryContext(ctx,
+	rows, err := s.read.QueryContext(ctx,
 		`SELECT DISTINCT subject_id FROM claims WHERE job_id = ? ORDER BY subject_id`, id)
 	if err != nil {
 		return JobStatus{}, err
@@ -374,7 +406,7 @@ func (s *JobStore) ListJobs(ctx context.Context, f JobFilter, p page.Params) ([]
 		ORDER BY received_at, id
 		LIMIT ?`
 	args = append(args, limit+1)
-	rows, err := s.db.QueryContext(ctx, query, args...)
+	rows, err := s.read.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, "", err
 	}

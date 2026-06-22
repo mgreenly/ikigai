@@ -13,6 +13,7 @@ import (
 
 	"wiki/internal/ask"
 	"wiki/internal/compile"
+	"wiki/internal/db"
 	"wiki/internal/extract"
 	"wiki/internal/llm"
 	"wiki/internal/mcp"
@@ -41,29 +42,38 @@ func buildSpec(cfg wiki.Config) appkit.Spec {
 		if rt.DB() == nil {
 			return fmt.Errorf("wiki: no DB handle on router")
 		}
-		db := rt.DB()
-		llmClient := cfg.LLM.WithRecorder(wiki.NewLLMCallStore(db)).WithClock(time.Now)
+		write := rt.DB()
+		dbPath, err := db.Path(context.Background(), write)
+		if err != nil {
+			return err
+		}
+		read, err := db.OpenRead(dbPath)
+		if err != nil {
+			return err
+		}
+		conns := wiki.Conns{Read: read, Write: write}
+		llmClient := cfg.LLM.WithRecorder(wiki.NewLLMCallStore(conns)).WithClock(time.Now)
 		extractor := extract.New(llmClient, extract.DefaultCallSite(cfg.ModelID))
 		compiler := buildCompiler(cfg, llmClient)
-		svc = wiki.NewService(db, extractor, compiler, time.Now)
+		svc = wiki.NewService(conns, extractor, compiler, time.Now)
 		asker := ask.New(
-			wiki.NewSubjectStore(db),
-			wiki.NewPageStore(db),
+			wiki.NewSubjectStore(read),
+			wiki.NewPageStore(read),
 			llmClient,
 			llm.CallSite{Stage: "ask", Model: cfg.ModelID},
 			llm.CallSite{Stage: "ask", Model: cfg.ModelID},
 		)
 		pageService := pathPageService{
-			subjects: wiki.NewSubjectStore(db),
+			subjects: wiki.NewSubjectStore(read),
 			service:  svc,
 		}
 		subjectService := publicSubjectService{
-			subjects: wiki.NewSubjectStore(db),
-			pages:    wiki.NewPageStore(db),
+			subjects: wiki.NewSubjectStore(read),
+			pages:    wiki.NewPageStore(read),
 		}
 		claimService := pathClaimService{
-			subjects: wiki.NewSubjectStore(db),
-			claims:   wiki.NewClaimStore(db),
+			subjects: wiki.NewSubjectStore(read),
+			claims:   wiki.NewClaimStore(read),
 		}
 		statusService := publicStatusService{service: svc}
 		rt.Handle("POST /mcp", rt.RequireIdentity(
@@ -72,11 +82,11 @@ func buildSpec(cfg wiki.Config) appkit.Spec {
 				mcp.WithJobStatusService(statusService),
 				mcp.WithJobAbortService(svc),
 				mcp.WithJobRerunService(svc),
-				mcp.WithJobListService(jobListService{jobs: wiki.NewJobStore(db)}),
+				mcp.WithJobListService(jobListService{jobs: wiki.NewJobStore(conns)}),
 				mcp.WithSubjectListService(subjectService),
 				mcp.WithClaimListService(claimService),
 				mcp.WithPagePathService(pageService),
-				mcp.WithLLMCallListService(llmCallListService{calls: wiki.NewLLMCallStore(db)}),
+				mcp.WithLLMCallListService(llmCallListService{calls: wiki.NewLLMCallStore(conns)}),
 				mcp.WithAskFunc(asker.Ask),
 			)))
 		return nil

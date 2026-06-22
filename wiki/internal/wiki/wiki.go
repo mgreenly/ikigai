@@ -78,7 +78,15 @@ func Spec() appkit.Spec {
 			if rt.DB() == nil {
 				return fmt.Errorf("wiki: no DB handle on router")
 			}
-			svc := NewService(rt.DB(), nil, nil, time.Now)
+			dbPath, err := db.Path(context.Background(), rt.DB())
+			if err != nil {
+				return err
+			}
+			read, err := db.OpenRead(dbPath)
+			if err != nil {
+				return err
+			}
+			svc := NewService(Conns{Read: read, Write: rt.DB()}, nil, nil, time.Now)
 			rt.Handle("POST /mcp", rt.RequireIdentity(
 				mcp.NewHandler(rt.Version(), rt.Service(), rt.Health(),
 					mcp.WithIngestService(svc),

@@ -40,7 +40,7 @@ type Compiler interface {
 
 // Service coordinates ingest jobs and the single background integration worker.
 type Service struct {
-	db        *sql.DB
+	write     *sql.DB
 	jobs      *JobStore
 	subjects  *SubjectStore
 	claims    *ClaimStore
@@ -58,17 +58,18 @@ type jobCancel struct {
 	cancel context.CancelFunc
 }
 
-// NewService builds the ingest service over the shared SQLite handle.
-func NewService(db *sql.DB, extractor Extractor, compiler Compiler, now func() time.Time) *Service {
+// NewService builds the ingest service over wiki's read/write SQLite handles.
+func NewService(db any, extractor Extractor, compiler Compiler, now func() time.Time) *Service {
 	if now == nil {
 		now = time.Now
 	}
+	c := mustConns(db)
 	return &Service{
-		db:        db,
-		jobs:      NewJobStore(db),
-		subjects:  NewSubjectStore(db),
-		claims:    NewClaimStore(db),
-		pages:     NewPageStore(db),
+		write:     c.Write,
+		jobs:      NewJobStore(c),
+		subjects:  NewSubjectStore(c.Read),
+		claims:    NewClaimStore(c.Read),
+		pages:     NewPageStore(c.Read),
 		extractor: extractor,
 		compiler:  compiler,
 		now:       now,
@@ -218,7 +219,7 @@ func (s *Service) integrate(ctx context.Context, job Job) error {
 		return err
 	}
 
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.write.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
