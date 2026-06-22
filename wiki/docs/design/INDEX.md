@@ -20,6 +20,8 @@ Each Decision maps to its `docs/design/DNN.md`; every `R-XXXX-XXXX` id maps to i
 - D14 → `docs/design/D14.md` — Job lifecycle & control: `aborted`, abort, re-run, atomic integrate — owns R-0SCX-95OZ, R-0TKT-MXFO, R-0USQ-0P6D, R-0W0M-EGX2, R-0X8I-S8NR, R-0YGF-60EG, R-0ZOB-JS55, R-10W7-XJVU
 - D15 → `docs/design/D15.md` — Cursor pagination: the contract + the list seams — owns R-17C5-VP2I, R-18K2-9GT7, R-19RY-N8JW, R-1C7R-ES1A, R-1DFN-SJRZ
 - D16 → `docs/design/D16.md` — MCP surface expansion: control & footprint verbs + paginated lists — owns R-37NS-BRXR, R-38VO-PJOG, R-3A3L-3BF5, R-3BBH-H35U, R-3CJD-UUWJ, R-3EZ6-MEDX, R-3G73-064M
+- D17 → `docs/design/D17.md` — DB concurrency: single-writer handle + concurrent read pool (reads never blocked) — owns R-FUCC-IT4M, R-FVK8-WKVB, R-FWS5-ACM0, R-FY01-O4CP
+- D18 → `docs/design/D18.md` — Output-token budget & honest truncation handling — owns R-MSKH-GPX5, R-MTSD-UHNU, R-MV0A-89EJ, R-MW86-M158
 
 ## Verification ids → Decision
 
@@ -70,8 +72,12 @@ Each Decision maps to its `docs/design/DNN.md`; every `R-XXXX-XXXX` id maps to i
 - R-FQLB-QWS6 → D7 → `docs/design/D07.md`
 - R-FT14-IG9K → D7 → `docs/design/D07.md`
 - R-FU90-W809 → D7 → `docs/design/D07.md`
+- R-FUCC-IT4M → D17 → `docs/design/D17.md`
 - R-FVGX-9ZQY → D7 → `docs/design/D07.md`
+- R-FVK8-WKVB → D17 → `docs/design/D17.md`
 - R-FWOT-NRHN → D7 → `docs/design/D07.md`
+- R-FWS5-ACM0 → D17 → `docs/design/D17.md`
+- R-FY01-O4CP → D17 → `docs/design/D17.md`
 - R-J8QP-BETB → D5 → `docs/design/D05.md`
 - R-J9YL-P6K0 → D5 → `docs/design/D05.md`
 - R-JCEE-GQ1E → D5 → `docs/design/D05.md`
@@ -83,9 +89,13 @@ Each Decision maps to its `docs/design/DNN.md`; every `R-XXXX-XXXX` id maps to i
 - R-MCFC-DJ4Y → D4 → `docs/design/D04.md`
 - R-MDN8-RAVN → D4 → `docs/design/D04.md`
 - R-MG31-IUD1 → D4 → `docs/design/D04.md`
+- R-MSKH-GPX5 → D18 → `docs/design/D18.md`
+- R-MTSD-UHNU → D18 → `docs/design/D18.md`
 - R-MUQ4-K1JS → D10 → `docs/design/D10.md`
+- R-MV0A-89EJ → D18 → `docs/design/D18.md`
 - R-MV3L-QS7I → D1 → `docs/design/D01.md`
 - R-MVY0-XTAH → D10 → `docs/design/D10.md`
+- R-MW86-M158 → D18 → `docs/design/D18.md`
 - R-MWBI-4JY7 → D1 → `docs/design/D01.md`
 - R-MX5X-BL16 → D10 → `docs/design/D10.md`
 - R-MYDT-PCRV → D10 → `docs/design/D10.md`
