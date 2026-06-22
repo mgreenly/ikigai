@@ -125,8 +125,9 @@ func TestExtractAndCompileDefaultCallSitesCarryOutputTokenCeilings(t *testing.T)
 	}}
 	extractSite := extract.DefaultCallSite("extract-model")
 	compileSite := DefaultCallSite("compile-model")
-	if extractSite.MaxTokens <= 0 || compileSite.MaxTokens <= 0 {
-		t.Fatalf("default max tokens = extract:%d compile:%d, want both non-zero", extractSite.MaxTokens, compileSite.MaxTokens)
+	const minOutputBudget = 16384
+	if extractSite.MaxTokens < minOutputBudget || compileSite.MaxTokens < minOutputBudget {
+		t.Fatalf("default max tokens = extract:%d compile:%d, want both at least %d", extractSite.MaxTokens, compileSite.MaxTokens, minOutputBudget)
 	}
 
 	extractor := extract.New(llm.New(prov, nil), extractSite)

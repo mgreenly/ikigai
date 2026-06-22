@@ -15,7 +15,7 @@ import (
 // PageCharCap is the maximum generated page body length in Unicode code points.
 const PageCharCap = 12000
 
-const defaultMaxTokens = 4096
+const defaultMaxTokens = 16384
 
 // Compiler rebuilds wiki pages from subject identity and complete claim sets.
 type Compiler struct {

@@ -33,7 +33,7 @@ type Extractor struct {
 	site llm.CallSite
 }
 
-const defaultMaxTokens = 4096
+const defaultMaxTokens = 16384
 
 // New builds an Extractor from an injected LLM client and extract call site.
 func New(c *llm.Client, site llm.CallSite) *Extractor {
