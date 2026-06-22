@@ -392,7 +392,7 @@ func (s *JobStore) Status(ctx context.Context, id string) (JobStatus, error) {
 }
 
 type JobFilter struct {
-	Status       string
+	Statuses     []string
 	Since, Until time.Time
 }
 
@@ -402,24 +402,20 @@ func (s *JobStore) ListJobs(ctx context.Context, f JobFilter, p page.Params) ([]
 		return nil, "", err
 	}
 	limit := p.ResolvedLimit()
-	status := strings.TrimSpace(f.Status)
-	since := formatTime(f.Since)
-	until := formatTime(f.Until)
-	args := []any{status, status, since, since, until, until}
+	var args []any
 	query := `
 		SELECT id, owner, source_text, title, tags, source_hash, status,
 		       received_at, started_at, finished_at, error
 		FROM jobs
-		WHERE (? = '' OR status = ?)
-		  AND (? = '' OR received_at >= ?)
-		  AND (? = '' OR received_at <= ?)`
+		WHERE 1 = 1`
+	query, args = appendJobFilter(query, args, f)
 	if len(cursor) > 0 {
 		query += `
-		  AND (received_at > ? OR (received_at = ? AND id > ?))`
+		  AND (received_at < ? OR (received_at = ? AND id < ?))`
 		args = append(args, cursor[0], cursor[0], cursor[1])
 	}
 	query += `
-		ORDER BY received_at, id
+		ORDER BY received_at DESC, id DESC
 		LIMIT ?`
 	args = append(args, limit+1)
 	rows, err := s.read.QueryContext(ctx, query, args...)
@@ -440,6 +436,62 @@ func (s *JobStore) ListJobs(ctx context.Context, f JobFilter, p page.Params) ([]
 		return nil, "", err
 	}
 	return pageJobs(jobs, limit), nextJobCursor(jobs, limit), nil
+}
+
+func (s *JobStore) CountJobs(ctx context.Context, f JobFilter) (int, error) {
+	var args []any
+	query := `SELECT COUNT(*) FROM jobs WHERE 1 = 1`
+	query, args = appendJobFilter(query, args, f)
+
+	var n int
+	if err := s.read.QueryRowContext(ctx, query, args...).Scan(&n); err != nil {
+		return 0, err
+	}
+	return n, nil
+}
+
+func appendJobFilter(query string, args []any, f JobFilter) (string, []any) {
+	statuses := normalizedStatuses(f.Statuses)
+	if len(statuses) > 0 {
+		query += `
+		  AND status IN (` + placeholders(len(statuses)) + `)`
+		for _, status := range statuses {
+			args = append(args, status)
+		}
+	}
+	if since := formatTime(f.Since); since != "" {
+		query += `
+		  AND received_at >= ?`
+		args = append(args, since)
+	}
+	if until := formatTime(f.Until); until != "" {
+		query += `
+		  AND received_at <= ?`
+		args = append(args, until)
+	}
+	return query, args
+}
+
+func normalizedStatuses(statuses []string) []string {
+	var out []string
+	for _, status := range statuses {
+		status = strings.TrimSpace(status)
+		if status != "" {
+			out = append(out, status)
+		}
+	}
+	return out
+}
+
+func placeholders(n int) string {
+	var b strings.Builder
+	for i := 0; i < n; i++ {
+		if i > 0 {
+			b.WriteString(", ")
+		}
+		b.WriteByte('?')
+	}
+	return b.String()
 }
 
 type rowScanner interface {

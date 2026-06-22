@@ -295,11 +295,11 @@ func TestListFiltersApplyBeforePaging(t *testing.T) {
 			t.Fatalf("InsertIngest %s: %v", job.ID, err)
 		}
 	}
-	gotJobs, next, err := jobs.ListJobs(ctx, JobFilter{Status: JobDone, Since: t2, Until: t3}, page.Params{Limit: 10})
+	gotJobs, next, err := jobs.ListJobs(ctx, JobFilter{Statuses: []string{JobDone}, Since: t2, Until: t3}, page.Params{Limit: 10})
 	if err != nil {
 		t.Fatalf("ListJobs: %v", err)
 	}
-	if next != "" || len(gotJobs) != 2 || gotJobs[0].ID != "job-done-1" || gotJobs[1].ID != "job-done-2" {
+	if next != "" || len(gotJobs) != 2 || gotJobs[0].ID != "job-done-2" || gotJobs[1].ID != "job-done-1" {
 		t.Fatalf("ListJobs = %+v, next %q; want two filtered done jobs in time range", gotJobs, next)
 	}
 
@@ -370,6 +370,138 @@ func TestListFiltersApplyBeforePaging(t *testing.T) {
 	}
 }
 
+func TestListJobsOrdersNewestFirstFilteredOrAll(t *testing.T) {
+	// R-XYAZ-V0XE
+	ctx := context.Background()
+	conn := migratedDB(t, ctx)
+	defer conn.Close()
+
+	t1 := time.Date(2026, 6, 22, 8, 0, 0, 0, time.UTC)
+	t2 := t1.Add(time.Minute)
+	jobs := NewJobStore(conn)
+	for _, job := range []Job{
+		{ID: "job-old", Status: JobDone, ReceivedAt: t1},
+		{ID: "job-new-a", Status: JobPending, ReceivedAt: t2},
+		{ID: "job-new-b", Status: JobDone, ReceivedAt: t2},
+	} {
+		if err := jobs.InsertIngest(ctx, job); err != nil {
+			t.Fatalf("InsertIngest %s: %v", job.ID, err)
+		}
+	}
+
+	got, next, err := jobs.ListJobs(ctx, JobFilter{}, page.Params{Limit: 10})
+	if err != nil {
+		t.Fatalf("ListJobs all: %v", err)
+	}
+	if next != "" || !sameStrings(jobIDs(got), []string{"job-new-b", "job-new-a", "job-old"}) {
+		t.Fatalf("ListJobs all ids = %v, next %q; want newest-first across all states", jobIDs(got), next)
+	}
+
+	got, next, err = jobs.ListJobs(ctx, JobFilter{Statuses: []string{JobDone}}, page.Params{Limit: 10})
+	if err != nil {
+		t.Fatalf("ListJobs done: %v", err)
+	}
+	if next != "" || !sameStrings(jobIDs(got), []string{"job-new-b", "job-old"}) {
+		t.Fatalf("ListJobs done ids = %v, next %q; want newest-first within filtered jobs", jobIDs(got), next)
+	}
+}
+
+func TestListJobsStatusesMatchAnyAndEmptyMeansAll(t *testing.T) {
+	// R-XZIW-8SO3
+	ctx := context.Background()
+	conn := migratedDB(t, ctx)
+	defer conn.Close()
+
+	base := time.Date(2026, 6, 22, 9, 0, 0, 0, time.UTC)
+	jobs := NewJobStore(conn)
+	for i, job := range []Job{
+		{ID: "job-pending", Status: JobPending},
+		{ID: "job-done", Status: JobDone},
+		{ID: "job-failed", Status: JobFailed},
+		{ID: "job-aborted", Status: JobAborted},
+	} {
+		job.ReceivedAt = base.Add(time.Duration(i) * time.Minute)
+		if err := jobs.InsertIngest(ctx, job); err != nil {
+			t.Fatalf("InsertIngest %s: %v", job.ID, err)
+		}
+	}
+
+	got, next, err := jobs.ListJobs(ctx, JobFilter{Statuses: []string{JobPending, JobFailed}}, page.Params{Limit: 10})
+	if err != nil {
+		t.Fatalf("ListJobs multi-status: %v", err)
+	}
+	if next != "" || !sameStrings(jobIDs(got), []string{"job-failed", "job-pending"}) {
+		t.Fatalf("ListJobs multi-status ids = %v, next %q; want failed and pending only", jobIDs(got), next)
+	}
+
+	got, next, err = jobs.ListJobs(ctx, JobFilter{Statuses: []string{}}, page.Params{Limit: 10})
+	if err != nil {
+		t.Fatalf("ListJobs empty statuses: %v", err)
+	}
+	if next != "" || !sameStrings(jobIDs(got), []string{"job-aborted", "job-failed", "job-done", "job-pending"}) {
+		t.Fatalf("ListJobs empty-status ids = %v, next %q; want all states", jobIDs(got), next)
+	}
+}
+
+func TestCountJobsMatchesFilteredListCountWithoutPaging(t *testing.T) {
+	// R-Y1YP-0C5H
+	ctx := context.Background()
+	conn := migratedDB(t, ctx)
+	defer conn.Close()
+
+	t1 := time.Date(2026, 6, 22, 10, 0, 0, 0, time.UTC)
+	t2 := t1.Add(time.Minute)
+	t3 := t2.Add(time.Minute)
+	t4 := t3.Add(time.Minute)
+	jobs := NewJobStore(conn)
+	for _, job := range []Job{
+		{ID: "job-old", Status: JobDone, ReceivedAt: t1},
+		{ID: "job-done", Status: JobDone, ReceivedAt: t2},
+		{ID: "job-failed", Status: JobFailed, ReceivedAt: t3},
+		{ID: "job-pending", Status: JobPending, ReceivedAt: t4},
+	} {
+		if err := jobs.InsertIngest(ctx, job); err != nil {
+			t.Fatalf("InsertIngest %s: %v", job.ID, err)
+		}
+	}
+
+	filter := JobFilter{
+		Statuses: []string{JobDone, JobFailed},
+		Since:    t2,
+		Until:    t3,
+	}
+	listed, next, err := jobs.ListJobs(ctx, filter, page.Params{Limit: 10})
+	if err != nil {
+		t.Fatalf("ListJobs filtered: %v", err)
+	}
+	if next != "" || !sameStrings(jobIDs(listed), []string{"job-failed", "job-done"}) {
+		t.Fatalf("ListJobs filtered ids = %v, next %q; want two filtered jobs", jobIDs(listed), next)
+	}
+
+	count, err := jobs.CountJobs(ctx, filter)
+	if err != nil {
+		t.Fatalf("CountJobs: %v", err)
+	}
+	if count != len(listed) {
+		t.Fatalf("CountJobs = %d, ListJobs count = %d", count, len(listed))
+	}
+
+	paged, next, err := jobs.ListJobs(ctx, filter, page.Params{Limit: 1})
+	if err != nil {
+		t.Fatalf("ListJobs paged: %v", err)
+	}
+	if len(paged) != 1 || next == "" {
+		t.Fatalf("ListJobs paged = %v, next %q; want one row plus next cursor", jobIDs(paged), next)
+	}
+	count, err = jobs.CountJobs(ctx, filter)
+	if err != nil {
+		t.Fatalf("CountJobs after paged list: %v", err)
+	}
+	if count != 2 {
+		t.Fatalf("CountJobs = %d, want unpaged filtered total 2", count)
+	}
+}
+
 func TestListMethodsRejectUndecodableCursor(t *testing.T) {
 	// R-1DFN-SJRZ
 	ctx := context.Background()
@@ -403,4 +535,24 @@ func migratedDB(t *testing.T, ctx context.Context) *sql.DB {
 		t.Fatalf("Migrate: %v", err)
 	}
 	return conn
+}
+
+func jobIDs(jobs []Job) []string {
+	ids := make([]string, 0, len(jobs))
+	for _, job := range jobs {
+		ids = append(ids, job.ID)
+	}
+	return ids
+}
+
+func sameStrings(got, want []string) bool {
+	if len(got) != len(want) {
+		return false
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			return false
+		}
+	}
+	return true
 }

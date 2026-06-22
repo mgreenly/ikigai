@@ -132,9 +132,9 @@ type jobListService struct {
 
 func (s jobListService) ListJobs(ctx context.Context, f mcp.JobFilter, p page.Params) ([]wiki.Job, string, error) {
 	return s.jobs.ListJobs(ctx, wiki.JobFilter{
-		Status: f.Status,
-		Since:  f.Since,
-		Until:  f.Until,
+		Statuses: []string{f.Status},
+		Since:    f.Since,
+		Until:    f.Until,
 	}, p)
 }
 
