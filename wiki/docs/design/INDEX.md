@@ -13,7 +13,7 @@ Each Decision maps to its `docs/design/DNN.md`; every `R-XXXX-XXXX` id maps to i
 - D7 → `docs/design/D07.md` — The compile stage (`internal/compile`): full recompile, 12k cap — owns R-4DS4-RXYX, R-FQLB-QWS6, R-FT14-IG9K, R-FU90-W809, R-FVGX-9ZQY, R-FWOT-NRHN
 - D8 → `docs/design/D08.md` — No retrieval lane this release: keyword search removed, hybrid deferred — owns R-PH8Z-YHNX, R-PIGW-C9EM
 - D9 → `docs/design/D09.md` — `ask` (`internal/ask`): subject-extraction pipeline, grounded/cited/honest-empty — owns R-5UPD-VVNA, R-5VXA-9NDZ, R-5X56-NF4O, R-644V-3WUS, R-65CR-HOLH, R-66KN-VGC6, R-67SK-982V, R-690G-MZTK, R-6A8D-0RK9, R-05CG-3H6Y
-- D10 → `docs/design/D10.md` — The MCP tool surface (`internal/mcp`) + identity — owns R-MUQ4-K1JS, R-MVY0-XTAH, R-MX5X-BL16, R-MYDT-PCRV, R-MZLQ-34IK, R-N4KO-2WTZ, R-01OQ-Y5YV, R-02WN-BXPK, R-044J-PPG9
+- D10 → `docs/design/D10.md` — The MCP tool surface (`internal/mcp`) + identity — owns R-MUQ4-K1JS, R-MVY0-XTAH, R-MX5X-BL16, R-MYDT-PCRV, R-MZLQ-34IK, R-N4KO-2WTZ, R-01OQ-Y5YV, R-02WN-BXPK, R-044J-PPG9, R-03GW-PX5K, R-04HB-QM7T
 - D11 → `docs/design/D11.md` — Subject addressing: the `type/slug` public path — owns R-ZO9U-QOT8, R-ZQPN-I8AM, R-ZRXJ-W01B, R-ZT5G-9RS0
 - D12 → `docs/design/D12.md` — Page links: read-time mention detection + markdown footer — owns R-ZUDC-NJIP, R-ZVL9-1B9E, R-ZWT5-F303, R-ZY11-SUQS, R-ZZ8Y-6MHH, R-00GU-KE86
 
@@ -22,7 +22,9 @@ Each Decision maps to its `docs/design/DNN.md`; every `R-XXXX-XXXX` id maps to i
 - R-00GU-KE86 → D12 → `docs/design/D12.md`
 - R-01OQ-Y5YV → D10 → `docs/design/D10.md`
 - R-02WN-BXPK → D10 → `docs/design/D10.md`
+- R-03GW-PX5K → D10 → `docs/design/D10.md`
 - R-044J-PPG9 → D10 → `docs/design/D10.md`
+- R-04HB-QM7T → D10 → `docs/design/D10.md`
 - R-05CG-3H6Y → D9 → `docs/design/D09.md`
 - R-4BCC-0EHJ → D5 → `docs/design/D05.md`
 - R-4CK8-E688 → D6 → `docs/design/D06.md`
