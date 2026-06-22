@@ -4,6 +4,7 @@ package llm
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"reflect"
@@ -24,6 +25,9 @@ type Message struct {
 type Provider interface {
 	Complete(ctx context.Context, messages []Message) (string, error)
 }
+
+// ErrTruncated reports a provider response that reached the configured output ceiling.
+var ErrTruncated = errors.New("llm: response truncated")
 
 // CallRecord is one provider round-trip's footprint.
 type CallRecord struct {
@@ -83,6 +87,7 @@ type CallSite struct {
 	Temperature     *float64
 	Reasoning       any
 	System          string
+	MaxTokens       int
 	MaxParseRetries int
 }
 
@@ -140,6 +145,7 @@ func (c *Client) Converse(site CallSite, tools []agentkit.Tool) *agentkit.Conver
 	}
 	gen := agentkit.GenSettings{
 		Temperature: site.Temperature,
+		MaxTokens:   site.MaxTokens,
 	}
 	setReasoning(&gen, site.Reasoning)
 	return &agentkit.Conversation{
@@ -162,6 +168,9 @@ func sendText(ctx context.Context, c *Client, site CallSite, conv *agentkit.Conv
 		}
 	}
 	err := stream.Err()
+	if err == nil {
+		err = truncationError(site, stream.Usage())
+	}
 	endedAt := callNow(c)
 	if recErr := recordCall(ctx, c, site, conv, attempt, userText, final, stream.Usage(), err, startedAt, endedAt); recErr != nil {
 		return "", recErr
@@ -211,6 +220,7 @@ type callRequest struct {
 type callParams struct {
 	Temperature *float64 `json:"temperature,omitempty"`
 	Reasoning   any      `json:"reasoning,omitempty"`
+	MaxTokens   int      `json:"max_tokens,omitempty"`
 }
 
 func callParamsFor(site CallSite) callParams {
@@ -218,7 +228,7 @@ func callParamsFor(site CallSite) callParams {
 	if _, ok := reasoning.(disabledReasoning); ok {
 		reasoning = "disabled"
 	}
-	return callParams{Temperature: site.Temperature, Reasoning: reasoning}
+	return callParams{Temperature: site.Temperature, Reasoning: reasoning, MaxTokens: site.MaxTokens}
 }
 
 func usageJSON(usage agentkit.Usage) string {
@@ -242,6 +252,17 @@ func callNow(c *Client) time.Time {
 	}
 	c.setDefaults()
 	return c.now()
+}
+
+func truncationError(site CallSite, usage agentkit.Usage) error {
+	if site.MaxTokens <= 0 {
+		return nil
+	}
+	generated := usage.Output + usage.ReasoningOutput
+	if generated < int64(site.MaxTokens) {
+		return nil
+	}
+	return fmt.Errorf("%w: generated output usage %d reached max_tokens %d", ErrTruncated, generated, site.MaxTokens)
 }
 
 func agentkitText(message agentkit.Message) string {

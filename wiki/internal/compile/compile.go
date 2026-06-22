@@ -15,6 +15,8 @@ import (
 // PageCharCap is the maximum generated page body length in Unicode code points.
 const PageCharCap = 12000
 
+const defaultMaxTokens = 4096
+
 // Compiler rebuilds wiki pages from subject identity and complete claim sets.
 type Compiler struct {
 	c          *llm.Client
@@ -36,6 +38,7 @@ func DefaultCallSite(model string) llm.CallSite {
 		Model:       model,
 		Temperature: &temp,
 		Reasoning:   llm.DisableReasoning(),
+		MaxTokens:   defaultMaxTokens,
 	}
 }
 

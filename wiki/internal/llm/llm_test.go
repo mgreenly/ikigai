@@ -398,6 +398,74 @@ func TestJSONCarriesCallSiteConfiguration(t *testing.T) {
 	}
 }
 
+func TestJSONSendsConfiguredMaxTokensToProvider(t *testing.T) {
+	// R-MSKH-GPX5
+	prov := &scriptedProvider{responses: []string{`{"title":"budgeted","count":1}`}}
+	site := CallSite{Model: "json-model", MaxTokens: 321}
+
+	got, err := JSON(context.Background(), New(prov, nil), site, "make budgeted json", nilJSONFixture)
+	if err != nil {
+		t.Fatalf("JSON returned error: %v", err)
+	}
+	if got.Title != "budgeted" {
+		t.Fatalf("JSON result = %#v, want scripted response", got)
+	}
+	if len(prov.requests) != 1 {
+		t.Fatalf("requests len = %d, want 1", len(prov.requests))
+	}
+	if prov.requests[0].Gen.MaxTokens != site.MaxTokens {
+		t.Fatalf("request max tokens = %d, want %d", prov.requests[0].Gen.MaxTokens, site.MaxTokens)
+	}
+}
+
+func TestJSONReturnsErrTruncatedAndRecordsPartialBodyAtTokenCeiling(t *testing.T) {
+	// R-MTSD-UHNU
+	rec := &captureRecorder{}
+	prov := &scriptedProvider{
+		responses: []string{`{"title":"partial"`},
+		usages:    []agentkit.Usage{{InputUncached: 7, Output: 12, Total: 19}},
+	}
+	client := New(prov, nil, rec)
+	client.newID = sequenceLLMIDs("call-truncated")
+	site := CallSite{Stage: "extract", Model: "json-model", MaxTokens: 12}
+
+	got, err := JSON[jsonFixture](context.Background(), client, site, "make json", nilJSONFixture)
+	if !errors.Is(err, ErrTruncated) {
+		t.Fatalf("JSON error = %v, want ErrTruncated", err)
+	}
+	if got != (jsonFixture{}) {
+		t.Fatalf("JSON result = %#v, want zero value on truncation", got)
+	}
+	if len(rec.records) != 1 {
+		t.Fatalf("records len = %d, want one call record", len(rec.records))
+	}
+	call := rec.records[0]
+	if call.ID != "call-truncated" || call.Response != `{"title":"partial"` {
+		t.Fatalf("record = %+v, want partial response retained", call)
+	}
+	if !strings.Contains(call.Err, ErrTruncated.Error()) || !strings.Contains(call.Err, "max_tokens 12") {
+		t.Fatalf("record err = %q, want truncation reason with token ceiling", call.Err)
+	}
+	assertJSONField(t, call.Params, "max_tokens", float64(12))
+}
+
+func TestJSONTreatsTruncationAsTerminalWithoutParseRetry(t *testing.T) {
+	// R-MV0A-89EJ
+	prov := &scriptedProvider{
+		responses: []string{`{"title":"partial"`, `{"title":"would retry","count":2}`},
+		usages:    []agentkit.Usage{{InputUncached: 4, Output: 5, Total: 9}},
+	}
+	site := CallSite{Model: "json-model", MaxTokens: 5, MaxParseRetries: 3}
+
+	_, err := JSON[jsonFixture](context.Background(), New(prov, nil), site, "make json", nilJSONFixture)
+	if !errors.Is(err, ErrTruncated) {
+		t.Fatalf("JSON error = %v, want ErrTruncated", err)
+	}
+	if len(prov.requests) != 1 {
+		t.Fatalf("requests len = %d, want truncation to stop after one round-trip despite parse retry budget", len(prov.requests))
+	}
+}
+
 func TestJSONRetriesWithCorrectivePromptOnValidationFailure(t *testing.T) {
 	// R-JCEE-GQ1E
 	prov := &scriptedProvider{responses: []string{
@@ -556,6 +624,8 @@ func nilJSONFixture(*jsonFixture) error {
 type scriptedProvider struct {
 	responses []string
 	errs      []error
+	usages    []agentkit.Usage
+	finishes  []agentkit.FinishReason
 	requests  []agentkit.Request
 	deadlines []time.Time
 }
@@ -575,10 +645,20 @@ func (p *scriptedProvider) RoundTrip(ctx context.Context, req *agentkit.Request)
 		text = p.responses[0]
 		p.responses = p.responses[1:]
 	}
+	usage := agentkit.Usage{InputUncached: 1, Output: 1, Total: 2}
+	if len(p.usages) > 0 {
+		usage = p.usages[0]
+		p.usages = p.usages[1:]
+	}
+	finish := agentkit.FinishStop
+	if len(p.finishes) > 0 {
+		finish = p.finishes[0]
+		p.finishes = p.finishes[1:]
+	}
 	return agentkit.NewRoundTrip(
 		agentkit.Message{Role: agentkit.RoleAssistant, Blocks: []agentkit.Block{agentkit.TextBlock{Text: text}}},
-		agentkit.FinishStop,
-		agentkit.Usage{InputUncached: 1, Output: 1, Total: 2},
+		finish,
+		usage,
 		nil,
 		nil,
 	)

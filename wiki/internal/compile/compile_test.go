@@ -9,6 +9,7 @@ import (
 
 	agentkit "github.com/ikigenba/agentkit"
 
+	"wiki/internal/extract"
 	"wiki/internal/llm"
 	"wiki/internal/wiki"
 )
@@ -95,6 +96,9 @@ func TestDefaultCallSiteUsesDeterministicReasoningOffSettings(t *testing.T) {
 	if !reflect.DeepEqual(site.Reasoning, llm.DisableReasoning()) {
 		t.Fatalf("reasoning = %#v, want disabled", site.Reasoning)
 	}
+	if site.MaxTokens <= 0 {
+		t.Fatalf("MaxTokens = %d, want non-zero output ceiling", site.MaxTokens)
+	}
 
 	prov := &scriptedProvider{responses: []string{`{"title":"Acme Robotics","body":"Acme Robotics operates a Tulsa research lab."}`}}
 	compiler := New(llm.New(prov, nil), site, nil)
@@ -107,6 +111,40 @@ func TestDefaultCallSiteUsesDeterministicReasoningOffSettings(t *testing.T) {
 	req := prov.requests[0]
 	if req.Gen.Temperature == nil || *req.Gen.Temperature != 0 || !req.Gen.Reasoning.Disabled() {
 		t.Fatalf("gen settings = %#v, want default temperature 0 and disabled reasoning", req.Gen)
+	}
+	if req.Gen.MaxTokens != site.MaxTokens {
+		t.Fatalf("request max tokens = %d, want default ceiling %d", req.Gen.MaxTokens, site.MaxTokens)
+	}
+}
+
+func TestExtractAndCompileDefaultCallSitesCarryOutputTokenCeilings(t *testing.T) {
+	// R-MW86-M158
+	prov := &scriptedProvider{responses: []string{
+		`{"subjects":[]}`,
+		`{"title":"Acme Robotics","body":"Acme Robotics operates a Tulsa research lab."}`,
+	}}
+	extractSite := extract.DefaultCallSite("extract-model")
+	compileSite := DefaultCallSite("compile-model")
+	if extractSite.MaxTokens <= 0 || compileSite.MaxTokens <= 0 {
+		t.Fatalf("default max tokens = extract:%d compile:%d, want both non-zero", extractSite.MaxTokens, compileSite.MaxTokens)
+	}
+
+	extractor := extract.New(llm.New(prov, nil), extractSite)
+	if _, err := extractor.Extract(context.Background(), extract.DocumentHeader{}, "source text"); err != nil {
+		t.Fatalf("Extract returned error: %v", err)
+	}
+	compiler := New(llm.New(prov, nil), compileSite, nil)
+	if _, _, err := compiler.Compile(context.Background(), acmeSubject(), acmeClaims()); err != nil {
+		t.Fatalf("Compile returned error: %v", err)
+	}
+	if len(prov.requests) != 2 {
+		t.Fatalf("requests len = %d, want extract and compile calls", len(prov.requests))
+	}
+	if prov.requests[0].Gen.MaxTokens != extractSite.MaxTokens {
+		t.Fatalf("extract request max tokens = %d, want %d", prov.requests[0].Gen.MaxTokens, extractSite.MaxTokens)
+	}
+	if prov.requests[1].Gen.MaxTokens != compileSite.MaxTokens {
+		t.Fatalf("compile request max tokens = %d, want %d", prov.requests[1].Gen.MaxTokens, compileSite.MaxTokens)
 	}
 }
 
