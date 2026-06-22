@@ -19,6 +19,7 @@ func TestAskRunsExtractionThenSynthesizesFromResolvedSubjectPages(t *testing.T) 
 	// R-644V-3WUS
 	// R-65CR-HOLH
 	// R-6A8D-0RK9
+	// R-05CG-3H6Y
 	ctx := context.Background()
 	conn := migratedDB(t, ctx)
 	defer conn.Close()
@@ -47,8 +48,15 @@ func TestAskRunsExtractionThenSynthesizesFromResolvedSubjectPages(t *testing.T) 
 	if !got.Found || got.Text != "Café Noir keeps the deployment checklist." {
 		t.Fatalf("Ask = %+v, want synthesized found answer", got)
 	}
-	if want := []Citation{{Subject: "subject-cafe", Title: "Café Noir"}}; !reflect.DeepEqual(got.Citations, want) {
+	if want := []Citation{{Path: "entity/cafe-noir", Title: "Café Noir"}}; !reflect.DeepEqual(got.Citations, want) {
 		t.Fatalf("citations = %+v, want %+v", got.Citations, want)
+	}
+	citationsJSON, err := json.Marshal(got.Citations)
+	if err != nil {
+		t.Fatalf("Marshal citations: %v", err)
+	}
+	if strings.Contains(string(citationsJSON), "subject-cafe") {
+		t.Fatalf("citations JSON = %s, want no internal subject id", citationsJSON)
 	}
 	if len(prov.requests) != 2 {
 		t.Fatalf("provider requests = %d, want extract then synth", len(prov.requests))
@@ -323,7 +331,7 @@ func TestAskParsesDecoratedJSONResponses(t *testing.T) {
 	answer, _ := json.Marshal(answerResult{
 		Found:     true,
 		Text:      "Ada wrote the note.",
-		Citations: []Citation{{Subject: "subject-ada", Title: "Ada"}},
+		Citations: []answerCitation{{Subject: "subject-ada", Title: "Ada"}},
 	})
 	prov := &askProvider{responses: []*agentkit.RoundTrip{
 		textRoundTrip("```json\n{\"subjects\":[\"Ada\"]}\n```"),

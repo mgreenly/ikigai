@@ -23,8 +23,8 @@ type Answer struct {
 
 // Citation identifies a wiki page the answer drew on.
 type Citation struct {
-	Subject string
-	Title   string
+	Path  string
+	Title string
 }
 
 // Asker is the read-only subject-extraction question-answering service.
@@ -71,12 +71,15 @@ func (a *Asker) Ask(ctx context.Context, owner, question string) (Answer, error)
 		return honestEmpty(), nil
 	}
 
+	var citations []Citation
 	result, err := llm.JSON[answerResult](ctx, a.c, a.synthSite, synthPrompt(question, pages), func(out *answerResult) error {
 		normalizeAnswer(out)
 		if !out.Found {
 			return nil
 		}
-		return validateCitations(out.Citations, pages)
+		var err error
+		citations, err = validateCitations(out.Citations, pages)
+		return err
 	})
 	if err != nil {
 		return Answer{}, err
@@ -85,7 +88,7 @@ func (a *Asker) Ask(ctx context.Context, owner, question string) (Answer, error)
 	if !result.Found {
 		return honestEmpty(), nil
 	}
-	return Answer{Found: true, Text: result.Text, Citations: result.Citations}, nil
+	return Answer{Found: true, Text: result.Text, Citations: citations}, nil
 }
 
 func honestEmpty() Answer {
@@ -97,13 +100,19 @@ type extractResult struct {
 }
 
 type answerResult struct {
-	Found     bool       `json:"found"`
-	Text      string     `json:"text"`
-	Citations []Citation `json:"citations"`
+	Found     bool             `json:"found"`
+	Text      string           `json:"text"`
+	Citations []answerCitation `json:"citations"`
+}
+
+type answerCitation struct {
+	Subject string `json:"subject"`
+	Title   string `json:"title"`
 }
 
 type pageContext struct {
 	Subject string `json:"subject"`
+	Path    string `json:"-"`
 	Title   string `json:"title"`
 	Body    string `json:"body"`
 }
@@ -144,6 +153,7 @@ func (a *Asker) gatherPages(ctx context.Context, names []string) ([]pageContext,
 		seenSubjects[subject.ID] = struct{}{}
 		out = append(out, pageContext{
 			Subject: subject.ID,
+			Path:    wiki.Path(subject),
 			Title:   page.Title,
 			Body:    page.Body,
 		})
@@ -176,18 +186,21 @@ func normalizeAnswer(out *answerResult) {
 	}
 }
 
-func validateCitations(citations []Citation, pages []pageContext) error {
+func validateCitations(citations []answerCitation, pages []pageContext) ([]Citation, error) {
 	if len(citations) == 0 {
-		return fmt.Errorf("ask: found answer requires at least one citation")
+		return nil, fmt.Errorf("ask: found answer requires at least one citation")
 	}
-	allowed := make(map[Citation]struct{}, len(pages))
+	allowed := make(map[answerCitation]Citation, len(pages))
 	for _, page := range pages {
-		allowed[Citation{Subject: page.Subject, Title: page.Title}] = struct{}{}
+		allowed[answerCitation{Subject: page.Subject, Title: page.Title}] = Citation{Path: page.Path, Title: page.Title}
 	}
+	out := make([]Citation, 0, len(citations))
 	for _, citation := range citations {
-		if _, ok := allowed[citation]; !ok {
-			return fmt.Errorf("ask: citation not in gathered pages: %+v", citation)
+		mapped, ok := allowed[citation]
+		if !ok {
+			return nil, fmt.Errorf("ask: citation not in gathered pages: %+v", citation)
 		}
+		out = append(out, mapped)
 	}
-	return nil
+	return out, nil
 }
