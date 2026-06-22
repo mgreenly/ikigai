@@ -64,6 +64,43 @@ func TestPageWithLinksProjectsOutboundMentions(t *testing.T) {
 	}
 }
 
+func TestPageWithLinksOrdersOutboundMentionsByPath(t *testing.T) {
+	// R-ZWT5-F303
+	ctx := context.Background()
+	conn := migratedDB(t, ctx)
+	defer conn.Close()
+	svc := NewService(conn, nil, nil, nil)
+	subjects := NewSubjectStore(conn)
+	pages := NewPageStore(conn)
+
+	saveSubject(t, ctx, subjects, Subject{ID: "subject-1", Name: "Home Page", Type: "entity"})
+	saveSubject(t, ctx, subjects, Subject{ID: "subject-2", Name: "Alpha Entity", Type: "entity"})
+	saveSubject(t, ctx, subjects, Subject{ID: "subject-3", Name: "Zebra Concept", Type: "concept"})
+	upsertPage(t, ctx, pages, Page{
+		ID:        "page-1",
+		SubjectID: "subject-1",
+		Title:     "Home Page",
+		Body:      "Home Page mentions Alpha Entity and Zebra Concept.",
+	})
+
+	got, err := svc.PageWithLinks(ctx, "subject-1")
+	if err != nil {
+		t.Fatalf("PageWithLinks: %v", err)
+	}
+	want := []Ref{
+		{Path: "concept/zebra-concept", Name: "Zebra Concept"},
+		{Path: "entity/alpha-entity", Name: "Alpha Entity"},
+	}
+	if len(got.Mentions) != len(want) {
+		t.Fatalf("Mentions = %+v, want %+v", got.Mentions, want)
+	}
+	for i := range want {
+		if got.Mentions[i] != want[i] {
+			t.Fatalf("Mentions = %+v, want %+v", got.Mentions, want)
+		}
+	}
+}
+
 func TestPageWithLinksProjectsInboundFromPagedSubjectsOnly(t *testing.T) {
 	// R-ZY11-SUQS
 	ctx := context.Background()
@@ -104,6 +141,24 @@ func TestRenderFooterAppendsMarkdownLinks(t *testing.T) {
 		if !strings.Contains(got, want) {
 			t.Fatalf("RenderFooter output:\n%s\nmissing %q", got, want)
 		}
+	}
+}
+
+func TestRenderFooterOrdersAndDedupesMarkdownLinks(t *testing.T) {
+	// R-ZZ8Y-6MHH
+	got := RenderFooter("Page body.", []Ref{
+		{Path: "entity/zeta-lab", Name: "Zeta Lab"},
+		{Path: "concept/alpha-plan", Name: "Alpha Plan"},
+		{Path: "entity/zeta-lab", Name: "Zeta Lab"},
+	}, nil)
+
+	alpha := "- [Alpha Plan](concept/alpha-plan)"
+	zeta := "- [Zeta Lab](entity/zeta-lab)"
+	if strings.Count(got, zeta) != 1 {
+		t.Fatalf("RenderFooter output:\n%s\nwant exactly one %q", got, zeta)
+	}
+	if !strings.Contains(got, alpha) || strings.Index(got, alpha) > strings.Index(got, zeta) {
+		t.Fatalf("RenderFooter output:\n%s\nwant refs ordered by path", got)
 	}
 }
 

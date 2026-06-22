@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"sort"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -135,7 +136,7 @@ func refsFor(subjects []Subject) []Ref {
 	for _, subject := range subjects {
 		refs = append(refs, refFor(subject))
 	}
-	return refs
+	return canonicalRefs(refs)
 }
 
 func refFor(subject Subject) Ref {
@@ -160,6 +161,7 @@ func writeRefSection(b *strings.Builder, title string, refs []Ref) {
 	b.WriteString("### ")
 	b.WriteString(title)
 	b.WriteString("\n")
+	refs = canonicalRefs(refs)
 	if len(refs) == 0 {
 		b.WriteString("- None\n")
 		return
@@ -171,6 +173,28 @@ func writeRefSection(b *strings.Builder, title string, refs []Ref) {
 		b.WriteString(ref.Path)
 		b.WriteString(")\n")
 	}
+}
+
+func canonicalRefs(refs []Ref) []Ref {
+	if len(refs) == 0 {
+		return nil
+	}
+	out := append([]Ref(nil), refs...)
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Path == out[j].Path {
+			return out[i].Name < out[j].Name
+		}
+		return out[i].Path < out[j].Path
+	})
+	n := 0
+	for _, ref := range out {
+		if n > 0 && out[n-1].Path == ref.Path {
+			continue
+		}
+		out[n] = ref
+		n++
+	}
+	return out[:n]
 }
 
 func escapeMarkdownLinkText(s string) string {
