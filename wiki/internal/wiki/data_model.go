@@ -202,6 +202,57 @@ func (s *JobStore) Finish(ctx context.Context, id, status string, finishedAt tim
 	return err
 }
 
+func (s *JobStore) FinishWorking(ctx context.Context, id, status string, finishedAt time.Time, jobErr string) (bool, error) {
+	res, err := s.db.ExecContext(ctx,
+		`UPDATE jobs SET status = ?, finished_at = ?, error = ? WHERE id = ? AND status = ?`,
+		status, formatTime(finishedAt), jobErr, id, JobWorking)
+	if err != nil {
+		return false, err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+	return n > 0, nil
+}
+
+func (s *JobStore) Abort(ctx context.Context, id string, finishedAt time.Time) (AbortResult, error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return AbortResult{}, err
+	}
+	defer tx.Rollback()
+
+	var status string
+	if err := tx.QueryRowContext(ctx, `SELECT status FROM jobs WHERE id = ?`, id).Scan(&status); err != nil {
+		return AbortResult{}, err
+	}
+	if status != JobPending && status != JobWorking {
+		if err := tx.Commit(); err != nil {
+			return AbortResult{}, err
+		}
+		return AbortResult{Status: status}, nil
+	}
+
+	res, err := tx.ExecContext(ctx,
+		`UPDATE jobs SET status = ?, finished_at = ?, error = '' WHERE id = ? AND status = ?`,
+		JobAborted, formatTime(finishedAt), id, status)
+	if err != nil {
+		return AbortResult{}, err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return AbortResult{}, err
+	}
+	if err := tx.Commit(); err != nil {
+		return AbortResult{}, err
+	}
+	if n == 0 {
+		return AbortResult{Status: status}, nil
+	}
+	return AbortResult{Aborted: true, Status: JobAborted}, nil
+}
+
 func (s *JobStore) Status(ctx context.Context, id string) (JobStatus, error) {
 	job, err := scanJob(s.db.QueryRowContext(ctx, `
 		SELECT id, owner, source_text, title, tags, source_hash, status,

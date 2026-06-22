@@ -209,6 +209,139 @@ func TestProcessNextCommitsPageWithoutPagesFTS(t *testing.T) {
 	assertNoPagesFTS(t, ctx, conn)
 }
 
+func TestAbortPendingJobMarksAbortedAndPreventsProcessing(t *testing.T) {
+	// R-0SCX-95OZ
+	ctx := context.Background()
+	conn := migratedDB(t, ctx)
+	defer conn.Close()
+
+	now := time.Date(2026, 6, 22, 8, 0, 0, 0, time.UTC)
+	extractor := &recordingExtractor{}
+	svc := NewService(conn, extractor, &recordingCompiler{}, clockAt(now))
+	svc.newID = sequenceIDs("job-1")
+
+	jobID, err := svc.Ingest(ctx, "owner@example.com", "Acme Robotics opened a lab.", "Lab", nil)
+	if err != nil {
+		t.Fatalf("Ingest: %v", err)
+	}
+	result, err := svc.Abort(ctx, jobID)
+	if err != nil {
+		t.Fatalf("Abort: %v", err)
+	}
+	if !result.Aborted || result.Status != JobAborted {
+		t.Fatalf("Abort result = %+v, want aborted status", result)
+	}
+
+	status, err := svc.JobStatus(ctx, jobID)
+	if err != nil {
+		t.Fatalf("JobStatus: %v", err)
+	}
+	if status.Status != JobAborted || status.FinishedAt == nil {
+		t.Fatalf("status = %+v, want aborted with finished_at", status)
+	}
+	processed, err := svc.ProcessNext(ctx)
+	if err != nil {
+		t.Fatalf("ProcessNext: %v", err)
+	}
+	if processed {
+		t.Fatal("ProcessNext processed = true, want aborted pending job skipped")
+	}
+	if extractor.calls != 0 {
+		t.Fatalf("extractor calls = %d, want 0 after abort", extractor.calls)
+	}
+}
+
+func TestAbortTerminalJobLeavesStatusUnchanged(t *testing.T) {
+	// R-0TKT-MXFO
+	ctx := context.Background()
+	conn := migratedDB(t, ctx)
+	defer conn.Close()
+
+	svc := NewService(conn, &recordingExtractor{}, &recordingCompiler{}, clockAt(time.Date(2026, 6, 22, 8, 1, 0, 0, time.UTC)))
+	svc.newID = sequenceIDs("job-1")
+	jobID, err := svc.Ingest(ctx, "owner@example.com", "empty source", "Empty", nil)
+	if err != nil {
+		t.Fatalf("Ingest: %v", err)
+	}
+	if processed, err := svc.ProcessNext(ctx); err != nil || !processed {
+		t.Fatalf("ProcessNext = %v/%v, want true/nil", processed, err)
+	}
+
+	result, err := svc.Abort(ctx, jobID)
+	if err != nil {
+		t.Fatalf("Abort: %v", err)
+	}
+	if result.Aborted || result.Status != JobDone {
+		t.Fatalf("Abort result = %+v, want unchanged done status", result)
+	}
+	status, err := svc.JobStatus(ctx, jobID)
+	if err != nil {
+		t.Fatalf("JobStatus: %v", err)
+	}
+	if status.Status != JobDone {
+		t.Fatalf("status = %q, want done", status.Status)
+	}
+}
+
+func TestAbortWorkingJobIsNotOverwrittenByWorkerFinish(t *testing.T) {
+	// R-0USQ-0P6D
+	ctx := context.Background()
+	conn := migratedDB(t, ctx)
+	defer conn.Close()
+
+	extractor := &blockingExtractor{
+		entered: make(chan struct{}),
+		release: make(chan struct{}),
+	}
+	svc := NewService(conn, extractor, &recordingCompiler{}, clockAt(time.Date(2026, 6, 22, 8, 2, 0, 0, time.UTC)))
+	svc.newID = sequenceIDs("job-1")
+	jobID, err := svc.Ingest(ctx, "owner@example.com", "Acme Robotics opened a lab.", "Lab", nil)
+	if err != nil {
+		t.Fatalf("Ingest: %v", err)
+	}
+
+	type processResult struct {
+		processed bool
+		err       error
+	}
+	done := make(chan processResult, 1)
+	go func() {
+		processed, err := svc.ProcessNext(ctx)
+		done <- processResult{processed: processed, err: err}
+	}()
+
+	select {
+	case <-extractor.entered:
+	case <-time.After(2 * time.Second):
+		t.Fatal("extractor was not entered")
+	}
+	result, err := svc.Abort(ctx, jobID)
+	if err != nil {
+		t.Fatalf("Abort: %v", err)
+	}
+	if !result.Aborted || result.Status != JobAborted {
+		t.Fatalf("Abort result = %+v, want working job aborted", result)
+	}
+	close(extractor.release)
+
+	select {
+	case got := <-done:
+		if got.err != nil || !got.processed {
+			t.Fatalf("ProcessNext = %v/%v, want true/nil", got.processed, got.err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("ProcessNext did not return")
+	}
+
+	status, err := svc.JobStatus(ctx, jobID)
+	if err != nil {
+		t.Fatalf("JobStatus: %v", err)
+	}
+	if status.Status != JobAborted || status.StartedAt == nil || status.FinishedAt == nil {
+		t.Fatalf("status = %+v, want aborted working job with lifecycle timestamps", status)
+	}
+}
+
 func TestServiceListsSubjectsAndReadsClaimsAndPagesBySubject(t *testing.T) {
 	ctx := context.Background()
 	conn := migratedDB(t, ctx)
@@ -277,6 +410,21 @@ func (e *recordingExtractor) Extract(_ context.Context, h extract.DocumentHeader
 	return out, nil
 }
 
+type blockingExtractor struct {
+	entered chan struct{}
+	release chan struct{}
+}
+
+func (e *blockingExtractor) Extract(ctx context.Context, _ extract.DocumentHeader, _ string) ([]extract.ExtractedSubject, error) {
+	close(e.entered)
+	select {
+	case <-e.release:
+		return nil, nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+}
+
 type recordingCompiler struct {
 	claimSets [][]Claim
 }
@@ -313,6 +461,10 @@ func sequenceTimes(times ...time.Time) func() time.Time {
 		i++
 		return t
 	}
+}
+
+func clockAt(t time.Time) func() time.Time {
+	return func() time.Time { return t }
 }
 
 func assertNoPagesFTS(t *testing.T, ctx context.Context, conn interface {

@@ -18,7 +18,13 @@ const (
 	JobWorking = "working"
 	JobDone    = "done"
 	JobFailed  = "failed"
+	JobAborted = "aborted"
 )
+
+type AbortResult struct {
+	Aborted bool
+	Status  string
+}
 
 // Extractor is the injected extract-stage dependency.
 type Extractor interface {
@@ -93,6 +99,20 @@ func (s *Service) JobStatus(ctx context.Context, jobID string) (JobStatus, error
 	return s.jobs.Status(ctx, jobID)
 }
 
+func (s *Service) Abort(ctx context.Context, jobID string) (AbortResult, error) {
+	if s == nil {
+		return AbortResult{}, fmt.Errorf("wiki: nil service")
+	}
+	result, err := s.jobs.Abort(ctx, strings.TrimSpace(jobID), s.now())
+	if err != nil {
+		return AbortResult{}, err
+	}
+	if result.Aborted {
+		s.notify()
+	}
+	return result, nil
+}
+
 // Subjects lists registry subjects, optionally filtered by type and name substring.
 func (s *Service) Subjects(ctx context.Context, typ, nameContains string) ([]Subject, error) {
 	if s == nil {
@@ -130,10 +150,10 @@ func (s *Service) ProcessNext(ctx context.Context) (bool, error) {
 		return ok, err
 	}
 	if err := s.integrate(ctx, job); err != nil {
-		_ = s.jobs.Finish(ctx, job.ID, JobFailed, s.now(), err.Error())
+		_, _ = s.jobs.FinishWorking(ctx, job.ID, JobFailed, s.now(), err.Error())
 		return true, nil
 	}
-	if err := s.jobs.Finish(ctx, job.ID, JobDone, s.now(), ""); err != nil {
+	if _, err := s.jobs.FinishWorking(ctx, job.ID, JobDone, s.now(), ""); err != nil {
 		return true, err
 	}
 	return true, nil
