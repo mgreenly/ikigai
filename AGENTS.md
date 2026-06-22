@@ -52,7 +52,38 @@ wiki**; `appkit`/`eventplane`/`agentkit` and `opsctl` are libraries/tooling and
 are **not** versioned. The root `go.work` wires the modules for local dev; the
 production build forces `GOWORK=off`.
 
+## Working locally
+
+Even when you're started at the repo root, a unit of work is normally **confined
+to a single service** — change one service at a time, and look first under that
+service's own directory for its code, schema (`<svc>/internal/db/migrations/`),
+and `.envrc`/`CLAUDE.md`. The suite-wide concerns below — running the suite, the
+nginx front door, deploy tooling — are the exceptions that legitimately live at
+the root.
+
+Testing usually needs the **whole suite running together**, so that happens from
+the root, not per-service:
+
+- **`bin/start`** native-builds every service, launches each on its loopback
+  port, and brings up the nginx front door on **:8080** so the full path-routed
+  auth chain is reachable end to end. Logs land in `tmp/<svc>.log`.
+- **`bin/stop`** tears the whole stack back down; **`bin/stop --clean`** also
+  wipes the `tmp/` dev state (binaries, logs, SQLite dbs).
+
+With the suite up, you should normally have the local **`ikigenba_<svc>` MCP
+tools** available and reachable against the running services. If those tools are
+missing from your toolset, or a service's `health` check fails, **complain
+prominently** — don't proceed as if testing succeeded — then continue with
+whatever parts of the work are still doable. A missing MCP usually just means the
+suite isn't up (run `bin/start`).
+
 ## Deploying — bump → ship → stage → deploy
+
+> ⚠️ **`int.ikigenba.com` is the live account.** Do **not** run any of the steps
+> below — or otherwise `ssh int` / invoke `opsctl` against the box, even
+> read-only — unless you've been **explicitly told to deploy**. The default
+> workflow is local-only (`bin/start`); deploying is a separate, explicit
+> request.
 
 We deploy to **`int.ikigenba.com`** (the first and only account, `int`). Your
 `~/.ssh/config` already has a `Host int.ikigenba.com` (alias `int`) entry pinning
