@@ -101,7 +101,7 @@ func TestToolsListAdvertisesConfiguredWikiSurface(t *testing.T) {
 		WithAskFunc((&capturingAsker{}).Ask),
 		WithSubjectsService(&capturingWiki{}),
 		WithClaimsService(&capturingWiki{}),
-		WithPageService(&capturingWiki{}),
+		WithPagePathService(&capturingWiki{}),
 	))
 	rec := callMCP(t, h, `{"jsonrpc":"2.0","id":"list","method":"tools/list"}`, "owner@example.com")
 
@@ -160,7 +160,7 @@ func TestToolsListInputSchemasUseValidRequiredFields(t *testing.T) {
 		WithAskFunc((&capturingAsker{}).Ask),
 		WithSubjectsService(&capturingWiki{}),
 		WithClaimsService(&capturingWiki{}),
-		WithPageService(&capturingWiki{}),
+		WithPagePathService(&capturingWiki{}),
 	))
 	rec := callMCP(t, h, `{"jsonrpc":"2.0","id":"list","method":"tools/list"}`, "owner@example.com")
 
@@ -244,7 +244,7 @@ func TestUnknownReadsReturnCleanNotFoundResults(t *testing.T) {
 	h := gatedHandler(t, NewHandler("test-version", "wiki", nil,
 		WithJobStatusService(wiki),
 		WithClaimsService(wiki),
-		WithPageService(wiki),
+		WithPagePathService(wiki),
 	))
 	for _, tc := range []struct {
 		name string
@@ -266,9 +266,9 @@ func TestUnknownReadsReturnCleanNotFoundResults(t *testing.T) {
 		},
 		{
 			name: "page",
-			body: `{"jsonrpc":"2.0","id":"page","method":"tools/call","params":{"name":"page","arguments":{"subject_id":"subject-missing"}}}`,
+			body: `{"jsonrpc":"2.0","id":"page","method":"tools/call","params":{"name":"page","arguments":{"path":"entity/missing"}}}`,
 			kind: "subject",
-			id:   "subject-missing",
+			id:   "entity/missing",
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -368,14 +368,81 @@ func TestJobStatusToolReturnsDomainStatus(t *testing.T) {
 	}
 }
 
+func TestPageToolUsesTypeSlugPath(t *testing.T) {
+	// R-01OQ-Y5YV
+	wiki := &capturingWiki{page: page{
+		ID:        "page-1",
+		SubjectID: "subject-1",
+		Title:     "Acme Robotics",
+		Body:      "Acme Robotics overview.",
+	}}
+	h := gatedHandler(t, NewHandler("test-version", "wiki", nil, WithPagePathService(wiki)))
+	listRec := callMCP(t, h, `{"jsonrpc":"2.0","id":"list","method":"tools/list"}`, "owner@example.com")
+	if listRec.Code != http.StatusOK {
+		t.Fatalf("tools/list status = %d, want 200", listRec.Code)
+	}
+	var list struct {
+		Result struct {
+			Tools []struct {
+				Name        string         `json:"name"`
+				InputSchema map[string]any `json:"inputSchema"`
+			} `json:"tools"`
+		} `json:"result"`
+	}
+	decodeJSON(t, listRec.Body.Bytes(), &list)
+	foundPageSchema := false
+	for _, tool := range list.Result.Tools {
+		if tool.Name != "page" {
+			continue
+		}
+		foundPageSchema = true
+		required, ok := tool.InputSchema["required"].([]any)
+		if !ok || len(required) != 1 || required[0] != "path" {
+			t.Fatalf("page required = %#v, want [path]", tool.InputSchema["required"])
+		}
+		properties, ok := tool.InputSchema["properties"].(map[string]any)
+		if !ok {
+			t.Fatalf("page properties = %T, want object", tool.InputSchema["properties"])
+		}
+		path, ok := properties["path"].(map[string]any)
+		if !ok || path["type"] != "string" {
+			t.Fatalf("page path schema = %#v, want string property", properties["path"])
+		}
+		if _, ok := properties["subject_id"]; ok {
+			t.Fatalf("page properties = %#v, want no subject_id argument", properties)
+		}
+	}
+	if !foundPageSchema {
+		t.Fatal("tools/list missing page schema")
+	}
+
+	rec := callMCP(t, h, `{
+		"jsonrpc":"2.0",
+		"id":"page",
+		"method":"tools/call",
+		"params":{"name":"page","arguments":{"path":"entity/acme-robotics"}}
+	}`, "owner@example.com")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("page status = %d, want 200", rec.Code)
+	}
+	if wiki.pagePath != "entity/acme-robotics" {
+		t.Fatalf("page path = %q, want type/slug path", wiki.pagePath)
+	}
+	var body page
+	decodeToolText(t, rec.Body.Bytes(), &body)
+	if body.ID != "page-1" || body.Title != "Acme Robotics" {
+		t.Fatalf("page body = %#v, want returned page", body)
+	}
+}
+
 func TestAskToolUsesAuthenticatedIdentity(t *testing.T) {
 	// R-MYDT-PCRV
 	asker := &capturingAsker{answer: answer{
 		Found: true,
 		Text:  "Ada wrote the note.",
 		Citations: []citation{{
-			Subject: "subject-1",
-			Title:   "Ada",
+			Path:  "entity/ada",
+			Title: "Ada",
 		}},
 	}}
 	h := gatedHandler(t, NewHandler("test-version", "wiki", nil, WithAskFunc(asker.Ask)))
@@ -399,16 +466,58 @@ func TestAskToolUsesAuthenticatedIdentity(t *testing.T) {
 		Found     bool   `json:"found"`
 		Answer    string `json:"answer"`
 		Citations []struct {
-			Subject string `json:"subject"`
-			Title   string `json:"title"`
+			Path  string `json:"path"`
+			Title string `json:"title"`
 		} `json:"citations"`
 	}
 	decodeToolText(t, rec.Body.Bytes(), &body)
 	if !body.Found || body.Answer != "Ada wrote the note." {
 		t.Fatalf("answer = %#v, want found Ada answer", body)
 	}
-	if len(body.Citations) != 1 || body.Citations[0].Subject != "subject-1" {
-		t.Fatalf("citations = %#v, want subject-1 citation", body.Citations)
+	if len(body.Citations) != 1 || body.Citations[0].Path != "entity/ada" {
+		t.Fatalf("citations = %#v, want entity/ada citation", body.Citations)
+	}
+}
+
+func TestAskToolReturnsPathTitleCitations(t *testing.T) {
+	// R-044J-PPG9
+	asker := &capturingAsker{answer: answer{
+		Found: true,
+		Text:  "Ada wrote the note.",
+		Citations: []citation{{
+			Path:  "person/ada-lovelace",
+			Title: "Ada Lovelace",
+		}},
+	}}
+	h := gatedHandler(t, NewHandler("test-version", "wiki", nil, WithAskFunc(asker.Ask)))
+	rec := callMCP(t, h, `{
+		"jsonrpc":"2.0",
+		"id":"ask",
+		"method":"tools/call",
+		"params":{"name":"ask","arguments":{"question":"Who wrote it?"}}
+	}`, "owner@example.com")
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("ask status = %d, want 200", rec.Code)
+	}
+	var body struct {
+		Found     bool   `json:"found"`
+		Answer    string `json:"answer"`
+		Citations []struct {
+			Path    string `json:"path"`
+			Title   string `json:"title"`
+			Subject string `json:"subject"`
+		} `json:"citations"`
+	}
+	decodeToolText(t, rec.Body.Bytes(), &body)
+	if !body.Found || body.Answer != "Ada wrote the note." {
+		t.Fatalf("ask body = %#v, want found answer text", body)
+	}
+	if len(body.Citations) != 1 || body.Citations[0].Path != "person/ada-lovelace" || body.Citations[0].Title != "Ada Lovelace" {
+		t.Fatalf("ask citations = %#v, want path/title citation", body.Citations)
+	}
+	if body.Citations[0].Subject != "" {
+		t.Fatalf("ask citation subject = %q, want omitted internal subject id", body.Citations[0].Subject)
 	}
 }
 
@@ -418,8 +527,8 @@ func TestAskToolUsesPhase17InputAndResultShape(t *testing.T) {
 		Found: true,
 		Text:  "Ada wrote the note.",
 		Citations: []citation{{
-			Subject: "subject-ada",
-			Title:   "Ada",
+			Path:  "person/ada",
+			Title: "Ada",
 		}},
 	}}
 	h := gatedHandler(t, NewHandler("test-version", "wiki", nil, WithAskFunc(asker.Ask)))
@@ -472,16 +581,16 @@ func TestAskToolUsesPhase17InputAndResultShape(t *testing.T) {
 		Found     bool   `json:"found"`
 		Answer    string `json:"answer"`
 		Citations []struct {
-			Subject string `json:"subject"`
-			Title   string `json:"title"`
+			Path  string `json:"path"`
+			Title string `json:"title"`
 		} `json:"citations"`
 	}
 	decodeToolText(t, rec.Body.Bytes(), &body)
 	if !body.Found || body.Answer != "Ada wrote the note." {
 		t.Fatalf("ask body = %#v, want found answer text", body)
 	}
-	if len(body.Citations) != 1 || body.Citations[0].Subject != "subject-ada" || body.Citations[0].Title != "Ada" {
-		t.Fatalf("ask citations = %#v, want subject/title citation", body.Citations)
+	if len(body.Citations) != 1 || body.Citations[0].Path != "person/ada" || body.Citations[0].Title != "Ada" {
+		t.Fatalf("ask citations = %#v, want path/title citation", body.Citations)
 	}
 }
 
@@ -515,6 +624,7 @@ type capturingWiki struct {
 	claims      []claim
 	claimsErr   error
 	page        page
+	pagePath    string
 	pageErr     error
 	subjects    []subject
 }
@@ -549,7 +659,8 @@ func (w *capturingWiki) ClaimsBySubject(_ context.Context, _ string) ([]claim, e
 	return w.claims, nil
 }
 
-func (w *capturingWiki) PageBySubject(_ context.Context, _ string) (page, error) {
+func (w *capturingWiki) PageByPath(_ context.Context, path string) (page, error) {
+	w.pagePath = path
 	if w.pageErr != nil {
 		return page{}, w.pageErr
 	}
@@ -592,8 +703,8 @@ type answer struct {
 }
 
 type citation struct {
-	Subject string
-	Title   string
+	Path  string
+	Title string
 }
 
 type capturingAsker struct {

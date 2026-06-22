@@ -105,6 +105,86 @@ func TestBuildSpecWiresEightMCPTools(t *testing.T) {
 	}
 }
 
+func TestBuildSpecPageToolReturnsRenderedFooter(t *testing.T) {
+	// R-02WN-BXPK
+	ctx := context.Background()
+	conn := migratedDB(t, ctx)
+	defer conn.Close()
+	subjects := wiki.NewSubjectStore(conn)
+	pages := wiki.NewPageStore(conn)
+	for _, subject := range []wiki.Subject{
+		{ID: "subject-acme", Name: "Acme Robotics", NormName: "acme robotics", Type: "entity"},
+		{ID: "subject-tulsa", Name: "Tulsa Launch", NormName: "tulsa launch", Type: "event"},
+	} {
+		if err := subjects.Save(ctx, subject); err != nil {
+			t.Fatalf("Save subject %s: %v", subject.ID, err)
+		}
+	}
+	for _, page := range []wiki.Page{
+		{
+			ID:        "page-acme",
+			SubjectID: "subject-acme",
+			Title:     "Acme Robotics",
+			Body:      "Acme Robotics coordinated Tulsa Launch.",
+		},
+		{
+			ID:        "page-tulsa",
+			SubjectID: "subject-tulsa",
+			Title:     "Tulsa Launch",
+			Body:      "Tulsa Launch was coordinated by Acme Robotics.",
+		},
+	} {
+		if err := pages.Upsert(ctx, page); err != nil {
+			t.Fatalf("Upsert page %s: %v", page.ID, err)
+		}
+	}
+
+	spec := buildSpec(wiki.Config{ModelID: "test-model"})
+	srv, err := server.New(server.Options{
+		Addr:       "127.0.0.1:0",
+		Logger:     slog.New(slog.NewJSONHandler(io.Discard, nil)),
+		ResourceID: "https://int.ikigenba.com/srv/wiki/mcp",
+		AuthServer: "https://int.ikigenba.com",
+		Version:    "test-version",
+		Service:    "wiki",
+		Register:   spec.Handlers,
+		DB:         conn,
+	})
+	if err != nil {
+		t.Fatalf("server.New: %v", err)
+	}
+	req := httptest.NewRequest(http.MethodPost, "/mcp", strings.NewReader(`{
+		"jsonrpc":"2.0",
+		"id":"page",
+		"method":"tools/call",
+		"params":{"name":"page","arguments":{"path":"entity/acme-robotics"}}
+	}`))
+	req.Header.Set("X-Owner-Email", "owner@example.com")
+	req.Header.Set("X-Client-Id", "client-1")
+	rec := httptest.NewRecorder()
+	srv.Handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200; body=%s", rec.Code, rec.Body.String())
+	}
+	var body wiki.Page
+	decodeMCPToolText(t, rec.Body.Bytes(), &body)
+	if body.ID != "page-acme" || body.Title != "Acme Robotics" {
+		t.Fatalf("page = %#v, want Acme page", body)
+	}
+	for _, want := range []string{
+		"## Links",
+		"### Mentions",
+		"- [Tulsa Launch](event/tulsa-launch)",
+		"### Mentioned by",
+		"- [Tulsa Launch](event/tulsa-launch)",
+	} {
+		if !strings.Contains(body.Body, want) {
+			t.Fatalf("page body:\n%s\nmissing %q", body.Body, want)
+		}
+	}
+}
+
 func TestBuildCompilerUsesDefaultCompileCallSite(t *testing.T) {
 	// R-4DS4-RXYX
 	prov := &capturingProvider{responses: []string{`{"title":"Acme Robotics","body":"Acme Robotics runs a Tulsa lab."}`}}
@@ -152,6 +232,26 @@ func TestBuildCompilerUsesDefaultCompileCallSite(t *testing.T) {
 	}
 	if req.Gen.Temperature == nil || *req.Gen.Temperature != *wantSite.Temperature || !req.Gen.Reasoning.Disabled() {
 		t.Fatalf("gen settings = %#v, want compile.DefaultCallSite temperature %v and disabled reasoning", req.Gen, *wantSite.Temperature)
+	}
+}
+
+func decodeMCPToolText(t *testing.T, raw []byte, dst any) {
+	t.Helper()
+	var got struct {
+		Result struct {
+			Content []struct {
+				Text string `json:"text"`
+			} `json:"content"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(raw, &got); err != nil {
+		t.Fatalf("decode MCP response: %v", err)
+	}
+	if len(got.Result.Content) != 1 {
+		t.Fatalf("content len = %d, want 1", len(got.Result.Content))
+	}
+	if err := json.Unmarshal([]byte(got.Result.Content[0].Text), dst); err != nil {
+		t.Fatalf("decode MCP tool text %s: %v", got.Result.Content[0].Text, err)
 	}
 }
 

@@ -47,6 +47,10 @@ type pageFunc[T any] interface {
 	PageBySubject(ctx context.Context, subjectID string) (T, error)
 }
 
+type pageByPathFunc[T any] interface {
+	PageByPath(ctx context.Context, path string) (T, error)
+}
+
 // Option configures optional MCP tools backed by wiki domain services.
 type Option func(*Handler)
 
@@ -92,12 +96,23 @@ func WithClaimsService[T any](s claimsFunc[T]) Option {
 	}
 }
 
-// WithPageService enables the page-by-subject tool.
+// WithPageService enables the page tool from the legacy subject-id service.
 func WithPageService[T any](s pageFunc[T]) Option {
 	return func(h *Handler) {
 		if s != nil {
 			h.page = func(ctx context.Context, subjectID string) (any, error) {
 				return s.PageBySubject(ctx, subjectID)
+			}
+		}
+	}
+}
+
+// WithPagePathService enables the page tool from a public type/slug path service.
+func WithPagePathService[T any](s pageByPathFunc[T]) Option {
+	return func(h *Handler) {
+		if s != nil {
+			h.page = func(ctx context.Context, path string) (any, error) {
+				return s.PageByPath(ctx, path)
 			}
 		}
 	}
@@ -342,19 +357,19 @@ func (h *Handler) handlePageCall(ctx context.Context, w http.ResponseWriter, req
 		return
 	}
 	var args struct {
-		SubjectID string `json:"subject_id"`
+		Path string `json:"path"`
 	}
 	if err := decodeArgs(raw, &args); err != nil {
 		writeResult(w, req.ID, toolError(err.Error()))
 		return
 	}
-	if strings.TrimSpace(args.SubjectID) == "" {
-		writeResult(w, req.ID, toolError("subject_id is required"))
+	if strings.TrimSpace(args.Path) == "" {
+		writeResult(w, req.ID, toolError("path is required"))
 		return
 	}
-	page, err := h.page(ctx, args.SubjectID)
+	page, err := h.page(ctx, args.Path)
 	if errors.Is(err, sql.ErrNoRows) {
-		writeJSONTextResult(w, req.ID, notFound("subject", args.SubjectID))
+		writeJSONTextResult(w, req.ID, notFound("subject", args.Path))
 		return
 	}
 	if err != nil {
@@ -456,8 +471,8 @@ func askToolResult(answer any) map[string]any {
 	for i := 0; i < sourceCitations.Len(); i++ {
 		citation := indirect(sourceCitations.Index(i))
 		citations = append(citations, map[string]string{
-			"subject": stringField(citation, "Subject"),
-			"title":   stringField(citation, "Title"),
+			"path":  stringField(citation, "Path"),
+			"title": stringField(citation, "Title"),
 		})
 	}
 	return map[string]any{
@@ -530,10 +545,10 @@ func claimsTool() map[string]any {
 func pageTool() map[string]any {
 	return map[string]any{
 		"name":        "page",
-		"description": "Return the compiled wiki page for a subject.",
+		"description": "Return the compiled wiki page for a subject path.",
 		"inputSchema": objectSchema(map[string]any{
-			"subject_id": map[string]any{"type": "string"},
-		}, []string{"subject_id"}),
+			"path": map[string]any{"type": "string"},
+		}, []string{"path"}),
 	}
 }
 
