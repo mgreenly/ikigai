@@ -24,16 +24,17 @@ Phase 1 does this and only this:
 - **Ingest text.** Accept a block of text and return promptly with a job handle; the work of integrating it happens in the background. Each ingest breaks the text, by inference, into the **subjects** it concerns and the **claims** it makes about them. The original raw text and the extracted claims are kept **permanently**.
 - **Maintain per-subject pages.** For each subject, write or update a single coherent page that reflects the claims about it. A subject mentioned by a later ingest updates that subject's existing page rather than creating a duplicate. Pages are deliberately **lossy** compressions of the claims — the raw text and claims remain the durable record.
 - **See ingest progress.** Report which ingests are pending, working, or done.
-- **Ask.** Answer a natural-language question with a cited answer synthesized from across the pages, drawing only on ingested wiki content. Phase 1 retrieval is **keyword search** (matching the words in the question against the words in the pages).
+- **Ask.** Answer a natural-language question **agentically**: extract the subjects the question names, resolve each to a wiki subject by **exact normalized name**, read the pages of the subjects that resolve, and synthesize a cited answer from those pages — drawing only on ingested wiki content. When the question names several subjects, it gathers every one that resolves and uses each (**best-effort partial**); when none of the named subjects resolve, it answers that the wiki holds nothing on the question.
 - **Inspect.** List the subjects (with filtering), view a subject's raw claims, and view a subject's page.
 - **Report liveness.** Standard health, and a reflection that is **empty** (the wiki is connected to no event plane in phase 1).
 
 Phase 1 deliberately does **nothing else**. In particular it does not:
 
 - connect to the event plane or publish/consume any events (so reflection is empty);
-- reconcile different names for the same thing — subjects are matched only by exact (normalized) name, so two names for one thing become two separate pages until the **alias machinery** (the planned early follow-on) reconciles them;
+- reconcile different names for the same thing — subjects are matched only by exact (normalized) name, so two names for one thing become two separate pages until the **alias machinery** (the planned early follow-on) reconciles them. `ask` resolves a question's named subjects by that **same** exact-normalized match, so a partial or variant name ("Gygax" for "Gary Gygax") resolves to nothing until aliases / fuzzy matching arrive in a later release;
 - run any background maintenance, deduplication, contradiction-flagging, or staleness repair (no **lint machinery**);
-- retrieve by meaning — phase 1 search matches words, not semantics. Semantic / vector ("hybrid") search is a **planned fast follow-on**, so design must keep retrieval behind a seam: adding the vector lane later must not reshape the read path or the `ask` flow;
+- find an answer by searching the **words inside pages**, or by meaning — `ask` finds pages **only** by extracting and resolving the subjects the question names. If the answer lives in a page whose subject the question does not name (asking "who created Dungeons & Dragons?" when there is no "Dungeons & Dragons" subject, only a Gygax page that says so), `ask` will not find it and answers that the wiki holds nothing. Keyword and semantic / vector retrieval over page bodies are **later releases**;
+- consult a subject's **raw claims or original source text** when answering — `ask` synthesizes from the compiled **pages** only; drilling into the raw record to recover what a page's compression lost is a later release;
 - structure pages differently by kind — every page uses one generic shape, though each subject does carry its **type**;
 - draw links between pages;
 - expose a `rebuild` verb (a thin follow-on will re-trigger exactly what ingest already does);
@@ -55,7 +56,8 @@ These are promised values the design must honor verbatim and never re-declare:
 - **Knowledge compounds per subject.** Once an ingest completes, each subject the text concerned has a page reflecting its claims. Feed the wiki a second piece of text about the same subject and that subject's page is updated — you get one evolving page per subject, not a pile of duplicates.
 - **The raw record is permanent and inspectable.** The original text and the claims extracted from it remain retrievable after the page is built — pages are lossy, the source is not.
 - **You can look inside.** You can list the subjects the wiki knows (filtered), and for any subject view its raw claims and its current page.
-- **Ask is grounded and honest.** Ask a question and get back an answer synthesized from across the wiki's pages, with citations to where it came from. The answer draws **only** on ingested content. If the wiki holds nothing on the topic, the answer says so plainly — it never fabricates from the model's general knowledge.
+- **Ask works like an agent.** Ask a question and the wiki identifies the subjects your question names, reads the pages for the ones it actually has, and gives back an answer synthesized from those pages, with citations to them. If your question names several subjects, it answers from every one it has a page for — it does not fail just because one named subject was never ingested.
+- **Ask is grounded and honest.** The answer draws **only** on the pages it read. If none of the subjects your question names are in the wiki, it says so plainly — it never fabricates from the model's general knowledge, and a "nothing here" means no subject you named has a page, not that a word-match missed.
 - **Ask never changes anything.** Asking is purely a read; to keep an answer, you ingest it.
 - **Standard liveness.** Health reports the service is up; reflection reports that the wiki publishes and subscribes to nothing.
 
@@ -69,8 +71,9 @@ Each item is a result the user can confirm against the running service:
 - For any of those subjects, I can view both its raw claims and its generated page.
 - Ingesting a second piece of text that mentions the same subject (by the same name) updates that subject's existing page instead of creating a duplicate.
 - The original raw text and its extracted claims are still retrievable after the page has been built.
-- I can ask a question and get a cited answer drawn only from what I've ingested.
-- Asking about a topic the wiki has nothing on returns an explicit "nothing here," not a made-up answer.
+- I can ask a question that names a subject the wiki has a page for, and get a cited answer synthesized from that page — drawn only from what I've ingested.
+- I can ask a question that names several subjects; the wiki answers from every one it has a page for, and does not fail just because one of the named subjects was never ingested.
+- Asking a question whose named subjects are *none* of them in the wiki returns an explicit "nothing here," not a made-up answer.
 - Nothing I do through `ask` changes any subject, claim, or page.
 - No page exceeds 12,000 characters.
 - Health reports the service is up; reflection reports no published or subscribed events.
