@@ -18,8 +18,8 @@ Each Decision maps to its `docs/design/DNN.md`; every `R-XXXX-XXXX` id maps to i
 - D12 → `docs/design/D12.md` — Page links: read-time mention detection + markdown footer — owns R-ZUDC-NJIP, R-ZVL9-1B9E, R-ZWT5-F303, R-ZY11-SUQS, R-ZZ8Y-6MHH, R-00GU-KE86
 - D13 → `docs/design/D13.md` — The LLM-call footprint: `llm_calls` table + recorder seam — owns R-VNS0-1Z85, R-VOZW-FQYU, R-VRFP-7AG8, R-VSNL-L26X, R-VTVH-YTXM, R-VV3E-CLOB
 - D14 → `docs/design/D14.md` — Job lifecycle & control: `aborted`, abort, re-run, atomic integrate — owns R-0SCX-95OZ, R-0TKT-MXFO, R-0USQ-0P6D, R-0W0M-EGX2, R-0X8I-S8NR, R-0YGF-60EG, R-0ZOB-JS55, R-10W7-XJVU
-- D15 → `docs/design/D15.md` — Cursor pagination: the contract + the list seams — owns R-17C5-VP2I, R-18K2-9GT7, R-19RY-N8JW, R-1C7R-ES1A, R-1DFN-SJRZ
-- D16 → `docs/design/D16.md` — MCP surface expansion: control & footprint verbs + paginated lists — owns R-37NS-BRXR, R-38VO-PJOG, R-3A3L-3BF5, R-3BBH-H35U, R-3CJD-UUWJ, R-3EZ6-MEDX, R-3G73-064M
+- D15 → `docs/design/D15.md` — Cursor pagination: the contract + the list seams (jobs newest-first, multi-state set, count) — owns R-17C5-VP2I, R-18K2-9GT7, R-19RY-N8JW, R-1C7R-ES1A, R-1DFN-SJRZ, R-XYAZ-V0XE, R-XZIW-8SO3, R-Y1YP-0C5H
+- D16 → `docs/design/D16.md` — MCP surface expansion: control & footprint verbs + paginated lists (+ `jobs_count`, multi-state `jobs`) — owns R-37NS-BRXR, R-38VO-PJOG, R-3A3L-3BF5, R-3BBH-H35U, R-3CJD-UUWJ, R-3EZ6-MEDX, R-3G73-064M, R-Y36L-E3W6, R-Y4EH-RVMV
 - D17 → `docs/design/D17.md` — DB concurrency: single-writer handle + concurrent read pool (reads never blocked) — owns R-FUCC-IT4M, R-FVK8-WKVB, R-FWS5-ACM0, R-FY01-O4CP
 - D18 → `docs/design/D18.md` — Output-token budget & honest truncation handling — owns R-MSKH-GPX5, R-MTSD-UHNU, R-MV0A-89EJ, R-MW86-M158
 
@@ -114,6 +114,11 @@ Each Decision maps to its `docs/design/DNN.md`; every `R-XXXX-XXXX` id maps to i
 - R-W2HP-H0J0 → D6 → `docs/design/D06.md`
 - R-XJBY-H8JZ → D6 → `docs/design/D06.md`
 - R-XKJU-V0AO → D6 → `docs/design/D06.md`
+- R-XYAZ-V0XE → D15 → `docs/design/D15.md`
+- R-XZIW-8SO3 → D15 → `docs/design/D15.md`
+- R-Y1YP-0C5H → D15 → `docs/design/D15.md`
+- R-Y36L-E3W6 → D16 → `docs/design/D16.md`
+- R-Y4EH-RVMV → D16 → `docs/design/D16.md`
 - R-ZO9U-QOT8 → D11 → `docs/design/D11.md`
 - R-ZQPN-I8AM → D11 → `docs/design/D11.md`
 - R-ZRXJ-W01B → D11 → `docs/design/D11.md`
