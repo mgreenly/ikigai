@@ -75,6 +75,7 @@ func buildSpec(cfg wiki.Config) appkit.Spec {
 			subjects: wiki.NewSubjectStore(read),
 			claims:   wiki.NewClaimStore(read),
 		}
+		jobs := wiki.NewJobStore(conns)
 		statusService := publicStatusService{service: svc}
 		rt.Handle("POST /mcp", rt.RequireIdentity(
 			mcp.NewHandler(rt.Version(), rt.Service(), rt.Health(),
@@ -82,7 +83,8 @@ func buildSpec(cfg wiki.Config) appkit.Spec {
 				mcp.WithJobStatusService(statusService),
 				mcp.WithJobAbortService(svc),
 				mcp.WithJobRerunService(svc),
-				mcp.WithJobListService(jobListService{jobs: wiki.NewJobStore(conns)}),
+				mcp.WithJobListService(jobListService{jobs: jobs}),
+				mcp.WithJobsCountService(jobCountService{jobs: jobs}),
 				mcp.WithSubjectListService(subjectService),
 				mcp.WithClaimListService(claimService),
 				mcp.WithPagePathService(pageService),
@@ -132,10 +134,22 @@ type jobListService struct {
 
 func (s jobListService) ListJobs(ctx context.Context, f mcp.JobFilter, p page.Params) ([]wiki.Job, string, error) {
 	return s.jobs.ListJobs(ctx, wiki.JobFilter{
-		Statuses: []string{f.Status},
+		Statuses: f.Statuses,
 		Since:    f.Since,
 		Until:    f.Until,
 	}, p)
+}
+
+type jobCountService struct {
+	jobs *wiki.JobStore
+}
+
+func (s jobCountService) CountJobs(ctx context.Context, f mcp.JobFilter) (int, error) {
+	return s.jobs.CountJobs(ctx, wiki.JobFilter{
+		Statuses: f.Statuses,
+		Since:    f.Since,
+		Until:    f.Until,
+	})
 }
 
 type llmCallListService struct {

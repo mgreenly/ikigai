@@ -48,7 +48,7 @@ func TestServeFailsLoudWhenAnthropicKeyMissing(t *testing.T) {
 	}
 }
 
-func TestBuildSpecWiresTwelveMCPTools(t *testing.T) {
+func TestBuildSpecWiresThirteenMCPTools(t *testing.T) {
 	// R-MUQ4-K1JS
 	// R-3G73-064M
 	ctx := context.Background()
@@ -97,7 +97,7 @@ func TestBuildSpecWiresTwelveMCPTools(t *testing.T) {
 	for _, tool := range got.Result.Tools {
 		names[tool.Name] = true
 	}
-	want := []string{"ingest", "status", "abort", "rerun", "jobs", "ask", "subjects", "claims", "page", "llm_calls", "health", "reflection"}
+	want := []string{"ingest", "status", "abort", "rerun", "jobs", "jobs_count", "ask", "subjects", "claims", "page", "llm_calls", "health", "reflection"}
 	if len(names) != len(want) {
 		t.Fatalf("tool names = %#v, want exact %v", names, want)
 	}
@@ -315,6 +315,7 @@ func TestBuildSpecMatchesDirectMCPToolSurface(t *testing.T) {
 		mcp.WithJobAbortService(surfaceWiki{}),
 		mcp.WithJobRerunService(surfaceWiki{}),
 		mcp.WithJobListService(surfaceWiki{}),
+		mcp.WithJobsCountService(surfaceWiki{}),
 		mcp.WithAskFunc(surfaceAsk),
 		mcp.WithSubjectListService(surfaceWiki{}),
 		mcp.WithClaimListService(surfaceWiki{}),
@@ -496,6 +497,10 @@ func (surfaceWiki) Rerun(context.Context, string) (wiki.RerunResult, error) {
 
 func (surfaceWiki) ListJobs(context.Context, mcp.JobFilter, paging.Params) ([]wiki.Job, string, error) {
 	return []wiki.Job{{ID: "job-1", Status: wiki.JobDone}}, "", nil
+}
+
+func (surfaceWiki) CountJobs(context.Context, mcp.JobFilter) (int, error) {
+	return 1, nil
 }
 
 func (surfaceWiki) Subjects(context.Context, string, string) ([]publicSubject, error) {

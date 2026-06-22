@@ -20,24 +20,25 @@ import (
 
 // Handler serves a small MCP-compatible JSON-RPC endpoint for Phase 01.
 type Handler struct {
-	version  string
-	service  string
-	health   func(context.Context) (map[string]any, error)
-	ingest   func(context.Context, string, string, string, []string) (string, error)
-	status   func(context.Context, string) (any, error)
-	abort    func(context.Context, string) (any, error)
-	rerun    func(context.Context, string) (any, error)
-	jobs     func(context.Context, JobFilter, paging.Params) (any, string, error)
-	ask      func(context.Context, string, string) (any, error)
-	subjects func(context.Context, string, string, paging.Params) (any, string, error)
-	claims   func(context.Context, string, paging.Params) (any, string, error)
-	page     func(context.Context, string) (any, error)
-	calls    func(context.Context, LLMCallFilter, paging.Params) (any, string, error)
+	version   string
+	service   string
+	health    func(context.Context) (map[string]any, error)
+	ingest    func(context.Context, string, string, string, []string) (string, error)
+	status    func(context.Context, string) (any, error)
+	abort     func(context.Context, string) (any, error)
+	rerun     func(context.Context, string) (any, error)
+	jobs      func(context.Context, JobFilter, paging.Params) (any, string, error)
+	jobsCount func(context.Context, JobFilter) (int, error)
+	ask       func(context.Context, string, string) (any, error)
+	subjects  func(context.Context, string, string, paging.Params) (any, string, error)
+	claims    func(context.Context, string, paging.Params) (any, string, error)
+	page      func(context.Context, string) (any, error)
+	calls     func(context.Context, LLMCallFilter, paging.Params) (any, string, error)
 }
 
 // JobFilter is a paginated MCP job-list filter.
 type JobFilter struct {
-	Status       string
+	Statuses     []string
 	Since, Until time.Time
 }
 
@@ -65,6 +66,10 @@ type jobRerunFunc[T any] interface {
 
 type jobListFunc[T any] interface {
 	ListJobs(ctx context.Context, f JobFilter, p paging.Params) (T, string, error)
+}
+
+type jobsCountFunc interface {
+	CountJobs(ctx context.Context, f JobFilter) (int, error)
 }
 
 type subjectsFunc[T any] interface {
@@ -151,6 +156,30 @@ func WithJobListService[T any](s jobListFunc[T]) Option {
 	}
 }
 
+// WithJobsService enables the paginated jobs tool.
+func WithJobsService[T any](s jobListFunc[T]) Option {
+	return WithJobListService(s)
+}
+
+// WithJobsCountService enables the jobs_count tool.
+func WithJobsCountService(s jobsCountFunc) Option {
+	return func(h *Handler) {
+		if s != nil {
+			h.jobsCount = s.CountJobs
+		}
+	}
+}
+
+// WithAbortService enables the abort tool.
+func WithAbortService[T any](s jobAbortFunc[T]) Option {
+	return WithJobAbortService(s)
+}
+
+// WithRerunService enables the rerun tool.
+func WithRerunService[T any](s jobRerunFunc[T]) Option {
+	return WithJobRerunService(s)
+}
+
 // WithSubjectsService enables the registry-list subjects tool.
 func WithSubjectsService[T any](s subjectsFunc[T]) Option {
 	return func(h *Handler) {
@@ -230,6 +259,11 @@ func WithLLMCallListService[T any](s llmCallListFunc[T]) Option {
 	}
 }
 
+// WithLLMCallsService enables the paginated llm_calls footprint tool.
+func WithLLMCallsService[T any](s llmCallListFunc[T]) Option {
+	return WithLLMCallListService(s)
+}
+
 // WithAskFunc enables the grounded ask tool.
 func WithAskFunc[T any](fn func(context.Context, string, string) (T, error)) Option {
 	return func(h *Handler) {
@@ -295,6 +329,8 @@ func (h *Handler) handleToolCall(ctx context.Context, w http.ResponseWriter, req
 		h.handleJobRerunCall(ctx, w, req, params.Arguments)
 	case "jobs":
 		h.handleJobsCall(ctx, w, req, params.Arguments)
+	case "jobs_count":
+		h.handleJobsCountCall(ctx, w, req, params.Arguments)
 	case "ask":
 		h.handleAskCall(ctx, w, req, params.Arguments)
 	case "subjects":
@@ -440,33 +476,35 @@ func (h *Handler) handleJobsCall(ctx context.Context, w http.ResponseWriter, req
 		writeResult(w, req.ID, toolError("jobs tool is not configured"))
 		return
 	}
-	var args struct {
-		Status string `json:"status"`
-		Since  string `json:"since"`
-		Until  string `json:"until"`
-		Limit  int    `json:"limit"`
-		Cursor string `json:"cursor"`
-	}
-	if err := decodeArgs(raw, &args); err != nil {
+	filter, limit, cursor, err := decodeJobsArgs(raw, true)
+	if err != nil {
 		writeResult(w, req.ID, toolError(err.Error()))
 		return
 	}
-	since, err := parseOptionalTime(args.Since)
-	if err != nil {
-		writeResult(w, req.ID, toolError("since must be RFC3339"))
-		return
-	}
-	until, err := parseOptionalTime(args.Until)
-	if err != nil {
-		writeResult(w, req.ID, toolError("until must be RFC3339"))
-		return
-	}
-	jobs, next, err := h.jobs(ctx, JobFilter{Status: args.Status, Since: since, Until: until}, paging.Params{Limit: args.Limit, Cursor: args.Cursor})
+	jobs, next, err := h.jobs(ctx, filter, paging.Params{Limit: limit, Cursor: cursor})
 	if err != nil {
 		writeResult(w, req.ID, toolError(err.Error()))
 		return
 	}
 	writeJSONTextResult(w, req.ID, pagedResult("jobs", publicJobsResult(jobs), next))
+}
+
+func (h *Handler) handleJobsCountCall(ctx context.Context, w http.ResponseWriter, req request, raw json.RawMessage) {
+	if h.jobsCount == nil {
+		writeResult(w, req.ID, toolError("jobs_count tool is not configured"))
+		return
+	}
+	filter, _, _, err := decodeJobsArgs(raw, false)
+	if err != nil {
+		writeResult(w, req.ID, toolError(err.Error()))
+		return
+	}
+	count, err := h.jobsCount(ctx, filter)
+	if err != nil {
+		writeResult(w, req.ID, toolError(err.Error()))
+		return
+	}
+	writeJSONTextResult(w, req.ID, map[string]int{"count": count})
 }
 
 func (h *Handler) handleAskCall(ctx context.Context, w http.ResponseWriter, req request, raw json.RawMessage) {
@@ -648,6 +686,9 @@ func (h *Handler) tools() []map[string]any {
 	if h.jobs != nil {
 		tools = append(tools, jobsTool())
 	}
+	if h.jobsCount != nil {
+		tools = append(tools, jobsCountTool())
+	}
 	if h.ask != nil {
 		tools = append(tools, askTool())
 	}
@@ -737,10 +778,32 @@ func jobsTool() map[string]any {
 		"name":        "jobs",
 		"description": "List wiki ingest jobs with cursor pagination.",
 		"inputSchema": listSchema(map[string]any{
-			"status": map[string]any{"type": "string"},
+			"status": jobStatusArraySchema(),
 			"since":  map[string]any{"type": "string"},
 			"until":  map[string]any{"type": "string"},
 		}),
+	}
+}
+
+func jobsCountTool() map[string]any {
+	return map[string]any{
+		"name":        "jobs_count",
+		"description": "Count wiki ingest jobs matching the supplied filters.",
+		"inputSchema": objectSchema(map[string]any{
+			"status": jobStatusArraySchema(),
+			"since":  map[string]any{"type": "string"},
+			"until":  map[string]any{"type": "string"},
+		}, nil),
+	}
+}
+
+func jobStatusArraySchema() map[string]any {
+	return map[string]any{
+		"type": "array",
+		"items": map[string]any{
+			"type": "string",
+			"enum": validJobStatuses,
+		},
 	}
 }
 
@@ -902,6 +965,75 @@ func decodeJobIDArgs(w http.ResponseWriter, req request, raw json.RawMessage) (j
 		return args, false
 	}
 	return args, true
+}
+
+var validJobStatuses = []string{"pending", "working", "done", "failed", "aborted"}
+
+type jobStatusArgs []string
+
+func (s *jobStatusArgs) UnmarshalJSON(raw []byte) error {
+	if string(raw) == "null" {
+		*s = nil
+		return nil
+	}
+	var values []string
+	if err := json.Unmarshal(raw, &values); err != nil {
+		var value string
+		if err := json.Unmarshal(raw, &value); err != nil {
+			return fmt.Errorf("status must be an array of strings")
+		}
+		values = []string{value}
+	}
+	out := make([]string, 0, len(values))
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		if !validJobStatus(value) {
+			return fmt.Errorf("status must be one of %s", strings.Join(validJobStatuses, ", "))
+		}
+		out = append(out, value)
+	}
+	*s = out
+	return nil
+}
+
+func validJobStatus(value string) bool {
+	for _, valid := range validJobStatuses {
+		if value == valid {
+			return true
+		}
+	}
+	return false
+}
+
+func decodeJobsArgs(raw json.RawMessage, withPaging bool) (JobFilter, int, string, error) {
+	var args struct {
+		Status jobStatusArgs `json:"status"`
+		Since  string        `json:"since"`
+		Until  string        `json:"until"`
+		Limit  int           `json:"limit"`
+		Cursor string        `json:"cursor"`
+	}
+	if err := decodeArgs(raw, &args); err != nil {
+		return JobFilter{}, 0, "", err
+	}
+	since, err := parseOptionalTime(args.Since)
+	if err != nil {
+		return JobFilter{}, 0, "", fmt.Errorf("since must be RFC3339")
+	}
+	until, err := parseOptionalTime(args.Until)
+	if err != nil {
+		return JobFilter{}, 0, "", fmt.Errorf("until must be RFC3339")
+	}
+	cursor := strings.TrimSpace(args.Cursor)
+	if withPaging && cursor != "" {
+		if _, ok := paging.DecodeCursor(cursor); !ok {
+			return JobFilter{}, 0, "", fmt.Errorf("cursor is invalid")
+		}
+	}
+	return JobFilter{Statuses: []string(args.Status), Since: since, Until: until}, args.Limit, cursor, nil
 }
 
 func parseOptionalTime(s string) (time.Time, error) {

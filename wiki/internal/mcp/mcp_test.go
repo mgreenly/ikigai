@@ -104,6 +104,7 @@ func TestToolsListAdvertisesConfiguredWikiSurface(t *testing.T) {
 		WithJobAbortService(&capturingWiki{}),
 		WithJobRerunService(&capturingWiki{}),
 		WithJobListService(&capturingWiki{}),
+		WithJobsCountService(&capturingWiki{}),
 		WithAskFunc((&capturingAsker{}).Ask),
 		WithSubjectListService(&capturingWiki{}),
 		WithClaimListService(&capturingWiki{}),
@@ -140,6 +141,7 @@ func TestToolsListAdvertisesConfiguredWikiSurface(t *testing.T) {
 		"abort":      true,
 		"rerun":      true,
 		"jobs":       true,
+		"jobs_count": true,
 		"ask":        true,
 		"subjects":   true,
 		"claims":     true,
@@ -165,12 +167,14 @@ func TestToolsListAdvertisesConfiguredWikiSurface(t *testing.T) {
 
 func TestToolsListInputSchemasUseValidRequiredFields(t *testing.T) {
 	// R-N4KO-2WTZ
+	// R-3G73-064M
 	h := gatedHandler(t, NewHandler("test-version", "wiki", nil,
 		WithIngestService(&capturingWiki{}),
 		WithJobStatusService(&capturingWiki{}),
 		WithJobAbortService(&capturingWiki{}),
 		WithJobRerunService(&capturingWiki{}),
 		WithJobListService(&capturingWiki{}),
+		WithJobsCountService(&capturingWiki{}),
 		WithAskFunc((&capturingAsker{}).Ask),
 		WithSubjectListService(&capturingWiki{}),
 		WithClaimListService(&capturingWiki{}),
@@ -195,11 +199,19 @@ func TestToolsListInputSchemasUseValidRequiredFields(t *testing.T) {
 		t.Fatal("tools/list returned no tools")
 	}
 	seenSubjects := false
+	optionalOnly := map[string]bool{"jobs": false, "jobs_count": false, "llm_calls": false}
 	for _, tool := range got.Result.Tools {
 		if tool.InputSchema["type"] != "object" {
 			t.Fatalf("%s schema type = %v, want object", tool.Name, tool.InputSchema["type"])
 		}
 		required, ok := tool.InputSchema["required"]
+		if _, tracked := optionalOnly[tool.Name]; tracked {
+			optionalOnly[tool.Name] = true
+			if ok {
+				t.Fatalf("%s schema required = %#v, want omitted", tool.Name, required)
+			}
+			continue
+		}
 		if tool.Name == "subjects" {
 			seenSubjects = true
 			if ok {
@@ -225,6 +237,11 @@ func TestToolsListInputSchemasUseValidRequiredFields(t *testing.T) {
 	}
 	if !seenSubjects {
 		t.Fatal("tools/list missing subjects tool")
+	}
+	for name, seen := range optionalOnly {
+		if !seen {
+			t.Fatalf("tools/list missing %s tool", name)
+		}
 	}
 }
 
@@ -771,7 +788,6 @@ func TestAskToolUsesPhase17InputAndResultShape(t *testing.T) {
 }
 
 func TestJobControlToolsCallDomainServices(t *testing.T) {
-	// R-37NS-BRXR
 	// R-38VO-PJOG
 	wiki := &capturingWiki{
 		abortResult: abortResult{Aborted: true, Status: "aborted"},
@@ -825,12 +841,149 @@ func TestJobControlToolsCallDomainServices(t *testing.T) {
 	}
 }
 
+func TestJobsCountUsesSameFiltersAsJobsAndReturnsOnlyCount(t *testing.T) {
+	// R-Y36L-E3W6
+	// R-37NS-BRXR
+	started := time.Date(2026, 6, 22, 12, 30, 0, 0, time.UTC)
+	wiki := &capturingWiki{
+		jobs: []job{
+			{ID: "job-done", Status: "done", ReceivedAt: started},
+			{ID: "job-failed", Status: "failed", ReceivedAt: started.Add(-time.Hour)},
+		},
+		jobCount: 2,
+	}
+	h := gatedHandler(t, NewHandler("test-version", "wiki", nil,
+		WithJobListService(wiki),
+		WithJobsCountService(wiki),
+	))
+	args := `"arguments":{"status":["done","failed"],"since":"2026-06-22T00:00:00Z","until":"2026-06-23T00:00:00Z"}`
+
+	jobsRec := callMCP(t, h, `{"jsonrpc":"2.0","id":"jobs","method":"tools/call","params":{"name":"jobs",`+args+`}}`, "owner@example.com")
+	if jobsRec.Code != http.StatusOK {
+		t.Fatalf("jobs status = %d, want 200", jobsRec.Code)
+	}
+	var jobsBody struct {
+		Jobs []struct {
+			ID     string `json:"id"`
+			Status string `json:"status"`
+		} `json:"jobs"`
+		Next string `json:"next_cursor"`
+	}
+	decodeToolText(t, jobsRec.Body.Bytes(), &jobsBody)
+	if len(wiki.jobFilter.Statuses) != 2 || wiki.jobFilter.Statuses[0] != "done" || wiki.jobFilter.Statuses[1] != "failed" {
+		t.Fatalf("jobs statuses = %#v, want done+failed", wiki.jobFilter.Statuses)
+	}
+	if len(jobsBody.Jobs) != 2 || jobsBody.Jobs[0].ID != "job-done" || jobsBody.Jobs[1].Status != "failed" {
+		t.Fatalf("jobs body = %#v, want filtered job items", jobsBody)
+	}
+
+	countRec := callMCP(t, h, `{"jsonrpc":"2.0","id":"count","method":"tools/call","params":{"name":"jobs_count",`+args+`}}`, "owner@example.com")
+	if countRec.Code != http.StatusOK {
+		t.Fatalf("jobs_count status = %d, want 200", countRec.Code)
+	}
+	var countBody map[string]any
+	decodeToolText(t, countRec.Body.Bytes(), &countBody)
+	if countBody["count"] != float64(2) {
+		t.Fatalf("jobs_count body = %#v, want count 2", countBody)
+	}
+	if _, ok := countBody["jobs"]; ok {
+		t.Fatalf("jobs_count body = %#v, want no jobs array", countBody)
+	}
+	if _, ok := countBody["next_cursor"]; ok {
+		t.Fatalf("jobs_count body = %#v, want no cursor", countBody)
+	}
+	if len(wiki.jobCountFilter.Statuses) != 2 || wiki.jobCountFilter.Statuses[0] != "done" || wiki.jobCountFilter.Statuses[1] != "failed" {
+		t.Fatalf("jobs_count statuses = %#v, want done+failed", wiki.jobCountFilter.Statuses)
+	}
+	if !wiki.jobCountFilter.Since.Equal(wiki.jobFilter.Since) || !wiki.jobCountFilter.Until.Equal(wiki.jobFilter.Until) {
+		t.Fatalf("jobs_count filter = %#v, want same time bounds as jobs %#v", wiki.jobCountFilter, wiki.jobFilter)
+	}
+}
+
+func TestJobsStatusSchemaPublishesEnumAndRejectsUnknownStatus(t *testing.T) {
+	// R-Y4EH-RVMV
+	h := gatedHandler(t, NewHandler("test-version", "wiki", nil,
+		WithJobListService(&capturingWiki{}),
+		WithJobsCountService(&capturingWiki{}),
+	))
+	rec := callMCP(t, h, `{"jsonrpc":"2.0","id":"list","method":"tools/list"}`, "owner@example.com")
+	if rec.Code != http.StatusOK {
+		t.Fatalf("tools/list status = %d, want 200", rec.Code)
+	}
+	var got struct {
+		Result struct {
+			Tools []struct {
+				Name        string         `json:"name"`
+				InputSchema map[string]any `json:"inputSchema"`
+			} `json:"tools"`
+		} `json:"result"`
+	}
+	decodeJSON(t, rec.Body.Bytes(), &got)
+	for _, name := range []string{"jobs", "jobs_count"} {
+		schema := toolSchema(t, got.Result.Tools, name)
+		properties := schema["properties"].(map[string]any)
+		status := properties["status"].(map[string]any)
+		items := status["items"].(map[string]any)
+		enum := items["enum"].([]any)
+		if status["type"] != "array" || len(enum) != 5 {
+			t.Fatalf("%s status schema = %#v, want array enum of five states", name, status)
+		}
+		for _, want := range []string{"pending", "working", "done", "failed", "aborted"} {
+			if !containsJSONValue(enum, want) {
+				t.Fatalf("%s status enum = %#v, missing %s", name, enum, want)
+			}
+		}
+	}
+
+	for _, name := range []string{"jobs", "jobs_count"} {
+		rec := callMCP(t, h, `{"jsonrpc":"2.0","id":"bad","method":"tools/call","params":{"name":"`+name+`","arguments":{"status":["paused"]}}}`, "owner@example.com")
+		text := toolTextString(t, rec.Body.Bytes())
+		if !strings.Contains(text, "status must be one of pending, working, done, failed, aborted") {
+			t.Fatalf("%s error = %q, want valid status set", name, text)
+		}
+	}
+}
+
+func TestJobsRejectMalformedTimeAndCursorFilters(t *testing.T) {
+	// R-3EZ6-MEDX
+	h := gatedHandler(t, NewHandler("test-version", "wiki", nil, WithJobListService(&capturingWiki{})))
+	for _, tc := range []struct {
+		name string
+		body string
+		want string
+	}{
+		{
+			name: "since",
+			body: `{"jsonrpc":"2.0","id":"bad-since","method":"tools/call","params":{"name":"jobs","arguments":{"since":"yesterday"}}}`,
+			want: "since must be RFC3339",
+		},
+		{
+			name: "until",
+			body: `{"jsonrpc":"2.0","id":"bad-until","method":"tools/call","params":{"name":"jobs","arguments":{"until":"tomorrow"}}}`,
+			want: "until must be RFC3339",
+		},
+		{
+			name: "cursor",
+			body: `{"jsonrpc":"2.0","id":"bad-cursor","method":"tools/call","params":{"name":"jobs","arguments":{"cursor":"not a cursor"}}}`,
+			want: "cursor is invalid",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rec := callMCP(t, h, tc.body, "owner@example.com")
+			text := toolTextString(t, rec.Body.Bytes())
+			if !strings.Contains(text, tc.want) {
+				t.Fatalf("error = %q, want %q", text, tc.want)
+			}
+		})
+	}
+}
+
 func TestPaginatedListToolsForwardFiltersAndReturnNextCursors(t *testing.T) {
 	// R-3A3L-3BF5
 	// R-3BBH-H35U
 	// R-3CJD-UUWJ
-	// R-3EZ6-MEDX
 	started := time.Date(2026, 6, 22, 12, 30, 0, 0, time.UTC)
+	jobCursor := paging.EncodeCursor("2026-06-22T00:00:00Z", "job-cursor")
 	wiki := &capturingWiki{
 		jobs: []job{{
 			ID:         "job-123",
@@ -879,7 +1032,7 @@ func TestPaginatedListToolsForwardFiltersAndReturnNextCursors(t *testing.T) {
 		"jsonrpc":"2.0",
 		"id":"jobs",
 		"method":"tools/call",
-		"params":{"name":"jobs","arguments":{"status":"done","since":"2026-06-22T00:00:00Z","until":"2026-06-23T00:00:00Z","limit":1,"cursor":"job-cursor"}}
+		"params":{"name":"jobs","arguments":{"status":["done"],"since":"2026-06-22T00:00:00Z","until":"2026-06-23T00:00:00Z","limit":1,"cursor":"`+jobCursor+`"}}
 	}`, "owner@example.com")
 	var jobsBody struct {
 		Jobs []struct {
@@ -890,7 +1043,7 @@ func TestPaginatedListToolsForwardFiltersAndReturnNextCursors(t *testing.T) {
 		Next string `json:"next_cursor"`
 	}
 	decodeToolText(t, jobsRec.Body.Bytes(), &jobsBody)
-	if wiki.jobFilter.Status != "done" || wiki.jobPage.Limit != 1 || wiki.jobPage.Cursor != "job-cursor" {
+	if len(wiki.jobFilter.Statuses) != 1 || wiki.jobFilter.Statuses[0] != "done" || wiki.jobPage.Limit != 1 || wiki.jobPage.Cursor != jobCursor {
 		t.Fatalf("job list args = %#v/%#v, want forwarded filter/page", wiki.jobFilter, wiki.jobPage)
 	}
 	if len(jobsBody.Jobs) != 1 || jobsBody.Jobs[0].ID != "job-123" || jobsBody.Jobs[0].Status != "done" || jobsBody.Next != "job-next" {
@@ -983,35 +1136,37 @@ func TestMCPToolsAreBehindRequireIdentity(t *testing.T) {
 }
 
 type capturingWiki struct {
-	ingestID      string
-	ingestOwner   string
-	ingestText    string
-	ingestTitle   string
-	ingestTags    []string
-	statusJobID   string
-	status        jobStatus
-	statusErr     error
-	abortJobID    string
-	abortResult   abortResult
-	rerunJobID    string
-	rerunResult   rerunResult
-	jobs          []job
-	jobFilter     JobFilter
-	jobPage       paging.Params
-	jobNext       string
-	claims        []claim
-	claimsErr     error
-	claimsSubject string
-	claimsPage    paging.Params
-	claimsNext    string
-	page          page
-	pagePath      string
-	pageErr       error
-	subjects      []subject
-	subjectType   string
-	subjectName   string
-	subjectPage   paging.Params
-	subjectNext   string
+	ingestID       string
+	ingestOwner    string
+	ingestText     string
+	ingestTitle    string
+	ingestTags     []string
+	statusJobID    string
+	status         jobStatus
+	statusErr      error
+	abortJobID     string
+	abortResult    abortResult
+	rerunJobID     string
+	rerunResult    rerunResult
+	jobs           []job
+	jobFilter      JobFilter
+	jobPage        paging.Params
+	jobNext        string
+	jobCount       int
+	jobCountFilter JobFilter
+	claims         []claim
+	claimsErr      error
+	claimsSubject  string
+	claimsPage     paging.Params
+	claimsNext     string
+	page           page
+	pagePath       string
+	pageErr        error
+	subjects       []subject
+	subjectType    string
+	subjectName    string
+	subjectPage    paging.Params
+	subjectNext    string
 }
 
 func (w *capturingWiki) Ingest(_ context.Context, owner, text, title string, tags []string) (string, error) {
@@ -1047,6 +1202,11 @@ func (w *capturingWiki) ListJobs(_ context.Context, f JobFilter, p paging.Params
 	w.jobFilter = f
 	w.jobPage = p
 	return w.jobs, w.jobNext, nil
+}
+
+func (w *capturingWiki) CountJobs(_ context.Context, f JobFilter) (int, error) {
+	w.jobCountFilter = f
+	return w.jobCount, nil
 }
 
 func (w *capturingWiki) Subjects(_ context.Context, _, _ string) ([]subject, error) {
@@ -1245,4 +1405,27 @@ func decodeJSON(t *testing.T, raw []byte, dst any) {
 	if err := json.Unmarshal(raw, dst); err != nil {
 		t.Fatalf("decode JSON %s: %v", string(raw), err)
 	}
+}
+
+func toolSchema(t *testing.T, tools []struct {
+	Name        string         `json:"name"`
+	InputSchema map[string]any `json:"inputSchema"`
+}, name string) map[string]any {
+	t.Helper()
+	for _, tool := range tools {
+		if tool.Name == name {
+			return tool.InputSchema
+		}
+	}
+	t.Fatalf("tools/list missing %s", name)
+	return nil
+}
+
+func containsJSONValue(values []any, want string) bool {
+	for _, value := range values {
+		if value == want {
+			return true
+		}
+	}
+	return false
 }
