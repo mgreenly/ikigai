@@ -158,6 +158,81 @@ func TestProcessNextReusesSubjectAndRecompilesFromCompleteClaims(t *testing.T) {
 	}
 }
 
+func TestProcessNextCompilesFromSubjectIdentityAndClaimsOnly(t *testing.T) {
+	// R-MB7F-ZRE9
+	ctx := context.Background()
+	conn := migratedDB(t, ctx)
+	defer conn.Close()
+
+	const stalePageMarker = "STALE PAGE BODY MUST NOT REENTER COMPILE"
+	if err := NewSubjectStore(conn).Save(ctx, Subject{
+		ID:       "subject-1",
+		Name:     "Acme Robotics",
+		NormName: normalize("Acme Robotics"),
+		Type:     "entity",
+	}); err != nil {
+		t.Fatalf("Save subject: %v", err)
+	}
+	if err := NewClaimStore(conn).Save(ctx, Claim{
+		ID:        "claim-old",
+		SubjectID: "subject-1",
+		JobID:     "job-old",
+		Body:      "older retained claim",
+	}); err != nil {
+		t.Fatalf("Save old claim: %v", err)
+	}
+	if err := NewPageStore(conn).Upsert(ctx, Page{
+		ID:        "subject-1",
+		SubjectID: "subject-1",
+		Title:     "Old page",
+		Body:      stalePageMarker,
+	}); err != nil {
+		t.Fatalf("Save stale page: %v", err)
+	}
+
+	extractor := &recordingExtractor{batches: [][]extract.ExtractedSubject{{
+		{
+			Type:   "entity",
+			Kind:   "company",
+			Name:   "Acme Robotics",
+			Claims: []string{"new extracted claim"},
+		},
+	}}}
+	compiler := &recordingCompiler{}
+	svc := NewService(conn, extractor, compiler, sequenceTimes(
+		time.Date(2026, 6, 22, 8, 9, 0, 0, time.UTC),
+		time.Date(2026, 6, 22, 8, 9, 1, 0, time.UTC),
+		time.Date(2026, 6, 22, 8, 9, 2, 0, time.UTC),
+	))
+	svc.newID = sequenceIDs("job-1", "claim-new")
+
+	if _, err := svc.Ingest(ctx, "owner@example.com", "Acme source", "Acme", nil); err != nil {
+		t.Fatalf("Ingest: %v", err)
+	}
+	if processed, err := svc.ProcessNext(ctx); err != nil || !processed {
+		t.Fatalf("ProcessNext = %v/%v, want true/nil", processed, err)
+	}
+
+	if len(compiler.subjects) != 1 || compiler.subjects[0].ID != "subject-1" || compiler.subjects[0].Name != "Acme Robotics" {
+		t.Fatalf("compiled subjects = %+v, want existing subject identity", compiler.subjects)
+	}
+	if len(compiler.claimSets) != 1 || len(compiler.claimSets[0]) != 2 {
+		t.Fatalf("compiled claims = %+v, want old and new claims only", compiler.claimSets)
+	}
+	for _, claim := range compiler.claimSets[0] {
+		if strings.Contains(claim.Body, stalePageMarker) {
+			t.Fatalf("compiled claim body = %q, contains stale page body", claim.Body)
+		}
+	}
+	page, err := NewPageStore(conn).GetBySubject(ctx, "subject-1")
+	if err != nil {
+		t.Fatalf("GetBySubject: %v", err)
+	}
+	if strings.Contains(page.Body, stalePageMarker) {
+		t.Fatalf("page body = %q, want recompiled body without stale page input", page.Body)
+	}
+}
+
 func TestProcessNextCommitsPageWithoutPagesFTS(t *testing.T) {
 	// R-PIGW-C9EM
 	ctx := context.Background()
@@ -752,11 +827,13 @@ func (e *blockingExtractor) Extract(ctx context.Context, _ extract.DocumentHeade
 }
 
 type recordingCompiler struct {
+	subjects  []Subject
 	claimSets [][]Claim
 	err       error
 }
 
 func (c *recordingCompiler) Compile(_ context.Context, subject Subject, claims []Claim) (string, string, error) {
+	c.subjects = append(c.subjects, subject)
 	copied := append([]Claim(nil), claims...)
 	c.claimSets = append(c.claimSets, copied)
 	if c.err != nil {

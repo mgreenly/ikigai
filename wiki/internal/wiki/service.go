@@ -182,9 +182,6 @@ func (s *Service) ProcessNext(ctx context.Context) (bool, error) {
 		_, _ = s.jobs.FinishWorking(ctx, job.ID, JobFailed, s.now(), err.Error())
 		return true, nil
 	}
-	if _, err := s.jobs.FinishWorking(ctx, job.ID, JobDone, s.now(), ""); err != nil {
-		return true, err
-	}
 	return true, nil
 }
 
@@ -270,6 +267,19 @@ func (s *Service) integrate(ctx context.Context, job Job) error {
 		}); err != nil {
 			return err
 		}
+	}
+	res, err := tx.ExecContext(ctx,
+		`UPDATE jobs SET status = ?, finished_at = ?, error = '' WHERE id = ? AND status = ?`,
+		JobDone, formatTime(s.now()), job.ID, JobWorking)
+	if err != nil {
+		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return nil
 	}
 	return tx.Commit()
 }
