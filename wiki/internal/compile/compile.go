@@ -32,6 +32,7 @@ func New(c *llm.Client, site llm.CallSite, log *slog.Logger) *Compiler {
 func DefaultCallSite(model string) llm.CallSite {
 	temp := 0.0
 	return llm.CallSite{
+		Stage:       "compile",
 		Model:       model,
 		Temperature: &temp,
 		Reasoning:   llm.DisableReasoning(),

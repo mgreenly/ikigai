@@ -41,10 +41,17 @@ func buildSpec(cfg wiki.Config) appkit.Spec {
 			return fmt.Errorf("wiki: no DB handle on router")
 		}
 		db := rt.DB()
-		extractor := extract.New(cfg.LLM, extract.DefaultCallSite(cfg.ModelID))
-		compiler := buildCompiler(cfg)
+		llmClient := cfg.LLM.WithRecorder(wiki.NewLLMCallStore(db)).WithClock(time.Now)
+		extractor := extract.New(llmClient, extract.DefaultCallSite(cfg.ModelID))
+		compiler := buildCompiler(cfg, llmClient)
 		svc = wiki.NewService(db, extractor, compiler, time.Now)
-		asker := ask.New(wiki.NewSubjectStore(db), wiki.NewPageStore(db), cfg.LLM, llm.CallSite{Model: cfg.ModelID}, llm.CallSite{Model: cfg.ModelID})
+		asker := ask.New(
+			wiki.NewSubjectStore(db),
+			wiki.NewPageStore(db),
+			llmClient,
+			llm.CallSite{Stage: "ask", Model: cfg.ModelID},
+			llm.CallSite{Stage: "ask", Model: cfg.ModelID},
+		)
 		pageService := pathPageService{
 			subjects: wiki.NewSubjectStore(db),
 			service:  svc,
@@ -213,8 +220,8 @@ func (s pathPageService) PageByPath(ctx context.Context, path string) (publicPag
 	}, nil
 }
 
-func buildCompiler(cfg wiki.Config) *compile.Compiler {
-	return compile.New(cfg.LLM, compile.DefaultCallSite(cfg.ModelID), nil)
+func buildCompiler(cfg wiki.Config, c *llm.Client) *compile.Compiler {
+	return compile.New(c, compile.DefaultCallSite(cfg.ModelID), nil)
 }
 
 func serveCommand(args []string) bool {

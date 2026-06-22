@@ -5,8 +5,10 @@ import (
 	"database/sql"
 	"errors"
 	"testing"
+	"time"
 
 	"wiki/internal/db"
+	"wiki/internal/llm"
 )
 
 func TestNormalizePipeline(t *testing.T) {
@@ -152,6 +154,66 @@ func TestDomainStoresPersistPhaseOneModel(t *testing.T) {
 	}
 	if page.Title != "Café Noir" || page.Body != "A generated page." {
 		t.Fatalf("page = %+v, want saved title and body", page)
+	}
+}
+
+func TestLLMCallStorePersistsProviderCallFootprint(t *testing.T) {
+	// R-VV3E-CLOB
+	ctx := context.Background()
+	conn := migratedDB(t, ctx)
+	defer conn.Close()
+
+	started := time.Date(2026, 6, 22, 7, 3, 0, 0, time.UTC)
+	ended := time.Date(2026, 6, 22, 7, 3, 1, 0, time.UTC)
+	rec := llm.CallRecord{
+		ID:        "call-1",
+		Stage:     "extract",
+		JobID:     "job-1",
+		Attempt:   2,
+		Provider:  "anthropic",
+		Model:     "claude-test",
+		Params:    `{"temperature":0}`,
+		Request:   `{"system":"sys","user":"prompt"}`,
+		Response:  `{"ok":true}`,
+		Usage:     `{"total":12}`,
+		Err:       "",
+		StartedAt: started,
+		EndedAt:   ended,
+	}
+
+	if err := NewLLMCallStore(conn).Record(ctx, rec); err != nil {
+		t.Fatalf("Record: %v", err)
+	}
+
+	var got llm.CallRecord
+	var startedRaw, endedRaw string
+	err := conn.QueryRowContext(ctx, `
+		SELECT id, stage, job_id, attempt, provider, model, params, request,
+		       response, usage, err, started_at, ended_at
+		FROM llm_calls
+		WHERE id = ?`, "call-1").
+		Scan(
+			&got.ID,
+			&got.Stage,
+			&got.JobID,
+			&got.Attempt,
+			&got.Provider,
+			&got.Model,
+			&got.Params,
+			&got.Request,
+			&got.Response,
+			&got.Usage,
+			&got.Err,
+			&startedRaw,
+			&endedRaw,
+		)
+	if err != nil {
+		t.Fatalf("query llm_calls: %v", err)
+	}
+	got.StartedAt = parseStoredTime(startedRaw)
+	got.EndedAt = parseStoredTime(endedRaw)
+	if got != rec {
+		t.Fatalf("stored record = %+v, want %+v", got, rec)
 	}
 }
 

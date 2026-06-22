@@ -42,6 +42,7 @@ func New(c *llm.Client, site llm.CallSite) *Extractor {
 func DefaultCallSite(model string) llm.CallSite {
 	temp := 0.0
 	return llm.CallSite{
+		Stage:           "extract",
 		Model:           model,
 		Temperature:     &temp,
 		Reasoning:       llm.DisableReasoning(),

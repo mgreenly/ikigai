@@ -10,6 +10,7 @@ import (
 	"appkit/logging"
 
 	"wiki/internal/extract"
+	"wiki/internal/llm"
 )
 
 const (
@@ -159,6 +160,7 @@ func (s *Service) integrate(ctx context.Context, job Job) error {
 	if s.compiler == nil {
 		return fmt.Errorf("wiki: nil compiler")
 	}
+	ctx = llm.WithJobID(ctx, job.ID)
 	extracted, err := s.extractor.Extract(ctx, extract.DocumentHeader{
 		Source:     "mcp:ingest_text",
 		Title:      job.Title,

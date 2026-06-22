@@ -327,10 +327,11 @@ func TestBuildCompilerUsesDefaultCompileCallSite(t *testing.T) {
 	// R-4DS4-RXYX
 	prov := &capturingProvider{responses: []string{`{"title":"Acme Robotics","body":"Acme Robotics runs a Tulsa lab."}`}}
 	wantSite := compile.DefaultCallSite("root-model")
-	compiler := buildCompiler(wiki.Config{
+	cfg := wiki.Config{
 		ModelID: "root-model",
 		LLM:     llm.New(prov, nil),
-	})
+	}
+	compiler := buildCompiler(cfg, cfg.LLM)
 
 	title, body, err := compiler.Compile(context.Background(), wiki.Subject{
 		ID:       "subject-acme",

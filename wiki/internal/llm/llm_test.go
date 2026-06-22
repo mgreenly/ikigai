@@ -12,6 +12,142 @@ import (
 	agentkit "github.com/ikigenba/agentkit"
 )
 
+func TestJobIDContextCarriesTrimmedJobID(t *testing.T) {
+	// R-VNS0-1Z85
+	ctx := WithJobID(context.Background(), " job-123 ")
+
+	if got := JobID(ctx); got != "job-123" {
+		t.Fatalf("JobID() = %q, want trimmed job id", got)
+	}
+	if got := JobID(context.Background()); got != "" {
+		t.Fatalf("JobID(background) = %q, want empty", got)
+	}
+}
+
+func TestJSONNilRecorderIsNoOp(t *testing.T) {
+	// R-VOZW-FQYU
+	prov := &scriptedProvider{responses: []string{`{"title":"ok","count":2}`}}
+
+	got, err := JSON(context.Background(), New(prov, nil), CallSite{Stage: "extract", Model: "json-model"}, "make json", nilJSONFixture)
+	if err != nil {
+		t.Fatalf("JSON returned error without recorder: %v", err)
+	}
+	if got.Title != "ok" || len(prov.requests) != 1 {
+		t.Fatalf("JSON result = %#v, requests = %d; want successful provider call", got, len(prov.requests))
+	}
+}
+
+func TestJSONRecordsSuccessfulProviderCallFootprint(t *testing.T) {
+	// R-VRFP-7AG8
+	temp := 0.25
+	rec := &captureRecorder{}
+	prov := &scriptedProvider{responses: []string{`{"title":"ok","count":2}`}}
+	client := New(prov, nil, rec)
+	client.now = sequenceTimes(
+		time.Date(2026, 6, 22, 7, 0, 0, 0, time.UTC),
+		time.Date(2026, 6, 22, 7, 0, 1, 0, time.UTC),
+	)
+	client.newID = sequenceLLMIDs("call-1")
+	ctx := WithJobID(context.Background(), "job-1")
+
+	got, err := JSON(ctx, client, CallSite{
+		Stage:       "extract",
+		Model:       "json-model",
+		Temperature: &temp,
+		Reasoning:   DisableReasoning(),
+		System:      "system prompt",
+	}, "make json", nilJSONFixture)
+	if err != nil {
+		t.Fatalf("JSON returned error: %v", err)
+	}
+	if got.Title != "ok" {
+		t.Fatalf("JSON result = %#v, want parsed response", got)
+	}
+	if len(rec.records) != 1 {
+		t.Fatalf("records len = %d, want 1", len(rec.records))
+	}
+	call := rec.records[0]
+	if call.ID != "call-1" || call.Stage != "extract" || call.JobID != "job-1" || call.Attempt != 1 ||
+		call.Provider != "scripted" || call.Model != "json-model" || call.Response != `{"title":"ok","count":2}` || call.Err != "" {
+		t.Fatalf("record = %+v, want successful extract footprint", call)
+	}
+	assertJSONField(t, call.Params, "temperature", float64(temp))
+	assertJSONField(t, call.Params, "reasoning", "disabled")
+	assertJSONField(t, call.Request, "system", "system prompt")
+	assertJSONField(t, call.Request, "user", "make json")
+	assertJSONField(t, call.Usage, "Total", float64(2))
+	if !call.StartedAt.Equal(time.Date(2026, 6, 22, 7, 0, 0, 0, time.UTC)) ||
+		!call.EndedAt.Equal(time.Date(2026, 6, 22, 7, 0, 1, 0, time.UTC)) {
+		t.Fatalf("record times = %v/%v, want fixed clock times", call.StartedAt, call.EndedAt)
+	}
+}
+
+func TestJSONRecordsCorrectiveRetryAttempt(t *testing.T) {
+	// R-VSNL-L26X
+	rec := &captureRecorder{}
+	prov := &scriptedProvider{responses: []string{
+		`not-json`,
+		`{"title":"fixed","count":4}`,
+	}}
+	client := New(prov, nil, rec)
+	client.now = sequenceTimes(
+		time.Date(2026, 6, 22, 7, 1, 0, 0, time.UTC),
+		time.Date(2026, 6, 22, 7, 1, 1, 0, time.UTC),
+		time.Date(2026, 6, 22, 7, 1, 2, 0, time.UTC),
+		time.Date(2026, 6, 22, 7, 1, 3, 0, time.UTC),
+	)
+	client.newID = sequenceLLMIDs("call-1", "call-2")
+
+	got, err := JSON(context.Background(), client, CallSite{Stage: "compile", Model: "json-model", MaxParseRetries: 1}, "make json", nilJSONFixture)
+	if err != nil {
+		t.Fatalf("JSON returned error: %v", err)
+	}
+	if got.Title != "fixed" {
+		t.Fatalf("JSON result = %#v, want retry response", got)
+	}
+	if len(rec.records) != 2 {
+		t.Fatalf("records len = %d, want initial plus retry", len(rec.records))
+	}
+	if rec.records[0].Attempt != 1 || rec.records[0].Request == rec.records[1].Request {
+		t.Fatalf("records = %+v, want distinct attempt requests", rec.records)
+	}
+	second := rec.records[1]
+	if second.ID != "call-2" || second.Stage != "compile" || second.Attempt != 2 {
+		t.Fatalf("second record = %+v, want compile attempt 2", second)
+	}
+	var req callRequest
+	if err := json.Unmarshal([]byte(second.Request), &req); err != nil {
+		t.Fatalf("decode retry request: %v", err)
+	}
+	if !strings.Contains(req.User, "previous response") || !strings.Contains(req.User, "make json") {
+		t.Fatalf("retry user prompt = %q, want corrective prompt with original request", req.User)
+	}
+}
+
+func TestJSONRecordsTransportError(t *testing.T) {
+	// R-VTVH-YTXM
+	rec := &captureRecorder{}
+	prov := &scriptedProvider{errs: []error{errors.New("network down")}}
+	client := New(prov, nil, rec)
+	client.now = sequenceTimes(
+		time.Date(2026, 6, 22, 7, 2, 0, 0, time.UTC),
+		time.Date(2026, 6, 22, 7, 2, 1, 0, time.UTC),
+	)
+	client.newID = sequenceLLMIDs("call-err")
+
+	_, err := JSON[jsonFixture](context.Background(), client, CallSite{Stage: "ask", Model: "json-model"}, "make json", nilJSONFixture)
+	if err == nil {
+		t.Fatal("JSON returned nil error, want transport error")
+	}
+	if len(rec.records) != 1 {
+		t.Fatalf("records len = %d, want 1 failed call", len(rec.records))
+	}
+	call := rec.records[0]
+	if call.ID != "call-err" || call.Stage != "ask" || call.Attempt != 1 || call.Response != "" || !strings.Contains(call.Err, "network down") {
+		t.Fatalf("failed record = %+v, want transport error footprint", call)
+	}
+}
+
 func TestConverseBuildsFreshConfiguredConversation(t *testing.T) {
 	var log bytes.Buffer
 	prov := &scriptedProvider{}
@@ -419,6 +555,7 @@ func nilJSONFixture(*jsonFixture) error {
 
 type scriptedProvider struct {
 	responses []string
+	errs      []error
 	requests  []agentkit.Request
 	deadlines []time.Time
 }
@@ -427,6 +564,11 @@ func (p *scriptedProvider) RoundTrip(ctx context.Context, req *agentkit.Request)
 	p.requests = append(p.requests, cloneRequest(req))
 	if deadline, ok := ctx.Deadline(); ok {
 		p.deadlines = append(p.deadlines, deadline)
+	}
+	if len(p.errs) > 0 {
+		err := p.errs[0]
+		p.errs = p.errs[1:]
+		return agentkit.NewRoundTrip(agentkit.Message{}, agentkit.FinishOther, agentkit.Usage{}, nil, err)
 	}
 	text := `{}`
 	if len(p.responses) > 0 {
@@ -472,4 +614,49 @@ func requestTexts(req agentkit.Request) []string {
 		}
 	}
 	return out
+}
+
+type captureRecorder struct {
+	records []CallRecord
+}
+
+func (r *captureRecorder) Record(_ context.Context, rec CallRecord) error {
+	r.records = append(r.records, rec)
+	return nil
+}
+
+func sequenceLLMIDs(ids ...string) func() string {
+	i := 0
+	return func() string {
+		if i >= len(ids) {
+			return ids[len(ids)-1]
+		}
+		id := ids[i]
+		i++
+		return id
+	}
+}
+
+func sequenceTimes(times ...time.Time) func() time.Time {
+	i := 0
+	return func() time.Time {
+		if i >= len(times) {
+			return times[len(times)-1]
+		}
+		t := times[i]
+		i++
+		return t
+	}
+}
+
+func assertJSONField(t *testing.T, raw, field string, want any) {
+	t.Helper()
+
+	var got map[string]any
+	if err := json.Unmarshal([]byte(raw), &got); err != nil {
+		t.Fatalf("decode %s: %v; raw=%q", field, err, raw)
+	}
+	if got[field] != want {
+		t.Fatalf("%s[%q] = %#v, want %#v; raw=%s", field, field, got[field], want, raw)
+	}
 }
