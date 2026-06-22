@@ -111,10 +111,11 @@ func TestBuildSpecPageToolReturnsRenderedFooter(t *testing.T) {
 	ctx := context.Background()
 	conn := migratedDB(t, ctx)
 	defer conn.Close()
+	internalSubjectID := "01HZX4Q0SUBJECTULID00000001"
 	subjects := wiki.NewSubjectStore(conn)
 	pages := wiki.NewPageStore(conn)
 	for _, subject := range []wiki.Subject{
-		{ID: "subject-acme", Name: "Acme Robotics", NormName: "acme robotics", Type: "entity"},
+		{ID: internalSubjectID, Name: "Acme Robotics", NormName: "acme robotics", Type: "entity"},
 		{ID: "subject-tulsa", Name: "Tulsa Launch", NormName: "tulsa launch", Type: "event"},
 	} {
 		if err := subjects.Save(ctx, subject); err != nil {
@@ -124,7 +125,7 @@ func TestBuildSpecPageToolReturnsRenderedFooter(t *testing.T) {
 	for _, page := range []wiki.Page{
 		{
 			ID:        "page-acme",
-			SubjectID: "subject-acme",
+			SubjectID: internalSubjectID,
 			Title:     "Acme Robotics",
 			Body:      "Acme Robotics coordinated Tulsa Launch.",
 		},
@@ -158,7 +159,7 @@ func TestBuildSpecPageToolReturnsRenderedFooter(t *testing.T) {
 		"jsonrpc":"2.0",
 		"id":"page",
 		"method":"tools/call",
-		"params":{"name":"page","arguments":{"path":"entity/acme-robotics"}}
+		"params":{"name":"page","arguments":{"subject":"entity/acme-robotics"}}
 	}`))
 	req.Header.Set("X-Owner-Email", "owner@example.com")
 	req.Header.Set("X-Client-Id", "client-1")
@@ -169,13 +170,17 @@ func TestBuildSpecPageToolReturnsRenderedFooter(t *testing.T) {
 		t.Fatalf("status = %d, want 200; body=%s", rec.Code, rec.Body.String())
 	}
 	var body struct {
-		Path  string `json:"path"`
-		Title string `json:"title"`
-		Body  string `json:"body"`
+		Subject string `json:"subject"`
+		Title   string `json:"title"`
+		Body    string `json:"body"`
 	}
 	decodeMCPToolText(t, rec.Body.Bytes(), &body)
-	if body.Path != "entity/acme-robotics" || body.Title != "Acme Robotics" {
+	if body.Subject != "entity/acme-robotics" || body.Title != "Acme Robotics" {
 		t.Fatalf("page = %#v, want Acme page", body)
+	}
+	text := mcpToolText(t, rec.Body.Bytes())
+	if strings.Contains(text, internalSubjectID) || strings.Contains(text, "subject_id") || strings.Contains(text, `"path"`) {
+		t.Fatalf("page text = %s, want public subject field and no internal ids/path field", text)
 	}
 	for _, want := range []string{
 		"## Links",
@@ -260,16 +265,16 @@ func TestBuildSpecReadToolsReturnPublicPathsWithoutSubjectIDs(t *testing.T) {
 		},
 		{
 			name:    "claims",
-			request: `{"jsonrpc":"2.0","id":"claims","method":"tools/call","params":{"name":"claims","arguments":{"path":"entity/acme-robotics"}}}`,
+			request: `{"jsonrpc":"2.0","id":"claims","method":"tools/call","params":{"name":"claims","arguments":{"subject":"entity/acme-robotics"}}}`,
 		},
 		{
 			name:    "page",
-			request: `{"jsonrpc":"2.0","id":"page","method":"tools/call","params":{"name":"page","arguments":{"path":"entity/acme-robotics"}}}`,
+			request: `{"jsonrpc":"2.0","id":"page","method":"tools/call","params":{"name":"page","arguments":{"subject":"entity/acme-robotics"}}}`,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			text := mcpToolCallText(t, srv.Handler, tc.request)
-			if !strings.Contains(text, "entity/acme-robotics") {
+			if tc.name != "claims" && !strings.Contains(text, "entity/acme-robotics") {
 				t.Fatalf("tool text = %s, want public path", text)
 			}
 			for _, forbidden := range []string{internalSubjectID, "SubjectID", "subject_id", "NormName", "norm_name"} {
@@ -475,11 +480,11 @@ func (surfaceWiki) JobStatus(context.Context, string) (publicJobStatus, error) {
 }
 
 func (surfaceWiki) Subjects(context.Context, string, string) ([]publicSubject, error) {
-	return nil, nil
+	return []publicSubject{{Path: "entity/acme", Type: "entity", Name: "Acme", HasPage: true}}, nil
 }
 
 func (surfaceWiki) ClaimsBySubject(context.Context, string) ([]publicClaim, error) {
-	return nil, nil
+	return []publicClaim{{ID: "claim-1", Text: "Claim text.", Job: "job-1"}}, nil
 }
 
 func (surfaceWiki) PageByPath(context.Context, string) (publicPage, error) {

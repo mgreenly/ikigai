@@ -261,13 +261,13 @@ func TestUnknownReadsReturnCleanNotFoundResults(t *testing.T) {
 		},
 		{
 			name: "claims",
-			body: `{"jsonrpc":"2.0","id":"claims","method":"tools/call","params":{"name":"claims","arguments":{"path":"entity/missing"}}}`,
+			body: `{"jsonrpc":"2.0","id":"claims","method":"tools/call","params":{"name":"claims","arguments":{"subject":"entity/missing"}}}`,
 			kind: "subject",
 			id:   "entity/missing",
 		},
 		{
 			name: "page",
-			body: `{"jsonrpc":"2.0","id":"page","method":"tools/call","params":{"name":"page","arguments":{"path":"entity/missing"}}}`,
+			body: `{"jsonrpc":"2.0","id":"page","method":"tools/call","params":{"name":"page","arguments":{"subject":"entity/missing"}}}`,
 			kind: "subject",
 			id:   "entity/missing",
 		},
@@ -361,8 +361,8 @@ func TestJobStatusToolReturnsDomainStatus(t *testing.T) {
 	}
 	var body jobStatus
 	decodeToolText(t, rec.Body.Bytes(), &body)
-	if body.ID != "job-123" || body.Status != "done" {
-		t.Fatalf("job status = %#v, want job-123 done", body)
+	if body.ID != "" || body.Status != "done" {
+		t.Fatalf("job status = %#v, want done with no serialized job id", body)
 	}
 	if len(body.Subjects) != 1 || body.Subjects[0] != "subject-1" {
 		t.Fatalf("subjects = %#v, want [subject-1]", body.Subjects)
@@ -398,19 +398,21 @@ func TestPageToolUsesTypeSlugPath(t *testing.T) {
 		}
 		foundPageSchema = true
 		required, ok := tool.InputSchema["required"].([]any)
-		if !ok || len(required) != 1 || required[0] != "path" {
-			t.Fatalf("page required = %#v, want [path]", tool.InputSchema["required"])
+		if !ok || len(required) != 1 || required[0] != "subject" {
+			t.Fatalf("page required = %#v, want [subject]", tool.InputSchema["required"])
 		}
 		properties, ok := tool.InputSchema["properties"].(map[string]any)
 		if !ok {
 			t.Fatalf("page properties = %T, want object", tool.InputSchema["properties"])
 		}
-		path, ok := properties["path"].(map[string]any)
-		if !ok || path["type"] != "string" {
-			t.Fatalf("page path schema = %#v, want string property", properties["path"])
+		subject, ok := properties["subject"].(map[string]any)
+		if !ok || subject["type"] != "string" {
+			t.Fatalf("page subject schema = %#v, want string property", properties["subject"])
 		}
-		if _, ok := properties["subject_id"]; ok {
-			t.Fatalf("page properties = %#v, want no subject_id argument", properties)
+		for _, forbidden := range []string{"path", "subject_id"} {
+			if _, ok := properties[forbidden]; ok {
+				t.Fatalf("page properties = %#v, want no %s argument", properties, forbidden)
+			}
 		}
 	}
 	if !foundPageSchema {
@@ -421,7 +423,7 @@ func TestPageToolUsesTypeSlugPath(t *testing.T) {
 		"jsonrpc":"2.0",
 		"id":"page",
 		"method":"tools/call",
-		"params":{"name":"page","arguments":{"path":"entity/acme-robotics"}}
+		"params":{"name":"page","arguments":{"subject":"entity/acme-robotics"}}
 	}`, "owner@example.com")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("page status = %d, want 200", rec.Code)
@@ -430,12 +432,12 @@ func TestPageToolUsesTypeSlugPath(t *testing.T) {
 		t.Fatalf("page path = %q, want type/slug path", wiki.pagePath)
 	}
 	var body struct {
-		Path  string `json:"path"`
-		Title string `json:"title"`
-		Body  string `json:"body"`
+		Subject string `json:"subject"`
+		Title   string `json:"title"`
+		Body    string `json:"body"`
 	}
 	decodeToolText(t, rec.Body.Bytes(), &body)
-	if body.Path != "entity/acme-robotics" || body.Title != "Acme Robotics" {
+	if body.Subject != "entity/acme-robotics" || body.Title != "Acme Robotics" {
 		t.Fatalf("page body = %#v, want returned page", body)
 	}
 }
@@ -458,6 +460,7 @@ func TestReadToolsSerializePublicPathsWithoutSubjectIDs(t *testing.T) {
 		claims: []claim{{
 			ID:        "claim-1",
 			SubjectID: internalSubjectID,
+			JobID:     "job-123",
 			Body:      "Acme Robotics runs a Tulsa lab.",
 		}},
 		page: page{
@@ -487,13 +490,15 @@ func TestReadToolsSerializePublicPathsWithoutSubjectIDs(t *testing.T) {
 			check: func(t *testing.T, text string) {
 				t.Helper()
 				var body struct {
-					JobID    string   `json:"job_id"`
 					Status   string   `json:"status"`
 					Subjects []string `json:"subjects"`
 				}
 				decodeJSON(t, []byte(text), &body)
-				if body.JobID != "job-123" || body.Status != "done" {
-					t.Fatalf("status body = %#v, want job/status fields", body)
+				if strings.Contains(text, `"job_id"`) {
+					t.Fatalf("status body = %s, want no serialized job_id", text)
+				}
+				if body.Status != "done" {
+					t.Fatalf("status body = %#v, want status field", body)
 				}
 				if len(body.Subjects) != 1 || body.Subjects[0] != "entity/acme-robotics" {
 					t.Fatalf("status subjects = %#v, want public path", body.Subjects)
@@ -508,11 +513,15 @@ func TestReadToolsSerializePublicPathsWithoutSubjectIDs(t *testing.T) {
 			check: func(t *testing.T, text string) {
 				t.Helper()
 				var body []struct {
-					Path string `json:"path"`
-					Name string `json:"name"`
-					Type string `json:"type"`
+					Path    string `json:"path"`
+					Name    string `json:"name"`
+					Type    string `json:"type"`
+					HasPage bool   `json:"has_page"`
 				}
 				decodeJSON(t, []byte(text), &body)
+				if !strings.Contains(text, `"has_page"`) {
+					t.Fatalf("subjects body = %s, want has_page field", text)
+				}
 				if len(body) != 1 || body[0].Path != "entity/acme-robotics" || body[0].Name != "Acme Robotics" || body[0].Type != "entity" {
 					t.Fatalf("subjects body = %#v, want public path/name/type", body)
 				}
@@ -521,34 +530,43 @@ func TestReadToolsSerializePublicPathsWithoutSubjectIDs(t *testing.T) {
 		{
 			name: "claims",
 			request: `{"jsonrpc":"2.0","id":"claims","method":"tools/call","params":{
-				"name":"claims","arguments":{"path":"entity/acme-robotics"}
+				"name":"claims","arguments":{"subject":"entity/acme-robotics"}
 			}}`,
 			check: func(t *testing.T, text string) {
 				t.Helper()
 				var body []struct {
-					Path string `json:"path"`
-					Body string `json:"body"`
+					ID   string `json:"id"`
+					Text string `json:"text"`
+					Job  string `json:"job"`
 				}
 				decodeJSON(t, []byte(text), &body)
-				if len(body) != 1 || body[0].Path != "entity/acme-robotics" || body[0].Body != "Acme Robotics runs a Tulsa lab." {
-					t.Fatalf("claims body = %#v, want public path/body", body)
+				for _, forbidden := range []string{`"path"`, `"body"`} {
+					if strings.Contains(text, forbidden) {
+						t.Fatalf("claims body = %s, leaked %s", text, forbidden)
+					}
+				}
+				if len(body) != 1 || body[0].ID != "claim-1" || body[0].Text != "Acme Robotics runs a Tulsa lab." || body[0].Job != "job-123" {
+					t.Fatalf("claims body = %#v, want public id/text/job", body)
 				}
 			},
 		},
 		{
 			name: "page",
 			request: `{"jsonrpc":"2.0","id":"page","method":"tools/call","params":{
-				"name":"page","arguments":{"path":"entity/acme-robotics"}
+				"name":"page","arguments":{"subject":"entity/acme-robotics"}
 			}}`,
 			check: func(t *testing.T, text string) {
 				t.Helper()
 				var body struct {
-					Path  string `json:"path"`
-					Title string `json:"title"`
-					Body  string `json:"body"`
+					Subject string `json:"subject"`
+					Title   string `json:"title"`
+					Body    string `json:"body"`
 				}
 				decodeJSON(t, []byte(text), &body)
-				if body.Path != "entity/acme-robotics" || body.Title != "Acme Robotics" || body.Body != "Acme Robotics overview." {
+				if strings.Contains(text, `"path"`) {
+					t.Fatalf("page body = %s, want subject field instead of path", text)
+				}
+				if body.Subject != "entity/acme-robotics" || body.Title != "Acme Robotics" || body.Body != "Acme Robotics overview." {
 					t.Fatalf("page body = %#v, want public path/title/body", body)
 				}
 			},
@@ -560,10 +578,10 @@ func TestReadToolsSerializePublicPathsWithoutSubjectIDs(t *testing.T) {
 				t.Fatalf("status = %d, want 200; body=%s", rec.Code, rec.Body.String())
 			}
 			text := toolTextString(t, rec.Body.Bytes())
-			if !strings.Contains(text, "entity/acme-robotics") {
+			if tc.name != "claims" && !strings.Contains(text, "entity/acme-robotics") {
 				t.Fatalf("tool text = %s, want public path", text)
 			}
-			for _, forbidden := range []string{internalSubjectID, "SubjectID", "subject_id", "NormName", "norm_name"} {
+			for _, forbidden := range []string{internalSubjectID, "SubjectID", "subject_id", "NormName", "norm_name", "job_id"} {
 				if strings.Contains(text, forbidden) {
 					t.Fatalf("tool text = %s, leaked %q", text, forbidden)
 				}
@@ -820,11 +838,13 @@ type subject struct {
 	Name     string
 	NormName string
 	Type     string
+	HasPage  bool
 }
 
 type claim struct {
 	ID        string
 	SubjectID string
+	JobID     string
 	Body      string
 }
 

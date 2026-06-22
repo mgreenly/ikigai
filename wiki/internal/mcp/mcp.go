@@ -330,26 +330,31 @@ func (h *Handler) handleClaimsCall(ctx context.Context, w http.ResponseWriter, r
 		return
 	}
 	var args struct {
-		Path string `json:"path"`
+		Subject string `json:"subject"`
+		Path    string `json:"path"`
 	}
 	if err := decodeArgs(raw, &args); err != nil {
 		writeResult(w, req.ID, toolError(err.Error()))
 		return
 	}
-	if strings.TrimSpace(args.Path) == "" {
-		writeResult(w, req.ID, toolError("path is required"))
+	subject := strings.TrimSpace(args.Subject)
+	if subject == "" {
+		subject = strings.TrimSpace(args.Path)
+	}
+	if subject == "" {
+		writeResult(w, req.ID, toolError("subject is required"))
 		return
 	}
-	claims, err := h.claims(ctx, args.Path)
+	claims, err := h.claims(ctx, subject)
 	if errors.Is(err, sql.ErrNoRows) {
-		writeJSONTextResult(w, req.ID, notFound("subject", args.Path))
+		writeJSONTextResult(w, req.ID, notFound("subject", subject))
 		return
 	}
 	if err != nil {
 		writeResult(w, req.ID, toolError(err.Error()))
 		return
 	}
-	writeJSONTextResult(w, req.ID, publicClaimsResult(claims, args.Path))
+	writeJSONTextResult(w, req.ID, publicClaimsResult(claims))
 }
 
 func (h *Handler) handlePageCall(ctx context.Context, w http.ResponseWriter, req request, raw json.RawMessage) {
@@ -358,26 +363,31 @@ func (h *Handler) handlePageCall(ctx context.Context, w http.ResponseWriter, req
 		return
 	}
 	var args struct {
-		Path string `json:"path"`
+		Subject string `json:"subject"`
+		Path    string `json:"path"`
 	}
 	if err := decodeArgs(raw, &args); err != nil {
 		writeResult(w, req.ID, toolError(err.Error()))
 		return
 	}
-	if strings.TrimSpace(args.Path) == "" {
-		writeResult(w, req.ID, toolError("path is required"))
+	subject := strings.TrimSpace(args.Subject)
+	if subject == "" {
+		subject = strings.TrimSpace(args.Path)
+	}
+	if subject == "" {
+		writeResult(w, req.ID, toolError("subject is required"))
 		return
 	}
-	page, err := h.page(ctx, args.Path)
+	page, err := h.page(ctx, subject)
 	if errors.Is(err, sql.ErrNoRows) {
-		writeJSONTextResult(w, req.ID, notFound("subject", args.Path))
+		writeJSONTextResult(w, req.ID, notFound("subject", subject))
 		return
 	}
 	if err != nil {
 		writeResult(w, req.ID, toolError(err.Error()))
 		return
 	}
-	writeJSONTextResult(w, req.ID, publicPageResult(page, args.Path))
+	writeJSONTextResult(w, req.ID, publicPageResult(page, subject))
 }
 
 func (h *Handler) handleReflectionCall(w http.ResponseWriter, req request) {
@@ -538,8 +548,8 @@ func claimsTool() map[string]any {
 		"name":        "claims",
 		"description": "Return claims attached to a wiki subject path.",
 		"inputSchema": objectSchema(map[string]any{
-			"path": map[string]any{"type": "string"},
-		}, []string{"path"}),
+			"subject": map[string]any{"type": "string"},
+		}, []string{"subject"}),
 	}
 }
 
@@ -548,8 +558,8 @@ func pageTool() map[string]any {
 		"name":        "page",
 		"description": "Return the compiled wiki page for a subject path.",
 		"inputSchema": objectSchema(map[string]any{
-			"path": map[string]any{"type": "string"},
-		}, []string{"path"}),
+			"subject": map[string]any{"type": "string"},
+		}, []string{"subject"}),
 	}
 }
 
@@ -571,7 +581,6 @@ func publicStatusResult(status any) map[string]any {
 		return map[string]any{}
 	}
 	return map[string]any{
-		"job_id":      stringField(v, "ID"),
 		"status":      stringField(v, "Status"),
 		"received_at": interfaceField(v, "ReceivedAt"),
 		"started_at":  interfaceField(v, "StartedAt"),
@@ -581,24 +590,25 @@ func publicStatusResult(status any) map[string]any {
 	}
 }
 
-func publicSubjectsResult(subjects any) []map[string]string {
+func publicSubjectsResult(subjects any) []map[string]any {
 	values := sliceValue(reflect.ValueOf(subjects))
-	out := make([]map[string]string, 0, values.Len())
+	out := make([]map[string]any, 0, values.Len())
 	for i := 0; i < values.Len(); i++ {
 		subject := indirect(values.Index(i))
 		if !subject.IsValid() || subject.Kind() != reflect.Struct {
 			continue
 		}
-		out = append(out, map[string]string{
-			"path": pathField(subject),
-			"name": stringField(subject, "Name"),
-			"type": stringField(subject, "Type"),
+		out = append(out, map[string]any{
+			"path":     pathField(subject),
+			"type":     stringField(subject, "Type"),
+			"name":     stringField(subject, "Name"),
+			"has_page": boolField(subject, "HasPage"),
 		})
 	}
 	return out
 }
 
-func publicClaimsResult(claims any, path string) []map[string]string {
+func publicClaimsResult(claims any) []map[string]string {
 	values := sliceValue(reflect.ValueOf(claims))
 	out := make([]map[string]string, 0, values.Len())
 	for i := 0; i < values.Len(); i++ {
@@ -606,13 +616,18 @@ func publicClaimsResult(claims any, path string) []map[string]string {
 		if !claim.IsValid() || claim.Kind() != reflect.Struct {
 			continue
 		}
-		claimPath := stringField(claim, "Path")
-		if claimPath == "" {
-			claimPath = strings.TrimSpace(path)
+		text := stringField(claim, "Text")
+		if text == "" {
+			text = stringField(claim, "Body")
+		}
+		job := stringField(claim, "Job")
+		if job == "" {
+			job = stringField(claim, "JobID")
 		}
 		out = append(out, map[string]string{
-			"path": claimPath,
-			"body": stringField(claim, "Body"),
+			"id":   stringField(claim, "ID"),
+			"text": text,
+			"job":  job,
 		})
 	}
 	return out
@@ -628,9 +643,9 @@ func publicPageResult(page any, path string) map[string]string {
 		pagePath = strings.TrimSpace(path)
 	}
 	return map[string]string{
-		"path":  pagePath,
-		"title": stringField(v, "Title"),
-		"body":  stringField(v, "Body"),
+		"subject": pagePath,
+		"title":   stringField(v, "Title"),
+		"body":    stringField(v, "Body"),
 	}
 }
 

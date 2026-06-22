@@ -73,14 +73,16 @@ func buildSpec(cfg wiki.Config) appkit.Spec {
 }
 
 type publicSubject struct {
-	Path string
-	Name string
-	Type string
+	Path    string
+	Type    string
+	Name    string
+	HasPage bool
 }
 
 type publicClaim struct {
-	Path string
-	Body string
+	ID   string
+	Text string
+	Job  string
 }
 
 type publicPage struct {
@@ -110,10 +112,15 @@ func (s publicSubjectService) Subjects(ctx context.Context, typ, nameContains st
 	}
 	out := make([]publicSubject, 0, len(subjects))
 	for _, subject := range subjects {
+		_, err := s.service.PageBySubject(ctx, subject.ID)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return nil, err
+		}
 		out = append(out, publicSubject{
-			Path: wiki.Path(subject),
-			Name: subject.Name,
-			Type: subject.Type,
+			Path:    wiki.Path(subject),
+			Type:    subject.Type,
+			Name:    subject.Name,
+			HasPage: err == nil,
 		})
 	}
 	return out, nil
@@ -139,8 +146,9 @@ func (s pathClaimService) ClaimsBySubject(ctx context.Context, path string) ([]p
 	out := make([]publicClaim, 0, len(claims))
 	for _, claim := range claims {
 		out = append(out, publicClaim{
-			Path: wiki.Path(subject),
-			Body: claim.Body,
+			ID:   claim.ID,
+			Text: claim.Body,
+			Job:  claim.JobID,
 		})
 	}
 	return out, nil
