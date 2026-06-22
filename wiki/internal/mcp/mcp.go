@@ -10,9 +10,12 @@ import (
 	"net/http"
 	"reflect"
 	"strings"
+	"time"
 	"unicode"
 
 	"appkit"
+
+	paging "wiki/internal/page"
 )
 
 // Handler serves a small MCP-compatible JSON-RPC endpoint for Phase 01.
@@ -22,10 +25,26 @@ type Handler struct {
 	health   func(context.Context) (map[string]any, error)
 	ingest   func(context.Context, string, string, string, []string) (string, error)
 	status   func(context.Context, string) (any, error)
+	abort    func(context.Context, string) (any, error)
+	rerun    func(context.Context, string) (any, error)
+	jobs     func(context.Context, JobFilter, paging.Params) (any, string, error)
 	ask      func(context.Context, string, string) (any, error)
-	subjects func(context.Context, string, string) (any, error)
-	claims   func(context.Context, string) (any, error)
+	subjects func(context.Context, string, string, paging.Params) (any, string, error)
+	claims   func(context.Context, string, paging.Params) (any, string, error)
 	page     func(context.Context, string) (any, error)
+	calls    func(context.Context, LLMCallFilter, paging.Params) (any, string, error)
+}
+
+// JobFilter is a paginated MCP job-list filter.
+type JobFilter struct {
+	Status       string
+	Since, Until time.Time
+}
+
+// LLMCallFilter is a paginated MCP LLM-call footprint filter.
+type LLMCallFilter struct {
+	JobID, Stage string
+	Since, Until time.Time
 }
 
 type ingestService interface {
@@ -36,12 +55,36 @@ type jobStatusFunc[T any] interface {
 	JobStatus(ctx context.Context, jobID string) (T, error)
 }
 
+type jobAbortFunc[T any] interface {
+	Abort(ctx context.Context, jobID string) (T, error)
+}
+
+type jobRerunFunc[T any] interface {
+	Rerun(ctx context.Context, jobID string) (T, error)
+}
+
+type jobListFunc[T any] interface {
+	ListJobs(ctx context.Context, f JobFilter, p paging.Params) (T, string, error)
+}
+
 type subjectsFunc[T any] interface {
 	Subjects(ctx context.Context, typ, nameContains string) (T, error)
 }
 
+type subjectListFunc[T any] interface {
+	List(ctx context.Context, typ, nameContains string, p paging.Params) (T, string, error)
+}
+
 type claimsFunc[T any] interface {
 	ClaimsBySubject(ctx context.Context, subjectID string) (T, error)
+}
+
+type claimListFunc[T any] interface {
+	ListBySubject(ctx context.Context, subjectID string, p paging.Params) (T, string, error)
+}
+
+type llmCallListFunc[T any] interface {
+	List(ctx context.Context, f LLMCallFilter, p paging.Params) (T, string, error)
 }
 
 type pageFunc[T any] interface {
@@ -75,12 +118,57 @@ func WithJobStatusService[T any](s jobStatusFunc[T]) Option {
 	}
 }
 
+// WithJobAbortService enables the abort tool.
+func WithJobAbortService[T any](s jobAbortFunc[T]) Option {
+	return func(h *Handler) {
+		if s != nil {
+			h.abort = func(ctx context.Context, jobID string) (any, error) {
+				return s.Abort(ctx, jobID)
+			}
+		}
+	}
+}
+
+// WithJobRerunService enables the rerun tool.
+func WithJobRerunService[T any](s jobRerunFunc[T]) Option {
+	return func(h *Handler) {
+		if s != nil {
+			h.rerun = func(ctx context.Context, jobID string) (any, error) {
+				return s.Rerun(ctx, jobID)
+			}
+		}
+	}
+}
+
+// WithJobListService enables the paginated jobs tool.
+func WithJobListService[T any](s jobListFunc[T]) Option {
+	return func(h *Handler) {
+		if s != nil {
+			h.jobs = func(ctx context.Context, f JobFilter, p paging.Params) (any, string, error) {
+				return s.ListJobs(ctx, f, p)
+			}
+		}
+	}
+}
+
 // WithSubjectsService enables the registry-list subjects tool.
 func WithSubjectsService[T any](s subjectsFunc[T]) Option {
 	return func(h *Handler) {
 		if s != nil {
-			h.subjects = func(ctx context.Context, typ, nameContains string) (any, error) {
-				return s.Subjects(ctx, typ, nameContains)
+			h.subjects = func(ctx context.Context, typ, nameContains string, _ paging.Params) (any, string, error) {
+				subjects, err := s.Subjects(ctx, typ, nameContains)
+				return subjects, "", err
+			}
+		}
+	}
+}
+
+// WithSubjectListService enables the paginated registry-list subjects tool.
+func WithSubjectListService[T any](s subjectListFunc[T]) Option {
+	return func(h *Handler) {
+		if s != nil {
+			h.subjects = func(ctx context.Context, typ, nameContains string, p paging.Params) (any, string, error) {
+				return s.List(ctx, typ, nameContains, p)
 			}
 		}
 	}
@@ -90,8 +178,20 @@ func WithSubjectsService[T any](s subjectsFunc[T]) Option {
 func WithClaimsService[T any](s claimsFunc[T]) Option {
 	return func(h *Handler) {
 		if s != nil {
-			h.claims = func(ctx context.Context, subjectID string) (any, error) {
-				return s.ClaimsBySubject(ctx, subjectID)
+			h.claims = func(ctx context.Context, subjectID string, _ paging.Params) (any, string, error) {
+				claims, err := s.ClaimsBySubject(ctx, subjectID)
+				return claims, "", err
+			}
+		}
+	}
+}
+
+// WithClaimListService enables the paginated claims-by-subject tool.
+func WithClaimListService[T any](s claimListFunc[T]) Option {
+	return func(h *Handler) {
+		if s != nil {
+			h.claims = func(ctx context.Context, subjectID string, p paging.Params) (any, string, error) {
+				return s.ListBySubject(ctx, subjectID, p)
 			}
 		}
 	}
@@ -114,6 +214,17 @@ func WithPagePathService[T any](s pageByPathFunc[T]) Option {
 		if s != nil {
 			h.page = func(ctx context.Context, path string) (any, error) {
 				return s.PageByPath(ctx, path)
+			}
+		}
+	}
+}
+
+// WithLLMCallListService enables the paginated llm_calls footprint tool.
+func WithLLMCallListService[T any](s llmCallListFunc[T]) Option {
+	return func(h *Handler) {
+		if s != nil {
+			h.calls = func(ctx context.Context, f LLMCallFilter, p paging.Params) (any, string, error) {
+				return s.List(ctx, f, p)
 			}
 		}
 	}
@@ -178,6 +289,12 @@ func (h *Handler) handleToolCall(ctx context.Context, w http.ResponseWriter, req
 		h.handleIngestCall(ctx, w, req, params.Arguments)
 	case "status":
 		h.handleJobStatusCall(ctx, w, req, params.Arguments)
+	case "abort":
+		h.handleJobAbortCall(ctx, w, req, params.Arguments)
+	case "rerun":
+		h.handleJobRerunCall(ctx, w, req, params.Arguments)
+	case "jobs":
+		h.handleJobsCall(ctx, w, req, params.Arguments)
 	case "ask":
 		h.handleAskCall(ctx, w, req, params.Arguments)
 	case "subjects":
@@ -186,6 +303,8 @@ func (h *Handler) handleToolCall(ctx context.Context, w http.ResponseWriter, req
 		h.handleClaimsCall(ctx, w, req, params.Arguments)
 	case "page":
 		h.handlePageCall(ctx, w, req, params.Arguments)
+	case "llm_calls":
+		h.handleLLMCallsCall(ctx, w, req, params.Arguments)
 	case "health":
 		h.handleHealthCall(ctx, w, req)
 	case "reflection":
@@ -274,6 +393,82 @@ func (h *Handler) handleJobStatusCall(ctx context.Context, w http.ResponseWriter
 	writeJSONTextResult(w, req.ID, publicStatusResult(status))
 }
 
+func (h *Handler) handleJobAbortCall(ctx context.Context, w http.ResponseWriter, req request, raw json.RawMessage) {
+	if h.abort == nil {
+		writeResult(w, req.ID, toolError("abort tool is not configured"))
+		return
+	}
+	args, ok := decodeJobIDArgs(w, req, raw)
+	if !ok {
+		return
+	}
+	result, err := h.abort(ctx, args.JobID)
+	if errors.Is(err, sql.ErrNoRows) {
+		writeJSONTextResult(w, req.ID, notFound("job", args.JobID))
+		return
+	}
+	if err != nil {
+		writeResult(w, req.ID, toolError(err.Error()))
+		return
+	}
+	writeJSONTextResult(w, req.ID, publicAbortResult(result))
+}
+
+func (h *Handler) handleJobRerunCall(ctx context.Context, w http.ResponseWriter, req request, raw json.RawMessage) {
+	if h.rerun == nil {
+		writeResult(w, req.ID, toolError("rerun tool is not configured"))
+		return
+	}
+	args, ok := decodeJobIDArgs(w, req, raw)
+	if !ok {
+		return
+	}
+	result, err := h.rerun(ctx, args.JobID)
+	if errors.Is(err, sql.ErrNoRows) {
+		writeJSONTextResult(w, req.ID, notFound("job", args.JobID))
+		return
+	}
+	if err != nil {
+		writeResult(w, req.ID, toolError(err.Error()))
+		return
+	}
+	writeJSONTextResult(w, req.ID, publicRerunResult(result))
+}
+
+func (h *Handler) handleJobsCall(ctx context.Context, w http.ResponseWriter, req request, raw json.RawMessage) {
+	if h.jobs == nil {
+		writeResult(w, req.ID, toolError("jobs tool is not configured"))
+		return
+	}
+	var args struct {
+		Status string `json:"status"`
+		Since  string `json:"since"`
+		Until  string `json:"until"`
+		Limit  int    `json:"limit"`
+		Cursor string `json:"cursor"`
+	}
+	if err := decodeArgs(raw, &args); err != nil {
+		writeResult(w, req.ID, toolError(err.Error()))
+		return
+	}
+	since, err := parseOptionalTime(args.Since)
+	if err != nil {
+		writeResult(w, req.ID, toolError("since must be RFC3339"))
+		return
+	}
+	until, err := parseOptionalTime(args.Until)
+	if err != nil {
+		writeResult(w, req.ID, toolError("until must be RFC3339"))
+		return
+	}
+	jobs, next, err := h.jobs(ctx, JobFilter{Status: args.Status, Since: since, Until: until}, paging.Params{Limit: args.Limit, Cursor: args.Cursor})
+	if err != nil {
+		writeResult(w, req.ID, toolError(err.Error()))
+		return
+	}
+	writeJSONTextResult(w, req.ID, pagedResult("jobs", publicJobsResult(jobs), next))
+}
+
 func (h *Handler) handleAskCall(ctx context.Context, w http.ResponseWriter, req request, raw json.RawMessage) {
 	if h.ask == nil {
 		writeResult(w, req.ID, toolError("ask tool is not configured"))
@@ -309,19 +504,21 @@ func (h *Handler) handleSubjectsCall(ctx context.Context, w http.ResponseWriter,
 		return
 	}
 	var args struct {
-		Type string `json:"type"`
-		Name string `json:"name"`
+		Type   string `json:"type"`
+		Name   string `json:"name"`
+		Limit  int    `json:"limit"`
+		Cursor string `json:"cursor"`
 	}
 	if err := decodeArgs(raw, &args); err != nil {
 		writeResult(w, req.ID, toolError(err.Error()))
 		return
 	}
-	subjects, err := h.subjects(ctx, args.Type, args.Name)
+	subjects, next, err := h.subjects(ctx, args.Type, args.Name, paging.Params{Limit: args.Limit, Cursor: args.Cursor})
 	if err != nil {
 		writeResult(w, req.ID, toolError(err.Error()))
 		return
 	}
-	writeJSONTextResult(w, req.ID, publicSubjectsResult(subjects))
+	writeJSONTextResult(w, req.ID, pagedResult("subjects", publicSubjectsResult(subjects), next))
 }
 
 func (h *Handler) handleClaimsCall(ctx context.Context, w http.ResponseWriter, req request, raw json.RawMessage) {
@@ -332,6 +529,8 @@ func (h *Handler) handleClaimsCall(ctx context.Context, w http.ResponseWriter, r
 	var args struct {
 		Subject string `json:"subject"`
 		Path    string `json:"path"`
+		Limit   int    `json:"limit"`
+		Cursor  string `json:"cursor"`
 	}
 	if err := decodeArgs(raw, &args); err != nil {
 		writeResult(w, req.ID, toolError(err.Error()))
@@ -345,7 +544,7 @@ func (h *Handler) handleClaimsCall(ctx context.Context, w http.ResponseWriter, r
 		writeResult(w, req.ID, toolError("subject is required"))
 		return
 	}
-	claims, err := h.claims(ctx, subject)
+	claims, next, err := h.claims(ctx, subject, paging.Params{Limit: args.Limit, Cursor: args.Cursor})
 	if errors.Is(err, sql.ErrNoRows) {
 		writeJSONTextResult(w, req.ID, notFound("subject", subject))
 		return
@@ -354,7 +553,7 @@ func (h *Handler) handleClaimsCall(ctx context.Context, w http.ResponseWriter, r
 		writeResult(w, req.ID, toolError(err.Error()))
 		return
 	}
-	writeJSONTextResult(w, req.ID, publicClaimsResult(claims))
+	writeJSONTextResult(w, req.ID, pagedResult("claims", publicClaimsResult(claims), next))
 }
 
 func (h *Handler) handlePageCall(ctx context.Context, w http.ResponseWriter, req request, raw json.RawMessage) {
@@ -390,6 +589,41 @@ func (h *Handler) handlePageCall(ctx context.Context, w http.ResponseWriter, req
 	writeJSONTextResult(w, req.ID, publicPageResult(page, subject))
 }
 
+func (h *Handler) handleLLMCallsCall(ctx context.Context, w http.ResponseWriter, req request, raw json.RawMessage) {
+	if h.calls == nil {
+		writeResult(w, req.ID, toolError("llm_calls tool is not configured"))
+		return
+	}
+	var args struct {
+		JobID  string `json:"job_id"`
+		Stage  string `json:"stage"`
+		Since  string `json:"since"`
+		Until  string `json:"until"`
+		Limit  int    `json:"limit"`
+		Cursor string `json:"cursor"`
+	}
+	if err := decodeArgs(raw, &args); err != nil {
+		writeResult(w, req.ID, toolError(err.Error()))
+		return
+	}
+	since, err := parseOptionalTime(args.Since)
+	if err != nil {
+		writeResult(w, req.ID, toolError("since must be RFC3339"))
+		return
+	}
+	until, err := parseOptionalTime(args.Until)
+	if err != nil {
+		writeResult(w, req.ID, toolError("until must be RFC3339"))
+		return
+	}
+	calls, next, err := h.calls(ctx, LLMCallFilter{JobID: args.JobID, Stage: args.Stage, Since: since, Until: until}, paging.Params{Limit: args.Limit, Cursor: args.Cursor})
+	if err != nil {
+		writeResult(w, req.ID, toolError(err.Error()))
+		return
+	}
+	writeJSONTextResult(w, req.ID, pagedResult("llm_calls", publicLLMCallsResult(calls), next))
+}
+
 func (h *Handler) handleReflectionCall(w http.ResponseWriter, req request) {
 	writeJSONTextResult(w, req.ID, map[string][]string{
 		"publishes":  {},
@@ -405,6 +639,15 @@ func (h *Handler) tools() []map[string]any {
 	if h.status != nil {
 		tools = append(tools, jobStatusTool())
 	}
+	if h.abort != nil {
+		tools = append(tools, jobAbortTool())
+	}
+	if h.rerun != nil {
+		tools = append(tools, jobRerunTool())
+	}
+	if h.jobs != nil {
+		tools = append(tools, jobsTool())
+	}
 	if h.ask != nil {
 		tools = append(tools, askTool())
 	}
@@ -416,6 +659,9 @@ func (h *Handler) tools() []map[string]any {
 	}
 	if h.page != nil {
 		tools = append(tools, pageTool())
+	}
+	if h.calls != nil {
+		tools = append(tools, llmCallsTool())
 	}
 	return tools
 }
@@ -463,6 +709,38 @@ func jobStatusTool() map[string]any {
 		"inputSchema": objectSchema(map[string]any{
 			"job_id": map[string]any{"type": "string"},
 		}, []string{"job_id"}),
+	}
+}
+
+func jobAbortTool() map[string]any {
+	return map[string]any{
+		"name":        "abort",
+		"description": "Abort a pending or working wiki ingest job.",
+		"inputSchema": objectSchema(map[string]any{
+			"job_id": map[string]any{"type": "string"},
+		}, []string{"job_id"}),
+	}
+}
+
+func jobRerunTool() map[string]any {
+	return map[string]any{
+		"name":        "rerun",
+		"description": "Requeue a completed, failed, or aborted wiki ingest job.",
+		"inputSchema": objectSchema(map[string]any{
+			"job_id": map[string]any{"type": "string"},
+		}, []string{"job_id"}),
+	}
+}
+
+func jobsTool() map[string]any {
+	return map[string]any{
+		"name":        "jobs",
+		"description": "List wiki ingest jobs with cursor pagination.",
+		"inputSchema": listSchema(map[string]any{
+			"status": map[string]any{"type": "string"},
+			"since":  map[string]any{"type": "string"},
+			"until":  map[string]any{"type": "string"},
+		}),
 	}
 }
 
@@ -524,6 +802,19 @@ func stringField(v reflect.Value, name string) string {
 	return field.String()
 }
 
+func intField(v reflect.Value, name string) int64 {
+	field := v.FieldByName(name)
+	if !field.IsValid() {
+		return 0
+	}
+	switch field.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return field.Int()
+	default:
+		return 0
+	}
+}
+
 func sliceField(v reflect.Value, name string) reflect.Value {
 	field := v.FieldByName(name)
 	if !field.IsValid() || field.Kind() != reflect.Slice {
@@ -536,10 +827,10 @@ func subjectsTool() map[string]any {
 	return map[string]any{
 		"name":        "subjects",
 		"description": "List wiki registry subjects, optionally filtered by type and name substring.",
-		"inputSchema": objectSchema(map[string]any{
+		"inputSchema": listSchema(map[string]any{
 			"type": map[string]any{"type": "string"},
 			"name": map[string]any{"type": "string"},
-		}, nil),
+		}),
 	}
 }
 
@@ -549,6 +840,8 @@ func claimsTool() map[string]any {
 		"description": "Return claims attached to a wiki subject path.",
 		"inputSchema": objectSchema(map[string]any{
 			"subject": map[string]any{"type": "string"},
+			"limit":   map[string]any{"type": "integer"},
+			"cursor":  map[string]any{"type": "string"},
 		}, []string{"subject"}),
 	}
 }
@@ -563,6 +856,25 @@ func pageTool() map[string]any {
 	}
 }
 
+func llmCallsTool() map[string]any {
+	return map[string]any{
+		"name":        "llm_calls",
+		"description": "List recorded LLM provider-call footprints with cursor pagination.",
+		"inputSchema": listSchema(map[string]any{
+			"job_id": map[string]any{"type": "string"},
+			"stage":  map[string]any{"type": "string"},
+			"since":  map[string]any{"type": "string"},
+			"until":  map[string]any{"type": "string"},
+		}),
+	}
+}
+
+func listSchema(properties map[string]any) map[string]any {
+	properties["limit"] = map[string]any{"type": "integer"}
+	properties["cursor"] = map[string]any{"type": "string"}
+	return objectSchema(properties, nil)
+}
+
 func objectSchema(properties map[string]any, required []string) map[string]any {
 	schema := map[string]any{
 		"type":                 "object",
@@ -573,6 +885,38 @@ func objectSchema(properties map[string]any, required []string) map[string]any {
 		schema["required"] = required
 	}
 	return schema
+}
+
+type jobIDArgs struct {
+	JobID string `json:"job_id"`
+}
+
+func decodeJobIDArgs(w http.ResponseWriter, req request, raw json.RawMessage) (jobIDArgs, bool) {
+	var args jobIDArgs
+	if err := decodeArgs(raw, &args); err != nil {
+		writeResult(w, req.ID, toolError(err.Error()))
+		return args, false
+	}
+	if strings.TrimSpace(args.JobID) == "" {
+		writeResult(w, req.ID, toolError("job_id is required"))
+		return args, false
+	}
+	return args, true
+}
+
+func parseOptionalTime(s string) (time.Time, error) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return time.Time{}, nil
+	}
+	return time.Parse(time.RFC3339Nano, s)
+}
+
+func pagedResult(name string, values any, next string) map[string]any {
+	return map[string]any{
+		name:          values,
+		"next_cursor": next,
+	}
 }
 
 func publicStatusResult(status any) map[string]any {
@@ -590,6 +934,51 @@ func publicStatusResult(status any) map[string]any {
 	}
 }
 
+func publicAbortResult(result any) map[string]any {
+	v := indirect(reflect.ValueOf(result))
+	if !v.IsValid() || v.Kind() != reflect.Struct {
+		return map[string]any{}
+	}
+	return map[string]any{
+		"aborted": boolField(v, "Aborted"),
+		"status":  stringField(v, "Status"),
+	}
+}
+
+func publicRerunResult(result any) map[string]any {
+	v := indirect(reflect.ValueOf(result))
+	if !v.IsValid() || v.Kind() != reflect.Struct {
+		return map[string]any{}
+	}
+	return map[string]any{
+		"requeued": boolField(v, "Requeued"),
+		"status":   stringField(v, "Status"),
+	}
+}
+
+func publicJobsResult(jobs any) []map[string]any {
+	values := sliceValue(reflect.ValueOf(jobs))
+	out := make([]map[string]any, 0, values.Len())
+	for i := 0; i < values.Len(); i++ {
+		job := indirect(values.Index(i))
+		if !job.IsValid() || job.Kind() != reflect.Struct {
+			continue
+		}
+		out = append(out, map[string]any{
+			"id":          stringField(job, "ID"),
+			"owner":       stringField(job, "Owner"),
+			"title":       stringField(job, "Title"),
+			"tags":        stringSliceField(job, "Tags"),
+			"status":      stringField(job, "Status"),
+			"received_at": interfaceField(job, "ReceivedAt"),
+			"started_at":  interfaceField(job, "StartedAt"),
+			"finished_at": interfaceField(job, "FinishedAt"),
+			"error":       stringField(job, "Error"),
+		})
+	}
+	return out
+}
+
 func publicSubjectsResult(subjects any) []map[string]any {
 	values := sliceValue(reflect.ValueOf(subjects))
 	out := make([]map[string]any, 0, values.Len())
@@ -603,6 +992,33 @@ func publicSubjectsResult(subjects any) []map[string]any {
 			"type":     stringField(subject, "Type"),
 			"name":     stringField(subject, "Name"),
 			"has_page": boolField(subject, "HasPage"),
+		})
+	}
+	return out
+}
+
+func publicLLMCallsResult(calls any) []map[string]any {
+	values := sliceValue(reflect.ValueOf(calls))
+	out := make([]map[string]any, 0, values.Len())
+	for i := 0; i < values.Len(); i++ {
+		call := indirect(values.Index(i))
+		if !call.IsValid() || call.Kind() != reflect.Struct {
+			continue
+		}
+		out = append(out, map[string]any{
+			"id":         stringField(call, "ID"),
+			"stage":      stringField(call, "Stage"),
+			"job_id":     stringField(call, "JobID"),
+			"attempt":    intField(call, "Attempt"),
+			"provider":   stringField(call, "Provider"),
+			"model":      stringField(call, "Model"),
+			"params":     stringField(call, "Params"),
+			"request":    stringField(call, "Request"),
+			"response":   stringField(call, "Response"),
+			"usage":      stringField(call, "Usage"),
+			"error":      stringField(call, "Err"),
+			"started_at": interfaceField(call, "StartedAt"),
+			"ended_at":   interfaceField(call, "EndedAt"),
 		})
 	}
 	return out

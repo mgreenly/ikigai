@@ -16,6 +16,7 @@ import (
 	"wiki/internal/extract"
 	"wiki/internal/llm"
 	"wiki/internal/mcp"
+	"wiki/internal/page"
 	"wiki/internal/wiki"
 	"wiki/internal/worker"
 )
@@ -56,19 +57,26 @@ func buildSpec(cfg wiki.Config) appkit.Spec {
 			subjects: wiki.NewSubjectStore(db),
 			service:  svc,
 		}
-		subjectService := publicSubjectService{service: svc}
+		subjectService := publicSubjectService{
+			subjects: wiki.NewSubjectStore(db),
+			pages:    wiki.NewPageStore(db),
+		}
 		claimService := pathClaimService{
 			subjects: wiki.NewSubjectStore(db),
-			service:  svc,
+			claims:   wiki.NewClaimStore(db),
 		}
 		statusService := publicStatusService{service: svc}
 		rt.Handle("POST /mcp", rt.RequireIdentity(
 			mcp.NewHandler(rt.Version(), rt.Service(), rt.Health(),
 				mcp.WithIngestService(svc),
 				mcp.WithJobStatusService(statusService),
-				mcp.WithSubjectsService(subjectService),
-				mcp.WithClaimsService(claimService),
+				mcp.WithJobAbortService(svc),
+				mcp.WithJobRerunService(svc),
+				mcp.WithJobListService(jobListService{jobs: wiki.NewJobStore(db)}),
+				mcp.WithSubjectListService(subjectService),
+				mcp.WithClaimListService(claimService),
 				mcp.WithPagePathService(pageService),
+				mcp.WithLLMCallListService(llmCallListService{calls: wiki.NewLLMCallStore(db)}),
 				mcp.WithAskFunc(asker.Ask),
 			)))
 		return nil
@@ -108,20 +116,46 @@ type publicJobStatus struct {
 	Subjects   []string
 }
 
-type publicSubjectService struct {
-	service *wiki.Service
+type jobListService struct {
+	jobs *wiki.JobStore
 }
 
-func (s publicSubjectService) Subjects(ctx context.Context, typ, nameContains string) ([]publicSubject, error) {
-	subjects, err := s.service.Subjects(ctx, typ, nameContains)
+func (s jobListService) ListJobs(ctx context.Context, f mcp.JobFilter, p page.Params) ([]wiki.Job, string, error) {
+	return s.jobs.ListJobs(ctx, wiki.JobFilter{
+		Status: f.Status,
+		Since:  f.Since,
+		Until:  f.Until,
+	}, p)
+}
+
+type llmCallListService struct {
+	calls *wiki.LLMCallStore
+}
+
+func (s llmCallListService) List(ctx context.Context, f mcp.LLMCallFilter, p page.Params) ([]wiki.CallRecord, string, error) {
+	return s.calls.List(ctx, wiki.LLMCallFilter{
+		JobID: f.JobID,
+		Stage: f.Stage,
+		Since: f.Since,
+		Until: f.Until,
+	}, p)
+}
+
+type publicSubjectService struct {
+	subjects *wiki.SubjectStore
+	pages    *wiki.PageStore
+}
+
+func (s publicSubjectService) List(ctx context.Context, typ, nameContains string, p page.Params) ([]publicSubject, string, error) {
+	subjects, next, err := s.subjects.List(ctx, typ, nameContains, p)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	out := make([]publicSubject, 0, len(subjects))
 	for _, subject := range subjects {
-		_, err := s.service.PageBySubject(ctx, subject.ID)
+		_, err := s.pages.GetBySubject(ctx, subject.ID)
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
-			return nil, err
+			return nil, "", err
 		}
 		out = append(out, publicSubject{
 			Path:    wiki.Path(subject),
@@ -130,25 +164,25 @@ func (s publicSubjectService) Subjects(ctx context.Context, typ, nameContains st
 			HasPage: err == nil,
 		})
 	}
-	return out, nil
+	return out, next, nil
 }
 
 type pathClaimService struct {
 	subjects *wiki.SubjectStore
-	service  *wiki.Service
+	claims   *wiki.ClaimStore
 }
 
-func (s pathClaimService) ClaimsBySubject(ctx context.Context, path string) ([]publicClaim, error) {
+func (s pathClaimService) ListBySubject(ctx context.Context, path string, p page.Params) ([]publicClaim, string, error) {
 	subject, err := s.subjects.GetByPath(ctx, path)
 	if errors.Is(err, wiki.ErrSubjectNotFound) {
-		return nil, sql.ErrNoRows
+		return nil, "", sql.ErrNoRows
 	}
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
-	claims, err := s.service.ClaimsBySubject(ctx, subject.ID)
+	claims, next, err := s.claims.ListBySubject(ctx, subject.ID, p)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	out := make([]publicClaim, 0, len(claims))
 	for _, claim := range claims {
@@ -158,7 +192,7 @@ func (s pathClaimService) ClaimsBySubject(ctx context.Context, path string) ([]p
 			Job:  claim.JobID,
 		})
 	}
-	return out, nil
+	return out, next, nil
 }
 
 type publicStatusService struct {

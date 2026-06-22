@@ -22,6 +22,7 @@ import (
 	"wiki/internal/db"
 	"wiki/internal/llm"
 	"wiki/internal/mcp"
+	paging "wiki/internal/page"
 	"wiki/internal/wiki"
 )
 
@@ -47,8 +48,9 @@ func TestServeFailsLoudWhenAnthropicKeyMissing(t *testing.T) {
 	}
 }
 
-func TestBuildSpecWiresEightMCPTools(t *testing.T) {
+func TestBuildSpecWiresTwelveMCPTools(t *testing.T) {
 	// R-MUQ4-K1JS
+	// R-3G73-064M
 	ctx := context.Background()
 	conn := migratedDB(t, ctx)
 	defer conn.Close()
@@ -95,7 +97,7 @@ func TestBuildSpecWiresEightMCPTools(t *testing.T) {
 	for _, tool := range got.Result.Tools {
 		names[tool.Name] = true
 	}
-	want := []string{"ingest", "status", "ask", "subjects", "claims", "page", "health", "reflection"}
+	want := []string{"ingest", "status", "abort", "rerun", "jobs", "ask", "subjects", "claims", "page", "llm_calls", "health", "reflection"}
 	if len(names) != len(want) {
 		t.Fatalf("tool names = %#v, want exact %v", names, want)
 	}
@@ -310,10 +312,14 @@ func TestBuildSpecMatchesDirectMCPToolSurface(t *testing.T) {
 	direct := mcp.NewHandler("test-version", "wiki", nil,
 		mcp.WithIngestService(surfaceWiki{}),
 		mcp.WithJobStatusService(surfaceWiki{}),
+		mcp.WithJobAbortService(surfaceWiki{}),
+		mcp.WithJobRerunService(surfaceWiki{}),
+		mcp.WithJobListService(surfaceWiki{}),
 		mcp.WithAskFunc(surfaceAsk),
-		mcp.WithSubjectsService(surfaceWiki{}),
-		mcp.WithClaimsService(surfaceWiki{}),
+		mcp.WithSubjectListService(surfaceWiki{}),
+		mcp.WithClaimListService(surfaceWiki{}),
 		mcp.WithPagePathService(surfaceWiki{}),
+		mcp.WithLLMCallListService(surfaceCalls{}),
 	)
 
 	composedTools := mcpToolSurface(t, srv.Handler, true)
@@ -480,16 +486,42 @@ func (surfaceWiki) JobStatus(context.Context, string) (publicJobStatus, error) {
 	return publicJobStatus{}, nil
 }
 
+func (surfaceWiki) Abort(context.Context, string) (wiki.AbortResult, error) {
+	return wiki.AbortResult{}, nil
+}
+
+func (surfaceWiki) Rerun(context.Context, string) (wiki.RerunResult, error) {
+	return wiki.RerunResult{}, nil
+}
+
+func (surfaceWiki) ListJobs(context.Context, mcp.JobFilter, paging.Params) ([]wiki.Job, string, error) {
+	return []wiki.Job{{ID: "job-1", Status: wiki.JobDone}}, "", nil
+}
+
 func (surfaceWiki) Subjects(context.Context, string, string) ([]publicSubject, error) {
 	return []publicSubject{{Path: "entity/acme", Type: "entity", Name: "Acme", HasPage: true}}, nil
+}
+
+func (surfaceWiki) List(context.Context, string, string, paging.Params) ([]publicSubject, string, error) {
+	return []publicSubject{{Path: "entity/acme", Type: "entity", Name: "Acme", HasPage: true}}, "", nil
 }
 
 func (surfaceWiki) ClaimsBySubject(context.Context, string) ([]publicClaim, error) {
 	return []publicClaim{{ID: "claim-1", Text: "Claim text.", Job: "job-1"}}, nil
 }
 
+func (surfaceWiki) ListBySubject(context.Context, string, paging.Params) ([]publicClaim, string, error) {
+	return []publicClaim{{ID: "claim-1", Text: "Claim text.", Job: "job-1"}}, "", nil
+}
+
 func (surfaceWiki) PageByPath(context.Context, string) (publicPage, error) {
 	return publicPage{}, nil
+}
+
+type surfaceCalls struct{}
+
+func (surfaceCalls) List(context.Context, mcp.LLMCallFilter, paging.Params) ([]wiki.CallRecord, string, error) {
+	return []wiki.CallRecord{{ID: "call-1", Stage: "extract", JobID: "job-1"}}, "", nil
 }
 
 func surfaceAsk(context.Context, string, string) (askSurfaceAnswer, error) {

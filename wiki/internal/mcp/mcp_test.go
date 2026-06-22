@@ -14,6 +14,8 @@ import (
 	"time"
 
 	"appkit/server"
+
+	paging "wiki/internal/page"
 )
 
 func TestHealthToolReturnsAppkitEnvelope(t *testing.T) {
@@ -99,10 +101,14 @@ func TestToolsListAdvertisesConfiguredWikiSurface(t *testing.T) {
 	h := gatedHandler(t, NewHandler("test-version", "wiki", nil,
 		WithIngestService(&capturingWiki{}),
 		WithJobStatusService(&capturingWiki{}),
+		WithJobAbortService(&capturingWiki{}),
+		WithJobRerunService(&capturingWiki{}),
+		WithJobListService(&capturingWiki{}),
 		WithAskFunc((&capturingAsker{}).Ask),
-		WithSubjectsService(&capturingWiki{}),
-		WithClaimsService(&capturingWiki{}),
+		WithSubjectListService(&capturingWiki{}),
+		WithClaimListService(&capturingWiki{}),
 		WithPagePathService(&capturingWiki{}),
+		WithLLMCallListService(&capturingCalls{}),
 	))
 	rec := callMCP(t, h, `{"jsonrpc":"2.0","id":"list","method":"tools/list"}`, "owner@example.com")
 
@@ -131,10 +137,14 @@ func TestToolsListAdvertisesConfiguredWikiSurface(t *testing.T) {
 	want := map[string]bool{
 		"ingest":     true,
 		"status":     true,
+		"abort":      true,
+		"rerun":      true,
+		"jobs":       true,
 		"ask":        true,
 		"subjects":   true,
 		"claims":     true,
 		"page":       true,
+		"llm_calls":  true,
 		"health":     true,
 		"reflection": true,
 	}
@@ -158,10 +168,14 @@ func TestToolsListInputSchemasUseValidRequiredFields(t *testing.T) {
 	h := gatedHandler(t, NewHandler("test-version", "wiki", nil,
 		WithIngestService(&capturingWiki{}),
 		WithJobStatusService(&capturingWiki{}),
+		WithJobAbortService(&capturingWiki{}),
+		WithJobRerunService(&capturingWiki{}),
+		WithJobListService(&capturingWiki{}),
 		WithAskFunc((&capturingAsker{}).Ask),
-		WithSubjectsService(&capturingWiki{}),
-		WithClaimsService(&capturingWiki{}),
+		WithSubjectListService(&capturingWiki{}),
+		WithClaimListService(&capturingWiki{}),
 		WithPagePathService(&capturingWiki{}),
+		WithLLMCallListService(&capturingCalls{}),
 	))
 	rec := callMCP(t, h, `{"jsonrpc":"2.0","id":"list","method":"tools/list"}`, "owner@example.com")
 
@@ -512,17 +526,20 @@ func TestReadToolsSerializePublicPathsWithoutSubjectIDs(t *testing.T) {
 			}}`,
 			check: func(t *testing.T, text string) {
 				t.Helper()
-				var body []struct {
-					Path    string `json:"path"`
-					Name    string `json:"name"`
-					Type    string `json:"type"`
-					HasPage bool   `json:"has_page"`
+				var body struct {
+					Subjects []struct {
+						Path    string `json:"path"`
+						Name    string `json:"name"`
+						Type    string `json:"type"`
+						HasPage bool   `json:"has_page"`
+					} `json:"subjects"`
+					Next string `json:"next_cursor"`
 				}
 				decodeJSON(t, []byte(text), &body)
 				if !strings.Contains(text, `"has_page"`) {
 					t.Fatalf("subjects body = %s, want has_page field", text)
 				}
-				if len(body) != 1 || body[0].Path != "entity/acme-robotics" || body[0].Name != "Acme Robotics" || body[0].Type != "entity" {
+				if len(body.Subjects) != 1 || body.Subjects[0].Path != "entity/acme-robotics" || body.Subjects[0].Name != "Acme Robotics" || body.Subjects[0].Type != "entity" || body.Next != "" {
 					t.Fatalf("subjects body = %#v, want public path/name/type", body)
 				}
 			},
@@ -534,10 +551,13 @@ func TestReadToolsSerializePublicPathsWithoutSubjectIDs(t *testing.T) {
 			}}`,
 			check: func(t *testing.T, text string) {
 				t.Helper()
-				var body []struct {
-					ID   string `json:"id"`
-					Text string `json:"text"`
-					Job  string `json:"job"`
+				var body struct {
+					Claims []struct {
+						ID   string `json:"id"`
+						Text string `json:"text"`
+						Job  string `json:"job"`
+					} `json:"claims"`
+					Next string `json:"next_cursor"`
 				}
 				decodeJSON(t, []byte(text), &body)
 				for _, forbidden := range []string{`"path"`, `"body"`} {
@@ -545,7 +565,7 @@ func TestReadToolsSerializePublicPathsWithoutSubjectIDs(t *testing.T) {
 						t.Fatalf("claims body = %s, leaked %s", text, forbidden)
 					}
 				}
-				if len(body) != 1 || body[0].ID != "claim-1" || body[0].Text != "Acme Robotics runs a Tulsa lab." || body[0].Job != "job-123" {
+				if len(body.Claims) != 1 || body.Claims[0].ID != "claim-1" || body.Claims[0].Text != "Acme Robotics runs a Tulsa lab." || body.Claims[0].Job != "job-123" || body.Next != "" {
 					t.Fatalf("claims body = %#v, want public id/text/job", body)
 				}
 			},
@@ -750,6 +770,200 @@ func TestAskToolUsesPhase17InputAndResultShape(t *testing.T) {
 	}
 }
 
+func TestJobControlToolsCallDomainServices(t *testing.T) {
+	// R-37NS-BRXR
+	// R-38VO-PJOG
+	wiki := &capturingWiki{
+		abortResult: abortResult{Aborted: true, Status: "aborted"},
+		rerunResult: rerunResult{Requeued: true, Status: "pending"},
+	}
+	h := gatedHandler(t, NewHandler("test-version", "wiki", nil,
+		WithJobAbortService(wiki),
+		WithJobRerunService(wiki),
+	))
+
+	abortRec := callMCP(t, h, `{
+		"jsonrpc":"2.0",
+		"id":"abort",
+		"method":"tools/call",
+		"params":{"name":"abort","arguments":{"job_id":"job-123"}}
+	}`, "owner@example.com")
+	if abortRec.Code != http.StatusOK {
+		t.Fatalf("abort status = %d, want 200", abortRec.Code)
+	}
+	if wiki.abortJobID != "job-123" {
+		t.Fatalf("abort job id = %q, want job-123", wiki.abortJobID)
+	}
+	var abortBody struct {
+		Aborted bool   `json:"aborted"`
+		Status  string `json:"status"`
+	}
+	decodeToolText(t, abortRec.Body.Bytes(), &abortBody)
+	if !abortBody.Aborted || abortBody.Status != "aborted" {
+		t.Fatalf("abort body = %#v, want aborted result", abortBody)
+	}
+
+	rerunRec := callMCP(t, h, `{
+		"jsonrpc":"2.0",
+		"id":"rerun",
+		"method":"tools/call",
+		"params":{"name":"rerun","arguments":{"job_id":"job-456"}}
+	}`, "owner@example.com")
+	if rerunRec.Code != http.StatusOK {
+		t.Fatalf("rerun status = %d, want 200", rerunRec.Code)
+	}
+	if wiki.rerunJobID != "job-456" {
+		t.Fatalf("rerun job id = %q, want job-456", wiki.rerunJobID)
+	}
+	var rerunBody struct {
+		Requeued bool   `json:"requeued"`
+		Status   string `json:"status"`
+	}
+	decodeToolText(t, rerunRec.Body.Bytes(), &rerunBody)
+	if !rerunBody.Requeued || rerunBody.Status != "pending" {
+		t.Fatalf("rerun body = %#v, want requeued result", rerunBody)
+	}
+}
+
+func TestPaginatedListToolsForwardFiltersAndReturnNextCursors(t *testing.T) {
+	// R-3A3L-3BF5
+	// R-3BBH-H35U
+	// R-3CJD-UUWJ
+	// R-3EZ6-MEDX
+	started := time.Date(2026, 6, 22, 12, 30, 0, 0, time.UTC)
+	wiki := &capturingWiki{
+		jobs: []job{{
+			ID:         "job-123",
+			Owner:      "owner@example.com",
+			Title:      "Source",
+			Tags:       []string{"one"},
+			Status:     "done",
+			ReceivedAt: started,
+		}},
+		jobNext: "job-next",
+		subjects: []subject{{
+			Name:     "Acme Robotics",
+			NormName: "acme robotics",
+			Type:     "entity",
+			HasPage:  true,
+		}},
+		subjectNext: "subject-next",
+		claims: []claim{{
+			ID:    "claim-1",
+			JobID: "job-123",
+			Body:  "Acme Robotics runs a Tulsa lab.",
+		}},
+		claimsNext: "claim-next",
+	}
+	calls := &capturingCalls{
+		calls: []callRecord{{
+			ID:        "call-1",
+			Stage:     "extract",
+			JobID:     "job-123",
+			Attempt:   2,
+			Provider:  "test-provider",
+			Model:     "test-model",
+			Usage:     `{"total":3}`,
+			StartedAt: started,
+		}},
+		next: "call-next",
+	}
+	h := gatedHandler(t, NewHandler("test-version", "wiki", nil,
+		WithJobListService(wiki),
+		WithSubjectListService(wiki),
+		WithClaimListService(wiki),
+		WithLLMCallListService(calls),
+	))
+
+	jobsRec := callMCP(t, h, `{
+		"jsonrpc":"2.0",
+		"id":"jobs",
+		"method":"tools/call",
+		"params":{"name":"jobs","arguments":{"status":"done","since":"2026-06-22T00:00:00Z","until":"2026-06-23T00:00:00Z","limit":1,"cursor":"job-cursor"}}
+	}`, "owner@example.com")
+	var jobsBody struct {
+		Jobs []struct {
+			ID     string   `json:"id"`
+			Status string   `json:"status"`
+			Tags   []string `json:"tags"`
+		} `json:"jobs"`
+		Next string `json:"next_cursor"`
+	}
+	decodeToolText(t, jobsRec.Body.Bytes(), &jobsBody)
+	if wiki.jobFilter.Status != "done" || wiki.jobPage.Limit != 1 || wiki.jobPage.Cursor != "job-cursor" {
+		t.Fatalf("job list args = %#v/%#v, want forwarded filter/page", wiki.jobFilter, wiki.jobPage)
+	}
+	if len(jobsBody.Jobs) != 1 || jobsBody.Jobs[0].ID != "job-123" || jobsBody.Jobs[0].Status != "done" || jobsBody.Next != "job-next" {
+		t.Fatalf("jobs body = %#v, want paginated job result", jobsBody)
+	}
+
+	subjectsRec := callMCP(t, h, `{
+		"jsonrpc":"2.0",
+		"id":"subjects",
+		"method":"tools/call",
+		"params":{"name":"subjects","arguments":{"type":"entity","name":"robot","limit":2,"cursor":"subject-cursor"}}
+	}`, "owner@example.com")
+	var subjectsBody struct {
+		Subjects []struct {
+			Path    string `json:"path"`
+			HasPage bool   `json:"has_page"`
+		} `json:"subjects"`
+		Next string `json:"next_cursor"`
+	}
+	decodeToolText(t, subjectsRec.Body.Bytes(), &subjectsBody)
+	if wiki.subjectType != "entity" || wiki.subjectName != "robot" || wiki.subjectPage.Limit != 2 || wiki.subjectPage.Cursor != "subject-cursor" {
+		t.Fatalf("subject list args = %q/%q/%#v, want forwarded filter/page", wiki.subjectType, wiki.subjectName, wiki.subjectPage)
+	}
+	if len(subjectsBody.Subjects) != 1 || subjectsBody.Subjects[0].Path != "entity/acme-robotics" || !subjectsBody.Subjects[0].HasPage || subjectsBody.Next != "subject-next" {
+		t.Fatalf("subjects body = %#v, want paginated subject result", subjectsBody)
+	}
+
+	claimsRec := callMCP(t, h, `{
+		"jsonrpc":"2.0",
+		"id":"claims",
+		"method":"tools/call",
+		"params":{"name":"claims","arguments":{"subject":"entity/acme-robotics","limit":3,"cursor":"claim-cursor"}}
+	}`, "owner@example.com")
+	var claimsBody struct {
+		Claims []struct {
+			ID   string `json:"id"`
+			Text string `json:"text"`
+		} `json:"claims"`
+		Next string `json:"next_cursor"`
+	}
+	decodeToolText(t, claimsRec.Body.Bytes(), &claimsBody)
+	if wiki.claimsSubject != "entity/acme-robotics" || wiki.claimsPage.Limit != 3 || wiki.claimsPage.Cursor != "claim-cursor" {
+		t.Fatalf("claims args = %q/%#v, want forwarded subject/page", wiki.claimsSubject, wiki.claimsPage)
+	}
+	if len(claimsBody.Claims) != 1 || claimsBody.Claims[0].ID != "claim-1" || claimsBody.Claims[0].Text == "" || claimsBody.Next != "claim-next" {
+		t.Fatalf("claims body = %#v, want paginated claims result", claimsBody)
+	}
+
+	callsRec := callMCP(t, h, `{
+		"jsonrpc":"2.0",
+		"id":"llm_calls",
+		"method":"tools/call",
+		"params":{"name":"llm_calls","arguments":{"job_id":"job-123","stage":"extract","since":"2026-06-22T00:00:00Z","until":"2026-06-23T00:00:00Z","limit":4,"cursor":"call-cursor"}}
+	}`, "owner@example.com")
+	var callsBody struct {
+		Calls []struct {
+			ID       string `json:"id"`
+			Stage    string `json:"stage"`
+			JobID    string `json:"job_id"`
+			Attempt  int64  `json:"attempt"`
+			Provider string `json:"provider"`
+		} `json:"llm_calls"`
+		Next string `json:"next_cursor"`
+	}
+	decodeToolText(t, callsRec.Body.Bytes(), &callsBody)
+	if calls.filter.JobID != "job-123" || calls.filter.Stage != "extract" || calls.params.Limit != 4 || calls.params.Cursor != "call-cursor" {
+		t.Fatalf("call list args = %#v/%#v, want forwarded filter/page", calls.filter, calls.params)
+	}
+	if len(callsBody.Calls) != 1 || callsBody.Calls[0].ID != "call-1" || callsBody.Calls[0].Attempt != 2 || callsBody.Calls[0].Provider != "test-provider" || callsBody.Next != "call-next" {
+		t.Fatalf("llm_calls body = %#v, want paginated footprint result", callsBody)
+	}
+}
+
 func TestMCPToolsAreBehindRequireIdentity(t *testing.T) {
 	// R-MZLQ-34IK
 	h := gatedHandler(t, NewHandler("test-version", "wiki", nil, WithIngestService(&capturingWiki{})))
@@ -769,20 +983,35 @@ func TestMCPToolsAreBehindRequireIdentity(t *testing.T) {
 }
 
 type capturingWiki struct {
-	ingestID    string
-	ingestOwner string
-	ingestText  string
-	ingestTitle string
-	ingestTags  []string
-	statusJobID string
-	status      jobStatus
-	statusErr   error
-	claims      []claim
-	claimsErr   error
-	page        page
-	pagePath    string
-	pageErr     error
-	subjects    []subject
+	ingestID      string
+	ingestOwner   string
+	ingestText    string
+	ingestTitle   string
+	ingestTags    []string
+	statusJobID   string
+	status        jobStatus
+	statusErr     error
+	abortJobID    string
+	abortResult   abortResult
+	rerunJobID    string
+	rerunResult   rerunResult
+	jobs          []job
+	jobFilter     JobFilter
+	jobPage       paging.Params
+	jobNext       string
+	claims        []claim
+	claimsErr     error
+	claimsSubject string
+	claimsPage    paging.Params
+	claimsNext    string
+	page          page
+	pagePath      string
+	pageErr       error
+	subjects      []subject
+	subjectType   string
+	subjectName   string
+	subjectPage   paging.Params
+	subjectNext   string
 }
 
 func (w *capturingWiki) Ingest(_ context.Context, owner, text, title string, tags []string) (string, error) {
@@ -804,8 +1033,31 @@ func (w *capturingWiki) JobStatus(_ context.Context, jobID string) (jobStatus, e
 	return w.status, nil
 }
 
+func (w *capturingWiki) Abort(_ context.Context, jobID string) (abortResult, error) {
+	w.abortJobID = jobID
+	return w.abortResult, nil
+}
+
+func (w *capturingWiki) Rerun(_ context.Context, jobID string) (rerunResult, error) {
+	w.rerunJobID = jobID
+	return w.rerunResult, nil
+}
+
+func (w *capturingWiki) ListJobs(_ context.Context, f JobFilter, p paging.Params) ([]job, string, error) {
+	w.jobFilter = f
+	w.jobPage = p
+	return w.jobs, w.jobNext, nil
+}
+
 func (w *capturingWiki) Subjects(_ context.Context, _, _ string) ([]subject, error) {
 	return w.subjects, nil
+}
+
+func (w *capturingWiki) List(_ context.Context, typ, name string, p paging.Params) ([]subject, string, error) {
+	w.subjectType = typ
+	w.subjectName = name
+	w.subjectPage = p
+	return w.subjects, w.subjectNext, nil
 }
 
 func (w *capturingWiki) ClaimsBySubject(_ context.Context, _ string) ([]claim, error) {
@@ -815,12 +1067,43 @@ func (w *capturingWiki) ClaimsBySubject(_ context.Context, _ string) ([]claim, e
 	return w.claims, nil
 }
 
+func (w *capturingWiki) ListBySubject(_ context.Context, subject string, p paging.Params) ([]claim, string, error) {
+	w.claimsSubject = subject
+	w.claimsPage = p
+	if w.claimsErr != nil {
+		return nil, "", w.claimsErr
+	}
+	return w.claims, w.claimsNext, nil
+}
+
 func (w *capturingWiki) PageByPath(_ context.Context, path string) (page, error) {
 	w.pagePath = path
 	if w.pageErr != nil {
 		return page{}, w.pageErr
 	}
 	return w.page, nil
+}
+
+type abortResult struct {
+	Aborted bool
+	Status  string
+}
+
+type rerunResult struct {
+	Requeued bool
+	Status   string
+}
+
+type job struct {
+	ID         string
+	Owner      string
+	Title      string
+	Tags       []string
+	Status     string
+	ReceivedAt time.Time
+	StartedAt  time.Time
+	FinishedAt time.Time
+	Error      string
 }
 
 type jobStatus struct {
@@ -864,6 +1147,35 @@ type answer struct {
 type citation struct {
 	Path  string
 	Title string
+}
+
+type callRecord struct {
+	ID        string
+	Stage     string
+	JobID     string
+	Attempt   int
+	Provider  string
+	Model     string
+	Params    string
+	Request   string
+	Response  string
+	Usage     string
+	Err       string
+	StartedAt time.Time
+	EndedAt   time.Time
+}
+
+type capturingCalls struct {
+	calls  []callRecord
+	filter LLMCallFilter
+	params paging.Params
+	next   string
+}
+
+func (c *capturingCalls) List(_ context.Context, f LLMCallFilter, p paging.Params) ([]callRecord, string, error) {
+	c.filter = f
+	c.params = p
+	return c.calls, c.next, nil
 }
 
 type capturingAsker struct {
