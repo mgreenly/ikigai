@@ -139,6 +139,20 @@ func (s *Service) Rerun(ctx context.Context, jobID string) (RerunResult, error) 
 	return result, nil
 }
 
+func (s *Service) RequeueWorking(ctx context.Context) (int, error) {
+	if s == nil {
+		return 0, fmt.Errorf("wiki: nil service")
+	}
+	n, err := s.jobs.RequeueWorking(ctx)
+	if err != nil {
+		return 0, err
+	}
+	if n > 0 {
+		s.notify()
+	}
+	return n, nil
+}
+
 // Subjects lists registry subjects, optionally filtered by type and name substring.
 func (s *Service) Subjects(ctx context.Context, typ, nameContains string) ([]Subject, error) {
 	if s == nil {

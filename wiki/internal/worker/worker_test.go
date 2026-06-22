@@ -84,6 +84,80 @@ func TestRunIntegratesPendingJobWithRealDBAndMockProvider(t *testing.T) {
 	}
 }
 
+func TestRunRequeuesOrphanedWorkingJobOnStartup(t *testing.T) {
+	// R-MDN8-RAVN
+	ctx := context.Background()
+	conn := migratedDB(t, ctx)
+	defer conn.Close()
+
+	prov := &scriptedProvider{responses: []string{
+		`{"subjects":[{
+			"type":"entity",
+			"kind":"company",
+			"name":"Acme Robotics",
+			"occurred_at":"",
+			"claims":["Acme Robotics reopened a stuck worker job."]
+		}]}`,
+		`{"title":"Acme Robotics","body":"Acme Robotics reopened a stuck worker job. [requeued]"}`,
+	}}
+	client := llm.New(prov, nil)
+	svc := wikidomain.NewService(
+		conn,
+		extract.New(client, llm.CallSite{Model: "extract-model"}),
+		compile.New(client, llm.CallSite{Model: "compile-model"}, nil),
+		clockAt(time.Date(2026, 6, 22, 22, 0, 0, 0, time.UTC)),
+	)
+
+	jobID, err := svc.Ingest(ctx, "owner@example.com", "Acme Robotics reopened a stuck worker job.", "Stuck job", nil)
+	if err != nil {
+		t.Fatalf("Ingest: %v", err)
+	}
+	if _, ok, err := wikidomain.NewJobStore(conn).ClaimPending(ctx, time.Date(2026, 6, 22, 21, 59, 0, 0, time.UTC)); err != nil || !ok {
+		t.Fatalf("ClaimPending = %v/%v, want working orphan", ok, err)
+	}
+	orphaned, err := svc.JobStatus(ctx, jobID)
+	if err != nil {
+		t.Fatalf("JobStatus before Run: %v", err)
+	}
+	if orphaned.Status != wikidomain.JobWorking {
+		t.Fatalf("status before Run = %q, want working", orphaned.Status)
+	}
+
+	runCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	done := make(chan error, 1)
+	go func() { done <- worker.Run(runCtx, svc) }()
+
+	status := waitStatus(t, ctx, svc, jobID, wikidomain.JobDone)
+	if status.StartedAt == nil || !status.StartedAt.Equal(time.Date(2026, 6, 22, 22, 0, 0, 0, time.UTC)) {
+		t.Fatalf("started_at = %v, want startup worker claim time", status.StartedAt)
+	}
+	if len(status.Subjects) != 1 {
+		t.Fatalf("subjects = %#v, want one subject after reprocessing", status.Subjects)
+	}
+	if got := len(prov.requests); got != 2 {
+		t.Fatalf("provider requests = %d, want extract plus compile after requeue", got)
+	}
+
+	page, err := wikidomain.NewPageStore(conn).GetBySubject(ctx, status.Subjects[0])
+	if err != nil {
+		t.Fatalf("GetBySubject: %v", err)
+	}
+	if page.Title != "Acme Robotics" || !strings.Contains(page.Body, "requeued") {
+		t.Fatalf("page = %+v, want compiled page from requeued job", page)
+	}
+
+	cancel()
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("Run returned error: %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("Run did not stop after context cancellation")
+	}
+}
+
 func TestRunAbortWorkingJobCancelsProviderAndPreservesAbortedStatus(t *testing.T) {
 	// R-0USQ-0P6D
 	ctx := context.Background()

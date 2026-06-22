@@ -257,6 +257,22 @@ func (s *JobStore) FinishWorking(ctx context.Context, id, status string, finishe
 	return n > 0, nil
 }
 
+func (s *JobStore) RequeueWorking(ctx context.Context) (int, error) {
+	res, err := s.write.ExecContext(ctx, `
+		UPDATE jobs
+		SET status = ?, started_at = '', finished_at = '', error = ''
+		WHERE status = ?`,
+		JobPending, JobWorking)
+	if err != nil {
+		return 0, err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+	return int(n), nil
+}
+
 func (s *JobStore) Abort(ctx context.Context, id string, finishedAt time.Time) (AbortResult, error) {
 	tx, err := s.write.BeginTx(ctx, nil)
 	if err != nil {
