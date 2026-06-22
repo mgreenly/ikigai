@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"appkit/logging"
@@ -48,6 +49,12 @@ type Service struct {
 	now       func() time.Time
 	newID     func() string
 	wake      chan struct{}
+	mu        sync.Mutex
+	cancels   map[string]*jobCancel
+}
+
+type jobCancel struct {
+	cancel context.CancelFunc
 }
 
 // NewService builds the ingest service over the shared SQLite handle.
@@ -66,6 +73,7 @@ func NewService(db *sql.DB, extractor Extractor, compiler Compiler, now func() t
 		now:       now,
 		newID:     logging.NewULID,
 		wake:      make(chan struct{}, 1),
+		cancels:   map[string]*jobCancel{},
 	}
 }
 
@@ -108,6 +116,21 @@ func (s *Service) Abort(ctx context.Context, jobID string) (AbortResult, error) 
 		return AbortResult{}, err
 	}
 	if result.Aborted {
+		s.cancelJob(strings.TrimSpace(jobID))
+		s.notify()
+	}
+	return result, nil
+}
+
+func (s *Service) Rerun(ctx context.Context, jobID string) (RerunResult, error) {
+	if s == nil {
+		return RerunResult{}, fmt.Errorf("wiki: nil service")
+	}
+	result, err := s.jobs.Rerun(ctx, strings.TrimSpace(jobID))
+	if err != nil {
+		return result, err
+	}
+	if result.Requeued {
 		s.notify()
 	}
 	return result, nil
@@ -149,7 +172,10 @@ func (s *Service) ProcessNext(ctx context.Context) (bool, error) {
 	if err != nil || !ok {
 		return ok, err
 	}
-	if err := s.integrate(ctx, job); err != nil {
+	jobCtx, cancel := context.WithCancel(ctx)
+	registeredCancel := s.registerJobCancel(job.ID, cancel)
+	defer s.unregisterJobCancel(job.ID, registeredCancel)
+	if err := s.integrate(jobCtx, job); err != nil {
 		_, _ = s.jobs.FinishWorking(ctx, job.ID, JobFailed, s.now(), err.Error())
 		return true, nil
 	}
@@ -200,11 +226,19 @@ func (s *Service) integrate(ctx context.Context, job Job) error {
 	subjects := NewSubjectStore(tx)
 	claims := NewClaimStore(tx)
 	pages := NewPageStore(tx)
+	affected, err := s.affectedSubjects(ctx, subjects, claims, job.ID)
+	if err != nil {
+		return err
+	}
+	if err := claims.DeleteByJob(ctx, job.ID); err != nil {
+		return err
+	}
 	for _, item := range extracted {
 		subject, err := s.subjectFor(ctx, subjects, item)
 		if err != nil {
 			return err
 		}
+		affected[subject.ID] = subject
 		for _, body := range item.Claims {
 			if err := claims.Save(ctx, Claim{
 				ID:        s.newID(),
@@ -215,9 +249,17 @@ func (s *Service) integrate(ctx context.Context, job Job) error {
 				return err
 			}
 		}
+	}
+	for _, subject := range affected {
 		subjectClaims, err := claims.ListBySubject(ctx, subject.ID)
 		if err != nil {
 			return err
+		}
+		if len(subjectClaims) == 0 {
+			if err := pages.DeleteBySubject(ctx, subject.ID); err != nil {
+				return err
+			}
+			continue
 		}
 		title, body, err := s.compiler.Compile(ctx, subject, subjectClaims)
 		if err != nil {
@@ -233,6 +275,22 @@ func (s *Service) integrate(ctx context.Context, job Job) error {
 		}
 	}
 	return tx.Commit()
+}
+
+func (s *Service) affectedSubjects(ctx context.Context, subjects *SubjectStore, claims *ClaimStore, jobID string) (map[string]Subject, error) {
+	affected := map[string]Subject{}
+	ids, err := claims.SubjectIDsByJob(ctx, jobID)
+	if err != nil {
+		return nil, err
+	}
+	for _, id := range ids {
+		subject, err := subjects.Get(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		affected[subject.ID] = subject
+	}
+	return affected, nil
 }
 
 func (s *Service) subjectFor(ctx context.Context, subjects *SubjectStore, item extract.ExtractedSubject) (Subject, error) {
@@ -253,6 +311,32 @@ func (s *Service) subjectFor(ctx context.Context, subjects *SubjectStore, item e
 		return Subject{}, err
 	}
 	return subject, nil
+}
+
+func (s *Service) registerJobCancel(jobID string, cancel context.CancelFunc) *jobCancel {
+	registered := &jobCancel{cancel: cancel}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.cancels[jobID] = registered
+	return registered
+}
+
+func (s *Service) unregisterJobCancel(jobID string, registered *jobCancel) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.cancels[jobID] == registered {
+		delete(s.cancels, jobID)
+	}
+	registered.cancel()
+}
+
+func (s *Service) cancelJob(jobID string) {
+	s.mu.Lock()
+	registered := s.cancels[jobID]
+	s.mu.Unlock()
+	if registered != nil {
+		registered.cancel()
+	}
 }
 
 func (s *Service) notify() {

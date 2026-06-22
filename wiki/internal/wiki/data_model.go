@@ -25,6 +25,7 @@ type Subject struct {
 var (
 	ErrSubjectNotFound = errors.New("wiki: subject not found")
 	ErrAmbiguousPath   = errors.New("wiki: ambiguous subject path")
+	ErrJobNotTerminal  = errors.New("wiki: job is not terminal")
 )
 
 // Path is the public type/slug identifier for a subject.
@@ -89,6 +90,11 @@ type JobStatus struct {
 	FinishedAt *time.Time
 	Error      string
 	Subjects   []string
+}
+
+type RerunResult struct {
+	Requeued bool
+	Status   string
 }
 
 func normalize(name string) string {
@@ -251,6 +257,47 @@ func (s *JobStore) Abort(ctx context.Context, id string, finishedAt time.Time) (
 		return AbortResult{Status: status}, nil
 	}
 	return AbortResult{Aborted: true, Status: JobAborted}, nil
+}
+
+func (s *JobStore) Rerun(ctx context.Context, id string) (RerunResult, error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return RerunResult{}, err
+	}
+	defer tx.Rollback()
+
+	var status string
+	if err := tx.QueryRowContext(ctx, `SELECT status FROM jobs WHERE id = ?`, id).Scan(&status); err != nil {
+		return RerunResult{}, err
+	}
+	switch status {
+	case JobDone, JobFailed, JobAborted:
+	default:
+		if err := tx.Commit(); err != nil {
+			return RerunResult{}, err
+		}
+		return RerunResult{Status: status}, ErrJobNotTerminal
+	}
+
+	res, err := tx.ExecContext(ctx, `
+		UPDATE jobs
+		SET status = ?, started_at = '', finished_at = '', error = ''
+		WHERE id = ? AND status = ?`,
+		JobPending, id, status)
+	if err != nil {
+		return RerunResult{}, err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return RerunResult{}, err
+	}
+	if err := tx.Commit(); err != nil {
+		return RerunResult{}, err
+	}
+	if n == 0 {
+		return RerunResult{Status: status}, ErrJobNotTerminal
+	}
+	return RerunResult{Requeued: true, Status: JobPending}, nil
 }
 
 func (s *JobStore) Status(ctx context.Context, id string) (JobStatus, error) {
@@ -452,6 +499,31 @@ func (s *ClaimStore) Save(ctx context.Context, claim Claim) error {
 	return err
 }
 
+func (s *ClaimStore) SubjectIDsByJob(ctx context.Context, jobID string) ([]string, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT DISTINCT subject_id FROM claims WHERE job_id = ? ORDER BY subject_id`,
+		jobID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
+func (s *ClaimStore) DeleteByJob(ctx context.Context, jobID string) error {
+	_, err := s.db.ExecContext(ctx, `DELETE FROM claims WHERE job_id = ?`, jobID)
+	return err
+}
+
 func hashText(text string) string {
 	sum := sha256.Sum256([]byte(text))
 	return hex.EncodeToString(sum[:])
@@ -541,4 +613,9 @@ func (s *PageStore) GetBySubject(ctx context.Context, subjectID string) (Page, e
 		LIMIT 1`, subjectID).
 		Scan(&page.ID, &page.SubjectID, &page.Title, &page.Body)
 	return page, err
+}
+
+func (s *PageStore) DeleteBySubject(ctx context.Context, subjectID string) error {
+	_, err := s.db.ExecContext(ctx, `DELETE FROM pages WHERE subject_id = ?`, subjectID)
+	return err
 }
