@@ -315,6 +315,28 @@ func TestValidateConfigUsesProviderSpecificEnvVar(t *testing.T) {
 	}
 }
 
+func TestValidateConfigAcceptsKnownModelWithOnlyProviderKey(t *testing.T) {
+	// R-JZES-1M2S
+	tests := []struct {
+		name   string
+		cfg    Config
+		envVar string
+	}{
+		{"anthropic", Config{Provider: "anthropic", Model: testAnthropicModel}, "ANTHROPIC_API_KEY"},
+		{"openai", Config{Provider: "openai", Model: testOpenAIModel}, "OPENAI_API_KEY"},
+		{"google", Config{Provider: "google", Model: testGoogleModel}, "GEMINI_API_KEY"},
+		{"zai", Config{Provider: "zai", Model: testZaiModel}, "ZAI_API_KEY"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateConfig(tt.cfg, fakeEnv(map[string]string{tt.envVar: "sk-test"}))
+			if err != nil {
+				t.Fatalf("validateConfig(%+v) with %s set: %v", tt.cfg, tt.envVar, err)
+			}
+		})
+	}
+}
+
 func TestServiceCreateAndUpdatePreserveValidatedProvider(t *testing.T) {
 	// R-JZES-1M2S
 	t.Setenv("GEMINI_API_KEY", "sk-test")
