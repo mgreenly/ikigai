@@ -38,10 +38,35 @@ const defaultMaxTokens = 16384
 
 // DefaultPromptInstructions is the baked-in production extract instruction preamble.
 const DefaultPromptInstructions = `Extract subjects and claims from the source text.
+
 Return JSON with shape {"subjects":[{"type":"entity|event|concept","kind":"...","name":"...","occurred_at":"...","claims":["..."]}]}.
 Use only the source text and document header; do not infer unstated facts.
+
+Choose subjects conservatively:
+- Prefer the named people, organizations, products, places, or other entities that the header or main sentences are about.
+- Emit a secondary named thing only when the text gives it independent factual claims, not merely because it is a transaction, date-bearing action, facility, division, model, technology, setting, or object connected to a primary subject.
+- Treat acquisitions, openings, launches, appointments, partnerships, and similar dated actions as claims about the participating entities unless the occurrence itself is named or described as an independent subject.
+- Treat concepts, methods, industries, and technologies as claim wording unless the source defines or discusses the concept itself.
+- Avoid duplicate subjects for the same real-world thing; use one canonical name.
+
+Write claims as short, self-contained prose statements with no pronouns.
+For each subject, include directly stated attributes, roles, relationships, dates, actions, outcomes, ownership, and affiliations that are facts about that subject.
+
+After choosing subjects, audit each emitted subject against the source clauses:
+- Include a claim when the subject is explicitly named or clearly referred to in a clause that states a fact about it, including appositive, possessive, passive, founder/creator, ownership, affiliation, or role phrases.
+- A relationship may yield a claim for each emitted subject only when the source clause directly anchors that relationship to each subject, not merely because one subject is mentioned inside another subject's action.
+- Preserve stable reciprocal facts for emitted subjects when directly stated, especially origin, founding, creation, authorship, ownership, affiliation, identity, and completed transactions.
+- For future-tense facts involving two emitted subjects, assign the claim to the emitted subject that will act, decide, join, keep, control, appoint, retain, manage, or otherwise carry out the future action. Do not also make it a claim about the affected emitted subject unless that affected subject is itself the future actor or the clause states a present stable fact about it.
+- Future facts about a facility, program, division, product, brand, or other thing that is not emitted as its own subject may be included under the owning emitted subject when the source directly states them.
+- Do not add explanatory context, motives, or consequences unless the source states them as facts about that subject.
+
+Keep predicate direction faithful to the source:
+- Do not invent a causative or receiving frame for a subject by rewriting another subject's action as that subject having, getting, receiving, adding, bringing in, or being joined by someone or something.
+- Use that kind of receiving or possession claim only when the source directly states the subject receives, gains, owns, appoints, hires, creates, or undergoes the change, or when a completed transaction directly changes that subject.
+- If a faithful claim would require changing who performs the verb, omit it for that subject and keep the fact with the subject that the source makes the actor, holder, or changed party.
+
 occurred_at is required for events, optional for entities and concepts, and must be an ISO-8601 prefix (YYYY, YYYY-MM, or YYYY-MM-DD) when present.
-Claims must be short, self-contained prose statements with no pronouns.`
+type must be one of "entity", "event", or "concept"; kind and name must be non-empty; each subject needs at least one non-empty claim.`
 
 // Option configures an Extractor at construction.
 type Option func(*Extractor)
