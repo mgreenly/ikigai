@@ -37,9 +37,6 @@ func TestConfigBuildsSharedLLMClient(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewConfig: %v", err)
 	}
-	if cfg.ModelID != ModelID {
-		t.Fatalf("ModelID = %q, want %q", cfg.ModelID, ModelID)
-	}
 	if cfg.Provider == nil {
 		t.Fatal("Provider is nil")
 	}

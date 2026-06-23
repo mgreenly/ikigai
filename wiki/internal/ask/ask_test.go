@@ -77,6 +77,29 @@ func TestAskRunsExtractionThenSynthesizesFromResolvedSubjectPages(t *testing.T) 
 	}
 }
 
+func TestDefaultAskCallSitesUseSeparateReasoningLowStages(t *testing.T) {
+	// R-GHQC-OEYL
+	subject := DefaultSubjectCallSite()
+	synthesis := DefaultSynthesisCallSite()
+	if subject.Stage != "ask-subject" {
+		t.Fatalf("subject stage = %q, want ask-subject", subject.Stage)
+	}
+	if synthesis.Stage != "ask-synthesis" {
+		t.Fatalf("synthesis stage = %q, want ask-synthesis", synthesis.Stage)
+	}
+	for name, site := range map[string]llm.CallSite{
+		"subject":   subject,
+		"synthesis": synthesis,
+	} {
+		if site.MaxTokens != 16384 {
+			t.Fatalf("%s MaxTokens = %d, want 16384", name, site.MaxTokens)
+		}
+		if !reflect.DeepEqual(site.Reasoning, agentkit.Level("low")) {
+			t.Fatalf("%s reasoning = %#v, want low level", name, site.Reasoning)
+		}
+	}
+}
+
 func TestAskBestEffortGathersEveryResolvedSubjectPage(t *testing.T) {
 	// R-66KN-VGC6
 	ctx := context.Background()

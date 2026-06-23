@@ -53,15 +53,15 @@ func buildSpec(cfg wiki.Config) appkit.Spec {
 		}
 		conns := wiki.Conns{Read: read, Write: write}
 		llmClient := cfg.LLM.WithRecorder(wiki.NewLLMCallStore(conns)).WithClock(time.Now)
-		extractor := extract.New(llmClient, extract.DefaultCallSite(cfg.ModelID))
+		extractor := extract.New(llmClient, cfg.CallSites.Extract)
 		compiler := buildCompiler(cfg, llmClient)
 		svc = wiki.NewService(conns, extractor, compiler, time.Now)
 		asker := ask.New(
 			wiki.NewSubjectStore(read),
 			wiki.NewPageStore(read),
 			llmClient,
-			llm.CallSite{Stage: "ask", Model: cfg.ModelID},
-			llm.CallSite{Stage: "ask", Model: cfg.ModelID},
+			cfg.CallSites.AskSubject,
+			cfg.CallSites.AskSynthesis,
 		)
 		pageService := pathPageService{
 			subjects: wiki.NewSubjectStore(read),
@@ -279,7 +279,7 @@ func (s pathPageService) PageByPath(ctx context.Context, path string) (publicPag
 }
 
 func buildCompiler(cfg wiki.Config, c *llm.Client) *compile.Compiler {
-	return compile.New(c, compile.DefaultCallSite(cfg.ModelID), nil)
+	return compile.New(c, cfg.CallSites.Compile, nil)
 }
 
 func serveCommand(args []string) bool {

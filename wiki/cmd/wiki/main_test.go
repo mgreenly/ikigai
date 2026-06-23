@@ -56,7 +56,6 @@ func TestBuildSpecWiresThirteenMCPTools(t *testing.T) {
 	defer conn.Close()
 
 	spec := buildSpec(wiki.Config{
-		ModelID:       "test-model",
 		SearchDefault: 8,
 		SearchCap:     32,
 	})
@@ -143,7 +142,7 @@ func TestBuildSpecPageToolReturnsRenderedFooter(t *testing.T) {
 		}
 	}
 
-	spec := buildSpec(wiki.Config{ModelID: "test-model"})
+	spec := buildSpec(wiki.Config{})
 	srv, err := server.New(server.Options{
 		Addr:       "127.0.0.1:0",
 		Logger:     slog.New(slog.NewJSONHandler(io.Discard, nil)),
@@ -238,7 +237,7 @@ func TestBuildSpecReadToolsReturnPublicPathsWithoutSubjectIDs(t *testing.T) {
 		t.Fatalf("Upsert page: %v", err)
 	}
 
-	spec := buildSpec(wiki.Config{ModelID: "test-model"})
+	spec := buildSpec(wiki.Config{})
 	srv, err := server.New(server.Options{
 		Addr:       "127.0.0.1:0",
 		Logger:     slog.New(slog.NewJSONHandler(io.Discard, nil)),
@@ -294,7 +293,7 @@ func TestBuildSpecMatchesDirectMCPToolSurface(t *testing.T) {
 	conn := migratedDB(t, ctx)
 	defer conn.Close()
 
-	spec := buildSpec(wiki.Config{ModelID: "test-model"})
+	spec := buildSpec(wiki.Config{})
 	srv, err := server.New(server.Options{
 		Addr:       "127.0.0.1:0",
 		Logger:     slog.New(slog.NewJSONHandler(io.Discard, nil)),
@@ -333,10 +332,11 @@ func TestBuildSpecMatchesDirectMCPToolSurface(t *testing.T) {
 func TestBuildCompilerUsesDefaultCompileCallSite(t *testing.T) {
 	// R-4DS4-RXYX
 	prov := &capturingProvider{responses: []string{`{"title":"Acme Robotics","body":"Acme Robotics runs a Tulsa lab."}`}}
-	wantSite := compile.DefaultCallSite("root-model")
+	wantSite := compile.DefaultCallSite()
+	wantSite.Model = "compile-model"
 	cfg := wiki.Config{
-		ModelID: "root-model",
-		LLM:     llm.New(prov, nil),
+		CallSites: wiki.CallSites{Compile: wantSite},
+		LLM:       llm.New(prov, nil),
 	}
 	compiler := buildCompiler(cfg, cfg.LLM)
 

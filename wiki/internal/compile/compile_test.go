@@ -86,9 +86,11 @@ func TestCompileUsesInjectedCallSiteWithoutTools(t *testing.T) {
 
 func TestDefaultCallSiteUsesDeterministicReasoningOffSettings(t *testing.T) {
 	// R-4DS4-RXYX
-	site := DefaultCallSite("compile-model")
-	if site.Model != "compile-model" {
-		t.Fatalf("model = %q, want compile-model", site.Model)
+	site := DefaultCallSite()
+	site.Model = "compile-model"
+	// R-GGIG-AN7W
+	if site.Stage != "compile" {
+		t.Fatalf("stage = %q, want compile", site.Stage)
 	}
 	if site.Temperature == nil || *site.Temperature != 0 {
 		t.Fatalf("temperature = %#v, want 0", site.Temperature)
@@ -96,8 +98,11 @@ func TestDefaultCallSiteUsesDeterministicReasoningOffSettings(t *testing.T) {
 	if !reflect.DeepEqual(site.Reasoning, llm.DisableReasoning()) {
 		t.Fatalf("reasoning = %#v, want disabled", site.Reasoning)
 	}
-	if site.MaxTokens <= 0 {
-		t.Fatalf("MaxTokens = %d, want non-zero output ceiling", site.MaxTokens)
+	if site.MaxTokens != 16384 {
+		t.Fatalf("MaxTokens = %d, want 16384", site.MaxTokens)
+	}
+	if site.MaxParseRetries != 2 {
+		t.Fatalf("MaxParseRetries = %d, want 2", site.MaxParseRetries)
 	}
 
 	prov := &scriptedProvider{responses: []string{`{"title":"Acme Robotics","body":"Acme Robotics operates a Tulsa research lab."}`}}
@@ -123,8 +128,10 @@ func TestExtractAndCompileDefaultCallSitesCarryOutputTokenCeilings(t *testing.T)
 		`{"subjects":[]}`,
 		`{"title":"Acme Robotics","body":"Acme Robotics operates a Tulsa research lab."}`,
 	}}
-	extractSite := extract.DefaultCallSite("extract-model")
-	compileSite := DefaultCallSite("compile-model")
+	extractSite := extract.DefaultCallSite()
+	extractSite.Model = "extract-model"
+	compileSite := DefaultCallSite()
+	compileSite.Model = "compile-model"
 	const minOutputBudget = 16384
 	if extractSite.MaxTokens < minOutputBudget || compileSite.MaxTokens < minOutputBudget {
 		t.Fatalf("default max tokens = extract:%d compile:%d, want both at least %d", extractSite.MaxTokens, compileSite.MaxTokens, minOutputBudget)
@@ -213,7 +220,8 @@ func TestCompileDeterministicallyEnforcesRuneCap(t *testing.T) {
 	// R-FWOT-NRHN
 	body := strings.Repeat("é", PageCharCap+7)
 	prov := &scriptedProvider{responses: []string{`{"title":"Acme Robotics","body":"` + body + `"}`}}
-	site := DefaultCallSite("compile-model")
+	site := DefaultCallSite()
+	site.Model = "compile-model"
 	compiler := New(llm.New(prov, nil), site, nil)
 	compiler.maxTighten = 0
 

@@ -31,14 +31,14 @@ func New(c *llm.Client, site llm.CallSite, log *slog.Logger) *Compiler {
 }
 
 // DefaultCallSite returns the production compile-stage generation settings.
-func DefaultCallSite(model string) llm.CallSite {
+func DefaultCallSite() llm.CallSite {
 	temp := 0.0
 	return llm.CallSite{
-		Stage:       "compile",
-		Model:       model,
-		Temperature: &temp,
-		Reasoning:   llm.DisableReasoning(),
-		MaxTokens:   defaultMaxTokens,
+		Stage:           "compile",
+		Temperature:     &temp,
+		Reasoning:       llm.DisableReasoning(),
+		MaxTokens:       defaultMaxTokens,
+		MaxParseRetries: 2,
 	}
 }
 

@@ -8,11 +8,15 @@ import (
 	"fmt"
 	"strings"
 
+	agentkit "github.com/ikigenba/agentkit"
+
 	"wiki/internal/llm"
 	"wiki/internal/wiki"
 )
 
 const honestEmptyText = "The wiki holds nothing on that question."
+
+const defaultMaxTokens = 16384
 
 // Answer is a generated answer and the wiki pages it cites.
 type Answer struct {
@@ -44,6 +48,24 @@ func New(subjects *wiki.SubjectStore, pages *wiki.PageStore, c *llm.Client, extr
 		c:           c,
 		extractSite: extractSite,
 		synthSite:   synthSite,
+	}
+}
+
+// DefaultSubjectCallSite returns the production ask subject-extraction settings.
+func DefaultSubjectCallSite() llm.CallSite {
+	return llm.CallSite{
+		Stage:     "ask-subject",
+		Reasoning: agentkit.Level("low"),
+		MaxTokens: defaultMaxTokens,
+	}
+}
+
+// DefaultSynthesisCallSite returns the production ask answer-synthesis settings.
+func DefaultSynthesisCallSite() llm.CallSite {
+	return llm.CallSite{
+		Stage:     "ask-synthesis",
+		Reasoning: agentkit.Level("low"),
+		MaxTokens: defaultMaxTokens,
 	}
 }
 

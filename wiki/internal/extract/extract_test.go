@@ -2,6 +2,7 @@ package extract
 
 import (
 	"context"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -350,12 +351,20 @@ func TestDefaultCallSiteRetriesBadThenGoodExtraction(t *testing.T) {
 			"claims":["Tulsa hosted the planning meeting on June 20, 2026."]
 		}]}`,
 	}}
-	site := DefaultCallSite("extract-model")
-	if site.Model != "extract-model" {
-		t.Fatalf("model = %q, want extract-model", site.Model)
+	site := DefaultCallSite()
+	site.Model = "extract-model"
+	// R-GGIG-AN7W
+	if site.Stage != "extract" {
+		t.Fatalf("stage = %q, want extract", site.Stage)
 	}
 	if site.Temperature == nil || *site.Temperature != 0 {
 		t.Fatalf("temperature = %#v, want 0", site.Temperature)
+	}
+	if !reflect.DeepEqual(site.Reasoning, llm.DisableReasoning()) {
+		t.Fatalf("reasoning = %#v, want disabled", site.Reasoning)
+	}
+	if site.MaxTokens != 16384 {
+		t.Fatalf("MaxTokens = %d, want 16384", site.MaxTokens)
 	}
 	if site.MaxParseRetries != 2 {
 		t.Fatalf("MaxParseRetries = %d, want 2", site.MaxParseRetries)
@@ -391,7 +400,8 @@ func TestExtractUsesInjectedLLMCallSiteWithoutTools(t *testing.T) {
 		"occurred_at":"",
 		"claims":["Claim extraction turns source text into self-contained statements."]
 	}]}`}}
-	site := DefaultCallSite("extract-model")
+	site := DefaultCallSite()
+	site.Model = "extract-model"
 	extractor := New(llm.New(prov, nil), site)
 
 	if _, err := extractor.Extract(context.Background(), validHeader(), "Claim extraction turns source text into statements."); err != nil {
