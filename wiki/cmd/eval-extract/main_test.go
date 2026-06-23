@@ -90,13 +90,17 @@ func TestRunUsesInternalEvalWithMockBackedClient(t *testing.T) {
 	// R-35VS-A59E
 	root := t.TempDir()
 	writeCase(t, filepath.Join(root, "one"))
+	promptPath := filepath.Join(t.TempDir(), "extract-prompt.md")
+	if err := os.WriteFile(promptPath, []byte("CUSTOM EVAL PROMPT"), 0o600); err != nil {
+		t.Fatalf("write prompt file: %v", err)
+	}
 	prov := &scriptedProvider{responses: []string{
 		`{"subjects":[{"type":"entity","kind":"company","name":"Acme Robotics","claims":["Acme Robotics opened a Tulsa lab."]}]}`,
 		`{"covered":[{"gold":"Acme Robotics opened a Tulsa lab.","predicted":"Acme Robotics opened a Tulsa lab."}],"missed":[],"extra":[]}`,
 	}}
 	recordPath := filepath.Join(t.TempDir(), "run.jsonl")
 	var stdout, stderr bytes.Buffer
-	code := run(context.Background(), []string{"-dataset", root, "-model", "mock-extract", "-judge-model", "mock-judge", "-record", recordPath, "-json"}, func(key string) string {
+	code := run(context.Background(), []string{"-dataset", root, "-model", "mock-extract", "-judge-model", "mock-judge", "-prompt-file", promptPath, "-record", recordPath, "-json"}, func(key string) string {
 		if key == "ANTHROPIC_API_KEY" {
 			return "test-key"
 		}
@@ -111,8 +115,19 @@ func TestRunUsesInternalEvalWithMockBackedClient(t *testing.T) {
 	if err := json.Unmarshal(stdout.Bytes(), &scorecard); err != nil {
 		t.Fatalf("stdout did not contain JSON scorecard: %v\n%s", err, stdout.String())
 	}
-	if scorecard.Model != "mock-extract" || !strings.Contains(scorecard.Judge, `"model":"mock-judge"`) || scorecard.Totals.Overall.Cases != 1 {
+	// R-OEIL-GWDV
+	if scorecard.Model != "mock-extract" || scorecard.Prompt != promptPath || !strings.Contains(scorecard.Judge, `"model":"mock-judge"`) || scorecard.Totals.Overall.Cases != 1 {
 		t.Fatalf("scorecard = %#v, want mock-stamped one-case eval", scorecard)
+	}
+	if len(prov.requests) != 2 {
+		t.Fatalf("requests len = %d, want extract and judge requests", len(prov.requests))
+	}
+	extractPrompt := requestTexts(prov.requests[0])
+	if !strings.HasPrefix(extractPrompt, "CUSTOM EVAL PROMPT\n\nDocument header:\n") {
+		t.Fatalf("extract prompt = %q, want prompt file instructions before generated context", extractPrompt)
+	}
+	if strings.Contains(extractPrompt, extract.DefaultPromptInstructions) {
+		t.Fatalf("extract prompt = %q, want prompt file to replace default extract instructions", extractPrompt)
 	}
 	rawLog, err := os.ReadFile(recordPath)
 	if err != nil {
@@ -150,6 +165,22 @@ func (p *scriptedProvider) Name() string {
 
 func (p *scriptedProvider) Pricing(string) (agentkit.Pricing, bool) {
 	return agentkit.Pricing{Tiers: []agentkit.RateTier{{MinInputTokens: 0}}}, true
+}
+
+func requestTexts(req agentkit.Request) string {
+	var out []string
+	for _, msg := range req.Messages {
+		var b strings.Builder
+		for _, block := range msg.Blocks {
+			if text, ok := block.(agentkit.TextBlock); ok {
+				b.WriteString(text.Text)
+			}
+		}
+		if b.Len() > 0 {
+			out = append(out, b.String())
+		}
+	}
+	return strings.Join(out, "\n")
 }
 
 func writeCase(t *testing.T, dir string) {

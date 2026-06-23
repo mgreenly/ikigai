@@ -68,6 +68,63 @@ func TestExtractRendersDocumentHeaderAndReturnsSubjects(t *testing.T) {
 	}
 }
 
+func TestExtractUsesCustomPromptInstructionsAndAppendsSourceContext(t *testing.T) {
+	// R-ODAP-34N6
+	prov := &scriptedProvider{responses: []string{`{
+		"subjects": [
+			{
+				"type": "concept",
+				"kind": "method",
+				"name": "prompt experiments",
+				"occurred_at": "",
+				"claims": ["Prompt experiments compare extraction instructions."]
+			}
+		]
+	}`}}
+	extractor := New(
+		llm.New(prov, nil),
+		llm.CallSite{Model: "extract-model"},
+		WithPromptInstructions("CUSTOM JSON CONTRACT"),
+	)
+
+	_, err := extractor.Extract(context.Background(), validHeader(), "Prompt experiments compare extraction instructions.")
+	if err != nil {
+		t.Fatalf("Extract returned error: %v", err)
+	}
+
+	prompt := onlyPrompt(t, prov)
+	if !strings.HasPrefix(prompt, "CUSTOM JSON CONTRACT\n\nDocument header:\n") {
+		t.Fatalf("prompt = %q, want custom instructions before generated document context", prompt)
+	}
+	for _, want := range []string{
+		"source: mcp:ingest_text",
+		"title: Source",
+		"Source text:\nPrompt experiments compare extraction instructions.",
+	} {
+		if !strings.Contains(prompt, want) {
+			t.Fatalf("prompt %q does not contain %q", prompt, want)
+		}
+	}
+	if strings.Contains(prompt, DefaultPromptInstructions) {
+		t.Fatalf("prompt = %q, want custom instructions to replace the default prompt", prompt)
+	}
+}
+
+func TestExtractDefaultsToExportedPromptInstructions(t *testing.T) {
+	// R-OGYE-8FV9
+	prov := &scriptedProvider{responses: []string{`{"subjects":[{"type":"entity","kind":"company","name":"Acme Robotics","occurred_at":"","claims":["Acme Robotics opened a research lab."]}]}`}}
+	extractor := New(llm.New(prov, nil), llm.CallSite{Model: "extract-model"})
+
+	if _, err := extractor.Extract(context.Background(), validHeader(), "Acme Robotics opened a research lab."); err != nil {
+		t.Fatalf("Extract returned error: %v", err)
+	}
+
+	prompt := onlyPrompt(t, prov)
+	if !strings.HasPrefix(prompt, DefaultPromptInstructions+"\n\nDocument header:\n") {
+		t.Fatalf("prompt = %q, want exported default instructions followed by generated document context", prompt)
+	}
+}
+
 func TestExtractRejectsInvalidSubjectTypesAndEmptyClaims(t *testing.T) {
 	tests := []struct {
 		name     string

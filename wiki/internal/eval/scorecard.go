@@ -18,6 +18,7 @@ import (
 type Scorecard struct {
 	Dataset string       `json:"dataset"`
 	Model   string       `json:"model"`
+	Prompt  string       `json:"prompt"`
 	Config  string       `json:"config"`
 	Judge   string       `json:"judge"`
 	Cases   []CaseResult `json:"cases"`
@@ -45,6 +46,7 @@ func RunDataset(ctx context.Context, dataset string, ex *extract.Extractor, extr
 	return Scorecard{
 		Dataset: dataset,
 		Model:   extractSite.Model,
+		Prompt:  "default",
 		Config:  CallSiteParamsJSON(extractSite),
 		Judge:   JudgeStampJSON(judgeSite),
 		Cases:   results,
@@ -56,6 +58,7 @@ func RunDataset(ctx context.Context, dataset string, ex *extract.Extractor, extr
 func (s Scorecard) WriteHuman(w io.Writer) {
 	fmt.Fprintf(w, "dataset: %s\n", s.Dataset)
 	fmt.Fprintf(w, "model: %s\n", s.Model)
+	fmt.Fprintf(w, "prompt: %s\n", s.Prompt)
 	fmt.Fprintf(w, "config: %s\n", s.Config)
 	fmt.Fprintf(w, "judge: %s\n\n", s.Judge)
 	fmt.Fprintln(w, "cases:")

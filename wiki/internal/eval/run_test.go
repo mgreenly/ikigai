@@ -32,8 +32,8 @@ func TestRunDatasetBuildsStampedScorecardWithMockLLMs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("RunDataset returned error: %v", err)
 	}
-	if got.Dataset != root || got.Model != "mock-extract" || !strings.Contains(got.Config, `"max_tokens":16384`) || !strings.Contains(got.Judge, `"model":"mock-judge"`) {
-		t.Fatalf("scorecard stamp = dataset %q model %q config %s judge %s", got.Dataset, got.Model, got.Config, got.Judge)
+	if got.Dataset != root || got.Model != "mock-extract" || got.Prompt != "default" || !strings.Contains(got.Config, `"max_tokens":16384`) || !strings.Contains(got.Judge, `"model":"mock-judge"`) {
+		t.Fatalf("scorecard stamp = dataset %q model %q prompt %q config %s judge %s", got.Dataset, got.Model, got.Prompt, got.Config, got.Judge)
 	}
 	if len(got.Cases) != 1 || got.Cases[0].Case != "one" {
 		t.Fatalf("cases = %#v, want one scored case", got.Cases)
@@ -48,9 +48,11 @@ func TestRunDatasetBuildsStampedScorecardWithMockLLMs(t *testing.T) {
 
 func TestScorecardWritersEmitStampCasesAggregateAndRoundTripJSON(t *testing.T) {
 	// R-373O-NX03
+	// R-OFQH-UO4K
 	scorecard := Scorecard{
 		Dataset: "testdata/eval/extract",
 		Model:   "mock-extract",
+		Prompt:  "prompts/strict.md",
 		Config:  `{"temperature":0,"reasoning":"disabled","max_tokens":16384}`,
 		Judge:   `{"model":"mock-judge","params":{"reasoning":"low","max_tokens":2048}}`,
 		Cases: []CaseResult{{
@@ -68,6 +70,7 @@ func TestScorecardWritersEmitStampCasesAggregateAndRoundTripJSON(t *testing.T) {
 	for _, want := range []string{
 		"dataset: testdata/eval/extract",
 		"model: mock-extract",
+		"prompt: prompts/strict.md",
 		"config: {\"temperature\":0,\"reasoning\":\"disabled\",\"max_tokens\":16384}",
 		"judge: {\"model\":\"mock-judge\"",
 		"- one (hard)",
@@ -86,7 +89,7 @@ func TestScorecardWritersEmitStampCasesAggregateAndRoundTripJSON(t *testing.T) {
 	if err := json.Unmarshal(raw.Bytes(), &decoded); err != nil {
 		t.Fatalf("scorecard JSON did not decode: %v\n%s", err, raw.String())
 	}
-	if decoded.Dataset != scorecard.Dataset || decoded.Model != scorecard.Model || decoded.Cases[0].Case != "one" || decoded.Totals.ByDifficulty["hard"].Cases != 1 {
+	if decoded.Dataset != scorecard.Dataset || decoded.Model != scorecard.Model || decoded.Prompt != "prompts/strict.md" || decoded.Cases[0].Case != "one" || decoded.Totals.ByDifficulty["hard"].Cases != 1 {
 		t.Fatalf("decoded scorecard = %#v, want stamp, case, and per-difficulty totals", decoded)
 	}
 }

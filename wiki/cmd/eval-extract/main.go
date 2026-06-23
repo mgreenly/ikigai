@@ -28,11 +28,12 @@ type runDeps struct {
 }
 
 type config struct {
-	dataset string
-	record  string
-	json    bool
-	extract llm.CallSite
-	judge   llm.CallSite
+	dataset    string
+	record     string
+	promptFile string
+	json       bool
+	extract    llm.CallSite
+	judge      llm.CallSite
 }
 
 func run(ctx context.Context, args []string, getenv func(string) string, stdout, stderr io.Writer, deps runDeps) int {
@@ -53,6 +54,18 @@ func run(ctx context.Context, args []string, getenv func(string) string, stdout,
 		deps.evaluate = eval.RunDataset
 	}
 
+	promptLabel := "default"
+	var extractorOpts []extract.Option
+	if cfg.promptFile != "" {
+		rawPrompt, err := os.ReadFile(cfg.promptFile)
+		if err != nil {
+			fmt.Fprintf(stderr, "eval-extract: -prompt-file %s: %v\n", cfg.promptFile, err)
+			return 1
+		}
+		extractorOpts = append(extractorOpts, extract.WithPromptInstructions(string(rawPrompt)))
+		promptLabel = cfg.promptFile
+	}
+
 	var recorder llm.Recorder
 	var recordFile *os.File
 	if cfg.record != "" {
@@ -66,13 +79,14 @@ func run(ctx context.Context, args []string, getenv func(string) string, stdout,
 	}
 
 	client := llm.New(deps.newProvider(apiKey), nil, recorder)
-	extractor := extract.New(client, cfg.extract)
+	extractor := extract.New(client, cfg.extract, extractorOpts...)
 	judge := eval.NewJudge(client, cfg.judge)
 	scorecard, err := deps.evaluate(ctx, cfg.dataset, extractor, cfg.extract, judge, cfg.judge)
 	if err != nil {
 		fmt.Fprintf(stderr, "eval-extract: %v\n", err)
 		return 1
 	}
+	scorecard.Prompt = promptLabel
 	if cfg.json {
 		scorecard.WriteJSON(stdout)
 		return 0
@@ -99,6 +113,7 @@ func parseConfig(args []string) (config, error) {
 	judgeReasoning := fs.String("judge-reasoning", "", "judge reasoning")
 	dataset := fs.String("dataset", cfg.dataset, "dataset path")
 	record := fs.String("record", "", "JSONL call record output")
+	promptFile := fs.String("prompt-file", "", "extract prompt instruction file")
 	jsonOut := fs.Bool("json", false, "emit JSON scorecard")
 	if err := fs.Parse(args); err != nil {
 		return config{}, err
@@ -109,6 +124,7 @@ func parseConfig(args []string) (config, error) {
 
 	cfg.dataset = *dataset
 	cfg.record = *record
+	cfg.promptFile = strings.TrimSpace(*promptFile)
 	cfg.json = *jsonOut
 	if strings.TrimSpace(*model) != "" {
 		cfg.extract.Model = strings.TrimSpace(*model)

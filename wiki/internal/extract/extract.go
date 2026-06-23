@@ -29,15 +29,37 @@ type DocumentHeader struct {
 
 // Extractor runs the extract-stage LLM call.
 type Extractor struct {
-	c    *llm.Client
-	site llm.CallSite
+	c                  *llm.Client
+	site               llm.CallSite
+	promptInstructions string
 }
 
 const defaultMaxTokens = 16384
 
+// DefaultPromptInstructions is the baked-in production extract instruction preamble.
+const DefaultPromptInstructions = `Extract subjects and claims from the source text.
+Return JSON with shape {"subjects":[{"type":"entity|event|concept","kind":"...","name":"...","occurred_at":"...","claims":["..."]}]}.
+Use only the source text and document header; do not infer unstated facts.
+occurred_at is required for events, optional for entities and concepts, and must be an ISO-8601 prefix (YYYY, YYYY-MM, or YYYY-MM-DD) when present.
+Claims must be short, self-contained prose statements with no pronouns.`
+
+// Option configures an Extractor at construction.
+type Option func(*Extractor)
+
+// WithPromptInstructions replaces the instruction preamble for this Extractor.
+func WithPromptInstructions(instructions string) Option {
+	return func(e *Extractor) {
+		e.promptInstructions = instructions
+	}
+}
+
 // New builds an Extractor from an injected LLM client and extract call site.
-func New(c *llm.Client, site llm.CallSite) *Extractor {
-	return &Extractor{c: c, site: site}
+func New(c *llm.Client, site llm.CallSite, opts ...Option) *Extractor {
+	e := &Extractor{c: c, site: site, promptInstructions: DefaultPromptInstructions}
+	for _, opt := range opts {
+		opt(e)
+	}
+	return e
 }
 
 // DefaultCallSite returns the production extract-stage generation settings.
@@ -57,7 +79,7 @@ func (e *Extractor) Extract(ctx context.Context, h DocumentHeader, text string) 
 	if e == nil {
 		return nil, fmt.Errorf("extract: nil extractor")
 	}
-	out, err := llm.JSON[extractResponse](ctx, e.c, e.site, renderPrompt(h, text), validateResponse)
+	out, err := llm.JSON[extractResponse](ctx, e.c, e.site, renderPrompt(e.promptInstructions, h, text), validateResponse)
 	if err != nil {
 		return nil, err
 	}
@@ -68,13 +90,10 @@ type extractResponse struct {
 	Subjects []ExtractedSubject `json:"subjects"`
 }
 
-func renderPrompt(h DocumentHeader, text string) string {
+func renderPrompt(instructions string, h DocumentHeader, text string) string {
 	var b strings.Builder
-	b.WriteString("Extract subjects and claims from the source text.\n")
-	b.WriteString("Return JSON with shape {\"subjects\":[{\"type\":\"entity|event|concept\",\"kind\":\"...\",\"name\":\"...\",\"occurred_at\":\"...\",\"claims\":[\"...\"]}]}.\n")
-	b.WriteString("Use only the source text and document header; do not infer unstated facts.\n")
-	b.WriteString("occurred_at is required for events, optional for entities and concepts, and must be an ISO-8601 prefix (YYYY, YYYY-MM, or YYYY-MM-DD) when present.\n")
-	b.WriteString("Claims must be short, self-contained prose statements with no pronouns.\n\n")
+	b.WriteString(instructions)
+	b.WriteString("\n\n")
 	b.WriteString("Document header:\n")
 	writeHeaderLine(&b, "source", h.Source)
 	writeHeaderLine(&b, "title", h.Title)
