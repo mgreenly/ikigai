@@ -22,6 +22,10 @@ Each Decision maps to its `docs/design/DNN.md`; every `R-XXXX-XXXX` id maps to i
 - D16 → `docs/design/D16.md` — MCP surface expansion: control & footprint verbs + paginated lists (+ `jobs_count`, multi-state `jobs`) — owns R-37NS-BRXR, R-38VO-PJOG, R-3A3L-3BF5, R-3BBH-H35U, R-3CJD-UUWJ, R-3EZ6-MEDX, R-3G73-064M, R-Y36L-E3W6, R-Y4EH-RVMV
 - D17 → `docs/design/D17.md` — DB concurrency: single-writer handle + concurrent read pool (reads never blocked) — owns R-FUCC-IT4M, R-FVK8-WKVB, R-FWS5-ACM0, R-FY01-O4CP
 - D18 → `docs/design/D18.md` — Output-token budget & honest truncation handling — owns R-MSKH-GPX5, R-MTSD-UHNU, R-MV0A-89EJ, R-MW86-M158
+- D19 → `docs/design/D19.md` — Per-call-site configuration in production (retire the single global model) — owns R-GGIG-AN7W, R-GHQC-OEYL, R-GIY9-26PA, R-GK65-FYFZ, R-GLE1-TQ6O
+- D20 → `docs/design/D20.md` — The extract evaluation harness (`internal/eval`): dataset + runner — owns R-VXAT-MMTX, R-VYIQ-0EKM, R-VZQM-E6BB, R-W26F-5PSP
+- D21 → `docs/design/D21.md` — The judge call site + scoring semantics — owns R-DRME-T4FA, R-DSUB-6W5Z, R-DU27-KNWO, R-DVA3-YFND, R-DWI0-C7E2, R-DXPW-PZ4R
+- D22 → `docs/design/D22.md` — The `cmd/eval-extract` binary + the shipped gold case — owns R-34NV-WDIP, R-35VS-A59E, R-373O-NX03, R-38BL-1OQS, R-39JH-FGHH, R-3ARD-T886
 
 ## Verification ids → Decision
 
@@ -45,9 +49,15 @@ Each Decision maps to its `docs/design/DNN.md`; every `R-XXXX-XXXX` id maps to i
 - R-19RY-N8JW → D15 → `docs/design/D15.md`
 - R-1C7R-ES1A → D15 → `docs/design/D15.md`
 - R-1DFN-SJRZ → D15 → `docs/design/D15.md`
+- R-34NV-WDIP → D22 → `docs/design/D22.md`
+- R-35VS-A59E → D22 → `docs/design/D22.md`
+- R-373O-NX03 → D22 → `docs/design/D22.md`
 - R-37NS-BRXR → D16 → `docs/design/D16.md`
+- R-38BL-1OQS → D22 → `docs/design/D22.md`
 - R-38VO-PJOG → D16 → `docs/design/D16.md`
+- R-39JH-FGHH → D22 → `docs/design/D22.md`
 - R-3A3L-3BF5 → D16 → `docs/design/D16.md`
+- R-3ARD-T886 → D22 → `docs/design/D22.md`
 - R-3BBH-H35U → D16 → `docs/design/D16.md`
 - R-3CJD-UUWJ → D16 → `docs/design/D16.md`
 - R-3EZ6-MEDX → D16 → `docs/design/D16.md`
@@ -69,6 +79,12 @@ Each Decision maps to its `docs/design/DNN.md`; every `R-XXXX-XXXX` id maps to i
 - R-7TVC-E7ZZ → D3 → `docs/design/D03.md`
 - R-7V38-RZQO → D3 → `docs/design/D03.md`
 - R-7WB5-5RHD → D3 → `docs/design/D03.md`
+- R-DRME-T4FA → D21 → `docs/design/D21.md`
+- R-DSUB-6W5Z → D21 → `docs/design/D21.md`
+- R-DU27-KNWO → D21 → `docs/design/D21.md`
+- R-DVA3-YFND → D21 → `docs/design/D21.md`
+- R-DWI0-C7E2 → D21 → `docs/design/D21.md`
+- R-DXPW-PZ4R → D21 → `docs/design/D21.md`
 - R-FQLB-QWS6 → D7 → `docs/design/D07.md`
 - R-FT14-IG9K → D7 → `docs/design/D07.md`
 - R-FU90-W809 → D7 → `docs/design/D07.md`
@@ -78,6 +94,11 @@ Each Decision maps to its `docs/design/DNN.md`; every `R-XXXX-XXXX` id maps to i
 - R-FWOT-NRHN → D7 → `docs/design/D07.md`
 - R-FWS5-ACM0 → D17 → `docs/design/D17.md`
 - R-FY01-O4CP → D17 → `docs/design/D17.md`
+- R-GGIG-AN7W → D19 → `docs/design/D19.md`
+- R-GHQC-OEYL → D19 → `docs/design/D19.md`
+- R-GIY9-26PA → D19 → `docs/design/D19.md`
+- R-GK65-FYFZ → D19 → `docs/design/D19.md`
+- R-GLE1-TQ6O → D19 → `docs/design/D19.md`
 - R-J8QP-BETB → D5 → `docs/design/D05.md`
 - R-J9YL-P6K0 → D5 → `docs/design/D05.md`
 - R-JCEE-GQ1E → D5 → `docs/design/D05.md`
@@ -109,8 +130,12 @@ Each Decision maps to its `docs/design/DNN.md`; every `R-XXXX-XXXX` id maps to i
 - R-VSNL-L26X → D13 → `docs/design/D13.md`
 - R-VTVH-YTXM → D13 → `docs/design/D13.md`
 - R-VV3E-CLOB → D13 → `docs/design/D13.md`
+- R-VXAT-MMTX → D20 → `docs/design/D20.md`
+- R-VYIQ-0EKM → D20 → `docs/design/D20.md`
 - R-VYU0-BPAX → D6 → `docs/design/D06.md`
+- R-VZQM-E6BB → D20 → `docs/design/D20.md`
 - R-W19T-38SB → D6 → `docs/design/D06.md`
+- R-W26F-5PSP → D20 → `docs/design/D20.md`
 - R-W2HP-H0J0 → D6 → `docs/design/D06.md`
 - R-XJBY-H8JZ → D6 → `docs/design/D06.md`
 - R-XKJU-V0AO → D6 → `docs/design/D06.md`
