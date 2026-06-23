@@ -25,7 +25,7 @@ Each Decision maps to its `docs/design/DNN.md`; every `R-XXXX-XXXX` id maps to i
 - D19 → `docs/design/D19.md` — Per-call-site configuration in production (retire the single global model) — owns R-GGIG-AN7W, R-GHQC-OEYL, R-GIY9-26PA, R-GK65-FYFZ, R-GLE1-TQ6O
 - D20 → `docs/design/D20.md` — The extract evaluation harness (`internal/eval`): dataset + runner — owns R-VXAT-MMTX, R-VYIQ-0EKM, R-VZQM-E6BB, R-W26F-5PSP
 - D21 → `docs/design/D21.md` — The judge call site + scoring semantics — owns R-DRME-T4FA, R-DSUB-6W5Z, R-DU27-KNWO, R-DVA3-YFND, R-DWI0-C7E2, R-DXPW-PZ4R
-- D22 → `docs/design/D22.md` — The `cmd/eval-extract` binary + the shipped gold case — owns R-34NV-WDIP, R-35VS-A59E, R-373O-NX03, R-38BL-1OQS, R-39JH-FGHH, R-3ARD-T886
+- D22 → `docs/design/D22.md` — The `cmd/eval-extract` binary + the shipped gold case — owns R-34NV-WDIP, R-35VS-A59E, R-373O-NX03, R-38BL-1OQS, R-39JH-FGHH, R-3ARD-T886, R-ME5L-HXJ3
 
 ## Verification ids → Decision
 
@@ -109,6 +109,7 @@ Each Decision maps to its `docs/design/DNN.md`; every `R-XXXX-XXXX` id maps to i
 - R-MB7F-ZRE9 → D4 → `docs/design/D04.md`
 - R-MCFC-DJ4Y → D4 → `docs/design/D04.md`
 - R-MDN8-RAVN → D4 → `docs/design/D04.md`
+- R-ME5L-HXJ3 → D22 → `docs/design/D22.md`
 - R-MG31-IUD1 → D4 → `docs/design/D04.md`
 - R-MSKH-GPX5 → D18 → `docs/design/D18.md`
 - R-MTSD-UHNU → D18 → `docs/design/D18.md`
