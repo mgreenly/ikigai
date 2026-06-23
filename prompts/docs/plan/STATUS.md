@@ -10,3 +10,4 @@ Phase 05 ✅ realizes D6 — Suite discovery rewrite
 Phase 06 ✅ realizes D1, D4, D7 — Module swap, provider factory, and runner rewrite
 Phase 07 ✅ realizes D6 (completion) — Vendor MCP client; cut suite.go off local agentkit
 Phase 08 ✅ realizes D3 (completion) — Validation via published provider registries
+Phase 09 ✅ realizes D7 (completion) — Finish runner off local agentkit (delete buildRequest, copy FramingPrompt)
