@@ -25,7 +25,11 @@ All paths below are relative to the repository root (your working directory).
    signatures copied into the brief. Write id-tagged, genuinely-asserting tests:
    each Verification id under **Ids to cover** gets a test carrying a
    `// R-XXXX-XXXX` comment that actually exercises the behavior the brief
-   describes (never a bare id literal with no assertion). It is fine to land a
+   describes (never a bare id literal with no assertion). Place each test in the
+   package it exercises — `wiki/internal/<pkg>/<pkg>_test.go`, `package <pkg>`,
+   named for the behavior — never in a root-level or `phaseNN_test.go` file; the
+   rare end-to-end integration test (worker + real DB + mock provider) goes in
+   `wiki/internal/wiki/` as `package wiki_test`. It is fine to land a
    subset this turn — the loop re-enters until the phase is fully green; favor a
    correct, committed increment over attempting everything at once.
 
@@ -77,6 +81,12 @@ All paths below are relative to the repository root (your working directory).
   opened on a temp path and migrated by the appkit runner. Pure functions
   (`normalize`, `ftsPhrase`, `stripCodeFence`, `SearchLimits.Resolve`, truncation)
   are table-tested directly.
+- **Test layout:** co-locate every test with the code it exercises
+  (`internal/<pkg>/<pkg>_test.go`, `package <pkg>`), named for the behavior
+  asserted. A phase is one package, so its tests live in that package — never a
+  root-level or `phaseNN_test.go` file. The few end-to-end integration tests
+  (worker + real DB + mock provider) live in `internal/wiki/` as
+  `package wiki_test`.
 
 ## Boundaries
 

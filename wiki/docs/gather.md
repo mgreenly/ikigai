@@ -77,6 +77,12 @@ R-YYYY-YYYY
 - Every id under "Ids to cover" is covered by a genuinely-asserting test tagged
   with a `// R-XXXX-XXXX` comment (structural phase: green build + the named
   smoke instead).
+- **Test placement — co-locate, never phase-name.** A phase is one package, so
+  its tests live in that package: `wiki/internal/<pkg>/<pkg>_test.go`, `package
+  <pkg>`, each named for the behavior it asserts — never in a root-level or
+  `phaseNN_test.go` file. The few cross-package integration tests that wire the
+  worker + real DB + mock provider end-to-end belong in `wiki/internal/wiki/`
+  (the orchestration seam) as `package wiki_test`, also named for the behavior.
 - The suite is green:
     cd wiki && go build ./...
     cd wiki && go vet ./...

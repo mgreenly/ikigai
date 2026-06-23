@@ -1,4 +1,4 @@
-package wiki_test
+package main
 
 import (
 	"os"
@@ -11,7 +11,7 @@ import (
 
 func TestModuleWiringPinsPublishedAgentkitWithoutModuleReplace(t *testing.T) {
 	// R-MWBI-4JY7
-	goMod, err := os.ReadFile("go.mod")
+	goMod, err := os.ReadFile(filepath.Join("..", "..", "go.mod"))
 	if err != nil {
 		t.Fatalf("read go.mod: %v", err)
 	}
@@ -37,7 +37,7 @@ func TestModuleWiringPinsPublishedAgentkitWithoutModuleReplace(t *testing.T) {
 		}
 	}
 
-	goWork, err := os.ReadFile(filepath.Join("..", "go.work"))
+	goWork, err := os.ReadFile(filepath.Join("..", "..", "..", "go.work"))
 	if err != nil {
 		t.Fatalf("read ../go.work: %v", err)
 	}
@@ -52,7 +52,7 @@ func TestModuleWiringPinsPublishedAgentkitWithoutModuleReplace(t *testing.T) {
 
 func TestProductionShapedBuildCompilesWithPublishedAgentkit(t *testing.T) {
 	// R-MV3L-QS7I
-	goMod, err := os.ReadFile("go.mod")
+	goMod, err := os.ReadFile(filepath.Join("..", "..", "go.mod"))
 	if err != nil {
 		t.Fatalf("read go.mod: %v", err)
 	}
@@ -65,6 +65,7 @@ func TestProductionShapedBuildCompilesWithPublishedAgentkit(t *testing.T) {
 	}
 
 	cmd := exec.Command("go", "build", "-o", filepath.Join(t.TempDir(), "wiki"), "./cmd/wiki")
+	cmd.Dir = filepath.Join("..", "..")
 	cmd.Env = append(os.Environ(), "GOWORK=off")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -73,7 +74,7 @@ func TestProductionShapedBuildCompilesWithPublishedAgentkit(t *testing.T) {
 }
 
 func TestWorkspaceIncludesWikiModule(t *testing.T) {
-	goWork, err := os.ReadFile(filepath.Join("..", "go.work"))
+	goWork, err := os.ReadFile(filepath.Join("..", "..", "..", "go.work"))
 	if err != nil {
 		t.Fatalf("read ../go.work: %v", err)
 	}

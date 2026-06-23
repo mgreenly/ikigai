@@ -9,22 +9,21 @@ import (
 	"testing"
 	"time"
 
-	"wiki/internal/db"
 	"wiki/internal/extract"
 	wikidomain "wiki/internal/wiki"
 )
 
-func TestPhase30AbortDuringCompileLeavesWriterIdleAndCommitsNoRows(t *testing.T) {
+func TestAbortDuringCompileLeavesWriterIdleAndCommitsNoRows(t *testing.T) {
 	// R-0TKT-MXFO
 	// R-FWS5-ACM0
 	ctx := context.Background()
-	conns, closeConns := phase30MigratedConns(t, ctx)
+	conns, closeConns := migratedConns(t, ctx)
 	defer closeConns()
 
-	compiler := newPhase30BlockingCompiler()
+	compiler := newBlockingCompiler()
 	svc := wikidomain.NewService(
 		conns,
-		phase30StaticExtractor{subjects: []extract.ExtractedSubject{{
+		staticExtractor{subjects: []extract.ExtractedSubject{{
 			Type:   "entity",
 			Kind:   "company",
 			Name:   "Acme Robotics",
@@ -124,20 +123,20 @@ func TestPhase30AbortDuringCompileLeavesWriterIdleAndCommitsNoRows(t *testing.T)
 	if status.Status != wikidomain.JobAborted || len(status.Subjects) != 0 {
 		t.Fatalf("status after abort = %+v, want aborted without subjects", status)
 	}
-	phase30AssertTableCount(t, ctx, conns.Read, "subjects", 0)
-	phase30AssertTableCount(t, ctx, conns.Read, "claims", 0)
-	phase30AssertTableCount(t, ctx, conns.Read, "pages", 0)
+	assertTableCount(t, ctx, conns.Read, "subjects", 0)
+	assertTableCount(t, ctx, conns.Read, "claims", 0)
+	assertTableCount(t, ctx, conns.Read, "pages", 0)
 }
 
-type phase30StaticExtractor struct {
+type staticExtractor struct {
 	subjects []extract.ExtractedSubject
 }
 
-func (e phase30StaticExtractor) Extract(context.Context, extract.DocumentHeader, string) ([]extract.ExtractedSubject, error) {
+func (e staticExtractor) Extract(context.Context, extract.DocumentHeader, string) ([]extract.ExtractedSubject, error) {
 	return e.subjects, nil
 }
 
-type phase30BlockingCompiler struct {
+type blockingCompiler struct {
 	entered      chan struct{}
 	canceled     chan struct{}
 	release      chan struct{}
@@ -145,15 +144,15 @@ type phase30BlockingCompiler struct {
 	canceledOnce sync.Once
 }
 
-func newPhase30BlockingCompiler() *phase30BlockingCompiler {
-	return &phase30BlockingCompiler{
+func newBlockingCompiler() *blockingCompiler {
+	return &blockingCompiler{
 		entered:  make(chan struct{}),
 		canceled: make(chan struct{}),
 		release:  make(chan struct{}),
 	}
 }
 
-func (c *phase30BlockingCompiler) Compile(ctx context.Context, subject wikidomain.Subject, claims []wikidomain.Claim) (string, string, error) {
+func (c *blockingCompiler) Compile(ctx context.Context, subject wikidomain.Subject, claims []wikidomain.Claim) (string, string, error) {
 	c.enteredOnce.Do(func() { close(c.entered) })
 	select {
 	case <-ctx.Done():
@@ -168,30 +167,7 @@ func (c *phase30BlockingCompiler) Compile(ctx context.Context, subject wikidomai
 	}
 }
 
-func phase30MigratedConns(t *testing.T, ctx context.Context) (wikidomain.Conns, func()) {
-	t.Helper()
-
-	path := t.TempDir() + "/wiki.db"
-	write, err := db.Open(path)
-	if err != nil {
-		t.Fatalf("Open writer: %v", err)
-	}
-	if err := db.Migrate(ctx, write); err != nil {
-		write.Close()
-		t.Fatalf("Migrate: %v", err)
-	}
-	read, err := db.OpenRead(path)
-	if err != nil {
-		write.Close()
-		t.Fatalf("OpenRead: %v", err)
-	}
-	return wikidomain.Conns{Read: read, Write: write}, func() {
-		read.Close()
-		write.Close()
-	}
-}
-
-func phase30AssertTableCount(t *testing.T, ctx context.Context, conn *sql.DB, table string, want int) {
+func assertTableCount(t *testing.T, ctx context.Context, conn *sql.DB, table string, want int) {
 	t.Helper()
 
 	var got int

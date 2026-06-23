@@ -17,7 +17,7 @@ import (
 	"wiki/internal/worker"
 )
 
-func TestPhase07IngestReturnsPendingThenWorkerCommitsPage(t *testing.T) {
+func TestIngestReturnsPendingThenWorkerCommitsPage(t *testing.T) {
 	// R-M8RN-87WV
 	// R-M9ZJ-LZNK
 	// R-MB7F-ZRE9
@@ -26,7 +26,7 @@ func TestPhase07IngestReturnsPendingThenWorkerCommitsPage(t *testing.T) {
 	conn := migratedWikiDB(t, ctx)
 	defer conn.Close()
 
-	prov := &phase07Provider{responses: []string{
+	prov := &scriptedProvider{responses: []string{
 		`{"subjects":[{
 			"type":"entity",
 			"kind":"company",
@@ -36,7 +36,7 @@ func TestPhase07IngestReturnsPendingThenWorkerCommitsPage(t *testing.T) {
 		}]}`,
 		`{"title":"Acme Robotics","body":"Acme Robotics opened a research lab in Tulsa."}`,
 	}}
-	svc := phase07Service(conn, prov, time.Date(2026, 6, 20, 22, 0, 0, 0, time.UTC))
+	svc := scriptedService(conn, prov, time.Date(2026, 6, 20, 22, 0, 0, 0, time.UTC))
 
 	jobID, err := svc.Ingest(ctx, " owner@example.com ", "Acme Robotics opened a research lab in Tulsa.", " Tulsa lab ", []string{"robotics"})
 	if err != nil {
@@ -56,10 +56,10 @@ func TestPhase07IngestReturnsPendingThenWorkerCommitsPage(t *testing.T) {
 		t.Fatalf("status before worker = %+v, want pending without worker timestamps", status)
 	}
 
-	stop := phase07StartWorker(t, ctx, svc)
+	stop := startWorker(t, ctx, svc)
 	defer stop()
 
-	status = phase07WaitStatus(t, ctx, svc, jobID, wikidomain.JobDone)
+	status = waitJobStatus(t, ctx, svc, jobID, wikidomain.JobDone)
 	if status.StartedAt == nil || status.FinishedAt == nil {
 		t.Fatalf("status after worker = %+v, want started and finished timestamps", status)
 	}
@@ -79,13 +79,13 @@ func TestPhase07IngestReturnsPendingThenWorkerCommitsPage(t *testing.T) {
 	}
 }
 
-func TestPhase07WorkerReusesSubjectAndCompilesCompleteClaims(t *testing.T) {
+func TestWorkerReusesSubjectAndCompilesCompleteClaims(t *testing.T) {
 	// R-MDN8-RAVN
 	ctx := context.Background()
 	conn := migratedWikiDB(t, ctx)
 	defer conn.Close()
 
-	prov := &phase07Provider{responses: []string{
+	prov := &scriptedProvider{responses: []string{
 		`{"subjects":[{
 			"type":"entity",
 			"kind":"company",
@@ -103,15 +103,15 @@ func TestPhase07WorkerReusesSubjectAndCompilesCompleteClaims(t *testing.T) {
 		}]}`,
 		`{"title":"Acme Robotics","body":"Acme Robotics opened a Tulsa lab.\nAcme Robotics hired Mira Patel."}`,
 	}}
-	svc := phase07Service(conn, prov, time.Date(2026, 6, 20, 22, 5, 0, 0, time.UTC))
-	stop := phase07StartWorker(t, ctx, svc)
+	svc := scriptedService(conn, prov, time.Date(2026, 6, 20, 22, 5, 0, 0, time.UTC))
+	stop := startWorker(t, ctx, svc)
 	defer stop()
 
 	firstID, err := svc.Ingest(ctx, "owner@example.com", "Acme Robotics opened a Tulsa lab.", "One", nil)
 	if err != nil {
 		t.Fatalf("first Ingest: %v", err)
 	}
-	first := phase07WaitStatus(t, ctx, svc, firstID, wikidomain.JobDone)
+	first := waitJobStatus(t, ctx, svc, firstID, wikidomain.JobDone)
 	if len(first.Subjects) != 1 {
 		t.Fatalf("first subjects = %#v, want one subject", first.Subjects)
 	}
@@ -120,7 +120,7 @@ func TestPhase07WorkerReusesSubjectAndCompilesCompleteClaims(t *testing.T) {
 	if err != nil {
 		t.Fatalf("second Ingest: %v", err)
 	}
-	second := phase07WaitStatus(t, ctx, svc, secondID, wikidomain.JobDone)
+	second := waitJobStatus(t, ctx, svc, secondID, wikidomain.JobDone)
 	if len(second.Subjects) != 1 {
 		t.Fatalf("second subjects = %#v, want one subject", second.Subjects)
 	}
@@ -132,7 +132,7 @@ func TestPhase07WorkerReusesSubjectAndCompilesCompleteClaims(t *testing.T) {
 	if len(requests) != 4 {
 		t.Fatalf("provider requests = %d, want two extract and two compile calls", len(requests))
 	}
-	secondCompilePrompt := phase07RequestText(requests[3])
+	secondCompilePrompt := requestText(requests[3])
 	if !strings.Contains(secondCompilePrompt, "Acme Robotics opened a Tulsa lab.") ||
 		!strings.Contains(secondCompilePrompt, "Acme Robotics hired Mira Patel.") {
 		t.Fatalf("second compile prompt = %q, want complete claim set", secondCompilePrompt)
@@ -147,13 +147,13 @@ func TestPhase07WorkerReusesSubjectAndCompilesCompleteClaims(t *testing.T) {
 	}
 }
 
-func TestPhase07WorkerRecordsFailedExtractStatus(t *testing.T) {
+func TestWorkerRecordsFailedExtractStatus(t *testing.T) {
 	// R-MG31-IUD1
 	ctx := context.Background()
 	conn := migratedWikiDB(t, ctx)
 	defer conn.Close()
 
-	prov := &phase07Provider{responses: []string{
+	prov := &scriptedProvider{responses: []string{
 		`{"subjects":[{
 			"type":"entity",
 			"kind":"company",
@@ -162,15 +162,15 @@ func TestPhase07WorkerRecordsFailedExtractStatus(t *testing.T) {
 			"claims":["Acme Robotics opened a Tulsa lab."]
 		}]}`,
 	}}
-	svc := phase07Service(conn, prov, time.Date(2026, 6, 20, 22, 10, 0, 0, time.UTC))
-	stop := phase07StartWorker(t, ctx, svc)
+	svc := scriptedService(conn, prov, time.Date(2026, 6, 20, 22, 10, 0, 0, time.UTC))
+	stop := startWorker(t, ctx, svc)
 	defer stop()
 
 	jobID, err := svc.Ingest(ctx, "owner@example.com", "bad source", "Bad source", nil)
 	if err != nil {
 		t.Fatalf("Ingest: %v", err)
 	}
-	status := phase07WaitStatus(t, ctx, svc, jobID, wikidomain.JobFailed)
+	status := waitJobStatus(t, ctx, svc, jobID, wikidomain.JobFailed)
 	if status.StartedAt == nil || status.FinishedAt == nil {
 		t.Fatalf("status = %+v, want started and finished timestamps", status)
 	}
@@ -185,7 +185,7 @@ func TestPhase07WorkerRecordsFailedExtractStatus(t *testing.T) {
 	}
 }
 
-func phase07Service(conn *sql.DB, prov *phase07Provider, now time.Time) *wikidomain.Service {
+func scriptedService(conn *sql.DB, prov *scriptedProvider, now time.Time) *wikidomain.Service {
 	client := llm.New(prov, nil)
 	return wikidomain.NewService(
 		conn,
@@ -195,7 +195,7 @@ func phase07Service(conn *sql.DB, prov *phase07Provider, now time.Time) *wikidom
 	)
 }
 
-func phase07StartWorker(t *testing.T, ctx context.Context, svc *wikidomain.Service) func() {
+func startWorker(t *testing.T, ctx context.Context, svc *wikidomain.Service) func() {
 	t.Helper()
 
 	runCtx, cancel := context.WithCancel(ctx)
@@ -215,7 +215,7 @@ func phase07StartWorker(t *testing.T, ctx context.Context, svc *wikidomain.Servi
 	}
 }
 
-func phase07WaitStatus(t *testing.T, ctx context.Context, svc *wikidomain.Service, jobID, want string) wikidomain.JobStatus {
+func waitJobStatus(t *testing.T, ctx context.Context, svc *wikidomain.Service, jobID, want string) wikidomain.JobStatus {
 	t.Helper()
 
 	deadline := time.Now().Add(3 * time.Second)
@@ -235,13 +235,15 @@ func phase07WaitStatus(t *testing.T, ctx context.Context, svc *wikidomain.Servic
 	return wikidomain.JobStatus{}
 }
 
-type phase07Provider struct {
+// scriptedProvider returns a queued list of responses in order, recording each
+// request it receives so tests can assert on call counts and prompt contents.
+type scriptedProvider struct {
 	mu        sync.Mutex
 	responses []string
 	requests  []agentkit.Request
 }
 
-func (p *phase07Provider) RoundTrip(_ context.Context, req *agentkit.Request) *agentkit.RoundTrip {
+func (p *scriptedProvider) RoundTrip(_ context.Context, req *agentkit.Request) *agentkit.RoundTrip {
 	p.mu.Lock()
 	p.requests = append(p.requests, cloneAgentKitRequest(req))
 	text := `{"subjects":[]}`
@@ -260,21 +262,21 @@ func (p *phase07Provider) RoundTrip(_ context.Context, req *agentkit.Request) *a
 	)
 }
 
-func (p *phase07Provider) Requests() []agentkit.Request {
+func (p *scriptedProvider) Requests() []agentkit.Request {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	return append([]agentkit.Request(nil), p.requests...)
 }
 
-func (p *phase07Provider) Name() string {
-	return "phase07"
+func (p *scriptedProvider) Name() string {
+	return "scripted"
 }
 
-func (p *phase07Provider) Pricing(string) (agentkit.Pricing, bool) {
+func (p *scriptedProvider) Pricing(string) (agentkit.Pricing, bool) {
 	return agentkit.Pricing{Tiers: []agentkit.RateTier{{MinInputTokens: 0}}}, true
 }
 
-func phase07RequestText(req agentkit.Request) string {
+func requestText(req agentkit.Request) string {
 	var b strings.Builder
 	for _, msg := range req.Messages {
 		for _, block := range msg.Blocks {
