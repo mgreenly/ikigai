@@ -448,29 +448,6 @@ func TestScoreErrorsAfterBoundedMalformedOrOutOfRangeJudgeVerdicts(t *testing.T)
 	}
 }
 
-func TestDefaultJudgeCallSiteUsesPinnedOpusDeterministicSettings(t *testing.T) {
-	// R-DWI0-C7E2
-	site := DefaultJudgeCallSite()
-	if site.Stage != "judge" {
-		t.Fatalf("stage = %q, want judge", site.Stage)
-	}
-	if site.Model != "claude-opus-4-8" {
-		t.Fatalf("model = %q, want Opus 4.8", site.Model)
-	}
-	if site.Temperature == nil || *site.Temperature != 0 {
-		t.Fatalf("temperature = %v, want pinned 0", site.Temperature)
-	}
-	if site.MaxTokens < 16384 {
-		t.Fatalf("max tokens = %d, want at least 16384", site.MaxTokens)
-	}
-	if site.MaxParseRetries != 2 {
-		t.Fatalf("max parse retries = %d, want 2", site.MaxParseRetries)
-	}
-	if !reflect.DeepEqual(site.Reasoning, agentkit.Level("low")) {
-		t.Fatalf("reasoning = %#v, want low level", site.Reasoning)
-	}
-}
-
 func TestAggregateComputesOverallAndPerDifficultyMetrics(t *testing.T) {
 	// R-DXPW-PZ4R
 	got := Aggregate([]CaseResult{

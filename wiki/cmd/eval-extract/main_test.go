@@ -25,8 +25,8 @@ func TestParseConfigLayersFlagsOntoDefaults(t *testing.T) {
 	if defaults.extract.Model != "claude-sonnet-4-6" || defaults.judge.Model != "claude-opus-4-8" {
 		t.Fatalf("default models = %q/%q, want Sonnet 4.6 extract and Opus 4.8 judge", defaults.extract.Model, defaults.judge.Model)
 	}
-	if !strings.Contains(eval.CallSiteParamsJSON(defaults.extract), `"reasoning":"disabled"`) || !strings.Contains(eval.JudgeStampJSON(defaults.judge), `"reasoning":"low"`) {
-		t.Fatalf("default stamps = %s / %s, want extract reasoning disabled and judge low", eval.CallSiteParamsJSON(defaults.extract), eval.JudgeStampJSON(defaults.judge))
+	if !strings.Contains(eval.CallSiteParamsJSON(defaults.extract), `"reasoning":"disabled"`) || !strings.Contains(eval.JudgeStampJSON(defaults.judge), `"reasoning":"high"`) || strings.Contains(eval.JudgeStampJSON(defaults.judge), `"temperature"`) {
+		t.Fatalf("default stamps = %s / %s, want extract reasoning disabled and judge high with no temperature", eval.CallSiteParamsJSON(defaults.extract), eval.JudgeStampJSON(defaults.judge))
 	}
 
 	got, err := parseConfig([]string{
