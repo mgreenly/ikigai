@@ -19,9 +19,10 @@ import (
 	"sync"
 	"time"
 
-	"agentkit/mcpclient"
 	"appkit/inventory"
 	"github.com/ikigenba/agentkit"
+
+	"prompts/internal/mcpclient"
 )
 
 // selfName is the service excluded from discovery: a run must not spawn another
