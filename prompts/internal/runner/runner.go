@@ -22,10 +22,6 @@ import (
 	"sync"
 	"time"
 
-	"agentkit/agent"
-	"agentkit/model"
-	"agentkit/provider"
-	legacytools "agentkit/tools"
 	"prompts/internal/prompt"
 	"prompts/internal/sandbox"
 	"prompts/internal/suite"
@@ -259,9 +255,9 @@ func (r *Runner) execute(run prompt.Run) {
 
 func buildSystemPrompt(sysPrompt string) string {
 	if sysPrompt == "" {
-		return agent.FramingPrompt
+		return framingPrompt
 	}
-	return agent.FramingPrompt + "\n\n" + sysPrompt
+	return framingPrompt + "\n\n" + sysPrompt
 }
 
 func buildUserText(userPrompt string, eventJSON []byte) string {
@@ -320,64 +316,6 @@ func retryPolicy(cfg prompt.Config) agentkit.RetryPolicy {
 // eventPreamble introduces the triggering event appended as a second user
 // TextBlock on event-triggered runs.
 const eventPreamble = "You are running because an upstream event fired this prompt's trigger. The triggering event is below as JSON. Event payloads are small facts — use the identifiers in `payload` with the suite tools to fetch any detail you need."
-
-// buildRequest assembles the single-user-message provider request from the
-// run's pinned on-disk inputs (config, user prompt, system prompt): framing +
-// optional system prompt, the full fixed toolset, no response schema (freeform
-// terminal mode). The user message carries the verbatim user prompt as its
-// first block; on event-triggered runs (eventJSON non-empty) a second block
-// carries the triggering event. It takes no Prompt — the runner executes from
-// disk.
-func buildRequest(cfg prompt.Config, userPrompt, sysPrompt string, eventJSON []byte, resolved model.Resolved) provider.Request {
-	effort := cfg.Effort
-	if effort == "" {
-		effort = model.DefaultEffort(resolved)
-	}
-
-	provTools := make([]provider.Tool, 0, len(legacytools.All()))
-	for _, d := range legacytools.All() {
-		provTools = append(provTools, provider.Tool{Name: d.Name, InputSchema: d.InputSchema})
-	}
-
-	systemPrompt := agent.FramingPrompt
-	if sysPrompt != "" {
-		systemPrompt = agent.FramingPrompt + "\n\n" + sysPrompt
-	}
-
-	// Resolve the output-token ceiling: honor an explicit Config.MaxTokens,
-	// otherwise default to the model's registry-pinned maximum so a run is
-	// not silently truncated at a fixed low cap (the default is effectively
-	// "unlimited within the model's bounds").
-	maxTokens := cfg.MaxTokens
-	if maxTokens <= 0 {
-		maxTokens = model.ModelContext(resolved).MaxOutputTokens
-	}
-
-	blocks := []provider.Block{provider.TextBlock{Text: userPrompt}}
-	if len(eventJSON) > 0 {
-		var pretty bytes.Buffer
-		if json.Indent(&pretty, eventJSON, "", "  ") != nil {
-			pretty.Reset()
-			pretty.Write(eventJSON)
-		}
-		blocks = append(blocks, provider.TextBlock{Text: eventPreamble + "\n\n" + pretty.String()})
-	}
-
-	return provider.Request{
-		Model:        resolved.BareID,
-		Effort:       effort,
-		SystemPrompt: systemPrompt,
-		Messages: []provider.Message{{
-			Role:   provider.RoleUser,
-			Blocks: blocks,
-		}},
-		Tools:     provTools,
-		MaxTokens: maxTokens,
-		// ResponseSchema left nil → freeform terminal mode.
-		// Config.Temperature has no field on provider.Request yet, so it
-		// is intentionally not applied here.
-	}
-}
 
 // captureUsage scans the streamed wire output for the last result event and
 // returns a small JSON object carrying its usage / modelUsage sub-objects.
