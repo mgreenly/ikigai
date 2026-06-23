@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"sort"
+	"strings"
 
 	agentkit "github.com/ikigenba/agentkit"
 
@@ -61,9 +62,16 @@ func (s Scorecard) WriteHuman(w io.Writer) {
 	for _, c := range s.Cases {
 		fmt.Fprintf(w, "- %s (%s)\n", c.Case, c.Difficulty)
 		writeMetrics(w, "  subjects", len(c.Subjects.Found), len(c.Subjects.Hallucinated), len(c.Subjects.Missed))
+		fmt.Fprintln(w, "  subject identities:")
+		writeStringItems(w, "    found", c.Subjects.Found)
+		writeStringItems(w, "    missed", c.Subjects.Missed)
+		writeStringItems(w, "    extra", c.Subjects.Hallucinated)
 		writeMetrics(w, "  claims", c.Claims.Covered, c.Claims.Extra, c.Claims.Missed)
 		for _, detail := range c.ClaimText {
 			fmt.Fprintf(w, "  subject %s covered=%d missed=%d extra=%d\n", detail.Subject, len(detail.Covered), len(detail.Missed), len(detail.Extra))
+			writeClaimMatches(w, "    covered", detail.Covered)
+			writeStringItems(w, "    missed", detail.Missed)
+			writeStringItems(w, "    extra", detail.Extra)
 		}
 	}
 	fmt.Fprintln(w, "\naggregate:")
@@ -116,6 +124,26 @@ type judgeStamp struct {
 func writeMetrics(w io.Writer, label string, found, extra, missed int) {
 	writeMetricValues(w, label, metrics(found, extra, missed), 0)
 	fmt.Fprintf(w, "%s counts found=%d extra=%d missed=%d\n", label, found, extra, missed)
+}
+
+func writeStringItems(w io.Writer, label string, items []string) {
+	fmt.Fprintf(w, "%s:\n", label)
+	for _, item := range items {
+		fmt.Fprintf(w, "%s- %s\n", itemIndent(label), item)
+	}
+}
+
+func writeClaimMatches(w io.Writer, label string, matches []ClaimMatch) {
+	fmt.Fprintf(w, "%s:\n", label)
+	indent := itemIndent(label)
+	for _, match := range matches {
+		fmt.Fprintf(w, "%s- gold: %s\n", indent, match.Gold)
+		fmt.Fprintf(w, "%s  predicted: %s\n", indent, match.Predicted)
+	}
+}
+
+func itemIndent(label string) string {
+	return label[:len(label)-len(strings.TrimLeft(label, " "))]
 }
 
 func writeMetricValues(w io.Writer, label string, m Metrics, cases int) {

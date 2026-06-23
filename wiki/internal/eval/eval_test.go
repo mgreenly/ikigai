@@ -1,6 +1,7 @@
 package eval
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"os"
@@ -495,6 +496,149 @@ func TestAggregateComputesOverallAndPerDifficultyMetrics(t *testing.T) {
 	if hard.Cases != 1 {
 		t.Fatalf("hard cases = %d, want 1", hard.Cases)
 	}
+}
+
+func TestScorecardHumanPlacesSubjectIdentitiesUnderMarkers(t *testing.T) {
+	// R-8KX2-4ASY
+	human := renderScorecardHuman(phase40Scorecard())
+	for _, want := range []string{
+		"  subject identities:\n",
+		"    found:\n    - entity/acme\n",
+		"    missed:\n    - event/opening\n",
+		"    extra:\n    - concept/speculation\n",
+	} {
+		if !strings.Contains(human, want) {
+			t.Fatalf("human scorecard %q does not contain subject marker block %q", human, want)
+		}
+	}
+}
+
+func TestScorecardHumanShowsCoveredGoldAndPredictedClaims(t *testing.T) {
+	// R-8M4Y-I2JN
+	human := renderScorecardHuman(phase40Scorecard())
+	for _, want := range []string{
+		"  subject entity/acme covered=1 missed=1 extra=1\n",
+		"    covered:\n",
+		"    - gold: Acme opened a Tulsa lab.\n",
+		"      predicted: Acme launched a lab in Tulsa.\n",
+	} {
+		if !strings.Contains(human, want) {
+			t.Fatalf("human scorecard %q does not contain covered claim detail %q", human, want)
+		}
+	}
+}
+
+func TestScorecardHumanShowsMissedAndExtraClaimTextForMatchedAndUnmatchedSubjects(t *testing.T) {
+	// R-8NCU-VUAC
+	human := renderScorecardHuman(phase40Scorecard())
+	for _, want := range []string{
+		"  subject entity/acme covered=1 missed=1 extra=1\n",
+		"    missed:\n    - Acme hired robotics engineers.\n",
+		"    extra:\n    - Acme opened a lab in Austin.\n",
+		"  subject event/opening covered=0 missed=1 extra=0\n",
+		"    missed:\n    - The Tulsa lab opened on June 19.\n",
+		"  subject concept/speculation covered=0 missed=0 extra=1\n",
+		"    extra:\n    - Investors speculated about Tulsa robotics.\n",
+	} {
+		if !strings.Contains(human, want) {
+			t.Fatalf("human scorecard %q does not contain missed/extra claim text %q", human, want)
+		}
+	}
+}
+
+func TestScorecardHumanKeepsCountsMetricsAggregateAndJSONRoundTrip(t *testing.T) {
+	// R-8OKR-9M11
+	scorecard := phase40Scorecard()
+	human := renderScorecardHuman(scorecard)
+	for _, want := range []string{
+		"  subjects precision=0.500 recall=0.500\n",
+		"  subjects counts found=1 extra=1 missed=1\n",
+		"  claims precision=0.333 recall=0.333\n",
+		"  claims counts found=1 extra=2 missed=2\n",
+		"aggregate:\n",
+		"  subjects precision=0.500 recall=0.500 cases=1\n",
+		"  claims precision=0.333 recall=0.333 cases=1\n",
+		"by difficulty:\n- hard\n",
+	} {
+		if !strings.Contains(human, want) {
+			t.Fatalf("human scorecard %q does not contain summary detail %q", human, want)
+		}
+	}
+
+	var raw bytes.Buffer
+	scorecard.WriteJSON(&raw)
+	var decoded Scorecard
+	if err := json.Unmarshal(raw.Bytes(), &decoded); err != nil {
+		t.Fatalf("WriteJSON output did not decode: %v\n%s", err, raw.String())
+	}
+	if !reflect.DeepEqual(decoded, scorecard) {
+		t.Fatalf("decoded scorecard = %#v, want round trip %#v", decoded, scorecard)
+	}
+}
+
+func TestLoadCaseLoadsMeridianFreshCrateAsHardMultiSubjectCase(t *testing.T) {
+	// R-8PSN-NDRQ
+	got, err := LoadCase(filepath.Join("..", "..", "testdata", "eval", "extract", "meridian-freshcrate-acquisition"))
+	if err != nil {
+		t.Fatalf("LoadCase returned error: %v", err)
+	}
+	if got.Difficulty != "hard" {
+		t.Fatalf("difficulty = %q, want hard", got.Difficulty)
+	}
+	if len(got.Gold) <= 1 {
+		t.Fatalf("gold subjects len = %d, want more than one", len(got.Gold))
+	}
+	for _, subject := range got.Gold {
+		if len(subject.Claims) == 0 {
+			t.Fatalf("subject %#v has no claims, want every gold subject to carry at least one claim", subject)
+		}
+	}
+}
+
+func phase40Scorecard() Scorecard {
+	scorecard := Scorecard{
+		Dataset: "testdata/eval/extract",
+		Model:   "mock-extract",
+		Config:  `{"temperature":0,"reasoning":"disabled","max_tokens":16384}`,
+		Judge:   `{"model":"mock-judge","params":{"reasoning":"low","max_tokens":2048}}`,
+		Cases: []CaseResult{{
+			Case:       "itemized",
+			Difficulty: "hard",
+			Subjects: SubjectScore{
+				Found:        []string{"entity/acme"},
+				Missed:       []string{"event/opening"},
+				Hallucinated: []string{"concept/speculation"},
+			},
+			Claims: ClaimScore{Covered: 1, Missed: 2, Extra: 2},
+			ClaimText: []SubjectClaimResult{
+				{
+					Subject: "entity/acme",
+					Covered: []ClaimMatch{{
+						Gold:      "Acme opened a Tulsa lab.",
+						Predicted: "Acme launched a lab in Tulsa.",
+					}},
+					Missed: []string{"Acme hired robotics engineers."},
+					Extra:  []string{"Acme opened a lab in Austin."},
+				},
+				{
+					Subject: "event/opening",
+					Missed:  []string{"The Tulsa lab opened on June 19."},
+				},
+				{
+					Subject: "concept/speculation",
+					Extra:   []string{"Investors speculated about Tulsa robotics."},
+				},
+			},
+		}},
+	}
+	scorecard.Totals = Aggregate(scorecard.Cases)
+	return scorecard
+}
+
+func renderScorecardHuman(scorecard Scorecard) string {
+	var human bytes.Buffer
+	scorecard.WriteHuman(&human)
+	return human.String()
 }
 
 func writeCase(t *testing.T, name, text, gold string) string {
