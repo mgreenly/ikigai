@@ -3,14 +3,12 @@ module prompts
 go 1.26
 
 require (
-	agentkit v0.0.0
 	appkit v0.0.0
 	eventplane v0.0.0
-	github.com/ikigenba/agentkit v0.1.0
+	github.com/ikigenba/agentkit v0.1.1
+	golang.org/x/mod v0.34.0
 	modernc.org/sqlite v1.50.1
 )
-
-replace agentkit => ../agentkit
 
 replace appkit => ../appkit
 
@@ -21,12 +19,16 @@ replace appkit => ../appkit
 replace eventplane => ../eventplane
 
 require (
+	github.com/bahlo/generic-list-go v0.2.0 // indirect
+	github.com/buger/jsonparser v1.1.2 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect
+	github.com/invopop/jsonschema v0.14.0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
+	github.com/pb33f/ordered-map/v2 v2.3.1 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
-	golang.org/x/mod v0.34.0 // indirect
+	go.yaml.in/yaml/v4 v4.0.0-rc.2 // indirect
 	golang.org/x/sys v0.42.0 // indirect
 	modernc.org/libc v1.72.3 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
