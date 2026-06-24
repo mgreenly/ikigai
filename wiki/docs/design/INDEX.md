@@ -5,32 +5,33 @@ Each Decision maps to its `docs/design/DNN.md`; every `R-XXXX-XXXX` id maps to i
 ## Decisions
 
 - D1 → `docs/design/D01.md` — Dependency on the external agentkit (the prod-build wiring) — owns R-MV3L-QS7I, R-MWBI-4JY7
-- D2 → `docs/design/D02.md` — Service skeleton: package layout, Spec wiring, config/secret composition root — owns R-6RVX-P1IG
-- D3 → `docs/design/D03.md` — The phase-1 data model — owns R-7SNG-0G9A, R-7TVC-E7ZZ, R-7V38-RZQO, R-7WB5-5RHD
+- D2 → `docs/design/D02.md` — Service skeleton: package layout, Spec wiring, and the config/secret composition root — owns R-6RVX-P1IG
+- D3 → `docs/design/D03.md` — The phase-1 data model — owns R-7SNG-0G9A, R-7TVC-E7ZZ, R-7V38-RZQO, R-7WB5-5RHD, R-RU0J-77HX, R-RV8F-KZ8M, R-RXO8-CIQ0, R-RYW4-QAGP, R-S041-427E, R-S1BX-HTY3, R-S2JT-VLOS
 - D4 → `docs/design/D04.md` — The ingest pipeline and worker — owns R-M8RN-87WV, R-M9ZJ-LZNK, R-MB7F-ZRE9, R-MCFC-DJ4Y, R-MDN8-RAVN, R-MG31-IUD1
-- D5 → `docs/design/D05.md` — The LLM seam (`internal/llm`): json-mode helper — owns R-4BCC-0EHJ, R-J8QP-BETB, R-J9YL-P6K0, R-JCEE-GQ1E, R-JDMA-UHS3, R-JEU7-89IS
-- D6 → `docs/design/D06.md` — The extract stage (`internal/extract`) — owns R-4CK8-E688, R-VYU0-BPAX, R-W19T-38SB, R-W2HP-H0J0, R-XJBY-H8JZ, R-XKJU-V0AO
-- D7 → `docs/design/D07.md` — The compile stage (`internal/compile`): full recompile, 12k cap — owns R-4DS4-RXYX, R-FQLB-QWS6, R-FT14-IG9K, R-FU90-W809, R-FVGX-9ZQY, R-FWOT-NRHN
+- D5 → `docs/design/D05.md` — The LLM seam (`internal/llm`): shared Provider, fresh Conversation per call, json-mode helper — owns R-J8QP-BETB, R-4BCC-0EHJ, R-J9YL-P6K0, R-JCEE-GQ1E, R-JDMA-UHS3, R-JEU7-89IS
+- D6 → `docs/design/D06.md` — The extract stage (`internal/extract`) — owns R-VYU0-BPAX, R-XJBY-H8JZ, R-XKJU-V0AO, R-W19T-38SB, R-W2HP-H0J0, R-4CK8-E688
+- D7 → `docs/design/D07.md` — The compile stage (`internal/compile`): full recompile from claims, 12k cap enforced — owns R-FQLB-QWS6, R-FT14-IG9K, R-FU90-W809, R-FVGX-9ZQY, R-FWOT-NRHN, R-4DS4-RXYX
 - D8 → `docs/design/D08.md` — No retrieval lane this release: keyword search removed, hybrid deferred — owns R-PH8Z-YHNX, R-PIGW-C9EM
-- D9 → `docs/design/D09.md` — `ask` (`internal/ask`): subject-extraction pipeline, grounded/cited/honest-empty — owns R-5UPD-VVNA, R-5VXA-9NDZ, R-5X56-NF4O, R-644V-3WUS, R-65CR-HOLH, R-66KN-VGC6, R-67SK-982V, R-690G-MZTK, R-6A8D-0RK9, R-05CG-3H6Y
+- D9 → `docs/design/D09.md` — `ask` (`internal/ask`): subject-extraction pipeline, grounded/cited/honest-empty — owns R-644V-3WUS, R-65CR-HOLH, R-66KN-VGC6, R-67SK-982V, R-5UPD-VVNA, R-5VXA-9NDZ, R-690G-MZTK, R-5X56-NF4O, R-6A8D-0RK9, R-05CG-3H6Y
 - D10 → `docs/design/D10.md` — The MCP tool surface (`internal/mcp`) + identity — owns R-MUQ4-K1JS, R-MVY0-XTAH, R-MX5X-BL16, R-MYDT-PCRV, R-MZLQ-34IK, R-N4KO-2WTZ, R-01OQ-Y5YV, R-02WN-BXPK, R-044J-PPG9, R-03GW-PX5K, R-04HB-QM7T
-- D11 → `docs/design/D11.md` — Subject addressing: the `type/slug` public path — owns R-ZO9U-QOT8, R-ZQPN-I8AM, R-ZRXJ-W01B, R-ZT5G-9RS0
+- D11 → `docs/design/D11.md` — Subject addressing: the public path == identity (`type/norm_name`) — owns R-DRX6-PWSW, R-DT53-3OJL, R-DUCZ-HGAA
 - D12 → `docs/design/D12.md` — Page links: read-time mention detection + markdown footer — owns R-ZUDC-NJIP, R-ZVL9-1B9E, R-ZWT5-F303, R-ZY11-SUQS, R-ZZ8Y-6MHH, R-00GU-KE86
 - D13 → `docs/design/D13.md` — The LLM-call footprint: `llm_calls` table + recorder seam — owns R-VNS0-1Z85, R-VOZW-FQYU, R-VRFP-7AG8, R-VSNL-L26X, R-VTVH-YTXM, R-VV3E-CLOB
-- D14 → `docs/design/D14.md` — Job lifecycle & control: `aborted`, abort, re-run, atomic integrate — owns R-0SCX-95OZ, R-0TKT-MXFO, R-0USQ-0P6D, R-0W0M-EGX2, R-0X8I-S8NR, R-0YGF-60EG, R-0ZOB-JS55, R-10W7-XJVU
-- D15 → `docs/design/D15.md` — Cursor pagination: the contract + the list seams (jobs newest-first, multi-state set, count) — owns R-17C5-VP2I, R-18K2-9GT7, R-19RY-N8JW, R-1C7R-ES1A, R-1DFN-SJRZ, R-XYAZ-V0XE, R-XZIW-8SO3, R-Y1YP-0C5H
-- D16 → `docs/design/D16.md` — MCP surface expansion: control & footprint verbs + paginated lists (+ `jobs_count`, multi-state `jobs`, `kind` filter) — owns R-37NS-BRXR, R-38VO-PJOG, R-3A3L-3BF5, R-3BBH-H35U, R-3CJD-UUWJ, R-3EZ6-MEDX, R-3G73-064M, R-Y36L-E3W6, R-Y4EH-RVMV, R-E4WX-G9H2
-- D17 → `docs/design/D17.md` — DB concurrency: single-writer handle + concurrent read pool (reads never blocked) — owns R-FUCC-IT4M, R-FVK8-WKVB, R-FWS5-ACM0, R-FY01-O4CP
+- D14 → `docs/design/D14.md` — Job lifecycle & control: `aborted`, abort, re-run, and atomic integrate — owns R-0SCX-95OZ, R-0TKT-MXFO, R-0USQ-0P6D, R-0W0M-EGX2, R-0X8I-S8NR, R-0YGF-60EG, R-0ZOB-JS55, R-10W7-XJVU
+- D15 → `docs/design/D15.md` — Cursor pagination: the contract + the list seams — owns R-17C5-VP2I, R-18K2-9GT7, R-XYAZ-V0XE, R-XZIW-8SO3, R-Y1YP-0C5H, R-19RY-N8JW, R-1C7R-ES1A, R-1DFN-SJRZ
+- D16 → `docs/design/D16.md` — MCP surface expansion: control & footprint verbs + paginated lists — owns R-37NS-BRXR, R-Y36L-E3W6, R-Y4EH-RVMV, R-38VO-PJOG, R-3A3L-3BF5, R-3BBH-H35U, R-3CJD-UUWJ, R-3EZ6-MEDX, R-3G73-064M, R-E4WX-G9H2
+- D17 → `docs/design/D17.md` — DB concurrency: a single-writer handle + a concurrent read pool (reads never blocked) — owns R-FUCC-IT4M, R-FVK8-WKVB, R-FWS5-ACM0, R-FY01-O4CP
 - D18 → `docs/design/D18.md` — Output-token budget & honest truncation handling — owns R-MSKH-GPX5, R-MTSD-UHNU, R-MV0A-89EJ, R-MW86-M158
 - D19 → `docs/design/D19.md` — Per-call-site configuration in production (retire the single global model) — owns R-GGIG-AN7W, R-GHQC-OEYL, R-GIY9-26PA, R-GK65-FYFZ, R-GLE1-TQ6O
 - D20 → `docs/design/D20.md` — The extract evaluation harness (`internal/eval`): dataset + runner — owns R-VXAT-MMTX, R-VYIQ-0EKM, R-VZQM-E6BB, R-W26F-5PSP
-- D21 → `docs/design/D21.md` — The judge call site + scoring semantics — owns R-DRME-T4FA, R-DSUB-6W5Z, R-DU27-KNWO, R-DVA3-YFND, R-DWI0-C7E2, R-DXPW-PZ4R
-- D22 → `docs/design/D22.md` — The `cmd/eval-extract` binary + the shipped gold cases — owns R-34NV-WDIP, R-35VS-A59E, R-373O-NX03, R-38BL-1OQS, R-39JH-FGHH, R-3ARD-T886, R-8PSN-NDRQ, R-ME5L-HXJ3
+- D21 → `docs/design/D21.md` — The judge call site + scoring semantics (`internal/eval`) — owns R-DRME-T4FA, R-DSUB-6W5Z, R-DU27-KNWO, R-DVA3-YFND, R-DWI0-C7E2, R-DXPW-PZ4R
+- D22 → `docs/design/D22.md` — The `cmd/eval-extract` binary + the shipped gold case — owns R-34NV-WDIP, R-35VS-A59E, R-373O-NX03, R-38BL-1OQS, R-39JH-FGHH, R-3ARD-T886, R-8PSN-NDRQ, R-ME5L-HXJ3
 - D23 → `docs/design/D23.md` — The human scorecard is itemized (diff-style), not count-only — owns R-8KX2-4ASY, R-8M4Y-I2JN, R-8NCU-VUAC, R-8OKR-9M11
 - D24 → `docs/design/D24.md` — An overridable extract prompt for the eval (default = the baked-in production prompt) — owns R-ODAP-34N6, R-OEIL-GWDV, R-OFQH-UO4K, R-OGYE-8FV9
-- D25 → `docs/design/D25.md` — Aliases table & name resolution (the merge forward-routing record + shared Resolver) — owns R-BGPF-NVTU, R-BHXC-1NKJ, R-BJ58-FFB8, R-BKD4-T71X, R-BLL1-6YSM, R-BMSX-KQJB, R-BO0T-YIA0, R-BP8Q-CA0P
-- D26 → `docs/design/D26.md` — The merge work item & execution (`jobs.kind` queue, `mergeSubjects`, the race fix) — owns R-NEFH-U8IO, R-NFNE-809D, R-NGVA-LS02, R-NI36-ZJQR, R-NJB3-DBHG, R-NKIZ-R385, R-NLQW-4UYU, R-NMYS-IMPJ, R-NPEL-A66X
-- D27 → `docs/design/D27.md` — Merge MCP surface (`merge` fire-and-return + `merges` audit) — owns R-DWDM-RVA7, R-DYTF-JERL, R-E01B-X6IA, R-E198-AY8Z, R-E2H4-OPZO, R-E3P1-2HQD
+- D25 → `docs/design/D25.md` — Aliases table & name resolution — owns R-BGPF-NVTU, R-BHXC-1NKJ, R-BJ58-FFB8, R-BKD4-T71X, R-BLL1-6YSM, R-BMSX-KQJB, R-BO0T-YIA0, R-BP8Q-CA0P
+- D26 → `docs/design/D26.md` — The merge work item & execution — owns R-NEFH-U8IO, R-NFNE-809D, R-NGVA-LS02, R-NI36-ZJQR, R-NJB3-DBHG, R-NKIZ-R385, R-NLQW-4UYU, R-NMYS-IMPJ, R-NPEL-A66X
+- D27 → `docs/design/D27.md` — Merge MCP surface (`merge` + `merges`) — owns R-DWDM-RVA7, R-DYTF-JERL, R-E01B-X6IA, R-E198-AY8Z, R-E2H4-OPZO, R-E3P1-2HQD
+- D28 → `docs/design/D28.md` — Blackhole empty-normalization content — owns R-Z5JL-2IBS, R-Z6RH-GA2H, R-Z7ZD-U1T6
 
 ## Verification ids → Decision
 
@@ -98,8 +99,11 @@ Each Decision maps to its `docs/design/DNN.md`; every `R-XXXX-XXXX` id maps to i
 - R-BO0T-YIA0 → D25 → `docs/design/D25.md`
 - R-BP8Q-CA0P → D25 → `docs/design/D25.md`
 - R-DRME-T4FA → D21 → `docs/design/D21.md`
+- R-DRX6-PWSW → D11 → `docs/design/D11.md`
 - R-DSUB-6W5Z → D21 → `docs/design/D21.md`
+- R-DT53-3OJL → D11 → `docs/design/D11.md`
 - R-DU27-KNWO → D21 → `docs/design/D21.md`
+- R-DUCZ-HGAA → D11 → `docs/design/D11.md`
 - R-DVA3-YFND → D21 → `docs/design/D21.md`
 - R-DWDM-RVA7 → D27 → `docs/design/D27.md`
 - R-DWI0-C7E2 → D21 → `docs/design/D21.md`
@@ -163,6 +167,13 @@ Each Decision maps to its `docs/design/DNN.md`; every `R-XXXX-XXXX` id maps to i
 - R-OGYE-8FV9 → D24 → `docs/design/D24.md`
 - R-PH8Z-YHNX → D8 → `docs/design/D08.md`
 - R-PIGW-C9EM → D8 → `docs/design/D08.md`
+- R-RU0J-77HX → D3 → `docs/design/D03.md`
+- R-RV8F-KZ8M → D3 → `docs/design/D03.md`
+- R-RXO8-CIQ0 → D3 → `docs/design/D03.md`
+- R-RYW4-QAGP → D3 → `docs/design/D03.md`
+- R-S041-427E → D3 → `docs/design/D03.md`
+- R-S1BX-HTY3 → D3 → `docs/design/D03.md`
+- R-S2JT-VLOS → D3 → `docs/design/D03.md`
 - R-VNS0-1Z85 → D13 → `docs/design/D13.md`
 - R-VOZW-FQYU → D13 → `docs/design/D13.md`
 - R-VRFP-7AG8 → D13 → `docs/design/D13.md`
@@ -183,10 +194,9 @@ Each Decision maps to its `docs/design/DNN.md`; every `R-XXXX-XXXX` id maps to i
 - R-Y1YP-0C5H → D15 → `docs/design/D15.md`
 - R-Y36L-E3W6 → D16 → `docs/design/D16.md`
 - R-Y4EH-RVMV → D16 → `docs/design/D16.md`
-- R-ZO9U-QOT8 → D11 → `docs/design/D11.md`
-- R-ZQPN-I8AM → D11 → `docs/design/D11.md`
-- R-ZRXJ-W01B → D11 → `docs/design/D11.md`
-- R-ZT5G-9RS0 → D11 → `docs/design/D11.md`
+- R-Z5JL-2IBS → D28 → `docs/design/D28.md`
+- R-Z6RH-GA2H → D28 → `docs/design/D28.md`
+- R-Z7ZD-U1T6 → D28 → `docs/design/D28.md`
 - R-ZUDC-NJIP → D12 → `docs/design/D12.md`
 - R-ZVL9-1B9E → D12 → `docs/design/D12.md`
 - R-ZWT5-F303 → D12 → `docs/design/D12.md`
