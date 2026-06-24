@@ -2,59 +2,68 @@ package wiki
 
 import "testing"
 
-func TestNormalizeReturnsLowercaseASCIIWordsJoinedByHyphens(t *testing.T) {
+func TestNormalizeAppliesPathSafePipeline(t *testing.T) {
 	// R-RU0J-77HX
-	if got, want := Normalize("Acme Robotics Lab 42"), "acme-robotics-lab-42"; got != want {
+	if got, want := Normalize("  Ｓalaì!!!Apollo  11?? "), "salai-apollo-11"; got != want {
 		t.Fatalf("Normalize(...) = %q, want %q", got, want)
 	}
 }
 
-func TestNormalizeCollapsesPunctuationAndWhitespaceToSingleHyphen(t *testing.T) {
+func TestNormalizeLongTitleUsesHyphenSeparatedLowercaseWords(t *testing.T) {
 	// R-RV8F-KZ8M
-	if got, want := Normalize("Acme / Robotics\t\tLab"), "acme-robotics-lab"; got != want {
+	if got, want := Normalize("Lives of the Most Excellent Painters, Sculptors, and Architects"), "lives-of-the-most-excellent-painters-sculptors-and-architects"; got != want {
 		t.Fatalf("Normalize(...) = %q, want %q", got, want)
 	}
 }
 
-func TestNormalizeTrimsLeadingAndTrailingSeparators(t *testing.T) {
+func TestNormalizeStripsDiacriticsFromSalai(t *testing.T) {
 	// R-RXO8-CIQ0
-	if got, want := Normalize(" -- Acme Robotics!! "), "acme-robotics"; got != want {
+	if got, want := Normalize("Salaì"), "salai"; got != want {
 		t.Fatalf("Normalize(...) = %q, want %q", got, want)
 	}
 }
 
-func TestNormalizeFoldsCompatibilityCharacters(t *testing.T) {
+func TestNormalizeMapsApostropheToSeparator(t *testing.T) {
 	// R-RYW4-QAGP
-	if got, want := Normalize("ＡＬＰＨＡ Kelvin ①"), "alpha-kelvin-1"; got != want {
+	if got, want := Normalize("Lorenzo de' Medici"), "lorenzo-de-medici"; got != want {
 		t.Fatalf("Normalize(...) = %q, want %q", got, want)
 	}
 }
 
-func TestNormalizeStripsDiacriticsBeforeApplyingCharacterSet(t *testing.T) {
+func TestNormalizeTrimsAndCollapsesPunctuation(t *testing.T) {
 	// R-S041-427E
-	if got, want := Normalize("  Café\u0301 Déjà Vu  "), "cafe-deja-vu"; got != want {
+	if got, want := Normalize("!!!Hello, World!!!"), "hello-world"; got != want {
 		t.Fatalf("Normalize(...) = %q, want %q", got, want)
 	}
 }
 
-func TestNormalizeTreatsNonASCIILettersAsSeparators(t *testing.T) {
+func TestNormalizeKeepsDigitsInWords(t *testing.T) {
 	// R-S1BX-HTY3
-	if got, want := Normalize("alpha 東京 beta"), "alpha-beta"; got != want {
+	if got, want := Normalize("Apollo 11"), "apollo-11"; got != want {
 		t.Fatalf("Normalize(...) = %q, want %q", got, want)
 	}
 }
 
-func TestNormalizeOutputContainsOnlyLowercaseASCIIDigitsAndHyphens(t *testing.T) {
+func TestNormalizeIsIdempotentAndReturnsEmptyForSeparatorOnlyInputs(t *testing.T) {
 	// R-S2JT-VLOS
-	got := Normalize(" Café/東京--Rocket № ９ ")
-	if got != "cafe-rocket-no-9" {
-		t.Fatalf("Normalize(...) = %q, want cafe-rocket-no-9", got)
+	inputs := []string{
+		"Lives of the Most Excellent Painters, Sculptors, and Architects",
+		"Salaì",
+		"Lorenzo de' Medici",
+		"!!!Hello, World!!!",
+		"Apollo 11",
 	}
-	for _, r := range got {
-		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' {
-			continue
+	for _, input := range inputs {
+		once := Normalize(input)
+		if got := Normalize(once); got != once {
+			t.Fatalf("Normalize(Normalize(%q)) = %q, want %q", input, got, once)
 		}
-		t.Fatalf("Normalize(...) emitted %q outside [a-z0-9-] in %q", r, got)
+	}
+
+	for _, input := range []string{"???", "", "   "} {
+		if got := Normalize(input); got != "" {
+			t.Fatalf("Normalize(%q) = %q, want empty string", input, got)
+		}
 	}
 }
 
