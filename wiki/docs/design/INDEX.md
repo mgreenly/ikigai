@@ -32,6 +32,7 @@ Each Decision maps to its `docs/design/DNN.md`; every `R-XXXX-XXXX` id maps to i
 - D26 → `docs/design/D26.md` — The merge work item & execution — owns R-NEFH-U8IO, R-NFNE-809D, R-NGVA-LS02, R-NI36-ZJQR, R-NJB3-DBHG, R-NKIZ-R385, R-NLQW-4UYU, R-NMYS-IMPJ, R-NPEL-A66X, R-HUDR-AWS9
 - D27 → `docs/design/D27.md` — Merge MCP surface (`merge` + `merges`) — owns R-DWDM-RVA7, R-DYTF-JERL, R-E01B-X6IA, R-E198-AY8Z, R-E2H4-OPZO, R-E3P1-2HQD
 - D28 → `docs/design/D28.md` — Blackhole empty-normalization content — owns R-Z5JL-2IBS, R-Z6RH-GA2H, R-Z7ZD-U1T6
+- D29 → `docs/design/D29.md` — Alias-aware path entry for the read lookups (`page`/`claims`) — owns R-AF1X-PG7K, R-AG2Y-PH8L, R-AH3Z-PJ9M, R-AL5R-PL1P
 
 ## Verification ids → Decision
 
@@ -93,6 +94,10 @@ Each Decision maps to its `docs/design/DNN.md`; every `R-XXXX-XXXX` id maps to i
 - R-8NCU-VUAC → D23 → `docs/design/D23.md`
 - R-8OKR-9M11 → D23 → `docs/design/D23.md`
 - R-8PSN-NDRQ → D22 → `docs/design/D22.md`
+- R-AF1X-PG7K → D29 → `docs/design/D29.md`
+- R-AG2Y-PH8L → D29 → `docs/design/D29.md`
+- R-AH3Z-PJ9M → D29 → `docs/design/D29.md`
+- R-AL5R-PL1P → D29 → `docs/design/D29.md`
 - R-BGPF-NVTU → D25 → `docs/design/D25.md`
 - R-BHXC-1NKJ → D25 → `docs/design/D25.md`
 - R-BJ58-FFB8 → D25 → `docs/design/D25.md`
