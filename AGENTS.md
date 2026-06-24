@@ -54,12 +54,21 @@ production build forces `GOWORK=off`.
 
 ## Working locally
 
-Even when you're started at the repo root, a unit of work is normally **confined
-to a single service** — change one service at a time, and look first under that
-service's own directory for its code, schema (`<svc>/internal/db/migrations/`),
-and `.envrc`/`CLAUDE.md`. The suite-wide concerns below — running the suite, the
-nginx front door, deploy tooling — are the exceptions that legitimately live at
-the root.
+This is a **mono-repo**, and even when you're started at the repo root you are
+**almost always working in exactly one subfolder** (one service or library) for
+the entire unit of work. Stay inside it. **Everything that belongs to that unit
+of work lives under that subfolder** — its code, its schema
+(`<svc>/internal/db/migrations/`), its `.envrc`/`CLAUDE.md`, **and its docs,
+including the design/plan/ralph workspace (`<svc>/docs/`)**. Do not create or
+edit files at the repo root for work that belongs to a service; the root
+`docs/` is suite-level only.
+
+**If you don't know which subfolder a piece of work belongs to, ask — do not
+default to the repo root.** Changing the wrong directory, or scattering a
+service's files across the root, causes real problems.
+
+The suite-wide concerns below — running the suite, the nginx front door, deploy
+tooling — are the only exceptions that legitimately live at the root.
 
 Testing usually needs the **whole suite running together**, so that happens from
 the root, not per-service:
