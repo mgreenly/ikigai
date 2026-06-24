@@ -378,6 +378,9 @@ func (s *Service) planIntegration(ctx context.Context, job Job, extracted []extr
 	claimsBySubject := map[string][]Claim{}
 	var plan integrationPlan
 	for _, item := range extracted {
+		if Normalize(item.Name) == "" {
+			continue
+		}
 		subject, isNew, err := s.plannedSubject(ctx, knownByNorm, item)
 		if err != nil {
 			return integrationPlan{}, err
