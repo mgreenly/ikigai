@@ -26,6 +26,69 @@ func TestNormalizePipeline(t *testing.T) {
 	}
 }
 
+func TestNormalizeConvertsToPathSafeCharsetAndStripsCommas(t *testing.T) {
+	// R-RU0J-77HX
+	got := Normalize("Lives of the Most Excellent Painters, Sculptors, and Architects")
+	want := "lives-of-the-most-excellent-painters-sculptors-and-architects"
+	if got != want {
+		t.Fatalf("Normalize(...) = %q, want %q", got, want)
+	}
+}
+
+func TestNormalizeRemovesDiacriticsBeforeCharsetFiltering(t *testing.T) {
+	// R-RV8F-KZ8M
+	got := Normalize("Sala\u00ec and Cafe\u0301")
+	want := "salai-and-cafe"
+	if got != want {
+		t.Fatalf("Normalize(...) = %q, want %q", got, want)
+	}
+}
+
+func TestNormalizeCollapsesSeparatorsToSingleHyphens(t *testing.T) {
+	// R-RXO8-CIQ0
+	got := Normalize("alpha ,,, / --- beta")
+	want := "alpha-beta"
+	if got != want {
+		t.Fatalf("Normalize(...) = %q, want %q", got, want)
+	}
+}
+
+func TestNormalizeTrimsLeadingAndTrailingSeparators(t *testing.T) {
+	// R-RYW4-QAGP
+	got := Normalize("  !!! Alpha Beta ???  ")
+	want := "alpha-beta"
+	if got != want {
+		t.Fatalf("Normalize(...) = %q, want %q", got, want)
+	}
+}
+
+func TestNormalizePreservesDigits(t *testing.T) {
+	// R-S041-427E
+	got := Normalize("Apollo 11 and Model 3")
+	want := "apollo-11-and-model-3"
+	if got != want {
+		t.Fatalf("Normalize(...) = %q, want %q", got, want)
+	}
+}
+
+func TestNormalizeIsIdempotent(t *testing.T) {
+	// R-S1BX-HTY3
+	once := Normalize("  Sala\u00ec, Apollo 11!!! ")
+	twice := Normalize(once)
+	if twice != once {
+		t.Fatalf("Normalize(Normalize(...)) = %q, want %q", twice, once)
+	}
+}
+
+func TestNormalizeReturnsEmptyForContentFreeInput(t *testing.T) {
+	// R-S2JT-VLOS
+	for _, input := range []string{"", "   ", ",,,", "///"} {
+		if got := Normalize(input); got != "" {
+			t.Fatalf("Normalize(%q) = %q, want empty string", input, got)
+		}
+	}
+}
+
 func TestSubjectPathUsesTypeAndPathSafeSlug(t *testing.T) {
 	// R-ZO9U-QOT8
 	tests := map[string]string{
