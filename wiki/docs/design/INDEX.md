@@ -15,7 +15,7 @@ Each Decision maps to its `docs/design/DNN.md`; every `R-XXXX-XXXX` id maps to i
 - D9 → `docs/design/D09.md` — `ask` (`internal/ask`): subject-extraction pipeline, grounded/cited/honest-empty — owns R-644V-3WUS, R-65CR-HOLH, R-66KN-VGC6, R-67SK-982V, R-5UPD-VVNA, R-5VXA-9NDZ, R-690G-MZTK, R-5X56-NF4O, R-6A8D-0RK9, R-05CG-3H6Y
 - D10 → `docs/design/D10.md` — The MCP tool surface (`internal/mcp`) + identity — owns R-MUQ4-K1JS, R-MVY0-XTAH, R-MX5X-BL16, R-MYDT-PCRV, R-MZLQ-34IK, R-N4KO-2WTZ, R-01OQ-Y5YV, R-02WN-BXPK, R-044J-PPG9, R-03GW-PX5K, R-04HB-QM7T
 - D11 → `docs/design/D11.md` — Subject addressing: the public path == identity (`type/norm_name`) — owns R-DRX6-PWSW, R-DT53-3OJL, R-DUCZ-HGAA
-- D12 → `docs/design/D12.md` — Page links: read-time mention detection + markdown footer — owns R-ZUDC-NJIP, R-ZVL9-1B9E, R-ZWT5-F303, R-ZY11-SUQS, R-ZZ8Y-6MHH, R-00GU-KE86
+- D12 → `docs/design/D12.md` — Page links: read-time mention detection + markdown footer (alias-aware) — owns R-ZUDC-NJIP, R-ZVL9-1B9E, R-ZWT5-F303, R-ZY11-SUQS, R-ZZ8Y-6MHH, R-00GU-KE86, R-1WP9-CLM9, R-1XX5-QDCY, R-1Z52-453N
 - D13 → `docs/design/D13.md` — The LLM-call footprint: `llm_calls` table + recorder seam — owns R-VNS0-1Z85, R-VOZW-FQYU, R-VRFP-7AG8, R-VSNL-L26X, R-VTVH-YTXM, R-VV3E-CLOB
 - D14 → `docs/design/D14.md` — Job lifecycle & control: `aborted`, abort, re-run, and atomic integrate — owns R-0SCX-95OZ, R-0TKT-MXFO, R-0USQ-0P6D, R-0W0M-EGX2, R-0X8I-S8NR, R-0YGF-60EG, R-0ZOB-JS55, R-10W7-XJVU
 - D15 → `docs/design/D15.md` — Cursor pagination: the contract + the list seams — owns R-17C5-VP2I, R-18K2-9GT7, R-XYAZ-V0XE, R-XZIW-8SO3, R-Y1YP-0C5H, R-19RY-N8JW, R-1C7R-ES1A, R-1DFN-SJRZ
@@ -29,7 +29,7 @@ Each Decision maps to its `docs/design/DNN.md`; every `R-XXXX-XXXX` id maps to i
 - D23 → `docs/design/D23.md` — The human scorecard is itemized (diff-style), not count-only — owns R-8KX2-4ASY, R-8M4Y-I2JN, R-8NCU-VUAC, R-8OKR-9M11
 - D24 → `docs/design/D24.md` — An overridable extract prompt for the eval (default = the baked-in production prompt) — owns R-ODAP-34N6, R-OEIL-GWDV, R-OFQH-UO4K, R-OGYE-8FV9
 - D25 → `docs/design/D25.md` — Aliases table & name resolution — owns R-BGPF-NVTU, R-BHXC-1NKJ, R-BJ58-FFB8, R-BKD4-T71X, R-BLL1-6YSM, R-BMSX-KQJB, R-BO0T-YIA0, R-BP8Q-CA0P
-- D26 → `docs/design/D26.md` — The merge work item & execution — owns R-NEFH-U8IO, R-NFNE-809D, R-NGVA-LS02, R-NI36-ZJQR, R-NJB3-DBHG, R-NKIZ-R385, R-NLQW-4UYU, R-NMYS-IMPJ, R-NPEL-A66X
+- D26 → `docs/design/D26.md` — The merge work item & execution — owns R-NEFH-U8IO, R-NFNE-809D, R-NGVA-LS02, R-NI36-ZJQR, R-NJB3-DBHG, R-NKIZ-R385, R-NLQW-4UYU, R-NMYS-IMPJ, R-NPEL-A66X, R-HUDR-AWS9
 - D27 → `docs/design/D27.md` — Merge MCP surface (`merge` + `merges`) — owns R-DWDM-RVA7, R-DYTF-JERL, R-E01B-X6IA, R-E198-AY8Z, R-E2H4-OPZO, R-E3P1-2HQD
 - D28 → `docs/design/D28.md` — Blackhole empty-normalization content — owns R-Z5JL-2IBS, R-Z6RH-GA2H, R-Z7ZD-U1T6
 
@@ -55,6 +55,9 @@ Each Decision maps to its `docs/design/DNN.md`; every `R-XXXX-XXXX` id maps to i
 - R-19RY-N8JW → D15 → `docs/design/D15.md`
 - R-1C7R-ES1A → D15 → `docs/design/D15.md`
 - R-1DFN-SJRZ → D15 → `docs/design/D15.md`
+- R-1WP9-CLM9 → D12 → `docs/design/D12.md`
+- R-1XX5-QDCY → D12 → `docs/design/D12.md`
+- R-1Z52-453N → D12 → `docs/design/D12.md`
 - R-34NV-WDIP → D22 → `docs/design/D22.md`
 - R-35VS-A59E → D22 → `docs/design/D22.md`
 - R-373O-NX03 → D22 → `docs/design/D22.md`
@@ -128,6 +131,7 @@ Each Decision maps to its `docs/design/DNN.md`; every `R-XXXX-XXXX` id maps to i
 - R-GIY9-26PA → D19 → `docs/design/D19.md`
 - R-GK65-FYFZ → D19 → `docs/design/D19.md`
 - R-GLE1-TQ6O → D19 → `docs/design/D19.md`
+- R-HUDR-AWS9 → D26 → `docs/design/D26.md`
 - R-J8QP-BETB → D5 → `docs/design/D05.md`
 - R-J9YL-P6K0 → D5 → `docs/design/D05.md`
 - R-JCEE-GQ1E → D5 → `docs/design/D05.md`

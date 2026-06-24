@@ -55,3 +55,5 @@ Phase 44 ✅ realizes D27, D16 — merge MCP surface: `merge` (fire-and-return) 
 Phase 45 ✅ realizes D3 — Rewrite Normalize to the [a-z0-9-] transform
 Phase 46 ✅ realizes D11, D10, D27 — Identity == path token: Path/GetByPath direct, delete slug + the now-impossible ErrAmbiguousPath
 Phase 47 ✅ realizes D28 — Blackhole empty-normalization content at the ingest boundary
+Phase 48 ⬜ realizes D26, D25 — Merge mints the forward-routing alias (loser name → winner) and AliasStore keys on the one Normalize
+Phase 49 ⬜ realizes D12, D25 — Alias-aware read-time link projection (SubjectKeys, ListAll, PageWithLinks both directions, canonical render) and the final normalize() collapse
