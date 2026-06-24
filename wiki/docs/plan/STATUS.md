@@ -53,5 +53,5 @@ Phase 42 ✅ realizes D25 — aliases table & name resolution: the `aliases` mig
 Phase 43 ✅ realizes D26 — the merge work item & execution: `jobs.kind` + carrier-column migration, `SubjectStore.Delete` + `ClaimStore.RepointSubject`, `mergeSubjects` (resolve / recompile-off-tx / one strict-ordered tx), and the worker `kind` dispatch that serializes merge with integrate (the race fix)
 Phase 44 ✅ realizes D27, D16 — merge MCP surface: `merge` (fire-and-return) + `merges` (aliases audit) verbs to a fifteen-verb surface, `AliasStore.ListMerges`, and the `jobs`/`jobs_count` `kind` filter (default-ingest, fail-loud)
 Phase 45 ✅ realizes D3 — Rewrite Normalize to the [a-z0-9-] transform
-Phase 46 ⬜ realizes D11, D10, D27 — Identity == path token: Path/GetByPath direct, delete slug + the now-impossible ErrAmbiguousPath
+Phase 46 ✅ realizes D11, D10, D27 — Identity == path token: Path/GetByPath direct, delete slug + the now-impossible ErrAmbiguousPath
 Phase 47 ⬜ realizes D28 — Blackhole empty-normalization content at the ingest boundary
