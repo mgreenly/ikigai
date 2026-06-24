@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -34,6 +35,7 @@ type Citation struct {
 // Asker is the read-only subject-extraction question-answering service.
 type Asker struct {
 	subjects    *wiki.SubjectStore
+	resolver    *wiki.Resolver
 	pages       *wiki.PageStore
 	c           *llm.Client
 	extractSite llm.CallSite
@@ -44,6 +46,7 @@ type Asker struct {
 func New(subjects *wiki.SubjectStore, pages *wiki.PageStore, c *llm.Client, extractSite, synthSite llm.CallSite) *Asker {
 	return &Asker{
 		subjects:    subjects,
+		resolver:    wiki.NewResolverForSubjects(subjects),
 		pages:       pages,
 		c:           c,
 		extractSite: extractSite,
@@ -154,8 +157,8 @@ func (a *Asker) gatherPages(ctx context.Context, names []string) ([]pageContext,
 		}
 		seenNames[key] = struct{}{}
 
-		subject, err := a.subjects.GetByNormName(ctx, name)
-		if err == sql.ErrNoRows {
+		subject, err := a.resolver.ResolveByName(ctx, name)
+		if errors.Is(err, wiki.ErrSubjectNotFound) {
 			continue
 		}
 		if err != nil {

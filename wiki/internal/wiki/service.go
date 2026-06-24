@@ -3,6 +3,7 @@ package wiki
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -44,6 +45,7 @@ type Service struct {
 	write     *sql.DB
 	jobs      *JobStore
 	subjects  *SubjectStore
+	resolver  *Resolver
 	claims    *ClaimStore
 	pages     *PageStore
 	extractor Extractor
@@ -69,6 +71,7 @@ func NewService(db any, extractor Extractor, compiler Compiler, now func() time.
 		write:     c.Write,
 		jobs:      NewJobStore(c),
 		subjects:  NewSubjectStore(c.Read),
+		resolver:  NewResolver(c.Read),
 		claims:    NewClaimStore(c.Read),
 		pages:     NewPageStore(c.Read),
 		extractor: extractor,
@@ -377,6 +380,14 @@ func (s *Service) plannedSubject(ctx context.Context, known map[string]Subject, 
 		return subject, false, nil
 	}
 	if err != sql.ErrNoRows {
+		return Subject{}, false, err
+	}
+	subject, err = s.resolver.ResolveByName(ctx, item.Name)
+	if err == nil {
+		known[normName] = subject
+		return subject, false, nil
+	}
+	if !errors.Is(err, ErrSubjectNotFound) {
 		return Subject{}, false, err
 	}
 	subject = Subject{

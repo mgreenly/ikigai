@@ -149,6 +149,51 @@ func TestAskBestEffortGathersEveryResolvedSubjectPage(t *testing.T) {
 	}
 }
 
+func TestAskGathersSurvivorPageForExtractedAlias(t *testing.T) {
+	// R-BP8Q-CA0P
+	ctx := context.Background()
+	conn := migratedDB(t, ctx)
+	defer conn.Close()
+	savePage(t, ctx, conn, wiki.Subject{ID: "subject-current", Name: "Current Name", Type: "entity"}, wiki.Page{
+		ID:        "page-current",
+		SubjectID: "subject-current",
+		Title:     "Current Name",
+		Body:      "Current Name owns the canonical page.",
+	})
+	if err := wiki.NewAliasStore(conn).Insert(ctx, wiki.Alias{
+		Name:      "Former Name",
+		SubjectID: "subject-current",
+		CreatedBy: "owner@example.com",
+		CreatedAt: "2026-06-23T12:00:00Z",
+	}); err != nil {
+		t.Fatalf("Insert alias: %v", err)
+	}
+	prov := &askProvider{responses: []*agentkit.RoundTrip{
+		textRoundTrip(`{"subjects":["Former Name"]}`),
+		textRoundTrip(`{
+			"found": true,
+			"text": "Current Name owns the canonical page.",
+			"citations": [{"subject":"subject-current","title":"Current Name"}]
+		}`),
+	}}
+
+	got, err := New(wiki.NewSubjectStore(conn), wiki.NewPageStore(conn), llm.New(prov, nil), testExtractSite(), testSynthSite()).
+		Ask(ctx, "owner@example.com", "What does Former Name own?")
+	if err != nil {
+		t.Fatalf("Ask returned error: %v", err)
+	}
+	if !got.Found || got.Text != "Current Name owns the canonical page." {
+		t.Fatalf("Ask = %+v, want answer from survivor page", got)
+	}
+	if want := []Citation{{Path: "entity/current-name", Title: "Current Name"}}; !reflect.DeepEqual(got.Citations, want) {
+		t.Fatalf("citations = %+v, want %+v", got.Citations, want)
+	}
+	synthText := requestText(prov.requests[1])
+	if !strings.Contains(synthText, "subject-current") || strings.Contains(synthText, "Former Name owns") {
+		t.Fatalf("synth prompt = %q, want survivor page context only", synthText)
+	}
+}
+
 func TestAskReturnsHonestEmptyWhenNoExtractedSubjectResolves(t *testing.T) {
 	// R-67SK-982V
 	ctx := context.Background()
