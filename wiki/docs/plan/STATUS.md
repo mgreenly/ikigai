@@ -57,4 +57,4 @@ Phase 46 ✅ realizes D11, D10, D27 — Identity == path token: Path/GetByPath d
 Phase 47 ✅ realizes D28 — Blackhole empty-normalization content at the ingest boundary
 Phase 48 ✅ realizes D26, D25 — Merge mints the forward-routing alias (loser name → winner) and AliasStore keys on the one Normalize
 Phase 49 ✅ realizes D12, D25 — Alias-aware read-time link projection (SubjectKeys, ListAll, PageWithLinks both directions, canonical render) and the final normalize() collapse
-Phase 50 ⬜ realizes D29 — Alias-aware path entry for the read lookups: new `Resolver.ResolveByPath` (GetByPath then token-only alias fallback, single hop), adopted by `page`/`claims` so a folded-away path forwards to the survivor's canonical page/claims; `GetByPath` and the merge resolvers stay subjects-only
+Phase 50 ✅ realizes D29 — Alias-aware path entry for the read lookups: new `Resolver.ResolveByPath` (GetByPath then token-only alias fallback, single hop), adopted by `page`/`claims` so a folded-away path forwards to the survivor's canonical page/claims; `GetByPath` and the merge resolvers stay subjects-only
