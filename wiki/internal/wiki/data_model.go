@@ -108,9 +108,23 @@ func normalize(name string) string {
 	return stripDiacritics(s)
 }
 
-// Normalize returns the canonical subject-name form used for wiki identity.
+// Normalize returns the public path-safe subject-name form.
 func Normalize(name string) string {
-	return normalize(name)
+	s := stripDiacritics(strings.ToLower(norm.NFKC.String(name)))
+	var b strings.Builder
+	hyphen := true
+	for _, r := range s {
+		if r >= 'a' && r <= 'z' || r >= '0' && r <= '9' {
+			b.WriteRune(r)
+			hyphen = false
+			continue
+		}
+		if !hyphen {
+			b.WriteByte('-')
+			hyphen = true
+		}
+	}
+	return strings.TrimSuffix(b.String(), "-")
 }
 
 func stripDiacritics(s string) string {

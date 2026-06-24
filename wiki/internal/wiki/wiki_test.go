@@ -2,6 +2,62 @@ package wiki
 
 import "testing"
 
+func TestNormalizeReturnsLowercaseASCIIWordsJoinedByHyphens(t *testing.T) {
+	// R-RU0J-77HX
+	if got, want := Normalize("Acme Robotics Lab 42"), "acme-robotics-lab-42"; got != want {
+		t.Fatalf("Normalize(...) = %q, want %q", got, want)
+	}
+}
+
+func TestNormalizeCollapsesPunctuationAndWhitespaceToSingleHyphen(t *testing.T) {
+	// R-RV8F-KZ8M
+	if got, want := Normalize("Acme / Robotics\t\tLab"), "acme-robotics-lab"; got != want {
+		t.Fatalf("Normalize(...) = %q, want %q", got, want)
+	}
+}
+
+func TestNormalizeTrimsLeadingAndTrailingSeparators(t *testing.T) {
+	// R-RXO8-CIQ0
+	if got, want := Normalize(" -- Acme Robotics!! "), "acme-robotics"; got != want {
+		t.Fatalf("Normalize(...) = %q, want %q", got, want)
+	}
+}
+
+func TestNormalizeFoldsCompatibilityCharacters(t *testing.T) {
+	// R-RYW4-QAGP
+	if got, want := Normalize("ＡＬＰＨＡ Kelvin ①"), "alpha-kelvin-1"; got != want {
+		t.Fatalf("Normalize(...) = %q, want %q", got, want)
+	}
+}
+
+func TestNormalizeStripsDiacriticsBeforeApplyingCharacterSet(t *testing.T) {
+	// R-S041-427E
+	if got, want := Normalize("  Café\u0301 Déjà Vu  "), "cafe-deja-vu"; got != want {
+		t.Fatalf("Normalize(...) = %q, want %q", got, want)
+	}
+}
+
+func TestNormalizeTreatsNonASCIILettersAsSeparators(t *testing.T) {
+	// R-S1BX-HTY3
+	if got, want := Normalize("alpha 東京 beta"), "alpha-beta"; got != want {
+		t.Fatalf("Normalize(...) = %q, want %q", got, want)
+	}
+}
+
+func TestNormalizeOutputContainsOnlyLowercaseASCIIDigitsAndHyphens(t *testing.T) {
+	// R-S2JT-VLOS
+	got := Normalize(" Café/東京--Rocket № ９ ")
+	if got != "cafe-rocket-no-9" {
+		t.Fatalf("Normalize(...) = %q, want cafe-rocket-no-9", got)
+	}
+	for _, r := range got {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' {
+			continue
+		}
+		t.Fatalf("Normalize(...) emitted %q outside [a-z0-9-] in %q", r, got)
+	}
+}
+
 func TestSpecDeclaresServedMCPService(t *testing.T) {
 	spec := Spec()
 	if spec.App != "wiki" {
