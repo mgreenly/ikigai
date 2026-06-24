@@ -48,6 +48,7 @@ type Service struct {
 	resolver  *Resolver
 	claims    *ClaimStore
 	pages     *PageStore
+	merges    *SubjectMergeStore
 	extractor Extractor
 	compiler  Compiler
 	now       func() time.Time
@@ -55,6 +56,7 @@ type Service struct {
 	wake      chan struct{}
 	mu        sync.Mutex
 	cancels   map[string]*jobCancel
+	mergeMu   sync.Mutex
 }
 
 type jobCancel struct {
@@ -74,6 +76,7 @@ func NewService(db any, extractor Extractor, compiler Compiler, now func() time.
 		resolver:  NewResolver(c.Read),
 		claims:    NewClaimStore(c.Read),
 		pages:     NewPageStore(c.Read),
+		merges:    NewSubjectMergeStore(c.Read),
 		extractor: extractor,
 		compiler:  compiler,
 		now:       now,
@@ -99,6 +102,41 @@ func (s *Service) Ingest(ctx context.Context, owner, text, title string, tags []
 		ReceivedAt: s.now(),
 	}
 	if err := s.jobs.InsertIngest(ctx, job); err != nil {
+		return "", err
+	}
+	s.notify()
+	return jobID, nil
+}
+
+// MergeSubjects queues a background job that folds one subject into another.
+func (s *Service) MergeSubjects(ctx context.Context, fromSubjectID, toSubjectID string) (string, error) {
+	if s == nil {
+		return "", fmt.Errorf("wiki: nil service")
+	}
+	jobID := s.newID()
+	tx, err := s.write.BeginTx(ctx, nil)
+	if err != nil {
+		return "", err
+	}
+	defer tx.Rollback()
+
+	receivedAt := s.now()
+	_, err = tx.ExecContext(ctx, `
+		INSERT INTO jobs (
+			id, owner, source_text, title, tags, source_hash, status, received_at
+		) VALUES (?, '', '', 'subject merge', '[]', ?, ?, ?)`,
+		jobID, hashText(""), JobPending, formatTime(receivedAt))
+	if err != nil {
+		return "", err
+	}
+	if err := NewSubjectMergeStore(tx).Save(ctx, SubjectMerge{
+		JobID:         jobID,
+		FromSubjectID: strings.TrimSpace(fromSubjectID),
+		ToSubjectID:   strings.TrimSpace(toSubjectID),
+	}); err != nil {
+		return "", err
+	}
+	if err := tx.Commit(); err != nil {
 		return "", err
 	}
 	s.notify()
@@ -195,7 +233,8 @@ func (s *Service) ProcessNext(ctx context.Context) (bool, error) {
 	jobCtx, cancel := context.WithCancel(ctx)
 	registeredCancel := s.registerJobCancel(job.ID, cancel)
 	defer s.unregisterJobCancel(job.ID, registeredCancel)
-	if err := s.integrate(jobCtx, job); err != nil {
+	err = s.processClaimed(jobCtx, job)
+	if err != nil {
 		_, _ = s.jobs.FinishWorking(ctx, job.ID, JobFailed, s.now(), err.Error())
 		return true, nil
 	}
@@ -214,6 +253,15 @@ func (s *Service) Wait(ctx context.Context) error {
 	case <-ctx.Done():
 		return ctx.Err()
 	}
+}
+
+func (s *Service) processClaimed(ctx context.Context, job Job) error {
+	if _, ok, err := s.mergeForJob(ctx, job.ID); err != nil {
+		return err
+	} else if ok {
+		return s.mergeSubjects(ctx, job)
+	}
+	return s.integrate(ctx, job)
 }
 
 func (s *Service) integrate(ctx context.Context, job Job) error {
@@ -367,6 +415,148 @@ func (s *Service) planIntegration(ctx context.Context, job Job, extracted []extr
 		})
 	}
 	return plan, nil
+}
+
+func (s *Service) mergeSubjects(ctx context.Context, job Job) error {
+	if s.compiler == nil {
+		return fmt.Errorf("wiki: nil compiler")
+	}
+	ctx = llm.WithJobID(ctx, job.ID)
+	merge, ok, err := s.mergeForJob(ctx, job.ID)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return fmt.Errorf("wiki: missing merge payload for job %s", job.ID)
+	}
+
+	s.mergeMu.Lock()
+	defer s.mergeMu.Unlock()
+
+	winner, err := s.subjects.Get(ctx, merge.ToSubjectID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return s.finishStaleMerge(ctx, job.ID)
+	}
+	if err != nil {
+		return err
+	}
+	if _, err := s.subjects.Get(ctx, merge.FromSubjectID); errors.Is(err, sql.ErrNoRows) {
+		return s.finishStaleMerge(ctx, job.ID)
+	} else if err != nil {
+		return err
+	}
+
+	combined, err := s.mergeClaims(ctx, merge.FromSubjectID, merge.ToSubjectID)
+	if err != nil {
+		return err
+	}
+	title, body, err := s.compiler.Compile(ctx, winner, combined)
+	if err != nil {
+		return err
+	}
+
+	tx, err := s.write.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	var status string
+	if err := tx.QueryRowContext(ctx, `SELECT status FROM jobs WHERE id = ?`, job.ID).Scan(&status); err != nil {
+		return err
+	}
+	if status != JobWorking {
+		return nil
+	}
+
+	subjects := NewSubjectStore(tx)
+	claims := NewClaimStore(tx)
+	pages := NewPageStore(tx)
+	aliases := NewAliasStore(tx)
+	if _, err := subjects.Get(ctx, merge.ToSubjectID); errors.Is(err, sql.ErrNoRows) {
+		return finishDoneInTx(ctx, tx, job.ID, s.now())
+	} else if err != nil {
+		return err
+	}
+	if _, err := subjects.Get(ctx, merge.FromSubjectID); errors.Is(err, sql.ErrNoRows) {
+		return finishDoneInTx(ctx, tx, job.ID, s.now())
+	} else if err != nil {
+		return err
+	}
+	if err := pages.DeleteBySubject(ctx, merge.FromSubjectID); err != nil {
+		return err
+	}
+	if err := claims.RepointSubject(ctx, merge.FromSubjectID, merge.ToSubjectID); err != nil {
+		return err
+	}
+	if err := aliases.RepointSubject(ctx, merge.FromSubjectID, merge.ToSubjectID); err != nil {
+		return err
+	}
+	if err := subjects.Delete(ctx, merge.FromSubjectID); err != nil {
+		return err
+	}
+	if err := pages.Upsert(ctx, Page{
+		ID:        merge.ToSubjectID,
+		SubjectID: merge.ToSubjectID,
+		Title:     title,
+		Body:      body,
+	}); err != nil {
+		return err
+	}
+	return finishDoneInTx(ctx, tx, job.ID, s.now())
+}
+
+func (s *Service) mergeForJob(ctx context.Context, jobID string) (SubjectMerge, bool, error) {
+	merge, err := s.merges.GetByJob(ctx, jobID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return SubjectMerge{}, false, nil
+	}
+	if err != nil {
+		return SubjectMerge{}, false, err
+	}
+	return merge, true, nil
+}
+
+func (s *Service) mergeClaims(ctx context.Context, fromSubjectID, toSubjectID string) ([]Claim, error) {
+	winnerClaims, err := listAllClaims(ctx, s.claims, toSubjectID)
+	if err != nil {
+		return nil, err
+	}
+	loserClaims, err := listAllClaims(ctx, s.claims, fromSubjectID)
+	if err != nil {
+		return nil, err
+	}
+	combined := append([]Claim(nil), winnerClaims...)
+	for _, claim := range loserClaims {
+		claim.SubjectID = toSubjectID
+		combined = append(combined, claim)
+	}
+	sort.Slice(combined, func(i, j int) bool {
+		return combined[i].ID < combined[j].ID
+	})
+	return combined, nil
+}
+
+func (s *Service) finishStaleMerge(ctx context.Context, jobID string) error {
+	_, err := s.jobs.FinishWorking(ctx, jobID, JobDone, s.now(), "")
+	return err
+}
+
+func finishDoneInTx(ctx context.Context, tx *sql.Tx, jobID string, finishedAt time.Time) error {
+	res, err := tx.ExecContext(ctx,
+		`UPDATE jobs SET status = ?, finished_at = ?, error = '' WHERE id = ? AND status = ?`,
+		JobDone, formatTime(finishedAt), jobID, JobWorking)
+	if err != nil {
+		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return nil
+	}
+	return tx.Commit()
 }
 
 func (s *Service) plannedSubject(ctx context.Context, known map[string]Subject, item extract.ExtractedSubject) (Subject, bool, error) {

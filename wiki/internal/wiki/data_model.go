@@ -575,6 +575,11 @@ func (s *SubjectStore) Get(ctx context.Context, id string) (Subject, error) {
 	return subject, err
 }
 
+func (s *SubjectStore) Delete(ctx context.Context, id string) error {
+	_, err := s.db.ExecContext(ctx, `DELETE FROM subjects WHERE id = ?`, id)
+	return err
+}
+
 func (s *SubjectStore) GetByPath(ctx context.Context, path string) (Subject, error) {
 	typ, wantSlug, ok := strings.Cut(path, "/")
 	if !ok || typ == "" || wantSlug == "" {
@@ -701,6 +706,11 @@ func (s *ClaimStore) DeleteByJob(ctx context.Context, jobID string) error {
 	return err
 }
 
+func (s *ClaimStore) RepointSubject(ctx context.Context, from, to string) error {
+	_, err := s.db.ExecContext(ctx, `UPDATE claims SET subject_id = ? WHERE subject_id = ?`, to, from)
+	return err
+}
+
 func hashText(text string) string {
 	sum := sha256.Sum256([]byte(text))
 	return hex.EncodeToString(sum[:])
@@ -809,4 +819,37 @@ func (s *PageStore) GetBySubject(ctx context.Context, subjectID string) (Page, e
 func (s *PageStore) DeleteBySubject(ctx context.Context, subjectID string) error {
 	_, err := s.db.ExecContext(ctx, `DELETE FROM pages WHERE subject_id = ?`, subjectID)
 	return err
+}
+
+// SubjectMerge is the payload for a queued subject-folding work item.
+type SubjectMerge struct {
+	JobID         string
+	FromSubjectID string
+	ToSubjectID   string
+}
+
+// SubjectMergeStore persists subject merge payloads keyed by jobs.id.
+type SubjectMergeStore struct {
+	db sqlStore
+}
+
+func NewSubjectMergeStore(db sqlStore) *SubjectMergeStore {
+	return &SubjectMergeStore{db: db}
+}
+
+func (s *SubjectMergeStore) Save(ctx context.Context, merge SubjectMerge) error {
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO subject_merges (job_id, from_subject_id, to_subject_id) VALUES (?, ?, ?)`,
+		merge.JobID, merge.FromSubjectID, merge.ToSubjectID)
+	return err
+}
+
+func (s *SubjectMergeStore) GetByJob(ctx context.Context, jobID string) (SubjectMerge, error) {
+	var merge SubjectMerge
+	err := s.db.QueryRowContext(ctx, `
+		SELECT job_id, from_subject_id, to_subject_id
+		FROM subject_merges
+		WHERE job_id = ?`, jobID).
+		Scan(&merge.JobID, &merge.FromSubjectID, &merge.ToSubjectID)
+	return merge, err
 }
