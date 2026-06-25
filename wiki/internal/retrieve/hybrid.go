@@ -258,8 +258,12 @@ func (r *hybridRetriever) pinnedHit(ctx context.Context, candidates []string) (H
 		if title == "" {
 			title = subject.name
 		}
+		pageID := page.id
+		if pageID == "" {
+			pageID = subject.id
+		}
 		return Hit{
-			PageID:  subject.id,
+			PageID:  pageID,
 			Path:    subject.path(),
 			Title:   title,
 			Snippet: page.body,
@@ -284,6 +288,7 @@ func (s reflectedSubject) path() string {
 }
 
 type reflectedPage struct {
+	id    string
 	title string
 	body  string
 }
@@ -311,6 +316,7 @@ func callGetBySubject(ctx context.Context, pages any, subjectID string) (reflect
 		return reflectedPage{}, false, err
 	}
 	return reflectedPage{
+		id:    fieldString(out, "ID"),
 		title: fieldString(out, "Title"),
 		body:  fieldString(out, "Body"),
 	}, true, nil

@@ -81,7 +81,7 @@ func TestHybridRetrieverPinsExactAliasSubjectOnce(t *testing.T) {
 	keyword := newSpyRetriever(map[string][]Hit{
 		"The Widget": {
 			{PageID: "other", Title: "Other"},
-			{PageID: "subject-acme", Title: "Acme from lane"},
+			{PageID: "page-acme", Title: "Acme from lane"},
 		},
 		"unknown subject": {
 			{PageID: "other", Title: "Other"},
@@ -97,10 +97,10 @@ func TestHybridRetrieverPinsExactAliasSubjectOnce(t *testing.T) {
 	if !got.Pinned {
 		t.Fatalf("Pinned = false, want exact alias pin")
 	}
-	if len(got.Hits) == 0 || got.Hits[0].PageID != "subject-acme" || got.Hits[0].Path != "entity/acme-robotics" {
+	if len(got.Hits) == 0 || got.Hits[0].PageID != "page-acme" || got.Hits[0].Path != "entity/acme-robotics" {
 		t.Fatalf("first hit = %+v, want pinned Acme page at rank 1", got.Hits)
 	}
-	if countPage(got.Hits, "subject-acme") != 1 {
+	if countPage(got.Hits, "page-acme") != 1 {
 		t.Fatalf("hits = %+v, want pinned page not duplicated lower", got.Hits)
 	}
 
