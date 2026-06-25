@@ -15,7 +15,7 @@ anchored grep matches only phase lines.
 Phase 01 ✅ realizes D2 — Module scaffold & data model (migrations + Store)
 Phase 02 ✅ realizes D3 — Webhook identity & secret lifecycle (Service/Clock seam, Create/Rotate)
 Phase 03 ✅ realizes D5 — Event production (durable-before-ack Record)
-Phase 04 ⬜ realizes D4 — Public ingress endpoint /in/<name>
+Phase 04 ✅ realizes D4 — Public ingress endpoint /in/<name>
 Phase 05 ⬜ realizes D6 — MCP tool surface (the four owner tools)
 Phase 06 ⬜ realizes D1 — Composition root & chassis boot
 Phase 07 ⬜ realizes D7, D8 — nginx fragment, dev-harness wiring & e2e/onboarding
