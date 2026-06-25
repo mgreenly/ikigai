@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"testing"
 	"time"
+
+	"wiki/internal/page"
 )
 
 func TestLLMCallStoreAcceptsCurrentClosedStageSet(t *testing.T) {
@@ -15,7 +17,7 @@ func TestLLMCallStoreAcceptsCurrentClosedStageSet(t *testing.T) {
 
 	calls := NewLLMCallStore(conn)
 	started := time.Date(2026, 6, 24, 20, 5, 0, 0, time.UTC)
-	stages := []string{"extract", "compile", "ask-subject", "ask-synthesis", "judge"}
+	stages := []string{"extract", "compile", "ask-subject", "ask-synthesis", "judge", "embed-page", "embed-query"}
 	for i, stage := range stages {
 		rec := CallRecord{
 			ID:        fmt.Sprintf("call-%d", i+1),
@@ -55,6 +57,43 @@ func TestLLMCallStoreAcceptsCurrentClosedStageSet(t *testing.T) {
 	}
 	if !sameStrings(got, stages) {
 		t.Fatalf("persisted stages = %v, want %v", got, stages)
+	}
+}
+
+func TestLLMCallStoreAcceptsEmbeddingStages(t *testing.T) {
+	// R-ZDYO-05Q2
+	ctx := context.Background()
+	conn := migratedDB(t, ctx)
+	defer conn.Close()
+
+	calls := NewLLMCallStore(conn)
+	started := time.Date(2026, 6, 25, 1, 10, 0, 0, time.UTC)
+	for i, stage := range []string{"embed-page", "embed-query"} {
+		rec := CallRecord{
+			ID:        fmt.Sprintf("embed-call-%d", i+1),
+			Stage:     stage,
+			JobID:     "job-embedding",
+			Attempt:   1,
+			Provider:  "openai",
+			Model:     "text-embedding-3-small",
+			Params:    `{"dimensions":512}`,
+			Request:   `{"inputs":["text"],"role":"document"}`,
+			Response:  `{"vectors":1,"dims":512}`,
+			Usage:     `{"InputTokens":3,"Total":3}`,
+			StartedAt: started.Add(time.Duration(i) * time.Second),
+			EndedAt:   started.Add(time.Duration(i) * time.Second).Add(time.Millisecond),
+		}
+		if err := calls.Record(ctx, rec); err != nil {
+			t.Fatalf("Record stage %q: %v", stage, err)
+		}
+	}
+
+	got, _, err := calls.List(ctx, LLMCallFilter{JobID: "job-embedding"}, page.Params{Limit: 10})
+	if err != nil {
+		t.Fatalf("List embedding calls: %v", err)
+	}
+	if len(got) != 2 || got[0].Stage != "embed-page" || got[1].Stage != "embed-query" {
+		t.Fatalf("embedding stages = %+v, want embed-page then embed-query", got)
 	}
 }
 

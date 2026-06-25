@@ -260,6 +260,9 @@ func TestConfigBuildsSharedLLMClient(t *testing.T) {
 		if key == "ANTHROPIC_API_KEY" {
 			return "test-key"
 		}
+		if key == "OPENAI_API_KEY" {
+			return "openai-test-key"
+		}
 		return ""
 	})
 	if err != nil {

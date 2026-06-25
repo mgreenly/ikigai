@@ -7,11 +7,14 @@ import (
 
 	agentkit "github.com/ikigenba/agentkit"
 	"github.com/ikigenba/agentkit/anthropic"
+	"github.com/ikigenba/agentkit/openai"
 
 	"wiki/internal/llm"
 )
 
 const defaultMaxTokens = 16384
+const defaultEmbedModel = "text-embedding-3-small"
+const defaultEmbedDims = 512
 
 // CallSites carries wiki's per-stage generation settings.
 type CallSites struct {
@@ -21,9 +24,17 @@ type CallSites struct {
 	AskSynthesis llm.CallSite
 }
 
+// EmbedSite carries wiki's embedding model settings.
+type EmbedSite struct {
+	Model    string
+	Dims     int
+	Provider agentkit.EmbeddingProvider
+}
+
 // Config is wiki's service-side runtime configuration.
 type Config struct {
 	CallSites         CallSites
+	EmbedSite         EmbedSite
 	WorkerConcurrency int
 	SearchDefault     int
 	SearchCap         int
@@ -37,20 +48,51 @@ func NewConfig(getenv func(string) string) (Config, error) {
 	if apiKey == "" {
 		return Config{}, fmt.Errorf("ANTHROPIC_API_KEY is required")
 	}
+	openAIKey := strings.TrimSpace(getenv("OPENAI_API_KEY"))
+	if openAIKey == "" {
+		return Config{}, fmt.Errorf("OPENAI_API_KEY is required")
+	}
 
 	callSites, err := resolveCallSites(getenv)
+	if err != nil {
+		return Config{}, err
+	}
+	embedSite, err := resolveEmbedSite(getenv, openAIKey)
 	if err != nil {
 		return Config{}, err
 	}
 	provider := anthropic.New(apiKey)
 	return Config{
 		CallSites:         callSites,
+		EmbedSite:         embedSite,
 		WorkerConcurrency: WorkerConcurrency,
 		SearchDefault:     SearchDefault,
 		SearchCap:         SearchCap,
 		Provider:          provider,
 		LLM:               llm.NewClient(provider, ModelID),
 	}, nil
+}
+
+func resolveEmbedSite(getenv func(string) string, apiKey string) (EmbedSite, error) {
+	site := EmbedSite{
+		Model: defaultEmbedModel,
+		Dims:  defaultEmbedDims,
+	}
+	if model := strings.TrimSpace(getenv("EMBED_MODEL")); model != "" {
+		site.Model = model
+	}
+	if raw := strings.TrimSpace(getenv("EMBED_DIMS")); raw != "" {
+		dims, err := strconv.Atoi(raw)
+		if err != nil {
+			return EmbedSite{}, fmt.Errorf("EMBED_DIMS: %w", err)
+		}
+		if dims <= 0 {
+			return EmbedSite{}, fmt.Errorf("EMBED_DIMS: must be greater than zero")
+		}
+		site.Dims = dims
+	}
+	site.Provider = openai.NewEmbedder(apiKey)
+	return site, nil
 }
 
 func resolveCallSites(getenv func(string) string) (CallSites, error) {
