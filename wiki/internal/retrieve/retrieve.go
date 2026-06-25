@@ -21,7 +21,9 @@ type Hit struct {
 
 // Result is the full response from one search request.
 type Result struct {
-	Hits []Hit
+	Hits     []Hit
+	TopDense float64
+	Pinned   bool
 }
 
 // Retriever searches wiki content without exposing the backing index.
