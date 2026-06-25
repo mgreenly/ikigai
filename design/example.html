@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Carbon — Example</title>
+
+  <!-- The whole point: pull in the design tokens, then build everything from them. -->
+  <link rel="stylesheet" href="./tokens.css">
+
+  <style>
+    /* ==========================================================================
+       Carbon component demo. Every rule below references tokens.css custom
+       properties — no hard-coded colors, spacing, radii, or z-index.
+       This file is a showcase + copy-paste starting point, not a token source.
+       ========================================================================== */
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--color-bg);
+      color: var(--color-text);
+      font-family: var(--font-body);
+      font-size: var(--text-body-size);
+      line-height: var(--text-body-lh);
+    }
+
+    .page {
+      max-width: var(--layout-max-width);
+      margin: 0 auto;
+      padding: var(--space-12) var(--space-8);
+    }
+
+    /* ---- Typography ------------------------------------------------------- */
+    .display { font-family: var(--font-display); font-size: var(--text-display-size);
+               line-height: var(--text-display-lh); font-weight: var(--text-display-weight);
+               letter-spacing: -.02em; margin: 0; }
+    h1, h2, h3 { font-family: var(--font-display); margin: 0; }
+    h1 { font-size: var(--text-h1-size); line-height: var(--text-h1-lh);
+         font-weight: var(--text-h1-weight); letter-spacing: -.02em; }
+    h2 { font-size: var(--text-h2-size); line-height: var(--text-h2-lh);
+         font-weight: var(--text-h2-weight); letter-spacing: -.02em; }
+    h3 { font-size: var(--text-h3-size); line-height: var(--text-h3-lh);
+         font-weight: var(--text-h3-weight); }
+    .body-lg { font-size: var(--text-body-lg-size); line-height: var(--text-body-lg-lh); }
+    .small   { font-size: var(--text-small-size); line-height: var(--text-small-lh);
+               color: var(--color-text-muted); }
+    .label   { font-family: var(--font-mono); font-size: var(--text-label-size);
+               line-height: var(--text-label-lh); font-weight: var(--text-label-weight);
+               text-transform: uppercase; letter-spacing: .1em; color: var(--color-text-subtle); }
+    a { color: var(--color-accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .tf { display: block; margin-top: var(--space-1); }  /* font caption under a type sample */
+
+    /* ---- Section scaffolding --------------------------------------------- */
+    .section { padding: var(--space-12) 0; border-top: var(--border-width) solid var(--color-border); }
+    .section:first-of-type { border-top: 0; }
+    .section-head { display: flex; align-items: baseline; gap: var(--space-4);
+                    margin-bottom: var(--space-8); }
+    .section-head .num { font-family: var(--font-mono); color: var(--color-text-subtle); }
+    .section-head .rule { flex: 1; height: 1px; background: var(--color-border); }
+    .stack > * + * { margin-top: var(--space-4); }
+    .row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+    .grid { display: grid; gap: var(--space-4); }
+
+    /* ---- Buttons ---------------------------------------------------------- */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
+      height: var(--control-h-md); padding: 0 var(--space-4);
+      font-family: var(--font-body); font-size: var(--text-body-size); font-weight: 600;
+      border-radius: var(--radius); border: var(--border-width) solid transparent;
+      cursor: pointer; white-space: nowrap;
+      transition: background var(--duration-fast) var(--ease-standard),
+                  border-color var(--duration-fast) var(--ease-standard),
+                  transform var(--duration-fast) var(--ease-standard);
+    }
+    .btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--color-accent-weak); }
+    .btn:active { transform: translateY(1px); }
+    .btn-sm { height: var(--control-h-sm); padding: 0 var(--space-3); }
+    .btn-lg { height: var(--control-h-lg); padding: 0 var(--space-6); }
+
+    /* Primary — the one place blue fills. */
+    .btn-primary { background: var(--color-accent); color: var(--color-accent-fg); }
+    .btn-primary:hover { background: var(--accent-700); }
+
+    /* Secondary — neutral, bordered. */
+    .btn-secondary { background: var(--color-surface); color: var(--color-text);
+                     border-color: var(--color-border-strong); }
+    .btn-secondary:hover { background: var(--color-surface-2); }
+
+    /* Ghost — text only. */
+    .btn-ghost { background: transparent; color: var(--color-text-muted); }
+    .btn-ghost:hover { background: var(--color-surface-2); color: var(--color-text); }
+
+    /* Danger — red, reserved for destructive actions. */
+    .btn-danger { background: var(--color-error); color: #fff; }
+    .btn-danger:hover { background: var(--error-700); }
+
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .btn:disabled:active { transform: none; }
+
+    /* ---- Form controls --------------------------------------------------- */
+    .field { display: flex; flex-direction: column; gap: var(--space-2); max-width: 360px; }
+    .field > label { font-weight: 600; font-size: var(--text-small-size); }
+    .input {
+      height: var(--control-h-md); padding: 0 var(--space-3);
+      font-family: var(--font-body); font-size: var(--text-body-size); color: var(--color-text);
+      background: var(--color-bg); border: var(--border-width) solid var(--color-border-strong);
+      border-radius: var(--radius);
+      transition: border-color var(--duration-fast) var(--ease-standard),
+                  box-shadow var(--duration-fast) var(--ease-standard);
+    }
+    .input::placeholder { color: var(--color-text-subtle); }
+    .input:focus { outline: none; border-color: var(--color-accent);
+                   box-shadow: 0 0 0 3px var(--color-accent-weak); }
+    .input.is-error { border-color: var(--color-error); }
+    .input.is-error:focus { box-shadow: 0 0 0 3px var(--color-error-weak); }
+    .field .hint { font-size: var(--text-small-size); color: var(--color-text-subtle); }
+    .field .error { font-size: var(--text-small-size); color: var(--color-error); }
+
+    /* ---- Badges ---------------------------------------------------------- */
+    .badge {
+      display: inline-flex; align-items: center; gap: var(--space-1);
+      height: 22px; padding: 0 var(--space-2);
+      font-family: var(--font-mono); font-size: var(--text-label-size); font-weight: 500;
+      border-radius: var(--radius-pill); border: var(--border-width) solid var(--color-border);
+      background: var(--color-surface-2); color: var(--color-text-muted);
+    }
+    .badge-accent { background: var(--color-accent-weak); color: var(--accent-700);
+                    border-color: var(--accent-100); }
+    .badge-error  { background: var(--color-error-weak); color: var(--error-700);
+                    border-color: var(--error-300); }
+
+    /* ---- Alert ----------------------------------------------------------- */
+    .alert { display: flex; gap: var(--space-3); padding: var(--space-4);
+             border-radius: var(--radius); border: var(--border-width) solid var(--color-border);
+             background: var(--color-surface); }
+    .alert-error { background: var(--color-error-weak); border-color: var(--error-300); }
+    .alert .icon { flex-shrink: 0; color: var(--color-text-muted); }
+    .alert-error .icon { color: var(--color-error); }
+    .alert .title { font-weight: 600; }
+
+    /* ---- Card ------------------------------------------------------------ */
+    .card { background: var(--color-surface); border: var(--border-width) solid var(--color-border);
+            border-radius: var(--radius-lg); padding: var(--space-6); box-shadow: var(--shadow-sm); }
+    .cards { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+
+    /* ---- Table ----------------------------------------------------------- */
+    table { width: 100%; border-collapse: collapse; font-size: var(--text-body-size); }
+    th, td { text-align: left; padding: var(--space-3) var(--space-4);
+             border-bottom: var(--border-width) solid var(--color-border); }
+    th { font-family: var(--font-mono); font-size: var(--text-label-size); font-weight: 500;
+         text-transform: uppercase; letter-spacing: .08em; color: var(--color-text-subtle); }
+    tbody tr:hover { background: var(--color-surface-2); }
+
+    /* ---- Elevation demo -------------------------------------------------- */
+    .elevation { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+    .elev-box { height: 88px; display: flex; align-items: flex-end; padding: var(--space-3);
+                background: var(--color-surface); border: var(--border-width) solid var(--color-border);
+                border-radius: var(--radius); font-family: var(--font-mono);
+                font-size: var(--text-label-size); color: var(--color-text-muted); }
+    .elev-1 { box-shadow: var(--shadow-sm); }
+    .elev-2 { box-shadow: var(--shadow-md); }
+    .elev-3 { box-shadow: var(--shadow-lg); }
+    .elev-4 { box-shadow: var(--shadow-xl); }
+
+    /* ---- Swatches -------------------------------------------------------- */
+    .swatches { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+    .swatch { border: var(--border-width) solid var(--color-border); border-radius: var(--radius);
+              overflow: hidden; }
+    .swatch .chip { height: 56px; }
+    .swatch .meta { padding: var(--space-2) var(--space-3); font-family: var(--font-mono);
+                    font-size: var(--text-label-size); }
+    .swatch .meta .name { color: var(--color-text); }
+    .swatch .meta .hex  { color: var(--color-text-subtle); }
+  </style>
+</head>
+<body>
+  <div class="page stack">
+
+    <header class="stack">
+      <div class="label">Carbon · Example</div>
+      <h1 class="display">Systems over snowflakes</h1>
+      <p class="body-lg" style="color: var(--color-text-muted); max-width: 560px">
+        Every element on this page is built from <a href="./tokens.css">tokens.css</a>.
+        Blue is the only signal color; red is reserved for errors; everything else is neutral.
+      </p>
+    </header>
+
+    <!-- 01 · Typography -->
+    <section class="section">
+      <div class="section-head"><span class="num">01</span><h2>Typography</h2><span class="rule"></span></div>
+      <div class="stack">
+        <div><p class="display">Display 56</p><span class="label tf">Space Grotesk · 56/1.04/700</span></div>
+        <div><h1>Heading 1 · 40</h1><span class="label tf">Space Grotesk · 40/1.1/600</span></div>
+        <div><h2>Heading 2 · 30</h2><span class="label tf">Space Grotesk · 30/1.16/600</span></div>
+        <div><h3>Heading 3 · 22</h3><span class="label tf">Space Grotesk · 22/1.25/600</span></div>
+        <div><p class="body-lg">Body Large — tokens are the shared language between design and engineering.</p><span class="label tf">IBM Plex Sans · 18/1.6/400</span></div>
+        <div><p>Body — tokens are the shared language between design and engineering.</p><span class="label tf">IBM Plex Sans · 15/1.6/400</span></div>
+        <div><p class="small">Small — secondary, caption and helper text.</p><span class="label tf">IBM Plex Sans · 13/1.5/400</span></div>
+        <div><p class="label">Mono · Label</p><span class="label tf">IBM Plex Mono · 12/1.4/500</span></div>
+      </div>
+    </section>
+
+    <!-- 02 · Color -->
+    <section class="section">
+      <div class="section-head"><span class="num">02</span><h2>Color</h2><span class="rule"></span></div>
+      <p class="label" style="margin-bottom: var(--space-3)">Semantic</p>
+      <div class="grid swatches">
+        <div class="swatch"><div class="chip" style="background: var(--color-bg)"></div><div class="meta"><div class="name">bg</div><div class="hex">#FFFFFF</div></div></div>
+        <div class="swatch"><div class="chip" style="background: var(--color-surface)"></div><div class="meta"><div class="name">surface</div><div class="hex">#FAFAFA</div></div></div>
+        <div class="swatch"><div class="chip" style="background: var(--color-text)"></div><div class="meta"><div class="name">text</div><div class="hex">#09090B</div></div></div>
+        <div class="swatch"><div class="chip" style="background: var(--color-text-muted)"></div><div class="meta"><div class="name">text-muted</div><div class="hex">#52525B</div></div></div>
+        <div class="swatch"><div class="chip" style="background: var(--color-border)"></div><div class="meta"><div class="name">border</div><div class="hex">#E4E4E7</div></div></div>
+        <div class="swatch"><div class="chip" style="background: var(--color-accent)"></div><div class="meta"><div class="name">accent</div><div class="hex">#2563EB</div></div></div>
+        <div class="swatch"><div class="chip" style="background: var(--color-error)"></div><div class="meta"><div class="name">error</div><div class="hex">#DC2626</div></div></div>
+      </div>
+    </section>
+
+    <!-- 03 · Buttons -->
+    <section class="section">
+      <div class="section-head"><span class="num">03</span><h2>Buttons</h2><span class="rule"></span></div>
+      <div class="stack">
+        <div class="row">
+          <button class="btn btn-primary">
+            <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12l5 5L20 7"/></svg>
+            Primary
+          </button>
+          <button class="btn btn-secondary">Secondary</button>
+          <button class="btn btn-ghost">Ghost</button>
+          <button class="btn btn-danger">Delete</button>
+          <button class="btn btn-primary" disabled>Disabled</button>
+        </div>
+        <div class="row">
+          <button class="btn btn-secondary btn-sm">Small</button>
+          <button class="btn btn-secondary">Medium</button>
+          <button class="btn btn-secondary btn-lg">Large</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 04 · Forms -->
+    <section class="section">
+      <div class="section-head"><span class="num">04</span><h2>Form controls</h2><span class="rule"></span></div>
+      <div class="row" style="align-items: flex-start; gap: var(--space-8)">
+        <div class="field">
+          <label for="email">Email</label>
+          <input class="input" id="email" type="email" placeholder="you@example.com">
+          <span class="hint">We'll never share it.</span>
+        </div>
+        <div class="field">
+          <label for="bad">Account name</label>
+          <input class="input is-error" id="bad" type="text" value="!!invalid">
+          <span class="error">Letters, numbers and dashes only.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 05 · Status -->
+    <section class="section">
+      <div class="section-head"><span class="num">05</span><h2>Status</h2><span class="rule"></span></div>
+      <div class="stack">
+        <div class="row">
+          <span class="badge">Neutral</span>
+          <span class="badge badge-accent">Active</span>
+          <span class="badge badge-error">Failed</span>
+        </div>
+        <div class="alert">
+          <svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><path d="M12 16h.01"/></svg>
+          <div><div class="title">Heads up</div><div class="small">A neutral, informational message.</div></div>
+        </div>
+        <div class="alert alert-error">
+          <svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><path d="M12 16h.01"/></svg>
+          <div><div class="title">Something went wrong</div><div class="small">Red is reserved for errors and destructive actions.</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 06 · Cards -->
+    <section class="section">
+      <div class="section-head"><span class="num">06</span><h2>Cards</h2><span class="rule"></span></div>
+      <div class="grid cards">
+        <div class="card stack">
+          <div class="label">Plan</div>
+          <h3>Starter</h3>
+          <p class="small">One box, one customer, scheduled downtime is fine.</p>
+          <button class="btn btn-primary btn-sm">Choose</button>
+        </div>
+        <div class="card stack">
+          <div class="label">Plan</div>
+          <h3>Growth</h3>
+          <p class="small">More services on the shared chassis.</p>
+          <button class="btn btn-secondary btn-sm">Choose</button>
+        </div>
+        <div class="card stack">
+          <div class="label">Plan</div>
+          <h3>Suite</h3>
+          <p class="small">The full event-plane build-out.</p>
+          <button class="btn btn-secondary btn-sm">Choose</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 07 · Table -->
+    <section class="section">
+      <div class="section-head"><span class="num">07</span><h2>Table</h2><span class="rule"></span></div>
+      <table>
+        <thead><tr><th>Service</th><th>Role</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>crm</td><td>producer</td><td><span class="badge badge-accent">live</span></td></tr>
+          <tr><td>ledger</td><td>producer</td><td><span class="badge badge-accent">live</span></td></tr>
+          <tr><td>notify</td><td>consumer</td><td><span class="badge">idle</span></td></tr>
+          <tr><td>wiki</td><td>rag</td><td><span class="badge badge-error">error</span></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- 08 · Elevation -->
+    <section class="section">
+      <div class="section-head"><span class="num">08</span><h2>Elevation</h2><span class="rule"></span></div>
+      <div class="grid elevation">
+        <div class="elev-box">0 · flat</div>
+        <div class="elev-box elev-1">1 · raised</div>
+        <div class="elev-box elev-2">2 · overlay</div>
+        <div class="elev-box elev-3">3 · floating</div>
+        <div class="elev-box elev-4">4 · top</div>
+      </div>
+    </section>
+
+  </div>
+</body>
+</html>
