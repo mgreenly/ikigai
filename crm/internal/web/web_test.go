@@ -128,6 +128,15 @@ func TestExactRootRouteDoesNotShadowMCPOrUnknownPaths(t *testing.T) {
 	// R-ROUT-7Y6Z
 	mux := http.NewServeMux()
 	mux.Handle("GET /{$}", LandingHandler("crm", "dev"))
+	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.WriteString(w, "health")
+	})
+	mux.HandleFunc("GET /feed", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.WriteString(w, "feed")
+	})
+	mux.HandleFunc("GET /.well-known/prm", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.WriteString(w, "prm")
+	})
 	mux.HandleFunc("POST /mcp", func(w http.ResponseWriter, r *http.Request) {
 		_, _ = io.WriteString(w, "mcp")
 	})
@@ -142,6 +151,27 @@ func TestExactRootRouteDoesNotShadowMCPOrUnknownPaths(t *testing.T) {
 	mux.ServeHTTP(mcp, httptest.NewRequest(http.MethodPost, "/mcp", nil))
 	if mcp.Code != http.StatusOK || mcp.Body.String() != "mcp" {
 		t.Fatalf("POST /mcp = status %d body %q, want stub handler", mcp.Code, mcp.Body.String())
+	}
+
+	for _, tc := range []struct {
+		path string
+		body string
+	}{
+		{path: "/health", body: "health"},
+		{path: "/feed", body: "feed"},
+		{path: "/.well-known/prm", body: "prm"},
+	} {
+		t.Run(tc.path, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, tc.path, nil))
+
+			if rec.Code != http.StatusOK || rec.Body.String() != tc.body {
+				t.Fatalf("GET %s = status %d body %q, want stub handler body %q", tc.path, rec.Code, rec.Body.String(), tc.body)
+			}
+			if strings.Contains(rec.Body.String(), "<h1>crm</h1>") {
+				t.Fatalf("GET %s returned landing page: status=%d body=%q", tc.path, rec.Code, rec.Body.String())
+			}
+		})
 	}
 
 	nope := httptest.NewRecorder()
