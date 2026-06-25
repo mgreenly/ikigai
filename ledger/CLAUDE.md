@@ -8,7 +8,7 @@ A real **double-entry bookkeeping** service for personal and small-business use,
 modeled conceptually on [ledger-cli](https://ledger-cli.org/): an **immutable
 journal** of balanced transactions, with every report a query over postings. The
 surface is a **fixed set of eight verbs** (it does not grow as features are
-added — see `PLAN.md` §1–2) over a single write entity, the transaction. It is an
+added — see `project/notes/PLAN.md` §1–2) over a single write entity, the transaction. It is an
 event-plane **producer** (emits `transaction.recorded` to an outbox at `GET
 /feed`, mirroring `../crm`). The chassis (auth, nginx, deploy, transport) is the
 same production-grade crm chassis, renamed.
@@ -21,7 +21,7 @@ same production-grade crm chassis, renamed.
 - `../metaspot/docs/connector-and-install.md` — the suite plugin + install layer.
   Note: a service's connector **skills live in the `dashboard` repo's `plugin/`**,
   not here.
-- `PLAN.md` — the ledger design (the 8-verb rationale, the immutable-journal /
+- `project/notes/PLAN.md` — the ledger design (the 8-verb rationale, the immutable-journal /
   emergent-typed-account model, the transaction contract, the events).
 - `../crm` — the sibling service that shares this chassis and is the reference
   event-plane **producer** (`internal/contacts` → `/feed` outbox).
@@ -50,7 +50,7 @@ spring into existence on first posting to a colon-path (`Assets:Bank:Checking`),
 the only guardrail being that the top-level root must be one of five known types
 (`Assets`, `Liabilities`, `Equity`, `Income` [alias `Revenue`], `Expenses`), with
 alias + case-fold canonicalization so the tree can't fork. Money is integer cents,
-single-currency USD. See `PLAN.md` §2–4 for the full contract.
+single-currency USD. See `project/notes/PLAN.md` §2–4 for the full contract.
 
 - **`record`** — record one immutable double-entry transaction (≥2 postings
   that must balance to zero; at most one posting may elide its amount and receive
@@ -107,7 +107,7 @@ after commit. **Every committed transaction emits exactly one
 it's a correction). `cmd/ledger/main.go` wires the `outbox` and injects it into
 `ledger.Service`; the SSE handler is mounted at `GET /feed` (unauthenticated,
 loopback-only — the perimeter is nginx). Second-wave payloads (`transaction.reversed`,
-`posting.reconciled`) are designed but unwired in v1 (`PLAN.md` §6).
+`posting.reconciled`) are designed but unwired in v1 (`project/notes/PLAN.md` §6).
 
 ## nginx fragment (not a vhost)
 
