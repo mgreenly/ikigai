@@ -1,5 +1,6 @@
-# Build artifacts
-/bin/
+# Build artifacts (ignore the built binaries, but track bin/secrets etc.)
+/bin/wiki
+/bin/eval-extract
 
 # SQLite databases (runtime)
 *.db
