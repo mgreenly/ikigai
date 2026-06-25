@@ -67,4 +67,4 @@ Phase 56 ✅ realizes D32 — the meaning lane: in-RAM `vectorCache` (RWMutex), 
 Phase 57 ✅ realizes D36 — preparing the question: `wiki.QueryAnalysis` + `Analyze` repurposing the `ask-subject` call (sub-queries ≤4, empty→whole question)
 Phase 58 ✅ realizes D33 — fusion: `hybridRetriever`, RRF (k=60), exact-name rank-1 pin, dedupe by PageID, `Search` + `SearchAnalyzed`→`Result{Hits,TopDense,Pinned}` with decomposed fan-out + per-lane routing
 Phase 59 ✅ realizes D35 — background embed lifecycle: `embedAndStore` (after-commit, never in tx), the after-commit hook attributed to the job, and a separate catch-up `Spec.Workers` sweep (backfill/retry/model-change); old vector stays live until overwritten
-Phase 60 ⬜ realizes D9 — `ask` rewrite: analyze→`SearchAnalyzed`→synthesize, honest-empty cosine floor (`_RELEVANCE_FLOOR`, default 0.30), pages-only/cited/read-only kept; retires the four exact-name tests
+Phase 60 ✅ realizes D9 — `ask` rewrite: analyze→`SearchAnalyzed`→synthesize, honest-empty cosine floor (`_RELEVANCE_FLOOR`, default 0.30), pages-only/cited/read-only kept; retires the four exact-name tests
