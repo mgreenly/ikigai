@@ -64,7 +64,7 @@ Phase 53 ✅ realizes D30 — page-embedding storage: `page_embeddings` side tab
 Phase 54 ✅ realizes D34 — the embedding call site: `EmbedSite` config (`EMBED_MODEL`/`EMBED_DIMS`, fail-loud), the `recordingEmbedder` onto the D13 recorder, and a rebuild migration widening the `llm_calls` stage CHECK with `embed-page`/`embed-query`
 Phase 55 ✅ realizes D31 — the keyword lane: re-add `pages_fts` (new external-content create migration), the in-tx read-old→delete→insert sync, `ftsPhrase`, and `keywordRetriever`; retires the two old "no pages_fts" D08 tests
 Phase 56 ✅ realizes D32 — the meaning lane: in-RAM `vectorCache` (RWMutex), brute-force cosine=dot, and `vectorRetriever` embedding the query (query role) → top-k
-Phase 57 ⬜ realizes D36 — preparing the question: `wiki.QueryAnalysis` + `Analyze` repurposing the `ask-subject` call (sub-queries ≤4, empty→whole question)
+Phase 57 ✅ realizes D36 — preparing the question: `wiki.QueryAnalysis` + `Analyze` repurposing the `ask-subject` call (sub-queries ≤4, empty→whole question)
 Phase 58 ⬜ realizes D33 — fusion: `hybridRetriever`, RRF (k=60), exact-name rank-1 pin, dedupe by PageID, `Search` + `SearchAnalyzed`→`Result{Hits,TopDense,Pinned}` with decomposed fan-out + per-lane routing
 Phase 59 ⬜ realizes D35 — background embed lifecycle: `embedAndStore` (after-commit, never in tx), the after-commit hook attributed to the job, and a separate catch-up `Spec.Workers` sweep (backfill/retry/model-change); old vector stays live until overwritten
 Phase 60 ⬜ realizes D9 — `ask` rewrite: analyze→`SearchAnalyzed`→synthesize, honest-empty cosine floor (`_RELEVANCE_FLOOR`, default 0.30), pages-only/cited/read-only kept; retires the four exact-name tests
