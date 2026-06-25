@@ -1,9 +1,10 @@
 # dropbox
 
 The **dropbox** service for the ikigenba single-tenant suite. A loopback-only
-**daemon + event-plane producer** (not an API wrapper) with **no UI** and **no
-token logic of its own**, deployed at `<account>.ikigenba.com/srv/dropbox/`
-(e.g. `int.ikigenba.com/srv/dropbox/`). First demo account: **int**.
+**daemon + event-plane producer** (not an API wrapper) that serves an **MCP
+surface for agents** and a **human web landing page** under
+`<account>.ikigenba.com/srv/dropbox/` (e.g. `int.ikigenba.com/srv/dropbox/`) with
+**no token logic of its own**. First demo account: **int**.
 
 It keeps a **private local mirror in sync** with a single Dropbox **app folder**
 (one-way, **download-only**) and **emits a file-lifecycle event** for every
@@ -35,11 +36,13 @@ If anything here conflicts with those docs, the docs win — and flag the confli
 ## What this app is
 
 A loopback-only domain service on **port 3005**, mounted at **`/srv/dropbox/`**.
-nginx (owned by the dashboard) terminates TLS, introspects every `/srv/dropbox/`
-request via `auth_request` against the dashboard, and injects `X-Owner-Email` /
-`X-Client-Id`; this service **trusts those headers** and does no token validation
-of its own. nginx strips the `/srv/dropbox/` prefix, so internal routes stay bare
-(`/mcp`, `/health`, `/feed`, `/content`, `/.well-known/...`).
+It serves the **MCP surface for agents** alongside a session-cookie-gated
+**human web landing page** under that mount. nginx (owned by the dashboard)
+terminates TLS, introspects every `/srv/dropbox/` request via `auth_request`
+against the dashboard, and injects `X-Owner-Email` / `X-Client-Id`; this service
+**trusts those headers** and does no token validation of its own. nginx strips
+the `/srv/dropbox/` prefix, so internal routes stay bare (`/mcp`, `/health`,
+`/feed`, `/content`, `/.well-known/...`).
 
 **Single box, single account.** One Dropbox app folder, one owner; no
 owner/tenant column. `Identity` (the injected headers) is consulted only by
