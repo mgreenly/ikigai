@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Profile · ikigenba dashboard</title>
+  <link rel="stylesheet" href="/static/tokens.css">
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <header class="banner">
+    <p class="wordmark">ikigenba</p>
+    <nav class="identity">
+      <a href="/" class="btn btn-secondary btn-sm">Home</a>
+      <span class="owner">{{.Owner}}</span>
+      <form method="POST" action="/logout">
+        <button type="submit" class="btn btn-danger-ghost btn-sm">Sign out</button>
+      </form>
+    </nav>
+  </header>
+
+  <main class="page">
+    <section class="section profile-summary">
+      <div class="section-head">
+        <h1>Profile</h1>
+        <span class="rule"></span>
+      </div>
+      <p class="section-intro">Signed in as <strong>{{.Owner}}</strong>.</p>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>Personal access tokens</h2>
+        <span class="rule"></span>
+      </div>
+      <p class="section-intro">Mint a long-lived token to authenticate agents that connect directly.</p>
+      <form method="POST" action="/pat" class="create-form">
+        <input class="input" type="text" name="label" maxlength="48"
+               placeholder="Label (e.g. Codex on laptop)" aria-label="Token label" required>
+        <button type="submit" class="btn btn-primary">Create</button>
+      </form>
+      {{template "pat_block" .PATs}}
+    </section>
+
+    <section class="section grants">
+      <div class="section-head">
+        <h2>Connected MCP clients</h2>
+        <span class="rule"></span>
+        <span class="live-dot" id="grants-live" title="Updates in real time">live</span>
+      </div>
+      <div id="grants-block" data-stream="/grants/stream" data-fragment="/grants/fragment">
+        {{template "grants_block" .Grants}}
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">{{.Host}}</footer>
+</body>
+</html>

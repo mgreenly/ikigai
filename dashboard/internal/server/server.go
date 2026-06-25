@@ -159,6 +159,7 @@ func newApp(opts Options) (*app, error) {
 	// resolves and a broken partial fails startup loudly.
 	tmpl, err := template.ParseFS(ui.Files,
 		"html/index.html",
+		"html/profile.html",
 		"html/partials/grants_block.tmpl",
 		"html/partials/pat_block.tmpl",
 		"html/partials/pat_created.tmpl",
