@@ -41,6 +41,7 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - D35 → `project/design/D35.md` — Keeping page vectors current, in the background — owns R-6XNX-FNXO, R-6YVT-TFOD, R-703Q-77F2, R-71BM-KZ5R, R-72JI-YQWG, R-73RF-CIN5
 - D36 → `project/design/D36.md` — Preparing the question: one analysis call — owns R-QB7A-Z95U, R-QCF7-D0WJ, R-QDN3-QSN8
 - D37 → `project/design/D37.md` — Wire the recording embedder at the composition root (close the D34 gap) — owns R-LFOY-L6TZ, R-SIFE-Z88I, R-JEC4-3M6O, R-NWE2-CUPE
+- D38 → `project/design/D38.md` — Keep the meaning lane consistent across a merge (close the D35 merge gap) — owns R-MRG8-K2WP, R-LP5Q-9XTD, R-EV2H-6RKN, R-FM7A-D0SZ, R-WS3C-J4QB
 
 ## Verification ids → Decision
 
@@ -153,6 +154,8 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - R-E4WX-G9H2 → D16 → `project/design/D16.md`
 - R-EMWV-6RK5 → D13 → `project/design/D13.md`
 - R-EO4R-KJAU → D13 → `project/design/D13.md`
+- R-EV2H-6RKN → D38 → `project/design/D38.md`
+- R-FM7A-D0SZ → D38 → `project/design/D38.md`
 - R-FQLB-QWS6 → D7 → `project/design/D07.md`
 - R-FT14-IG9K → D7 → `project/design/D07.md`
 - R-FU90-W809 → D7 → `project/design/D07.md`
@@ -175,6 +178,7 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - R-JEC4-3M6O → D37 → `project/design/D37.md`
 - R-JEU7-89IS → D5 → `project/design/D05.md`
 - R-LFOY-L6TZ → D37 → `project/design/D37.md`
+- R-LP5Q-9XTD → D38 → `project/design/D38.md`
 - R-M8RN-87WV → D4 → `project/design/D04.md`
 - R-M9ZJ-LZNK → D4 → `project/design/D04.md`
 - R-MB7F-ZRE9 → D4 → `project/design/D04.md`
@@ -182,6 +186,7 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - R-MDN8-RAVN → D4 → `project/design/D04.md`
 - R-ME5L-HXJ3 → D22 → `project/design/D22.md`
 - R-MG31-IUD1 → D4 → `project/design/D04.md`
+- R-MRG8-K2WP → D38 → `project/design/D38.md`
 - R-MSKH-GPX5 → D18 → `project/design/D18.md`
 - R-MTSD-UHNU → D18 → `project/design/D18.md`
 - R-MUQ4-K1JS → D10 → `project/design/D10.md`
@@ -234,6 +239,7 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - R-W19T-38SB → D6 → `project/design/D06.md`
 - R-W26F-5PSP → D20 → `project/design/D20.md`
 - R-W2HP-H0J0 → D6 → `project/design/D06.md`
+- R-WS3C-J4QB → D38 → `project/design/D38.md`
 - R-XJBY-H8JZ → D6 → `project/design/D06.md`
 - R-XKJU-V0AO → D6 → `project/design/D06.md`
 - R-XYAZ-V0XE → D15 → `project/design/D15.md`
