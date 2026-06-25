@@ -11,8 +11,8 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - D5 → `project/design/D05.md` — The LLM seam (`internal/llm`): shared Provider, fresh Conversation per call, json-mode helper — owns R-J8QP-BETB, R-4BCC-0EHJ, R-J9YL-P6K0, R-JCEE-GQ1E, R-JDMA-UHS3, R-JEU7-89IS
 - D6 → `project/design/D06.md` — The extract stage (`internal/extract`) — owns R-VYU0-BPAX, R-XJBY-H8JZ, R-XKJU-V0AO, R-W19T-38SB, R-W2HP-H0J0, R-4CK8-E688
 - D7 → `project/design/D07.md` — The compile stage (`internal/compile`): full recompile from claims, 12k cap enforced — owns R-FQLB-QWS6, R-FT14-IG9K, R-FU90-W809, R-FVGX-9ZQY, R-FWOT-NRHN, R-4DS4-RXYX
-- D8 → `project/design/D08.md` — No retrieval lane this release: keyword search removed, hybrid deferred — owns R-PH8Z-YHNX, R-PIGW-C9EM
-- D9 → `project/design/D09.md` — `ask` (`internal/ask`): subject-extraction pipeline, grounded/cited/honest-empty — owns R-644V-3WUS, R-65CR-HOLH, R-66KN-VGC6, R-67SK-982V, R-5UPD-VVNA, R-5VXA-9NDZ, R-690G-MZTK, R-5X56-NF4O, R-6A8D-0RK9, R-05CG-3H6Y
+- D8 → `project/design/D08.md` — Search returns: hybrid retrieval over pages, behind one seam — none (structural)
+- D9 → `project/design/D09.md` — `ask` (`internal/ask`): hybrid-retrieval pipeline, grounded/cited/honest-empty — owns R-5UPD-VVNA, R-5VXA-9NDZ, R-690G-MZTK, R-5X56-NF4O, R-6A8D-0RK9, R-05CG-3H6Y, R-BAFW-D24P, R-BBNS-QTVE, R-BCVP-4LM3
 - D10 → `project/design/D10.md` — The MCP tool surface (`internal/mcp`) + identity — owns R-MUQ4-K1JS, R-MVY0-XTAH, R-MX5X-BL16, R-MYDT-PCRV, R-MZLQ-34IK, R-N4KO-2WTZ, R-01OQ-Y5YV, R-02WN-BXPK, R-044J-PPG9, R-03GW-PX5K, R-04HB-QM7T
 - D11 → `project/design/D11.md` — Subject addressing: the public path == identity (`type/norm_name`) — owns R-DRX6-PWSW, R-DT53-3OJL, R-DUCZ-HGAA
 - D12 → `project/design/D12.md` — Page links: read-time mention detection + markdown footer (alias-aware) — owns R-ZUDC-NJIP, R-ZVL9-1B9E, R-ZWT5-F303, R-ZY11-SUQS, R-ZZ8Y-6MHH, R-00GU-KE86, R-1WP9-CLM9, R-1XX5-QDCY, R-1Z52-453N
@@ -33,6 +33,13 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - D27 → `project/design/D27.md` — Merge MCP surface (`merge` + `merges`) — owns R-DWDM-RVA7, R-DYTF-JERL, R-E01B-X6IA, R-E198-AY8Z, R-E2H4-OPZO, R-E3P1-2HQD
 - D28 → `project/design/D28.md` — Blackhole empty-normalization content — owns R-Z5JL-2IBS, R-Z6RH-GA2H, R-Z7ZD-U1T6
 - D29 → `project/design/D29.md` — Alias-aware path entry for the read lookups (`page`/`claims`) — owns R-AF1X-PG7K, R-AG2Y-PH8L, R-AH3Z-PJ9M, R-AL5R-PL1P
+- D30 → `project/design/D30.md` — Where page embeddings are stored — owns R-9OCK-FJK1, R-9PKG-TBAQ, R-9QSD-731F, R-9S09-KUS4
+- D31 → `project/design/D31.md` — The keyword lane: full-text search returns — owns R-203P-F1ET, R-22JI-6KW7, R-23RE-KCMW, R-24ZA-Y4DL
+- D32 → `project/design/D32.md` — The meaning lane: in-memory vector search — owns R-3WOB-6U4Q, R-3XW7-KLVF, R-3Z43-YDM4, R-40C0-C5CT
+- D33 → `project/design/D33.md` — Merging the two lanes: rank fusion + exact-name pin — owns R-79KD-1622, R-7AS9-EXSR, R-7C05-SPJG, R-7D82-6HA5, R-Q8RI-7POG, R-Q9ZE-LHF5
+- D34 → `project/design/D34.md` — The embedding call site: configured and recorded like every other AI call — owns R-Z932-H2RA, R-ZAAY-UUHZ, R-ZBIV-8M8O, R-ZCQR-MDZD, R-ZDYO-05Q2
+- D35 → `project/design/D35.md` — Keeping page vectors current, in the background — owns R-6XNX-FNXO, R-6YVT-TFOD, R-703Q-77F2, R-71BM-KZ5R, R-72JI-YQWG, R-73RF-CIN5
+- D36 → `project/design/D36.md` — Preparing the question: one analysis call — owns R-QB7A-Z95U, R-QCF7-D0WJ, R-QDN3-QSN8
 
 ## Verification ids → Decision
 
@@ -59,6 +66,10 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - R-1WP9-CLM9 → D12 → `project/design/D12.md`
 - R-1XX5-QDCY → D12 → `project/design/D12.md`
 - R-1Z52-453N → D12 → `project/design/D12.md`
+- R-203P-F1ET → D31 → `project/design/D31.md`
+- R-22JI-6KW7 → D31 → `project/design/D31.md`
+- R-23RE-KCMW → D31 → `project/design/D31.md`
+- R-24ZA-Y4DL → D31 → `project/design/D31.md`
 - R-34NV-WDIP → D22 → `project/design/D22.md`
 - R-35VS-A59E → D22 → `project/design/D22.md`
 - R-373O-NX03 → D22 → `project/design/D22.md`
@@ -72,19 +83,29 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - R-3CJD-UUWJ → D16 → `project/design/D16.md`
 - R-3EZ6-MEDX → D16 → `project/design/D16.md`
 - R-3G73-064M → D16 → `project/design/D16.md`
+- R-3WOB-6U4Q → D32 → `project/design/D32.md`
+- R-3XW7-KLVF → D32 → `project/design/D32.md`
+- R-3Z43-YDM4 → D32 → `project/design/D32.md`
+- R-40C0-C5CT → D32 → `project/design/D32.md`
 - R-4BCC-0EHJ → D5 → `project/design/D05.md`
 - R-4CK8-E688 → D6 → `project/design/D06.md`
 - R-4DS4-RXYX → D7 → `project/design/D07.md`
 - R-5UPD-VVNA → D9 → `project/design/D09.md`
 - R-5VXA-9NDZ → D9 → `project/design/D09.md`
 - R-5X56-NF4O → D9 → `project/design/D09.md`
-- R-644V-3WUS → D9 → `project/design/D09.md`
-- R-65CR-HOLH → D9 → `project/design/D09.md`
-- R-66KN-VGC6 → D9 → `project/design/D09.md`
-- R-67SK-982V → D9 → `project/design/D09.md`
 - R-690G-MZTK → D9 → `project/design/D09.md`
 - R-6A8D-0RK9 → D9 → `project/design/D09.md`
 - R-6RVX-P1IG → D2 → `project/design/D02.md`
+- R-6XNX-FNXO → D35 → `project/design/D35.md`
+- R-6YVT-TFOD → D35 → `project/design/D35.md`
+- R-703Q-77F2 → D35 → `project/design/D35.md`
+- R-71BM-KZ5R → D35 → `project/design/D35.md`
+- R-72JI-YQWG → D35 → `project/design/D35.md`
+- R-73RF-CIN5 → D35 → `project/design/D35.md`
+- R-79KD-1622 → D33 → `project/design/D33.md`
+- R-7AS9-EXSR → D33 → `project/design/D33.md`
+- R-7C05-SPJG → D33 → `project/design/D33.md`
+- R-7D82-6HA5 → D33 → `project/design/D33.md`
 - R-7SNG-0G9A → D3 → `project/design/D03.md`
 - R-7TVC-E7ZZ → D3 → `project/design/D03.md`
 - R-7V38-RZQO → D3 → `project/design/D03.md`
@@ -94,10 +115,17 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - R-8NCU-VUAC → D23 → `project/design/D23.md`
 - R-8OKR-9M11 → D23 → `project/design/D23.md`
 - R-8PSN-NDRQ → D22 → `project/design/D22.md`
+- R-9OCK-FJK1 → D30 → `project/design/D30.md`
+- R-9PKG-TBAQ → D30 → `project/design/D30.md`
+- R-9QSD-731F → D30 → `project/design/D30.md`
+- R-9S09-KUS4 → D30 → `project/design/D30.md`
 - R-AF1X-PG7K → D29 → `project/design/D29.md`
 - R-AG2Y-PH8L → D29 → `project/design/D29.md`
 - R-AH3Z-PJ9M → D29 → `project/design/D29.md`
 - R-AL5R-PL1P → D29 → `project/design/D29.md`
+- R-BAFW-D24P → D9 → `project/design/D09.md`
+- R-BBNS-QTVE → D9 → `project/design/D09.md`
+- R-BCVP-4LM3 → D9 → `project/design/D09.md`
 - R-BGPF-NVTU → D25 → `project/design/D25.md`
 - R-BHXC-1NKJ → D25 → `project/design/D25.md`
 - R-BJ58-FFB8 → D25 → `project/design/D25.md`
@@ -176,8 +204,11 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - R-OEIL-GWDV → D24 → `project/design/D24.md`
 - R-OFQH-UO4K → D24 → `project/design/D24.md`
 - R-OGYE-8FV9 → D24 → `project/design/D24.md`
-- R-PH8Z-YHNX → D8 → `project/design/D08.md`
-- R-PIGW-C9EM → D8 → `project/design/D08.md`
+- R-Q8RI-7POG → D33 → `project/design/D33.md`
+- R-Q9ZE-LHF5 → D33 → `project/design/D33.md`
+- R-QB7A-Z95U → D36 → `project/design/D36.md`
+- R-QCF7-D0WJ → D36 → `project/design/D36.md`
+- R-QDN3-QSN8 → D36 → `project/design/D36.md`
 - R-RU0J-77HX → D3 → `project/design/D03.md`
 - R-RV8F-KZ8M → D3 → `project/design/D03.md`
 - R-RXO8-CIQ0 → D3 → `project/design/D03.md`
@@ -208,6 +239,11 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - R-Z5JL-2IBS → D28 → `project/design/D28.md`
 - R-Z6RH-GA2H → D28 → `project/design/D28.md`
 - R-Z7ZD-U1T6 → D28 → `project/design/D28.md`
+- R-Z932-H2RA → D34 → `project/design/D34.md`
+- R-ZAAY-UUHZ → D34 → `project/design/D34.md`
+- R-ZBIV-8M8O → D34 → `project/design/D34.md`
+- R-ZCQR-MDZD → D34 → `project/design/D34.md`
+- R-ZDYO-05Q2 → D34 → `project/design/D34.md`
 - R-ZUDC-NJIP → D12 → `project/design/D12.md`
 - R-ZVL9-1B9E → D12 → `project/design/D12.md`
 - R-ZWT5-F303 → D12 → `project/design/D12.md`
