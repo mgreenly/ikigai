@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{.Service}}</title>
+    <link rel="stylesheet" href="/srv/ledger/static/tokens.css">
+    <style>
+      html {
+        min-height: 100%;
+        background: var(--color-bg);
+        color: var(--color-text);
+        font-family: var(--font-body);
+      }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+      }
+
+      main {
+        min-height: 100vh;
+        box-sizing: border-box;
+        display: grid;
+        place-items: center;
+        padding: var(--space-16) var(--layout-gutter);
+      }
+
+      .landing {
+        width: min(100%, var(--layout-max-width));
+        text-align: center;
+      }
+
+      .service-name {
+        margin: 0;
+        color: var(--color-text);
+        font-family: var(--font-display);
+        font-size: var(--text-display-size);
+        line-height: var(--text-display-lh);
+        font-weight: var(--text-display-weight);
+        letter-spacing: 0;
+      }
+
+      .version-label {
+        margin: var(--space-4) 0 0;
+        color: var(--color-text-muted);
+        font-family: var(--font-mono);
+        font-size: var(--text-label-size);
+        line-height: var(--text-label-lh);
+        font-weight: var(--text-label-weight);
+        letter-spacing: 0;
+        text-transform: uppercase;
+      }
+
+      @media (max-width: 640px) {
+        main {
+          padding-inline: var(--space-6);
+        }
+
+        .service-name {
+          font-size: var(--text-h1-size);
+          line-height: var(--text-h1-lh);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="landing" aria-label="{{.Service}}">
+        <h1 class="service-name">{{.Service}}</h1>
+        <p class="version-label">Version {{.Version}}</p>
+      </section>
+    </main>
+  </body>
+</html>

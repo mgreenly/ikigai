@@ -21,6 +21,7 @@ import (
 	"ledger/internal/db"
 	"ledger/internal/ledger"
 	"ledger/internal/mcp"
+	"ledger/internal/web"
 
 	"eventplane/outbox"
 )
@@ -64,6 +65,11 @@ func main() {
 				return fmt.Errorf("ledger: no DB handle on router")
 			}
 			svc = ledger.NewService(conn)
+
+			landing := web.LandingHandler(rt.Service(), rt.Version())
+			rt.Handle("GET /static/{file...}", landing)
+			rt.HandleFunc("GET /{$}", landing.ServeHTTP)
+
 			rt.Handle("POST /mcp", rt.RequireIdentity(
 				mcp.NewHandler(svc, rt.Version(), rt.Service(), rt.Health(),
 					rt.Events(), rt.Subscriptions())))
