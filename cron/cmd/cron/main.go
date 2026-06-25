@@ -25,6 +25,7 @@ import (
 	"cron/internal/event"
 	"cron/internal/mcp"
 	"cron/internal/tick"
+	"cron/internal/web"
 
 	"eventplane/outbox"
 )
@@ -70,6 +71,8 @@ func main() {
 				return fmt.Errorf("cron: no DB handle on router")
 			}
 			store = crontab.NewStore(conn)
+			rt.Handle("GET /{$}", web.LandingHandler(rt.Service(), rt.Version()))
+			rt.Handle("GET /static/", web.StaticHandler())
 			rt.Handle("POST /mcp", rt.RequireIdentity(
 				mcp.NewHandler(store, rt.Version(), rt.Service(), rt.Health(),
 					rt.Publishes(), rt.Subscriptions())))

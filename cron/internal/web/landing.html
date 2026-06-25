@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.Service}} · cron</title>
+  <link rel="stylesheet" href="/static/tokens.css">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--color-text);
+      background: var(--color-bg);
+      font-family: var(--font-body);
+      font-size: var(--text-body-size);
+      line-height: var(--text-body-lh);
+    }
+
+    main {
+      width: min(100% - 32px, 960px);
+      min-height: 100vh;
+      margin: 0 auto;
+      padding: var(--space-16) 0;
+      display: grid;
+      align-content: center;
+      gap: var(--space-12);
+    }
+
+    .eyebrow,
+    .version,
+    dt {
+      font-family: var(--font-mono);
+      font-size: var(--text-label-size);
+      line-height: var(--text-label-lh);
+      font-weight: var(--text-label-weight);
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+    }
+
+    h1 {
+      margin: var(--space-3) 0 0;
+      font-family: var(--font-display);
+      font-size: clamp(40px, 8vw, var(--text-display-size));
+      line-height: var(--text-display-lh);
+      font-weight: var(--text-display-weight);
+      letter-spacing: 0;
+    }
+
+    p {
+      max-width: 680px;
+      margin: var(--space-6) 0 0;
+      color: var(--color-text-muted);
+      font-size: var(--text-body-lg-size);
+      line-height: var(--text-body-lg-lh);
+    }
+
+    dl {
+      margin: 0;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      border-top: var(--border-width) solid var(--color-border);
+      border-bottom: var(--border-width) solid var(--color-border);
+    }
+
+    dl > div {
+      min-width: 0;
+      padding: var(--space-6) var(--space-4);
+      border-left: var(--border-width) solid var(--color-border);
+    }
+
+    dl > div:first-child {
+      border-left: 0;
+    }
+
+    dd {
+      margin: var(--space-2) 0 0;
+      overflow-wrap: anywhere;
+      font-size: var(--text-body-lg-size);
+      line-height: var(--text-body-lg-lh);
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: 0.95em;
+    }
+
+    @media (max-width: 720px) {
+      main {
+        padding: var(--space-12) 0;
+      }
+
+      dl {
+        grid-template-columns: 1fr;
+      }
+
+      dl > div {
+        border-left: 0;
+        border-top: var(--border-width) solid var(--color-border);
+      }
+
+      dl > div:first-child {
+        border-top: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section aria-labelledby="page-title">
+      <div class="eyebrow">Scheduled event emitter</div>
+      <h1 id="page-title">{{.Service}}</h1>
+      <p>Cron keeps named schedules in SQLite and emits typed event-plane messages at minute boundaries.</p>
+    </section>
+
+    <dl aria-label="Service details">
+      <div>
+        <dt>Service</dt>
+        <dd>{{.Service}}</dd>
+      </div>
+      <div>
+        <dt>Version</dt>
+        <dd class="version">{{.Version}}</dd>
+      </div>
+      <div>
+        <dt>API</dt>
+        <dd><code>POST /mcp</code></dd>
+      </div>
+    </dl>
+  </main>
+</body>
+</html>
