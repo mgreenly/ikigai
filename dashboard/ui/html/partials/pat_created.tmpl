@@ -4,27 +4,44 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Token created · ikigenba dashboard</title>
+  <link rel="stylesheet" href="/static/tokens.css">
   <link rel="stylesheet" href="/static/app.css">
   <script src="/static/app.js" defer></script>
 </head>
 <body>
   <header class="banner">
-    <h1>ikigenba</h1>
+    <p class="wordmark">ikigenba</p>
   </header>
 
-  <main class="content-block">
-    <section class="pat-created">
-      <h2>Token created</h2>
-      <p class="pat-created-label">Label: <strong>{{.Label}}</strong></p>
-      <p class="pat-created-notice">This is the only time you'll see this token — copy it now. After you leave this page it cannot be recovered or shown again.</p>
-      <pre class="snippet"><code>{{.Secret}}</code></pre>
-      <button type="button" class="copy-btn" data-copy-target="prev">Copy</button>
-      <p class="pat-created-done"><a href="/">Done</a></p>
+  <main class="page">
+    <section class="token-reveal">
+      <h1>Token created</h1>
+      <p class="label-line"><span class="label">Label</span> &nbsp;<strong>{{.Label}}</strong></p>
+
+      <div class="alert" role="alert">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><path d="M12 16h.01"/></svg>
+        <div>
+          <div class="title">Copy this now — it won't be shown again</div>
+          <div class="body">This is the only time the token is displayed. After you leave this page it cannot be recovered or shown again.</div>
+        </div>
+      </div>
+
+      <div class="snippet">
+        <code>{{.Secret}}</code>
+        <button type="button" class="copy-btn" aria-label="Copy token">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+          <span class="copy-label">Copy</span>
+        </button>
+      </div>
+
+      <p class="token-done"><a href="/" class="btn btn-secondary">Done</a></p>
     </section>
   </main>
 
-  <footer class="site-footer">
-    <small>ikigenba</small>
-  </footer>
+  <footer class="site-footer">ikigenba</footer>
 </body>
 </html>{{end}}

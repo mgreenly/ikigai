@@ -1,256 +1,319 @@
-/* dashboard styles — adapted from ../crm.bak/ui/static/css/design.css.
-   The design tokens and chrome (banner, identity stack, buttons, footer) are
-   shared with the crm reference; the grants/install component styles below are
-   dormant until the Phase 2 markup that uses them lands. */
+/* dashboard styles — Carbon design system.
+   Every rule references the semantic tokens from tokens.css (--color-*,
+   --space-*, --radius-*, …) — no hard-coded colors, spacing, radii, or z-index.
+   Blue (--color-accent) is the only signal color; red (--color-error) is
+   reserved for destructive actions; everything else is neutral gray. */
 
-:root {
-  --bg: #f7f7f5;
-  --fg: #1a1a1a;
-  --muted: #5b5b5b;
-  --accent: #1a4f8a;
-  --border: #d8d8d4;
-  --card: #ffffff;
-}
-
-* { box-sizing: border-box; }
+*, *::before, *::after { box-sizing: border-box; }
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-  background: var(--bg);
-  color: var(--fg);
-  line-height: 1.5;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-lh);
+  -webkit-font-smoothing: antialiased;
 }
 
+a { color: var(--color-accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ---- Layout ------------------------------------------------------------ */
+/* Single centered console column. Narrower than the 1120px design max — this
+   is a focused control plane with thin lists, not a wide dashboard. */
+.page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-6) var(--space-16);
+}
+
+/* ---- Banner ------------------------------------------------------------ */
 .banner {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: center;
-  max-width: 56rem;
-  margin: 2px auto 0 auto;
-  padding: 1rem 2rem;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  gap: var(--space-4);
+  max-width: 760px;
+  margin: 0 auto;
+  padding: var(--space-4) var(--space-6);
+  border-bottom: var(--border-width) solid var(--color-border);
 }
 
-.banner h1 {
-  font-size: 1.25rem;
+.banner .wordmark {
+  font-family: var(--font-display);
+  font-size: var(--text-h3-size);
+  font-weight: var(--text-h3-weight);
+  letter-spacing: 0;
   margin: 0;
-  letter-spacing: 0.01em;
 }
 
-.identity-action-stack {
+.identity {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 
-.signed-in-email {
-  color: var(--muted);
-  font-size: 0.9rem;
+.identity .owner {
+  font-family: var(--font-mono);
+  font-size: var(--text-small-size);
+  color: var(--color-text-muted);
 }
 
-button, .signin-link {
-  font: inherit;
-  padding: 0.4rem 0.85rem;
-  border: 1px solid var(--border);
-  background: var(--card);
-  color: var(--fg);
-  cursor: pointer;
-  border-radius: 4px;
-  text-decoration: none;
+.identity form { margin: 0; }
+
+/* ---- Buttons ----------------------------------------------------------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
+  height: var(--control-h-md); padding: 0 var(--space-4);
+  font-family: var(--font-body); font-size: var(--text-body-size); font-weight: 600;
+  border-radius: var(--radius); border: var(--border-width) solid transparent;
+  background: none; color: inherit; cursor: pointer; white-space: nowrap;
+  transition: background var(--duration-fast) var(--ease-standard),
+              border-color var(--duration-fast) var(--ease-standard),
+              color var(--duration-fast) var(--ease-standard),
+              transform var(--duration-fast) var(--ease-standard);
 }
+.btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--color-accent-weak); }
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn:disabled:active { transform: none; }
+.btn-sm { height: var(--control-h-sm); padding: 0 var(--space-3); font-size: var(--text-small-size); }
+.btn-lg { height: var(--control-h-lg); padding: 0 var(--space-6); }
 
-button:hover, .signin-link:hover { border-color: var(--accent); }
+/* Primary — the one place blue fills. */
+.btn-primary { background: var(--color-accent); color: var(--color-accent-fg); }
+.btn-primary:hover { background: var(--accent-700); }
 
-:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+/* Secondary — neutral, bordered. */
+.btn-secondary { background: var(--color-surface); color: var(--color-text);
+                 border-color: var(--color-border-strong); }
+.btn-secondary:hover { background: var(--color-surface-2); }
+
+/* Ghost — text only. */
+.btn-ghost { background: transparent; color: var(--color-text-muted); }
+.btn-ghost:hover { background: var(--color-surface-2); color: var(--color-text); }
+
+/* Danger-ghost — restrained destructive: neutral until intent, then red.
+   Used for Revoke / Sign out so the lists aren't a wall of red fills, while
+   still honoring "red is reserved for destructive". */
+.btn-danger-ghost { background: transparent; color: var(--color-text-muted);
+                    border-color: var(--color-border); }
+.btn-danger-ghost:hover { background: var(--color-error-weak); color: var(--color-error);
+                          border-color: var(--error-300); }
+.btn-danger-ghost:focus-visible { box-shadow: 0 0 0 3px var(--color-error-weak); }
+
+/* Accent link styled as a button (the Sign-in CTA). */
+.btn-accent-link { text-decoration: none; }
+.btn-accent-link:hover { text-decoration: none; }
+
+/* ---- Form controls ----------------------------------------------------- */
+.input {
+  height: var(--control-h-md); padding: 0 var(--space-3);
+  font-family: var(--font-body); font-size: var(--text-body-size); color: var(--color-text);
+  background: var(--color-bg); border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius);
+  transition: border-color var(--duration-fast) var(--ease-standard),
+              box-shadow var(--duration-fast) var(--ease-standard);
 }
+.input::placeholder { color: var(--color-text-subtle); }
+.input:focus { outline: none; border-color: var(--color-accent);
+               box-shadow: 0 0 0 3px var(--color-accent-weak); }
 
-.content-block {
-  max-width: 56rem;
-  margin: 2rem auto;
-  padding: 0 2rem;
+/* ---- Sections ---------------------------------------------------------- */
+.section { margin-top: var(--space-12); }
+.section:first-of-type { margin-top: var(--space-8); }
+
+.section-head {
+  display: flex; align-items: baseline; gap: var(--space-3);
+  margin-bottom: var(--space-4);
 }
-
-/* The two labeled install one-pasters (Claude Code / Codex) on the landing. */
-.connect-choice {
-  margin-top: 1rem;
-}
-
-.connect-choice h4 {
-  margin: 0 0 0.25rem;
-  font-size: 0.95rem;
-}
-
-/* --- Phase 2 components (grants + install) — dormant until their markup lands --- */
-
-.agents-list {
-  list-style: none;
-  padding: 0;
+.section-head h2 {
+  font-family: var(--font-display);
+  font-size: var(--text-h3-size);
+  font-weight: var(--text-h3-weight);
+  letter-spacing: 0;
   margin: 0;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--card);
+}
+.section-head .rule { flex: 1; height: 1px; background: var(--color-border); }
+.section-intro {
+  color: var(--color-text-muted);
+  font-size: var(--text-small-size);
+  margin: 0 0 var(--space-4);
 }
 
-.agent-row {
+/* Live indicator — accent dot driven by the SSE connection state (app.js
+   toggles .is-live). Default (no JS / disconnected) is a neutral dot. */
+.live-dot {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  font-family: var(--font-mono); font-size: var(--text-label-size);
+  font-weight: var(--text-label-weight); text-transform: uppercase;
+  letter-spacing: .08em; color: var(--color-text-subtle);
+}
+.live-dot::before {
+  content: ""; width: 8px; height: 8px; border-radius: var(--radius-pill);
+  background: var(--color-text-subtle);
+  transition: background var(--duration-base) var(--ease-standard);
+}
+.live-dot.is-live { color: var(--color-accent); }
+.live-dot.is-live::before { background: var(--color-accent); }
+
+/* ---- Token / client / service lists ------------------------------------ */
+/* Shared list chrome: hairline-bordered surface, one row per item. */
+.list {
+  list-style: none; margin: 0; padding: 0;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  overflow: hidden;
+}
+.row {
   display: grid;
   grid-template-columns: 1fr auto auto;
   align-items: center;
-  gap: 1rem;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--border);
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+.row:last-child { border-bottom: none; }
+.row .name { font-weight: 600; }
+.row .meta {
+  font-family: var(--font-mono); font-size: var(--text-label-size);
+  color: var(--color-text-subtle);
+}
+.row form { margin: 0; }
+
+/* Empty state — muted dashed placeholder. */
+.empty {
+  padding: var(--space-4);
+  color: var(--color-text-muted);
+  font-size: var(--text-small-size);
+  border: var(--border-width) dashed var(--color-border-strong);
+  border-radius: var(--radius-lg);
 }
 
-.agent-row:last-child { border-bottom: none; }
+/* ---- PAT create row ---------------------------------------------------- */
+.create-form {
+  display: flex; gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+.create-form .input { flex: 1; }
 
-.agent-label { font-weight: 500; }
-.agent-last-used { color: var(--muted); font-size: 0.85rem; }
-
-.agents-empty {
-  padding: 1rem;
-  color: var(--muted);
-  border: 1px dashed var(--border);
-  border-radius: 6px;
-  background: var(--card);
+/* ---- Connect / install snippets ---------------------------------------- */
+.connect-choice { margin-top: var(--space-4); }
+.connect-choice:first-child { margin-top: 0; }
+.connect-choice h3 {
+  font-family: var(--font-mono); font-size: var(--text-label-size);
+  font-weight: var(--text-label-weight); text-transform: uppercase;
+  letter-spacing: .08em; color: var(--color-text-subtle);
+  margin: 0 0 var(--space-2);
 }
 
-/* Section titles on the logged-in index — uniform size with a gap before each. */
-.pats h2,
-.grants h2,
-.connect-agent h2,
-.services h2 {
-  font-size: 1.1rem;
-  margin: 1.5rem 0 1rem;
+/* A code snippet with an inline copy button. */
+.snippet {
+  display: flex; align-items: stretch; gap: 0;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface-2);
+  overflow: hidden;
 }
-
-.grants-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--card);
+.snippet code {
+  flex: 1; min-width: 0;
+  padding: var(--space-3) var(--space-4);
+  font-family: var(--font-mono); font-size: var(--text-small-size);
+  color: var(--color-text);
+  overflow-x: auto; white-space: nowrap;
 }
-
-.grant-row {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--border);
+.copy-btn {
+  flex-shrink: 0;
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  padding: 0 var(--space-3);
+  border: none; border-left: var(--border-width) solid var(--color-border);
+  background: var(--color-surface);
+  font-family: var(--font-body); font-size: var(--text-small-size); font-weight: 600;
+  color: var(--color-text-muted); cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-standard),
+              color var(--duration-fast) var(--ease-standard);
 }
+.copy-btn:hover { background: var(--color-surface-2); color: var(--color-text); }
+.copy-btn:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--color-accent-weak); }
+.copy-btn.is-copied { color: var(--color-accent); }
+.copy-btn .icon { width: var(--icon-sm); height: var(--icon-sm); }
 
-.grant-row:last-child { border-bottom: none; }
-
-.grant-label { font-weight: 500; }
-.grant-last-used { color: var(--muted); font-size: 0.85rem; }
-
-.grants-empty {
-  padding: 1rem;
-  color: var(--muted);
-  border: 1px dashed var(--border);
-  border-radius: 6px;
-  background: var(--card);
-}
-
-/* The bottom LIST table: the box's MCP services as raw name/url rows. */
+/* ---- Services table ---------------------------------------------------- */
 .services-table {
-  width: 100%;
-  border-collapse: collapse;
-  border: 1px solid var(--border);
-  background: var(--card);
+  width: 100%; border-collapse: collapse;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  font-size: var(--text-body-size);
 }
-
-.services-table th,
-.services-table td {
-  text-align: left;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--border);
+.services-table th, .services-table td {
+  text-align: left; padding: var(--space-3) var(--space-4);
+  border-bottom: var(--border-width) solid var(--color-border);
 }
-
-.services-table td {
-  font-family: ui-monospace, "Menlo", "Consolas", monospace;
-  font-size: 0.85rem;
+.services-table tbody tr:last-child td { border-bottom: none; }
+.services-table th {
+  font-family: var(--font-mono); font-size: var(--text-label-size); font-weight: 500;
+  text-transform: uppercase; letter-spacing: .08em; color: var(--color-text-subtle);
+  background: var(--color-surface);
 }
+.services-table td { font-family: var(--font-mono); font-size: var(--text-small-size); }
+.services-table tbody tr:hover { background: var(--color-surface-2); }
 
-/* Personal access tokens block on the logged-in index. Styled like the
-   live-grants list (D9). */
-.pats-intro {
-  color: var(--muted);
-  font-size: 0.9rem;
-  margin: 0 0 1rem;
+/* ---- Sign-in wall (logged out) ----------------------------------------- */
+.signin-wall {
+  min-height: 60vh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; gap: var(--space-6);
+  padding: var(--space-12) var(--space-6);
 }
-
-.pat-create {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-}
-
-.pat-create input {
-  flex: 1;
-  padding: 0.4rem 0.6rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--card);
-  color: inherit;
-  font: inherit;
-}
-
-.pats-list {
-  list-style: none;
-  padding: 0;
+.signin-wall h1 {
+  font-family: var(--font-display);
+  font-size: var(--text-h1-size); line-height: var(--text-h1-lh);
+  font-weight: var(--text-h1-weight); letter-spacing: -.02em;
   margin: 0;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--card);
+}
+.signin-wall p {
+  color: var(--color-text-muted);
+  font-size: var(--text-body-lg-size); line-height: var(--text-body-lg-lh);
+  max-width: 420px; margin: 0;
 }
 
-.pat-row {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--border);
+/* ---- Show-once token page ---------------------------------------------- */
+.token-reveal { margin-top: var(--space-8); }
+.token-reveal h1 {
+  font-family: var(--font-display);
+  font-size: var(--text-h2-size); line-height: var(--text-h2-lh);
+  font-weight: var(--text-h2-weight); letter-spacing: -.02em;
+  margin: 0 0 var(--space-4);
+}
+.token-reveal .label-line { margin: 0 0 var(--space-4); }
+.token-reveal .label-line .label {
+  font-family: var(--font-mono); font-size: var(--text-label-size);
+  text-transform: uppercase; letter-spacing: .08em; color: var(--color-text-subtle);
 }
 
-.pat-row:last-child { border-bottom: none; }
-
-.pat-label { font-weight: 500; }
-.pat-created { color: var(--muted); font-size: 0.85rem; }
-
-.pats-empty {
-  padding: 1rem;
-  color: var(--muted);
-  border: 1px dashed var(--border);
-  border-radius: 6px;
-  background: var(--card);
+/* Alert — the show-once warning. Neutral (informational), not an error. */
+.alert {
+  display: flex; gap: var(--space-3); padding: var(--space-4);
+  border-radius: var(--radius); border: var(--border-width) solid var(--color-border);
+  background: var(--color-surface);
+  margin-bottom: var(--space-4);
 }
+.alert .icon { flex-shrink: 0; width: var(--icon-md); height: var(--icon-md);
+               color: var(--color-text-muted); margin-top: 2px; }
+.alert .title { font-weight: 600; }
+.alert .body { font-size: var(--text-small-size); color: var(--color-text-muted); }
 
-/* Show-once token confirmation page. */
-.pat-created h2 {
-  font-size: 1.1rem;
-  margin: 0 0 1rem;
-}
+.token-done { margin-top: var(--space-6); }
 
-.pat-created-notice {
-  color: var(--muted);
-  font-size: 0.9rem;
-  margin: 0 0 0.75rem;
-}
-
-.pat-created-done {
-  margin-top: 1.5rem;
-}
-
+/* ---- Footer ------------------------------------------------------------ */
 .site-footer {
+  margin-top: var(--space-16);
+  padding-top: var(--space-6);
+  border-top: var(--border-width) solid var(--color-border);
   text-align: center;
-  padding: 2rem;
-  color: var(--muted);
+  font-family: var(--font-mono); font-size: var(--text-label-size);
+  color: var(--color-text-subtle);
 }

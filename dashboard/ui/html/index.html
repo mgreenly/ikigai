@@ -4,73 +4,110 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ikigenba dashboard</title>
+  <link rel="stylesheet" href="/static/tokens.css">
   <link rel="stylesheet" href="/static/app.css">
   <script src="/static/app.js" defer></script>
 </head>
 <body>
+{{if .Owner}}
   <header class="banner">
-    <h1>Ikigenba</h1>
-    <nav class="identity-action-stack">
-      {{if .Owner}}
-        <span class="signed-in-email">{{.Owner}}</span>
-        <form method="POST" action="/logout">
-          <button type="submit">Sign out</button>
-        </form>
-      {{else}}
-        <a href="/login" class="signin-link">Sign in</a>
-      {{end}}
+    <p class="wordmark">ikigenba</p>
+    <nav class="identity">
+      <span class="owner">{{.Owner}}</span>
+      <form method="POST" action="/logout">
+        <button type="submit" class="btn btn-danger-ghost btn-sm">Sign out</button>
+      </form>
     </nav>
   </header>
 
-  <main class="content-block">
-    {{if .Owner}}
-      <section class="pats">
-        <h2>Personal Access Tokens</h2>
-        <p class="pats-intro">Mint a long lived token to authenticate agents.</p>
-        <form method="POST" action="/pat" class="pat-create">
-          <input type="text" name="label" maxlength="48" placeholder="Label (e.g. Codex on laptop)" aria-label="Token label" required>
-          <button type="submit">Create</button>
-        </form>
-        {{template "pat_block" .PATs}}
-      </section>
-      <section class="grants">
-        <h2>Connected MCP Clients</h2>
-        <div id="grants-block" data-stream="/grants/stream" data-fragment="/grants/fragment">
-          {{template "grants_block" .Grants}}
+  <main class="page">
+    <section class="section">
+      <div class="section-head">
+        <h2>Personal access tokens</h2>
+        <span class="rule"></span>
+      </div>
+      <p class="section-intro">Mint a long-lived token to authenticate agents that connect directly.</p>
+      <form method="POST" action="/pat" class="create-form">
+        <input class="input" type="text" name="label" maxlength="48"
+               placeholder="Label (e.g. Codex on laptop)" aria-label="Token label" required>
+        <button type="submit" class="btn btn-primary">Create</button>
+      </form>
+      {{template "pat_block" .PATs}}
+    </section>
+
+    <section class="section grants">
+      <div class="section-head">
+        <h2>Connected MCP clients</h2>
+        <span class="rule"></span>
+        <span class="live-dot" id="grants-live" title="Updates in real time">live</span>
+      </div>
+      <div id="grants-block" data-stream="/grants/stream" data-fragment="/grants/fragment">
+        {{template "grants_block" .Grants}}
+      </div>
+    </section>
+
+    <section class="section connect-agent" aria-label="Connect your coding agent">
+      <div class="section-head">
+        <h2>Connect your agent</h2>
+        <span class="rule"></span>
+      </div>
+      <p class="section-intro">Paste the line for your agent into its terminal to wire this box's MCP services into your install.</p>
+      <div class="connect-choice">
+        <h3>Claude Code</h3>
+        <div class="snippet">
+          <code>curl -fsSL {{.Scheme}}://{{.Host}}/install/claude | bash</code>
+          <button type="button" class="copy-btn" aria-label="Copy command">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+            <span class="copy-label">Copy</span>
+          </button>
         </div>
-      </section>
-      <section class="connect-agent" aria-label="Connect your coding agent">
-        <h2>Connect Your Coding Agent</h2>
-        <p>Paste the line for your agent into its terminal to wire this box's MCP services into your install:</p>
-        <div class="connect-choice">
-          <h4>Claude Code</h4>
-          <pre class="connect-command"><code>curl -fsSL {{.Scheme}}://{{.Host}}/install/claude | bash</code></pre>
+      </div>
+      <div class="connect-choice">
+        <h3>Codex</h3>
+        <div class="snippet">
+          <code>curl -fsSL {{.Scheme}}://{{.Host}}/install/codex | bash</code>
+          <button type="button" class="copy-btn" aria-label="Copy command">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+            <span class="copy-label">Copy</span>
+          </button>
         </div>
-        <div class="connect-choice">
-          <h4>Codex</h4>
-          <pre class="connect-command"><code>curl -fsSL {{.Scheme}}://{{.Host}}/install/codex | bash</code></pre>
-        </div>
-      </section>
-      {{if .Services}}
-      <section class="services" aria-label="MCP services">
-        <h2>All MCP Services</h2>
-        <table class="services-table">
-          <thead>
-            <tr><th>name</th><th>url</th></tr>
-          </thead>
-          <tbody>
-            {{range .Services}}
-            <tr><td>{{.Name}}</td><td>{{.URL}}</td></tr>
-            {{end}}
-          </tbody>
-        </table>
-      </section>
-      {{end}}
+      </div>
+    </section>
+
+    {{if .Services}}
+    <section class="section services" aria-label="MCP services">
+      <div class="section-head">
+        <h2>All MCP services</h2>
+        <span class="rule"></span>
+      </div>
+      <p class="section-intro">The raw resource URLs, for wiring any other MCP client by hand.</p>
+      <table class="services-table">
+        <thead>
+          <tr><th>name</th><th>url</th></tr>
+        </thead>
+        <tbody>
+          {{range .Services}}
+          <tr><td>{{.Name}}</td><td>{{.URL}}</td></tr>
+          {{end}}
+        </tbody>
+      </table>
+    </section>
     {{end}}
   </main>
 
-  <footer class="site-footer">
-    <small>{{.Host}}</small>
-  </footer>
+  <footer class="site-footer">{{.Host}}</footer>
+{{else}}
+  <main class="signin-wall">
+    <p class="wordmark" style="font-family: var(--font-display); font-size: var(--text-h3-size); font-weight: var(--text-h3-weight); margin: 0;">ikigenba</p>
+    <h1>Your account's control plane</h1>
+    <p>Sign in to manage access tokens, connected agents, and the box's MCP services.</p>
+    <a href="/login" class="btn btn-primary btn-lg btn-accent-link">Sign in with Google</a>
+  </main>
+  <footer class="site-footer">{{.Host}}</footer>
+{{end}}
 </body>
 </html>

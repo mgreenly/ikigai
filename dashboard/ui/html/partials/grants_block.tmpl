@@ -1,17 +1,17 @@
 {{define "grants_block"}}
   {{if .}}
-    <ul class="grants-list">
+    <ul class="list grants-list">
       {{range .}}
-        <li class="grant-row">
-          <span class="grant-label">{{.Label}}</span>
-          <span class="grant-last-used" title="{{.LastUsedISO}}">{{.LastUsedRel}}</span>
+        <li class="row grant-row">
+          <span class="name">{{.Label}}</span>
+          <span class="meta" title="{{.LastUsedISO}}">{{.LastUsedRel}}</span>
           <form method="POST" action="/grants/{{.PublicID}}/revoke" class="grant-revoke">
-            <button type="submit">Revoke</button>
+            <button type="submit" class="btn btn-danger-ghost btn-sm">Revoke</button>
           </form>
         </li>
       {{end}}
     </ul>
   {{else}}
-    <p class="grants-empty">No MCP clients connected yet.</p>
+    <p class="empty grants-empty">No MCP clients connected yet.</p>
   {{end}}
 {{end}}
