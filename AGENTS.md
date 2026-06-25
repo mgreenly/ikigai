@@ -39,6 +39,10 @@ specifics live in the folders below and in `docs/`.
 | **dropbox** | Path-routed service `/srv/dropbox/` — keeps a private local mirror in sync with a single Dropbox app folder; loopback daemon + event-plane **producer**. |
 | **prompts** | Path-routed service `/srv/prompts/` — runs sandboxed Claude agent sessions on the owner's behalf, exposed as MCP; event-plane **producer** + **consumer** (self-chaining). |
 | **wiki** | Path-routed service `/srv/wiki/` — knowledge base: ingest / search / ask (RAG) + MCP. |
+| **cron** | Path-routed service `/srv/cron/` — loopback scheduled-event emitter; event-plane **producer** (emits scheduled tick events). |
+| **gmail** | Path-routed service `/srv/gmail/` — loopback Gmail connector + MCP; event-plane **producer**. |
+| **scripts** | Path-routed service `/srv/scripts/` — runs deterministic Python scripts wired to suite events; event-plane **consumer** + **producer** (completion events). |
+| **sites** | Path-routed service `/srv/sites/` — loopback static-website host (file-backed) + MCP. |
 | **appkit** | Shared Go **chassis** library: config-from-env, migration runner + downgrade guard, loopback server, `/feed`, manifest emit/parse, the verb dispatcher (consumed via a committed `replace`). |
 | **eventplane** | Shared Go **library** — the event-plane producer/consumer plumbing (committed `replace`). |
 | **agentkit** | Shared Go **library** for the agent-backed services (prompts/dropbox/wiki). |
@@ -47,9 +51,9 @@ specifics live in the folders below and in `docs/`.
 | **nginx** | Local-dev front door on **:8080** mirroring the prod `/srv/<svc>/` routing (`./run`). |
 | **docs** | Suite-level docs: the deployment ADR, versioning how-to, runbooks, and the event-plane protocol write-ups. |
 
-The seven deployable apps are **dashboard, crm, ledger, notify, dropbox, prompts,
-wiki**; `appkit`/`eventplane`/`agentkit` and `opsctl` are libraries/tooling and
-are **not** versioned. The root `go.work` wires the modules for local dev; the
+The eleven deployable apps are **dashboard, crm, ledger, notify, dropbox,
+prompts, wiki, cron, gmail, scripts, sites**; `appkit`/`eventplane`/`agentkit`
+and `opsctl` are libraries/tooling and are **not** versioned. The root `go.work` wires the modules for local dev; the
 production build forces `GOWORK=off`.
 
 ## Working locally
@@ -86,49 +90,15 @@ prominently** — don't proceed as if testing succeeded — then continue with
 whatever parts of the work are still doable. A missing MCP usually just means the
 suite isn't up (run `bin/start`).
 
-## Deploying — bump → ship → stage → deploy
+## Deploying
 
-> ⚠️ **`int.ikigenba.com` is the live account.** Do **not** run any of the steps
-> below — or otherwise `ssh int` / invoke `opsctl` against the box, even
-> read-only — unless you've been **explicitly told to deploy**. The default
-> workflow is local-only (`bin/start`); deploying is a separate, explicit
-> request.
+> ⚠️ **`int.ikigenba.com` is the live account.** Do **not** `ssh int` / invoke
+> `opsctl` against the box, even read-only, unless you've been **explicitly told
+> to deploy**. The default workflow is local-only (`bin/start`); deploying is a
+> separate, explicit request.
 
-We deploy to **`int.ikigenba.com`** (the first and only account, `int`). Your
-`~/.ssh/config` already has a `Host int.ikigenba.com` (alias `int`) entry pinning
-the right key, so `ssh int` and the deploy scripts connect with the correct
-identity automatically — no `-i` flag needed.
-
-Deploy ships one static binary into a versioned release dir — **not** `git push`
-and **not** an in-place overwrite. Run **both `bin/bump` and `bin/ship` from the
-`/mnt/projects/ikigai/main` worktree** — `bin/ship` builds the standing
-worktree's HEAD, so invoking it from a feature worktree would build that
-branch's possibly-stale tree. `bin/ship` now refuses to run off `main` and exits
-with an error. Four steps:
-
-1. **`bin/bump <app> <major|minor|patch>`** — advance the committed bare-SemVer
-   `<app>/VERSION` on `main` (the single source of truth) and push it. Skip if
-   the version is already where you want it.
-2. **`bin/ship <app>`** — the off-box half. Builds current `main` (HEAD) as a
-   static `linux/amd64` binary in a throwaway git worktree, `scp`s the artifact
-   to the box `/tmp`, then **prints the two box commands and stops** — it makes
-   no other change on the box.
-3. **`ssh int sudo opsctl stage <app> v<ver> --artifact /tmp/<app>-v<ver>`** —
-   preflight + SHA collision guard, place the binary into `releases/<ver>/`, and
-   delete the `/tmp` artifact on success. Stages a release without making it live.
-4. **`ssh int sudo opsctl deploy <app> v<ver>`** — regenerate `etc/manifest.env`
-   from the new binary, back up the DB if the schema advances, `migrate`, atomic
-   swap `current`, restart the unit, and prune old releases.
-
-Roll back with **`ssh int sudo opsctl rollback <app> [ver]`**. Inspect with
-`opsctl status` / `opsctl releases <app>`; follow logs with `opsctl tail <app>`.
-A brand-new service needs `opsctl setup <app>` first (and `opsctl init-box` once
-per box). After deploying a new MCP service, restart the dashboard so it
-re-reads the manifests.
-
-The full deploy model is `docs/archive/adr-deployment-redesign.md`; versioning is
-`docs/archive/versioning.md`; per-service details live under each service's own
-directory and `CLAUDE.md`.
+The full deploy runbook — the `bump → ship → stage → deploy` sequence, rollback,
+and inspection commands — lives in **`deploy.md`** at the repo root.
 
 ## Migrations — timestamped and immutable
 
