@@ -295,22 +295,29 @@ a:hover { text-decoration: underline; }
   line-height: var(--text-body-lh);
 }
 .name-origin .name-origin-lede b {
+  color: var(--color-text);
   font-weight: 600;
 }
-.name-origin-roots {
+.name-origin-parts {
   display: grid;
   gap: var(--space-4);
   margin: var(--space-4) 0 0;
+  padding-left: var(--space-4);
+  border-left: var(--border-width) solid var(--color-border);
 }
-.name-origin-roots dt {
+.name-origin-parts dt {
   font-weight: 600;
   color: var(--color-text);
 }
-.name-origin-roots dt span[lang="ja"] {
+.name-origin-parts dt .seam {
+  color: var(--color-text);
+  font-weight: 600;
+}
+.name-origin-parts dt span[lang="ja"] {
   color: var(--color-text-muted);
   font-weight: 400;
 }
-.name-origin-roots dd {
+.name-origin-parts dd {
   margin: var(--space-1) 0 0;
   color: var(--color-text-muted);
   font-size: var(--text-small-size);

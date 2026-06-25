@@ -56,18 +56,41 @@ func TestIndexLoggedOutShowsNameOriginColophon(t *testing.T) {
 		t.Fatalf("status = %d, want 200", rec.Code)
 	}
 	body := rec.Body.String()
+	aside := nameOriginAside(t, body)
 	for _, want := range []string{
 		`<aside class="name-origin" aria-label="What ikigenba means">`,
-		`<p class="name-origin-lede"><b>ikigenba</b> — where your livelihood actually gets done.</p>`,
-		`<dt>ikigai <span lang="ja">生き甲斐</span></dt>`,
-		`<dd>&ldquo;reason for being&rdquo; — the work worth doing; for you, your business.</dd>`,
-		`<dt>genba <span lang="ja">現場</span></dt>`,
-		`<dd>&ldquo;the actual place&rdquo; — the shop floor where value is really created.</dd>`,
+		`<p class="name-origin-lede"><b>ikigenba</b> — where your livelihood actually gets done. A portmanteau of two Japanese words:</p>`,
+		`<dl class="name-origin-parts">`,
+		`<dt><b class="seam">iki</b>gai <span lang="ja">生き甲斐</span></dt>`,
+		`<dd>&ldquo;reason for being&rdquo; — the work worth doing; your business.</dd>`,
+		`<dt><b class="seam">genba</b> <span lang="ja">現場</span></dt>`,
+		`<dd>&ldquo;the actual place&rdquo; — the floor where the work really happens.</dd>`,
 	} {
 		// R-DB17-ORIG
 		if !strings.Contains(body, want) {
 			t.Errorf("logged-out index missing name-origin content %q:\n%s", want, body)
 		}
+	}
+	if got := strings.Count(aside, `<p class="name-origin-lede">`); got != 1 {
+		t.Errorf("name-origin lede count = %d, want 1:\n%s", got, aside)
+	}
+	if got := strings.Count(aside, `<dl class="name-origin-parts">`); got != 1 {
+		t.Errorf("name-origin parts list count = %d, want 1:\n%s", got, aside)
+	}
+	if got := strings.Count(aside, "<dt>"); got != 2 {
+		t.Errorf("name-origin dt count = %d, want 2:\n%s", got, aside)
+	}
+	if got := strings.Count(aside, "<dd>"); got != 2 {
+		t.Errorf("name-origin dd count = %d, want 2:\n%s", got, aside)
+	}
+	if got := strings.Count(aside, `<b class="seam">`); got != 2 {
+		t.Errorf("name-origin seam count = %d, want 2:\n%s", got, aside)
+	}
+	if got := strings.Count(aside, `span lang="ja"`); got != 2 {
+		t.Errorf("name-origin Japanese span count = %d, want 2:\n%s", got, aside)
+	}
+	if strings.Contains(aside, "name-origin-roots") {
+		t.Errorf("name-origin uses stale roots class instead of parts:\n%s", aside)
 	}
 }
 
@@ -109,6 +132,20 @@ func TestIndexLoggedInOmitsNameOriginColophon(t *testing.T) {
 	if !strings.Contains(body, googleidp.StubIdentity.Email) {
 		t.Errorf("logged-in index missing owner email %q:\n%s", googleidp.StubIdentity.Email, body)
 	}
+}
+
+func nameOriginAside(t *testing.T, body string) string {
+	t.Helper()
+
+	start := strings.Index(body, `<aside class="name-origin"`)
+	if start < 0 {
+		t.Fatalf("body missing name-origin aside:\n%s", body)
+	}
+	end := strings.Index(body[start:], `</aside>`)
+	if end < 0 {
+		t.Fatalf("name-origin aside is not closed:\n%s", body[start:])
+	}
+	return body[start : start+end+len(`</aside>`)]
 }
 
 func TestIndexLoggedOutKeepsLandingOnly(t *testing.T) {
