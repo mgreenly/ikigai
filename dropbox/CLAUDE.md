@@ -25,7 +25,7 @@ transport, db + migration runner, `eventplane/outbox`, logging, ids — renamed)
 - `../../metaspot/docs/connector-and-install.md` — the suite plugin + install
   layer. A service's connector skills live in the `dashboard`'s `plugin/`, not
   here.
-- `PLAN.md` — the full dropbox design (the sync engine, crash/replay ordering,
+- `project/notes/PLAN.md` — the full dropbox design (the sync engine, crash/replay ordering,
   case-folding, the content endpoint, the events, the no-backup decision).
 - `../crm` / `../ledger` — the sibling producers that share this chassis
   (`internal/<domain>` → `/feed` outbox).
