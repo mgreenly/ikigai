@@ -2,7 +2,9 @@ package wiki_test
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 	"reflect"
 	"strings"
@@ -378,7 +380,10 @@ func TestMergeWorkerReembedsWinnerAfterCommitAndEvictsLoserVector(t *testing.T) 
 			time.Date(2026, 6, 25, 15, 0, 1, 0, time.UTC),
 			time.Date(2026, 6, 25, 15, 0, 2, 0, time.UTC),
 		),
-		wikidomain.WithPageEmbedder("merge-model", embedder),
+		wikidomain.WithPageEmbedder(
+			"merge-model",
+			llm.NewRecordingEmbedder(embedder, wikidomain.NewLLMCallStore(conns.Write), "embed-page", nil, "merge-model", 2),
+		),
 		wikidomain.WithVectorCacheUpdater(cache.Upsert),
 		wikidomain.WithVectorCacheRemover(cache.Remove),
 	)
@@ -404,6 +409,16 @@ func TestMergeWorkerReembedsWinnerAfterCommitAndEvictsLoserVector(t *testing.T) 
 	}
 	if embeddings[0].Model != "merge-model" || !reflect.DeepEqual(embeddings[0].Vec, []float32{0.25, 0.75}) {
 		t.Fatalf("winner embedding = %+v, want freshly embedded merge vector", embeddings[0])
+	}
+	if want := mergePageFingerprint("Winner Subject", "Loser fact.\nWinner fact."); embeddings[0].ContentHash != want {
+		t.Fatalf("winner content_hash = %q, want post-merge page fingerprint %q", embeddings[0].ContentHash, want)
+	}
+	calls, _, err := wikidomain.NewLLMCallStore(conns.Write).List(ctx, wikidomain.LLMCallFilter{Stage: "embed-page"}, page.Params{Limit: 10})
+	if err != nil {
+		t.Fatalf("List embed-page calls: %v", err)
+	}
+	if len(calls) != 1 || calls[0].JobID != jobID || calls[0].Stage != "embed-page" || calls[0].Err != "" {
+		t.Fatalf("embed-page calls = %+v, want one successful merge job call", calls)
 	}
 	if len(cache.removed) != 1 || cache.removed[0] != "subject-loser" {
 		t.Fatalf("cache removals = %#v, want loser removed after commit", cache.removed)
@@ -670,6 +685,11 @@ func mergeSequenceTimes(times ...time.Time) func() time.Time {
 		i++
 		return t
 	}
+}
+
+func mergePageFingerprint(title, body string) string {
+	sum := sha256.Sum256([]byte(title + "\n\n" + body))
+	return hex.EncodeToString(sum[:])
 }
 
 type mergeRecordingPageEmbedder struct {
