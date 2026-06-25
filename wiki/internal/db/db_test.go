@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"os"
 	"strings"
 	"testing"
 
@@ -110,8 +109,8 @@ func TestPhaseTwoDataModelSchema(t *testing.T) {
 	}
 }
 
-func TestPhase18MigrationsDropPagesFTSAndRecordMigration(t *testing.T) {
-	// R-PH8Z-YHNX
+func TestMigrationsCreatePagesFTSExternalContentAndBackfill(t *testing.T) {
+	// R-203P-F1ET
 	ctx := context.Background()
 	conn, err := Open(t.TempDir() + "/wiki.db")
 	if err != nil {
@@ -123,46 +122,64 @@ func TestPhase18MigrationsDropPagesFTSAndRecordMigration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadMigrations: %v", err)
 	}
-	var dropVersion int
+	var createVersion int
+	var createSQL string
 	for _, mig := range migs {
-		if strings.Contains(mig.Name, "drop_pages_fts") {
-			dropVersion = mig.Version
+		if strings.Contains(mig.Name, "create_pages_fts") {
+			createVersion = mig.Version
+			createSQL = mig.SQL
 			break
 		}
 	}
-	if dropVersion == 0 {
-		t.Fatal("drop_pages_fts migration not found in embedded migrations")
+	if createVersion == 0 {
+		t.Fatal("create_pages_fts migration not found in embedded migrations")
+	}
+	if !strings.Contains(createSQL, "content='pages'") || !strings.Contains(createSQL, "content_rowid='rowid'") {
+		t.Fatalf("create_pages_fts migration SQL = %q, want external-content pages FTS", createSQL)
+	}
+	if !strings.Contains(createSQL, "INSERT INTO pages_fts(pages_fts) VALUES('rebuild')") {
+		t.Fatalf("create_pages_fts migration SQL = %q, want rebuild backfill", createSQL)
+	}
+
+	var beforeCreate []appdb.Migration
+	for _, mig := range migs {
+		if mig.Version < createVersion {
+			beforeCreate = append(beforeCreate, mig)
+		}
+	}
+	if err := appdb.Migrate(ctx, conn, beforeCreate); err != nil {
+		t.Fatalf("Migrate before create_pages_fts: %v", err)
+	}
+	if _, err := conn.ExecContext(ctx,
+		`INSERT INTO subjects (id, name, norm_name, type) VALUES ('subject-1', 'Acme Robotics', 'acme-robotics', 'entity')`); err != nil {
+		t.Fatalf("insert subject before create_pages_fts: %v", err)
+	}
+	if _, err := conn.ExecContext(ctx,
+		`INSERT INTO pages (id, subject_id, title, body) VALUES ('page-1', 'subject-1', 'Acme Robotics', 'Tulsa launch notes')`); err != nil {
+		t.Fatalf("insert page before create_pages_fts: %v", err)
 	}
 
 	if err := appdb.Migrate(ctx, conn, migs); err != nil {
-		t.Fatalf("Migrate: %v", err)
+		t.Fatalf("Migrate through create_pages_fts: %v", err)
 	}
 
-	var tableCount int
+	var tableSQL string
 	if err := conn.QueryRowContext(ctx,
-		`SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'pages_fts'`).
-		Scan(&tableCount); err != nil {
-		t.Fatalf("count pages_fts table: %v", err)
+		`SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'pages_fts'`).
+		Scan(&tableSQL); err != nil {
+		t.Fatalf("read pages_fts schema: %v", err)
 	}
-	if tableCount != 0 {
-		t.Fatalf("pages_fts table count = %d, want 0 after drop migration", tableCount)
+	if !strings.Contains(tableSQL, "content='pages'") || !strings.Contains(tableSQL, "content_rowid='rowid'") {
+		t.Fatalf("pages_fts schema = %q, want external-content table over pages(rowid)", tableSQL)
 	}
 
-	var recorded int
+	var matches int
 	if err := conn.QueryRowContext(ctx,
-		`SELECT COUNT(*) FROM schema_migrations WHERE version = ?`, dropVersion).
-		Scan(&recorded); err != nil {
-		t.Fatalf("count recorded drop migration: %v", err)
+		`SELECT COUNT(*) FROM pages_fts WHERE pages_fts MATCH '"Tulsa"'`).
+		Scan(&matches); err != nil {
+		t.Fatalf("query rebuilt pages_fts: %v", err)
 	}
-	if recorded != 1 {
-		t.Fatalf("drop migration records = %d, want 1", recorded)
-	}
-
-	original, err := os.ReadFile("migrations/20260620185852_phase_02_data_model.sql")
-	if err != nil {
-		t.Fatalf("read original phase-02 migration: %v", err)
-	}
-	if !strings.Contains(string(original), "CREATE VIRTUAL TABLE pages_fts") {
-		t.Fatal("original phase-02 migration no longer contains the pages_fts create statement")
+	if matches != 1 {
+		t.Fatalf("rebuilt pages_fts matches = %d, want 1", matches)
 	}
 }

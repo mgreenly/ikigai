@@ -781,7 +781,31 @@ func NewPageStore(db sqlStore) *PageStore {
 }
 
 func (s *PageStore) Upsert(ctx context.Context, page Page) error {
-	_, err := s.db.ExecContext(ctx, `
+	if db, ok := s.db.(*sql.DB); ok {
+		tx, err := db.BeginTx(ctx, nil)
+		if err != nil {
+			return err
+		}
+		defer tx.Rollback()
+		if err := NewPageStore(tx).upsert(ctx, page); err != nil {
+			return err
+		}
+		return tx.Commit()
+	}
+	return s.upsert(ctx, page)
+}
+
+func (s *PageStore) upsert(ctx context.Context, page Page) error {
+	previous, found, err := s.pageFTSByID(ctx, page.ID)
+	if err != nil {
+		return err
+	}
+	if found {
+		if err := s.deletePageFTS(ctx, previous); err != nil {
+			return err
+		}
+	}
+	_, err = s.db.ExecContext(ctx, `
 		INSERT INTO pages (id, subject_id, title, body)
 		VALUES (?, ?, ?, ?)
 		ON CONFLICT(id) DO UPDATE SET
@@ -789,7 +813,17 @@ func (s *PageStore) Upsert(ctx context.Context, page Page) error {
 			title = excluded.title,
 			body = excluded.body`,
 		page.ID, page.SubjectID, page.Title, page.Body)
-	return err
+	if err != nil {
+		return err
+	}
+	current, found, err := s.pageFTSByID(ctx, page.ID)
+	if err != nil {
+		return err
+	}
+	if !found {
+		return fmt.Errorf("wiki: page %s missing after upsert", page.ID)
+	}
+	return s.insertPageFTS(ctx, current)
 }
 
 func (s *PageStore) Get(ctx context.Context, id string) (Page, error) {
@@ -813,7 +847,87 @@ func (s *PageStore) GetBySubject(ctx context.Context, subjectID string) (Page, e
 }
 
 func (s *PageStore) DeleteBySubject(ctx context.Context, subjectID string) error {
-	_, err := s.db.ExecContext(ctx, `DELETE FROM pages WHERE subject_id = ?`, subjectID)
+	if db, ok := s.db.(*sql.DB); ok {
+		tx, err := db.BeginTx(ctx, nil)
+		if err != nil {
+			return err
+		}
+		defer tx.Rollback()
+		if err := NewPageStore(tx).deleteBySubject(ctx, subjectID); err != nil {
+			return err
+		}
+		return tx.Commit()
+	}
+	return s.deleteBySubject(ctx, subjectID)
+}
+
+func (s *PageStore) deleteBySubject(ctx context.Context, subjectID string) error {
+	indexed, err := s.pageFTSBySubject(ctx, subjectID)
+	if err != nil {
+		return err
+	}
+	for _, row := range indexed {
+		if err := s.deletePageFTS(ctx, row); err != nil {
+			return err
+		}
+	}
+	_, err = s.db.ExecContext(ctx, `DELETE FROM pages WHERE subject_id = ?`, subjectID)
+	return err
+}
+
+type pageFTSRow struct {
+	rowid int64
+	title string
+	body  string
+}
+
+func (s *PageStore) pageFTSByID(ctx context.Context, id string) (pageFTSRow, bool, error) {
+	var row pageFTSRow
+	err := s.db.QueryRowContext(ctx,
+		`SELECT rowid, title, body FROM pages WHERE id = ?`, id).
+		Scan(&row.rowid, &row.title, &row.body)
+	if errors.Is(err, sql.ErrNoRows) {
+		return pageFTSRow{}, false, nil
+	}
+	if err != nil {
+		return pageFTSRow{}, false, err
+	}
+	return row, true, nil
+}
+
+func (s *PageStore) pageFTSBySubject(ctx context.Context, subjectID string) ([]pageFTSRow, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT rowid, title, body FROM pages WHERE subject_id = ? ORDER BY rowid`, subjectID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []pageFTSRow
+	for rows.Next() {
+		var row pageFTSRow
+		if err := rows.Scan(&row.rowid, &row.title, &row.body); err != nil {
+			return nil, err
+		}
+		out = append(out, row)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (s *PageStore) insertPageFTS(ctx context.Context, row pageFTSRow) error {
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO pages_fts(rowid, title, body) VALUES (?, ?, ?)`,
+		row.rowid, row.title, row.body)
+	return err
+}
+
+func (s *PageStore) deletePageFTS(ctx context.Context, row pageFTSRow) error {
+	_, err := s.db.ExecContext(ctx,
+		`INSERT INTO pages_fts(pages_fts, rowid, title, body) VALUES ('delete', ?, ?, ?)`,
+		row.rowid, row.title, row.body)
 	return err
 }
 

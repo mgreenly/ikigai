@@ -12,6 +12,7 @@ const (
 
 // Hit is one ranked wiki search result.
 type Hit struct {
+	PageID  string
 	Path    string
 	Title   string
 	Snippet string
