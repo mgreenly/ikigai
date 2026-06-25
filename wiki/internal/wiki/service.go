@@ -43,22 +43,23 @@ type Compiler interface {
 
 // Service coordinates ingest jobs and the single background integration worker.
 type Service struct {
-	write     *sql.DB
-	jobs      *JobStore
-	subjects  *SubjectStore
-	aliases   *AliasStore
-	resolver  *Resolver
-	claims    *ClaimStore
-	pages     *PageStore
-	merges    *SubjectMergeStore
-	extractor Extractor
-	compiler  Compiler
-	now       func() time.Time
-	newID     func() string
-	wake      chan struct{}
-	mu        sync.Mutex
-	cancels   map[string]*jobCancel
-	mergeMu   sync.Mutex
+	write      *sql.DB
+	jobs       *JobStore
+	subjects   *SubjectStore
+	aliases    *AliasStore
+	resolver   *Resolver
+	claims     *ClaimStore
+	pages      *PageStore
+	embeddings *EmbeddingStore
+	merges     *SubjectMergeStore
+	extractor  Extractor
+	compiler   Compiler
+	now        func() time.Time
+	newID      func() string
+	wake       chan struct{}
+	mu         sync.Mutex
+	cancels    map[string]*jobCancel
+	mergeMu    sync.Mutex
 }
 
 type jobCancel struct {
@@ -72,20 +73,21 @@ func NewService(db any, extractor Extractor, compiler Compiler, now func() time.
 	}
 	c := mustConns(db)
 	return &Service{
-		write:     c.Write,
-		jobs:      NewJobStore(c),
-		subjects:  NewSubjectStore(c.Read),
-		aliases:   NewAliasStore(c.Read),
-		resolver:  NewResolver(c.Read),
-		claims:    NewClaimStore(c.Read),
-		pages:     NewPageStore(c.Read),
-		merges:    NewSubjectMergeStore(c.Read),
-		extractor: extractor,
-		compiler:  compiler,
-		now:       now,
-		newID:     logging.NewULID,
-		wake:      make(chan struct{}, 1),
-		cancels:   map[string]*jobCancel{},
+		write:      c.Write,
+		jobs:       NewJobStore(c),
+		subjects:   NewSubjectStore(c.Read),
+		aliases:    NewAliasStore(c.Read),
+		resolver:   NewResolver(c.Read),
+		claims:     NewClaimStore(c.Read),
+		pages:      NewPageStore(c.Read),
+		embeddings: NewEmbeddingStore(c),
+		merges:     NewSubjectMergeStore(c.Read),
+		extractor:  extractor,
+		compiler:   compiler,
+		now:        now,
+		newID:      logging.NewULID,
+		wake:       make(chan struct{}, 1),
+		cancels:    map[string]*jobCancel{},
 	}
 }
 
