@@ -62,6 +62,28 @@ func (c *vectorCache) Upsert(e vectorEntry) {
 	c.entries = append(c.entries, e)
 }
 
+func (c *vectorCache) Remove(subjectID string) {
+	if c == nil {
+		return
+	}
+	subjectID = strings.TrimSpace(subjectID)
+	if subjectID == "" {
+		return
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	for i := range c.entries {
+		if c.entries[i].SubjectID != subjectID {
+			continue
+		}
+		copy(c.entries[i:], c.entries[i+1:])
+		c.entries[len(c.entries)-1] = vectorEntry{}
+		c.entries = c.entries[:len(c.entries)-1]
+		return
+	}
+}
+
 func (c *vectorCache) nearest(q []float32, k int) []Hit {
 	if c == nil || len(q) == 0 || k <= 0 {
 		return nil

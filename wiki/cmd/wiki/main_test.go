@@ -512,6 +512,91 @@ func TestBuildSpecRecordsPageEmbeddingCalls(t *testing.T) {
 	}
 }
 
+func TestBuildSpecMergeRemovesLoserVectorFromLiveCache(t *testing.T) {
+	// R-WS3C-J4QB
+	ctx := context.Background()
+	conn := migratedDB(t, ctx)
+	defer conn.Close()
+	saveBuildSpecMergeFixture(t, ctx, conn)
+
+	if err := wiki.NewEmbeddingStore(conn).Upsert(ctx, wiki.Embedding{
+		SubjectID:   "subject-loser",
+		Model:       "merge-cache-model",
+		Dims:        2,
+		Vec:         []float32{1, 0},
+		ContentHash: "old-loser",
+		UpdatedAt:   42,
+	}); err != nil {
+		t.Fatalf("seed loser embedding: %v", err)
+	}
+
+	prov := &capturingProvider{responses: []string{
+		`{"title":"Winner Subject","body":"Loser fact.\nWinner fact."}`,
+		`{"sub_queries":["meaning lane"],"keywords":[],"aliases":[]}`,
+		`{"found":true,"text":"The winner retained the merged page.","citations":[{"path":"entity/winner-subject","title":"Winner Subject"}]}`,
+	}}
+	embeds := &capturingEmbeddingProvider{vectors: [][]float32{{1, 0}}, usage: agentkit.EmbeddingUsage{InputTokens: 2, Total: 2}}
+	compileSite := compile.DefaultCallSite()
+	compileSite.Model = "merge-compile-model"
+	askSubjectSite := ask.DefaultSubjectCallSite()
+	askSubjectSite.Model = "merge-ask-subject-model"
+	askSynthesisSite := ask.DefaultSynthesisCallSite()
+	askSynthesisSite.Model = "merge-ask-synthesis-model"
+	spec := buildSpec(wiki.Config{
+		CallSites: wiki.CallSites{
+			Compile:      compileSite,
+			AskSubject:   askSubjectSite,
+			AskSynthesis: askSynthesisSite,
+		},
+		EmbedSite: wiki.EmbedSite{
+			Model:    "merge-cache-model",
+			Dims:     2,
+			Provider: embeds,
+		},
+		SearchDefault: 1,
+		LLM:           llm.New(prov, nil),
+	})
+	h := buildSpecTestHandler(t, conn, spec)
+	stopWorker, workerErr := startBuildSpecWorker(t, ctx, spec.Workers[0])
+	defer stopWorker()
+
+	var merge struct {
+		JobID string `json:"job_id"`
+	}
+	if err := json.Unmarshal([]byte(mcpToolCallText(t, h, `{
+		"jsonrpc":"2.0",
+		"id":"merge",
+		"method":"tools/call",
+		"params":{"name":"merge","arguments":{"from":"entity/loser-subject","to":"entity/winner-subject"}}
+	}`)), &merge); err != nil {
+		t.Fatalf("decode merge response: %v", err)
+	}
+	waitBuildSpecJob(t, ctx, conn, merge.JobID, wiki.JobDone, workerErr)
+
+	var answer struct {
+		Found bool `json:"found"`
+	}
+	if err := json.Unmarshal([]byte(mcpToolCallText(t, h, `{
+		"jsonrpc":"2.0",
+		"id":"ask",
+		"method":"tools/call",
+		"params":{"name":"ask","arguments":{"question":"meaning lane"}}
+	}`)), &answer); err != nil {
+		t.Fatalf("decode ask response: %v", err)
+	}
+	if !answer.Found {
+		t.Fatalf("ask response = %+v, want winner page found after loser vector eviction", answer)
+	}
+
+	calls, _, err := wiki.NewLLMCallStore(conn).List(ctx, wiki.LLMCallFilter{Stage: "embed-page"}, paging.Params{Limit: 10})
+	if err != nil {
+		t.Fatalf("List embed-page calls: %v", err)
+	}
+	if len(calls) != 1 || calls[0].JobID != merge.JobID {
+		t.Fatalf("embed-page calls = %+v, want one merge job page embedding", calls)
+	}
+}
+
 func TestBuildSpecRecordsQueryEmbeddingCalls(t *testing.T) {
 	// R-JEC4-3M6O
 	// R-NWE2-CUPE
@@ -746,6 +831,37 @@ func migratedDB(t *testing.T, ctx context.Context) *sql.DB {
 		t.Fatalf("Migrate: %v", err)
 	}
 	return conn
+}
+
+func saveBuildSpecMergeFixture(t *testing.T, ctx context.Context, conn *sql.DB) {
+	t.Helper()
+	subjects := wiki.NewSubjectStore(conn)
+	for _, subject := range []wiki.Subject{
+		{ID: "subject-loser", Name: "Loser Subject", Type: "entity"},
+		{ID: "subject-winner", Name: "Winner Subject", Type: "entity"},
+	} {
+		if err := subjects.Save(ctx, subject); err != nil {
+			t.Fatalf("Save subject %s: %v", subject.ID, err)
+		}
+	}
+	claims := wiki.NewClaimStore(conn)
+	for _, claim := range []wiki.Claim{
+		{ID: "claim-loser", SubjectID: "subject-loser", JobID: "job-existing", Body: "Loser fact."},
+		{ID: "claim-winner", SubjectID: "subject-winner", JobID: "job-existing", Body: "Winner fact."},
+	} {
+		if err := claims.Save(ctx, claim); err != nil {
+			t.Fatalf("Save claim %s: %v", claim.ID, err)
+		}
+	}
+	pages := wiki.NewPageStore(conn)
+	for _, page := range []wiki.Page{
+		{ID: "subject-loser", SubjectID: "subject-loser", Title: "Loser Subject", Body: "old loser body"},
+		{ID: "subject-winner", SubjectID: "subject-winner", Title: "Winner Subject", Body: "old winner body"},
+	} {
+		if err := pages.Upsert(ctx, page); err != nil {
+			t.Fatalf("Upsert page %s: %v", page.ID, err)
+		}
+	}
 }
 
 func buildSpecTestHandler(t *testing.T, conn *sql.DB, spec appkit.Spec) http.Handler {

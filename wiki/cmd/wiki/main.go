@@ -75,6 +75,7 @@ func buildSpec(cfg wiki.Config) appkit.Spec {
 			wiki.WithVectorCacheUpdater(func(subjectID, title string, vec []float32) {
 				vectorCache.Upsert(retrieve.VectorEntry{SubjectID: subjectID, Title: title, Vec: vec})
 			}),
+			wiki.WithVectorCacheRemover(vectorCache.Remove),
 		)
 		search := retrieve.NewHybridRetriever(
 			retrieve.NewKeywordRetriever(read),
