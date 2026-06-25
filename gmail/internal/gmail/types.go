@@ -60,12 +60,12 @@ type HistoryLabelChange struct {
 // History is one history record from users.history.list. Each carries the
 // change lists relevant to the three derived events (decisions §1 table).
 type History struct {
-	ID             string                 `json:"id"`
-	Messages       []MessageRef           `json:"messages"`
-	MessagesAdded  []HistoryMessageChange `json:"messagesAdded"`
+	ID              string                 `json:"id"`
+	Messages        []MessageRef           `json:"messages"`
+	MessagesAdded   []HistoryMessageChange `json:"messagesAdded"`
 	MessagesDeleted []HistoryMessageChange `json:"messagesDeleted"`
-	LabelsAdded    []HistoryLabelChange   `json:"labelsAdded"`
-	LabelsRemoved  []HistoryLabelChange   `json:"labelsRemoved"`
+	LabelsAdded     []HistoryLabelChange   `json:"labelsAdded"`
+	LabelsRemoved   []HistoryLabelChange   `json:"labelsRemoved"`
 }
 
 // HistoryListResult is one page of users.history.list: the history records, the

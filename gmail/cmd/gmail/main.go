@@ -23,6 +23,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"time"
 
@@ -32,6 +33,7 @@ import (
 	"gmail/internal/db"
 	gm "gmail/internal/gmail"
 	"gmail/internal/mcp"
+	"gmail/internal/web"
 
 	"eventplane/outbox"
 )
@@ -90,6 +92,8 @@ func main() {
 				Interval: interval,
 			})
 
+			rt.Handle("GET /{$}", web.LandingHandler(rt.Service(), rt.Version()))
+			rt.Handle("GET /static/", http.StripPrefix("/static/", web.StaticHandler()))
 			rt.Handle("POST /mcp", rt.RequireIdentity(
 				mcp.NewHandler(client, rt.Version(), rt.Service(), rt.Health(),
 					rt.Events(), rt.Subscriptions())))
