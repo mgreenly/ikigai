@@ -55,7 +55,7 @@ do it properly.
 
 ## Build phases
 
-We build in phases — see `docs/phases.md`. Each phase is bounded-breadth /
+We build in phases — see `project/notes/phases.md`. Each phase is bounded-breadth /
 production-depth and is **not done until it works both on localhost and deployed
 on its real DNS name (`int.ikigenba.com`) with real TLS.**
 
@@ -75,7 +75,7 @@ on its real DNS name (`int.ikigenba.com`) with real TLS.**
   `/internal/authn`, then plugin/inventory/push.
 
 Full per-phase scope, definition of done, and open decisions are in
-`docs/phases.md`.
+`project/notes/phases.md`.
 
 ## What this app is
 
