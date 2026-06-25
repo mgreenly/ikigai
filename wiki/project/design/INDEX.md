@@ -40,6 +40,7 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - D34 → `project/design/D34.md` — The embedding call site: configured and recorded like every other AI call — owns R-Z932-H2RA, R-ZAAY-UUHZ, R-ZBIV-8M8O, R-ZCQR-MDZD, R-ZDYO-05Q2
 - D35 → `project/design/D35.md` — Keeping page vectors current, in the background — owns R-6XNX-FNXO, R-6YVT-TFOD, R-703Q-77F2, R-71BM-KZ5R, R-72JI-YQWG, R-73RF-CIN5
 - D36 → `project/design/D36.md` — Preparing the question: one analysis call — owns R-QB7A-Z95U, R-QCF7-D0WJ, R-QDN3-QSN8
+- D37 → `project/design/D37.md` — Wire the recording embedder at the composition root (close the D34 gap) — owns R-LFOY-L6TZ, R-SIFE-Z88I, R-JEC4-3M6O, R-NWE2-CUPE
 
 ## Verification ids → Decision
 
@@ -171,7 +172,9 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - R-J9YL-P6K0 → D5 → `project/design/D05.md`
 - R-JCEE-GQ1E → D5 → `project/design/D05.md`
 - R-JDMA-UHS3 → D5 → `project/design/D05.md`
+- R-JEC4-3M6O → D37 → `project/design/D37.md`
 - R-JEU7-89IS → D5 → `project/design/D05.md`
+- R-LFOY-L6TZ → D37 → `project/design/D37.md`
 - R-M8RN-87WV → D4 → `project/design/D04.md`
 - R-M9ZJ-LZNK → D4 → `project/design/D04.md`
 - R-MB7F-ZRE9 → D4 → `project/design/D04.md`
@@ -200,6 +203,7 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - R-NLQW-4UYU → D26 → `project/design/D26.md`
 - R-NMYS-IMPJ → D26 → `project/design/D26.md`
 - R-NPEL-A66X → D26 → `project/design/D26.md`
+- R-NWE2-CUPE → D37 → `project/design/D37.md`
 - R-ODAP-34N6 → D24 → `project/design/D24.md`
 - R-OEIL-GWDV → D24 → `project/design/D24.md`
 - R-OFQH-UO4K → D24 → `project/design/D24.md`
@@ -216,6 +220,7 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - R-S041-427E → D3 → `project/design/D03.md`
 - R-S1BX-HTY3 → D3 → `project/design/D03.md`
 - R-S2JT-VLOS → D3 → `project/design/D03.md`
+- R-SIFE-Z88I → D37 → `project/design/D37.md`
 - R-VNS0-1Z85 → D13 → `project/design/D13.md`
 - R-VOZW-FQYU → D13 → `project/design/D13.md`
 - R-VRFP-7AG8 → D13 → `project/design/D13.md`
