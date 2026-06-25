@@ -54,7 +54,7 @@ type ValidationError struct {
 }
 
 func (e *ValidationError) Error() string { return e.Message }
-func (e *ValidationError) Unwrap() error  { return ErrValidation }
+func (e *ValidationError) Unwrap() error { return ErrValidation }
 
 // invalid builds a ValidationError with a corrective message (PLAN.md §4: the
 // message states the fix, not just the defect).

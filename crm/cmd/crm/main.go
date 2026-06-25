@@ -20,6 +20,7 @@ import (
 	"crm/internal/crm"
 	"crm/internal/db"
 	"crm/internal/mcp"
+	"crm/internal/web"
 
 	"eventplane/outbox"
 )
@@ -53,6 +54,8 @@ func main() {
 				return fmt.Errorf("crm: no DB handle on router")
 			}
 			svc = crm.NewService(conn)
+			rt.Handle("GET /{$}", web.LandingHandler(rt.Service(), rt.Version()))
+			rt.Handle("GET /static/", web.StaticHandler())
 			rt.Handle("POST /mcp", rt.RequireIdentity(
 				mcp.NewHandler(svc, rt.Version(), rt.Service(), rt.Health(),
 					rt.Events(), rt.Subscriptions())))

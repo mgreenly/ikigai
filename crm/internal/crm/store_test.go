@@ -60,4 +60,4 @@ func withTx(t *testing.T, s *Service, fn func(tx *txAlias)) {
 }
 
 func sp(s string) *string { return &s }
-func i64(n int64) *int64   { return &n }
+func i64(n int64) *int64  { return &n }
