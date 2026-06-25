@@ -46,6 +46,25 @@ func TestVectorCacheUpsertReplacesExistingSubject(t *testing.T) {
 	}
 }
 
+func TestVectorCacheRemoveEvictsSubjectFromNearestResults(t *testing.T) {
+	// R-EV2H-6RKN
+	cache := NewVectorCache()
+	cache.Replace([]vectorEntry{
+		{SubjectID: "subject-loser", Title: "Loser", Vec: []float32{1, 0}},
+		{SubjectID: "subject-winner", Title: "Winner", Vec: []float32{0.5, 0.5}},
+	})
+
+	cache.Remove(" subject-loser ")
+
+	got := cache.nearest([]float32{1, 0}, 10)
+	if len(got) != 1 {
+		t.Fatalf("nearest hits = %+v, want one remaining winner hit", got)
+	}
+	if got[0].PageID != "subject-winner" || got[0].Title != "Winner" {
+		t.Fatalf("remaining hit = %+v, want winner after loser removal", got[0])
+	}
+}
+
 func TestVectorRetrieverEmbedsQueryAndReturnsCosineTopK(t *testing.T) {
 	// R-3Z43-YDM4
 	cache := NewVectorCache()

@@ -96,3 +96,31 @@ func TestEmbeddingStoreLoadAllReturnsEveryEmbedding(t *testing.T) {
 		t.Fatalf("LoadAll = %#v, want %#v", got, want)
 	}
 }
+
+func TestEmbeddingStoreDeleteRemovesOnlyRequestedSubject(t *testing.T) {
+	// R-LP5Q-9XTD
+	ctx := context.Background()
+	conn := migratedDB(t, ctx)
+	defer conn.Close()
+
+	store := NewEmbeddingStore(conn)
+	remaining := Embedding{SubjectID: "subject-winner", Model: "model-a", Dims: 2, Vec: []float32{0.6, 0.8}, ContentHash: "hash-winner", UpdatedAt: 100}
+	deleted := Embedding{SubjectID: "subject-loser", Model: "model-a", Dims: 2, Vec: []float32{0.8, 0.6}, ContentHash: "hash-loser", UpdatedAt: 101}
+	for _, embedding := range []Embedding{remaining, deleted} {
+		if err := store.Upsert(ctx, embedding); err != nil {
+			t.Fatalf("Upsert %s: %v", embedding.SubjectID, err)
+		}
+	}
+
+	if err := store.Delete(ctx, "subject-loser"); err != nil {
+		t.Fatalf("Delete loser: %v", err)
+	}
+
+	got, err := store.LoadAll(ctx)
+	if err != nil {
+		t.Fatalf("LoadAll: %v", err)
+	}
+	if !reflect.DeepEqual(got, []Embedding{remaining}) {
+		t.Fatalf("LoadAll after Delete = %#v, want only winner embedding", got)
+	}
+}
