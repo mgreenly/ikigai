@@ -204,6 +204,81 @@ func TestProcessNextEmbedsCommittedPageAfterIngest(t *testing.T) {
 	}
 }
 
+func TestProcessNextKeepsCommittedPageDoneWhenAfterCommitEmbedFails(t *testing.T) {
+	// R-6XNX-FNXO
+	ctx := context.Background()
+	conn := migratedDB(t, ctx)
+	defer conn.Close()
+
+	embedder := &recordingPageEmbedder{
+		onEmbed: func(context.Context, []string, agentkit.InputType) error {
+			return errors.New("embed transport down")
+		},
+	}
+	svc := NewService(
+		conn,
+		&recordingExtractor{batches: [][]extract.ExtractedSubject{{
+			{
+				Type:   "entity",
+				Kind:   "company",
+				Name:   "Acme Robotics",
+				Claims: []string{"Acme Robotics opened a committed Tulsa lab."},
+			},
+		}}},
+		&recordingCompiler{},
+		sequenceTimes(
+			time.Date(2026, 6, 25, 14, 0, 0, 0, time.UTC),
+			time.Date(2026, 6, 25, 14, 0, 1, 0, time.UTC),
+			time.Date(2026, 6, 25, 14, 0, 2, 0, time.UTC),
+		),
+		WithPageEmbedder("embed-model", embedder),
+	)
+	svc.newID = sequenceIDs("job-1", "subject-1", "claim-1")
+
+	if _, err := svc.Ingest(ctx, "owner@example.com", "source", "Source", nil); err != nil {
+		t.Fatalf("Ingest: %v", err)
+	}
+	processed, err := svc.ProcessNext(ctx)
+	if err != nil {
+		t.Fatalf("ProcessNext: %v", err)
+	}
+	if !processed {
+		t.Fatal("ProcessNext processed = false, want true")
+	}
+
+	status, err := svc.JobStatus(ctx, "job-1")
+	if err != nil {
+		t.Fatalf("JobStatus: %v", err)
+	}
+	if status.Status != JobDone || status.Error != "" {
+		t.Fatalf("status = %+v, want done with no job error after post-commit embed failure", status)
+	}
+	if len(status.Subjects) != 1 || status.Subjects[0] != "subject-1" {
+		t.Fatalf("subjects = %#v, want committed subject-1", status.Subjects)
+	}
+	claims, err := svc.ClaimsBySubject(ctx, "subject-1")
+	if err != nil {
+		t.Fatalf("ClaimsBySubject: %v", err)
+	}
+	if len(claims) != 1 || claims[0].Body != "Acme Robotics opened a committed Tulsa lab." {
+		t.Fatalf("claims = %+v, want committed ingest claim", claims)
+	}
+	page, err := svc.PageBySubject(ctx, "subject-1")
+	if err != nil {
+		t.Fatalf("PageBySubject: %v", err)
+	}
+	if page.Title != "Acme Robotics" || page.Body != "Acme Robotics opened a committed Tulsa lab." {
+		t.Fatalf("page = %+v, want committed compiled page", page)
+	}
+	embeddings, err := NewEmbeddingStore(conn).LoadAll(ctx)
+	if err != nil {
+		t.Fatalf("LoadAll: %v", err)
+	}
+	if len(embeddings) != 0 {
+		t.Fatalf("embeddings = %+v, want no stored vector so catch-up can select the page", embeddings)
+	}
+}
+
 type recordingPageEmbedder struct {
 	vectors [][]float32
 	inputs  [][]string
