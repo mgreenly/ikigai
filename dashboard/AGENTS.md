@@ -44,10 +44,11 @@ that only works on the happy path, and you can't template from cut corners.
   entirely. The next version is a fresh build informed by this template, not an
   evolution of it. Generality for futures this demo won't exercise is waste —
   but that is about *breadth*, never an excuse to under-harden what is in scope.
-- **Keep the apex `/` a single hybrid page.** Logged-out = landing/install;
-  logged-in = grants/revocation layered on (what crm.bak's `index()` already
-  does). Do **not** split it into a separate IAM console — that's product-scale
-  breadth this scope rules out. The single page itself is still built to ship.
+- **Keep the apex `/` to three production-grade pages.** Logged-out users see
+  the login page. Logged-in users land on the home page with connect-your-agent
+  install instructions and the clickable service list. Clicking the owner's
+  email opens the session-gated profile page; personal-access-token and OAuth
+  grant management live there, not on the landing page.
 
 Default posture: **narrow what you build; harden everything you build.** When in
 doubt about *scope*, do less. When in doubt about *quality on something in scope*,
