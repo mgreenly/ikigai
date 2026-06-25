@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"wiki/internal/extract"
+	"wiki/internal/retrieve"
 )
 
 func TestNormalizeAppliesPathSafePipeline(t *testing.T) {
@@ -227,6 +228,61 @@ func TestMergeMintsForwardRoutingAliasForLoserName(t *testing.T) {
 	}
 	if aliasSubject != "subject-winner" {
 		t.Fatalf("alias subject = %q, want subject-winner", aliasSubject)
+	}
+}
+
+func TestLoadVectorCacheEntriesLoadsStoredPageEmbeddings(t *testing.T) {
+	ctx := context.Background()
+	conn := migratedDB(t, ctx)
+	defer conn.Close()
+
+	subjects := NewSubjectStore(conn)
+	for _, subject := range []Subject{
+		{ID: "subject-a", Name: "Alpha Lab", NormName: "alpha-lab", Type: "entity"},
+		{ID: "subject-b", Name: "Beta Lab", NormName: "beta-lab", Type: "entity"},
+	} {
+		if err := subjects.Save(ctx, subject); err != nil {
+			t.Fatalf("Save subject %s: %v", subject.ID, err)
+		}
+	}
+	pages := NewPageStore(conn)
+	if err := pages.Upsert(ctx, Page{ID: "subject-a", SubjectID: "subject-a", Title: "Alpha Lab", Body: "Alpha body"}); err != nil {
+		t.Fatalf("Upsert Alpha page: %v", err)
+	}
+	embeddings := NewEmbeddingStore(conn)
+	if err := embeddings.Upsert(ctx, Embedding{SubjectID: "subject-a", Model: "model", Dims: 2, Vec: []float32{1, 0}, ContentHash: "hash-a", UpdatedAt: 1}); err != nil {
+		t.Fatalf("Upsert Alpha embedding: %v", err)
+	}
+	if err := embeddings.Upsert(ctx, Embedding{SubjectID: "subject-b", Model: "model", Dims: 2, Vec: []float32{0, 1}, ContentHash: "hash-b", UpdatedAt: 2}); err != nil {
+		t.Fatalf("Upsert Beta embedding: %v", err)
+	}
+
+	entries, err := LoadVectorCacheEntries(ctx, conn)
+	if err != nil {
+		t.Fatalf("LoadVectorCacheEntries: %v", err)
+	}
+	cacheEntries := make([]retrieve.VectorEntry, 0, len(entries))
+	for _, entry := range entries {
+		cacheEntries = append(cacheEntries, retrieve.VectorEntry{
+			SubjectID: entry.SubjectID,
+			Title:     entry.Title,
+			Vec:       entry.Vec,
+		})
+	}
+	cache := retrieve.NewVectorCache()
+	cache.Replace(cacheEntries)
+	retriever := retrieve.NewVectorRetriever(func(context.Context, string) ([]float32, error) {
+		return []float32{1, 0}, nil
+	}, cache)
+	got, err := retriever.Search(ctx, "alpha", retrieve.SearchLimits{Limit: 2})
+	if err != nil {
+		t.Fatalf("Search: %v", err)
+	}
+	if len(got.Hits) != 1 {
+		t.Fatalf("hits = %+v, want only embeddings with pages", got.Hits)
+	}
+	if got.Hits[0].PageID != "subject-a" || got.Hits[0].Title != "Alpha Lab" || got.Hits[0].Score != 1 {
+		t.Fatalf("hit = %+v, want hydrated Alpha page vector", got.Hits[0])
 	}
 }
 

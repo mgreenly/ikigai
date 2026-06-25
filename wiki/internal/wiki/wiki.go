@@ -88,6 +88,39 @@ func Main() {
 	appkit.Main(Spec())
 }
 
+// VectorCacheEntry is one stored page embedding prepared for an in-memory cache.
+type VectorCacheEntry struct {
+	SubjectID string
+	Title     string
+	Vec       []float32
+}
+
+// LoadVectorCacheEntries loads stored page embeddings with their page titles.
+func LoadVectorCacheEntries(ctx context.Context, db any) ([]VectorCacheEntry, error) {
+	c := mustConns(db)
+	embeddings, err := NewEmbeddingStore(c).LoadAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+	pages := NewPageStore(c.Read)
+	entries := make([]VectorCacheEntry, 0, len(embeddings))
+	for _, embedding := range embeddings {
+		page, err := pages.GetBySubject(ctx, embedding.SubjectID)
+		if errors.Is(err, sql.ErrNoRows) {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		entries = append(entries, VectorCacheEntry{
+			SubjectID: embedding.SubjectID,
+			Title:     page.Title,
+			Vec:       embedding.Vec,
+		})
+	}
+	return entries, nil
+}
+
 type specMergePathResolver struct {
 	subjects *SubjectStore
 }
