@@ -35,6 +35,7 @@ import (
 	"notify/internal/db"
 	"notify/internal/mcp"
 	"notify/internal/push"
+	"notify/internal/web"
 )
 
 // The event-plane upstreams notify consumes and the stable id it presents on
@@ -87,6 +88,8 @@ func main() {
 				return err
 			}
 			pushClient := push.NewClient(cfg.ntfyBase, cfg.ntfyTopic, cfg.ntfyToken, rt.Logger())
+			rt.Handle("GET /{$}", web.LandingHandler(rt.Service(), rt.Version()))
+			rt.Handle("GET /static/", web.StaticHandler())
 			rt.Handle("POST /mcp", rt.RequireIdentity(
 				mcp.NewHandler(rt.Version(), rt.Service(), rt.Health(),
 					rt.Events(), rt.Subscriptions(), pushClient)))
