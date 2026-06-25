@@ -72,6 +72,70 @@ func TestEmbedAndStoreUsesDocumentRoleAndUpdatesStoreAndCache(t *testing.T) {
 	}
 }
 
+func TestEmbedAndStoreOverwritesExistingPageVector(t *testing.T) {
+	// R-6YVT-TFOD
+	// R-703Q-77F2
+	ctx := context.Background()
+	conn := migratedDB(t, ctx)
+	defer conn.Close()
+
+	store := NewEmbeddingStore(conn)
+	if err := store.Upsert(ctx, Embedding{
+		SubjectID:   "subject-1",
+		Model:       "old-model",
+		Dims:        3,
+		Vec:         []float32{9, 8, 7},
+		ContentHash: "old-fingerprint",
+		UpdatedAt:   time.Date(2026, 6, 25, 11, 0, 0, 0, time.UTC).Unix(),
+	}); err != nil {
+		t.Fatalf("seed old embedding: %v", err)
+	}
+
+	cache := &recordingVectorCache{}
+	embedder := &recordingPageEmbedder{vectors: [][]float32{{0.5, 0.25}}}
+	svc := NewService(
+		conn,
+		nil,
+		nil,
+		clockAt(time.Date(2026, 6, 25, 12, 0, 0, 0, time.UTC)),
+		WithPageEmbedder("new-model", embedder),
+		WithVectorCacheUpdater(cache.Upsert),
+	)
+	page := Page{
+		ID:        "subject-1",
+		SubjectID: "subject-1",
+		Title:     "Acme Robotics",
+		Body:      "Acme Robotics opened a refreshed Tulsa lab.",
+	}
+
+	if err := svc.embedAndStore(ctx, page); err != nil {
+		t.Fatalf("embedAndStore: %v", err)
+	}
+
+	embeddings, err := store.LoadAll(ctx)
+	if err != nil {
+		t.Fatalf("LoadAll: %v", err)
+	}
+	if len(embeddings) != 1 {
+		t.Fatalf("embeddings len = %d, want one row for overwritten subject", len(embeddings))
+	}
+	got := embeddings[0]
+	if got.SubjectID != page.SubjectID ||
+		got.Model != "new-model" ||
+		got.Dims != 2 ||
+		got.ContentHash != pageFingerprint(page) ||
+		got.UpdatedAt != time.Date(2026, 6, 25, 12, 0, 0, 0, time.UTC).Unix() ||
+		!reflect.DeepEqual(got.Vec, []float32{0.5, 0.25}) {
+		t.Fatalf("embedding = %+v, want overwritten current page vector", got)
+	}
+	if len(cache.entries) != 1 ||
+		cache.entries[0].subjectID != page.SubjectID ||
+		cache.entries[0].title != page.Title ||
+		!reflect.DeepEqual(cache.entries[0].vec, []float32{0.5, 0.25}) {
+		t.Fatalf("cache entries = %+v, want updated current page vector", cache.entries)
+	}
+}
+
 func TestProcessNextEmbedsCommittedPageAfterIngest(t *testing.T) {
 	// R-71BM-KZ5R
 	// R-72JI-YQWG
