@@ -66,17 +66,19 @@ func buildSpec(cfg wiki.Config) appkit.Spec {
 			Model:      cfg.EmbedSite.Model,
 			Dimensions: cfg.EmbedSite.Dims,
 		}
+		callRecorder := wiki.NewLLMCallStore(conns)
+		pageEmbedder, queryEmbedding := recordingEmbedders(embedder, callRecorder, cfg.EmbedSite)
 		extractor := extract.New(llmClient, cfg.CallSites.Extract)
 		compiler := buildCompiler(cfg, llmClient)
 		svc = wiki.NewService(conns, extractor, compiler, time.Now,
-			wiki.WithPageEmbedder(cfg.EmbedSite.Model, embedder),
+			wiki.WithPageEmbedder(cfg.EmbedSite.Model, pageEmbedder),
 			wiki.WithVectorCacheUpdater(func(subjectID, title string, vec []float32) {
 				vectorCache.Upsert(retrieve.VectorEntry{SubjectID: subjectID, Title: title, Vec: vec})
 			}),
 		)
 		search := retrieve.NewHybridRetriever(
 			retrieve.NewKeywordRetriever(read),
-			retrieve.NewVectorRetriever(queryEmbedder(embedder), vectorCache),
+			retrieve.NewVectorRetriever(queryEmbedder(queryEmbedding), vectorCache),
 			wiki.NewResolver(read),
 			wiki.NewPageStore(read),
 			retrieve.FusionConfig{FinalK: cfg.SearchDefault},
@@ -129,6 +131,11 @@ func buildSpec(cfg wiki.Config) appkit.Spec {
 	return spec
 }
 
+func recordingEmbedders(inner wiki.PageEmbedder, recorder llm.Recorder, site wiki.EmbedSite) (page, query wiki.PageEmbedder) {
+	return llm.NewRecordingEmbedder(inner, recorder, "embed-page", site.Provider, site.Model, site.Dims),
+		llm.NewRecordingEmbedder(inner, recorder, "embed-query", site.Provider, site.Model, site.Dims)
+}
+
 func retrieveCacheEntries(entries []wiki.VectorCacheEntry) []retrieve.VectorEntry {
 	out := make([]retrieve.VectorEntry, 0, len(entries))
 	for _, entry := range entries {
@@ -141,7 +148,7 @@ func retrieveCacheEntries(entries []wiki.VectorCacheEntry) []retrieve.VectorEntr
 	return out
 }
 
-func queryEmbedder(embedder *agentkit.Embedder) func(context.Context, string) ([]float32, error) {
+func queryEmbedder(embedder wiki.PageEmbedder) func(context.Context, string) ([]float32, error) {
 	return func(ctx context.Context, text string) ([]float32, error) {
 		result, err := embedder.Embed(ctx, []string{text}, agentkit.InputQuery)
 		if err != nil {

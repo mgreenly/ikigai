@@ -10,13 +10,35 @@ import (
 )
 
 // recordingEmbedder wraps an AgentKit embedder and logs each call footprint.
+type Embedder interface {
+	Embed(ctx context.Context, texts []string, role agentkit.InputType) (*agentkit.EmbedResult, error)
+}
+
 type recordingEmbedder struct {
-	inner    *agentkit.Embedder
+	inner    Embedder
 	recorder Recorder
 	stage    string
+	provider string
+	model    string
+	dims     int
 
 	now   func() time.Time
 	newID func() string
+}
+
+func NewRecordingEmbedder(inner Embedder, recorder Recorder, stage string, provider agentkit.EmbeddingProvider, model string, dims int) Embedder {
+	providerName := ""
+	if provider != nil {
+		providerName = provider.Name()
+	}
+	return &recordingEmbedder{
+		inner:    inner,
+		recorder: recorder,
+		stage:    stage,
+		provider: providerName,
+		model:    model,
+		dims:     dims,
+	}
 }
 
 func (e *recordingEmbedder) Embed(ctx context.Context, texts []string, role agentkit.InputType) (*agentkit.EmbedResult, error) {
@@ -53,14 +75,18 @@ func (e *recordingEmbedder) record(ctx context.Context, texts []string, role age
 	if callErr != nil {
 		errText = callErr.Error()
 	}
-	provider := ""
-	model := ""
-	dims := 0
-	if e.inner != nil {
-		model = e.inner.Model
-		dims = e.inner.Dimensions
-		if e.inner.Provider != nil {
-			provider = e.inner.Provider.Name()
+	provider := e.provider
+	model := e.model
+	dims := e.dims
+	if agentkitEmbedder, ok := e.inner.(*agentkit.Embedder); ok {
+		if model == "" {
+			model = agentkitEmbedder.Model
+		}
+		if dims == 0 {
+			dims = agentkitEmbedder.Dimensions
+		}
+		if provider == "" && agentkitEmbedder.Provider != nil {
+			provider = agentkitEmbedder.Provider.Name()
 		}
 	}
 	rec := CallRecord{

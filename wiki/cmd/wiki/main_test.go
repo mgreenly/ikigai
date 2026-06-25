@@ -12,14 +12,18 @@ import (
 	"os/exec"
 	"reflect"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
+	"appkit"
 	"appkit/server"
 	agentkit "github.com/ikigenba/agentkit"
 
+	"wiki/internal/ask"
 	"wiki/internal/compile"
 	"wiki/internal/db"
+	"wiki/internal/extract"
 	"wiki/internal/llm"
 	"wiki/internal/mcp"
 	paging "wiki/internal/page"
@@ -431,6 +435,176 @@ func TestBuildSpecMatchesDirectMCPToolSurface(t *testing.T) {
 	}
 }
 
+func TestBuildSpecRecordsPageEmbeddingCalls(t *testing.T) {
+	// R-LFOY-L6TZ
+	// R-SIFE-Z88I
+	ctx := context.Background()
+	conn := migratedDB(t, ctx)
+	defer conn.Close()
+
+	prov := &capturingProvider{responses: []string{
+		`{"subjects":[{
+			"type":"entity",
+			"kind":"company",
+			"name":"Acme Robotics",
+			"occurred_at":"",
+			"claims":["Acme Robotics opened a recorded embedding lab."]
+		}]}`,
+		`{"title":"Acme Robotics","body":"Acme Robotics opened a recorded embedding lab."}`,
+	}}
+	embeds := &capturingEmbeddingProvider{vectors: [][]float32{{0.6, 0.8}}, usage: agentkit.EmbeddingUsage{InputTokens: 5, Total: 5}}
+	extractSite := extract.DefaultCallSite()
+	extractSite.Model = "extract-model"
+	compileSite := compile.DefaultCallSite()
+	compileSite.Model = "compile-model"
+	spec := buildSpec(wiki.Config{
+		CallSites: wiki.CallSites{
+			Extract: extractSite,
+			Compile: compileSite,
+		},
+		EmbedSite: wiki.EmbedSite{
+			Model:    "recorded-page-embed-model",
+			Dims:     2,
+			Provider: embeds,
+		},
+		LLM: llm.New(prov, nil),
+	})
+	h := buildSpecTestHandler(t, conn, spec)
+	stopWorker, workerErr := startBuildSpecWorker(t, ctx, spec.Workers[0])
+	defer stopWorker()
+
+	var ingest struct {
+		JobID string `json:"job_id"`
+	}
+	if err := json.Unmarshal([]byte(mcpToolCallText(t, h, `{
+		"jsonrpc":"2.0",
+		"id":"ingest",
+		"method":"tools/call",
+		"params":{"name":"ingest","arguments":{"text":"Acme Robotics opened a recorded embedding lab.","title":"Recorded lab"}}
+	}`)), &ingest); err != nil {
+		t.Fatalf("decode ingest response: %v", err)
+	}
+	status := waitBuildSpecJob(t, ctx, conn, ingest.JobID, wiki.JobDone, workerErr)
+	if len(status.Subjects) != 1 {
+		t.Fatalf("job subjects = %#v, want one embedded subject", status.Subjects)
+	}
+
+	calls, _, err := wiki.NewLLMCallStore(conn).List(ctx, wiki.LLMCallFilter{Stage: "embed-page"}, paging.Params{Limit: 10})
+	if err != nil {
+		t.Fatalf("List embed-page calls: %v", err)
+	}
+	if len(calls) != 1 {
+		t.Fatalf("embed-page calls = %+v, want one page embedding record", calls)
+	}
+	call := calls[0]
+	if call.JobID != ingest.JobID || call.Provider != "capturing-embed" || call.Model != "recorded-page-embed-model" || call.Err != "" {
+		t.Fatalf("embed-page call = %+v, want recorded production page embedding footprint", call)
+	}
+	assertCallJSONField(t, call.Params, "dimensions", float64(2))
+	assertCallJSONField(t, call.Request, "role", "document")
+	assertCallJSONField(t, call.Response, "vectors", float64(1))
+	assertCallJSONField(t, call.Response, "dims", float64(2))
+	assertCallJSONField(t, call.Usage, "InputTokens", float64(5))
+
+	requests := embeds.Requests()
+	if len(requests) != 1 || requests[0].Role != agentkit.InputDocument || requests[0].Model != "recorded-page-embed-model" || requests[0].Dimensions != 2 {
+		t.Fatalf("embedding provider requests = %#v, want one document request from buildSpec page embedder", requests)
+	}
+}
+
+func TestBuildSpecRecordsQueryEmbeddingCalls(t *testing.T) {
+	// R-JEC4-3M6O
+	// R-NWE2-CUPE
+	ctx := context.Background()
+	conn := migratedDB(t, ctx)
+	defer conn.Close()
+
+	subject := wiki.Subject{ID: "subject-acme", Name: "Acme Robotics", Type: "entity"}
+	if err := wiki.NewSubjectStore(conn).Save(ctx, subject); err != nil {
+		t.Fatalf("Save subject: %v", err)
+	}
+	if err := wiki.NewPageStore(conn).Upsert(ctx, wiki.Page{
+		ID:        "page-acme",
+		SubjectID: subject.ID,
+		Title:     "Acme Robotics",
+		Body:      "Acme Robotics owns the scheduler.",
+	}); err != nil {
+		t.Fatalf("Upsert page: %v", err)
+	}
+	if err := wiki.NewEmbeddingStore(conn).Upsert(ctx, wiki.Embedding{
+		SubjectID:   subject.ID,
+		Model:       "recorded-query-embed-model",
+		Dims:        2,
+		Vec:         []float32{1, 0},
+		ContentHash: "hash-acme",
+		UpdatedAt:   42,
+	}); err != nil {
+		t.Fatalf("Upsert embedding: %v", err)
+	}
+
+	prov := &capturingProvider{responses: []string{
+		`{"sub_queries":["scheduler owner"],"keywords":["scheduler"],"aliases":[]}`,
+		`{"found":true,"text":"Acme Robotics owns the scheduler.","citations":[{"path":"entity/acme-robotics","title":"Acme Robotics"}]}`,
+	}}
+	embeds := &capturingEmbeddingProvider{vectors: [][]float32{{1, 0}}, usage: agentkit.EmbeddingUsage{InputTokens: 3, Total: 3}}
+	askSubjectSite := ask.DefaultSubjectCallSite()
+	askSubjectSite.Model = "ask-subject-model"
+	askSynthesisSite := ask.DefaultSynthesisCallSite()
+	askSynthesisSite.Model = "ask-synthesis-model"
+	spec := buildSpec(wiki.Config{
+		CallSites: wiki.CallSites{
+			AskSubject:   askSubjectSite,
+			AskSynthesis: askSynthesisSite,
+		},
+		EmbedSite: wiki.EmbedSite{
+			Model:    "recorded-query-embed-model",
+			Dims:     2,
+			Provider: embeds,
+		},
+		SearchDefault: 8,
+		LLM:           llm.New(prov, nil),
+	})
+	h := buildSpecTestHandler(t, conn, spec)
+
+	var answer struct {
+		Found  bool   `json:"found"`
+		Answer string `json:"answer"`
+	}
+	if err := json.Unmarshal([]byte(mcpToolCallText(t, h, `{
+		"jsonrpc":"2.0",
+		"id":"ask",
+		"method":"tools/call",
+		"params":{"name":"ask","arguments":{"question":"Who owns the scheduler?"}}
+	}`)), &answer); err != nil {
+		t.Fatalf("decode ask response: %v", err)
+	}
+	if !answer.Found || answer.Answer != "Acme Robotics owns the scheduler." {
+		t.Fatalf("ask response = %#v, want answer produced through composed retriever", answer)
+	}
+
+	calls, _, err := wiki.NewLLMCallStore(conn).List(ctx, wiki.LLMCallFilter{Stage: "embed-query"}, paging.Params{Limit: 10})
+	if err != nil {
+		t.Fatalf("List embed-query calls: %v", err)
+	}
+	if len(calls) != 1 {
+		t.Fatalf("embed-query calls = %+v, want one query embedding record", calls)
+	}
+	call := calls[0]
+	if call.JobID != "" || call.Provider != "capturing-embed" || call.Model != "recorded-query-embed-model" || call.Err != "" {
+		t.Fatalf("embed-query call = %+v, want recorded production query embedding footprint", call)
+	}
+	assertCallJSONField(t, call.Params, "dimensions", float64(2))
+	assertCallJSONField(t, call.Request, "role", "query")
+	assertCallJSONField(t, call.Response, "vectors", float64(1))
+	assertCallJSONField(t, call.Response, "dims", float64(2))
+	assertCallJSONField(t, call.Usage, "InputTokens", float64(3))
+
+	requests := embeds.Requests()
+	if len(requests) != 1 || requests[0].Role != agentkit.InputQuery || requests[0].Model != "recorded-query-embed-model" || requests[0].Dimensions != 2 {
+		t.Fatalf("embedding provider requests = %#v, want one query request from buildSpec retriever", requests)
+	}
+}
+
 func TestBuildCompilerUsesDefaultCompileCallSite(t *testing.T) {
 	// R-4DS4-RXYX
 	prov := &capturingProvider{responses: []string{`{"title":"Acme Robotics","body":"Acme Robotics runs a Tulsa lab."}`}}
@@ -574,9 +748,130 @@ func migratedDB(t *testing.T, ctx context.Context) *sql.DB {
 	return conn
 }
 
+func buildSpecTestHandler(t *testing.T, conn *sql.DB, spec appkit.Spec) http.Handler {
+	t.Helper()
+	srv, err := server.New(server.Options{
+		Addr:       "127.0.0.1:0",
+		Logger:     slog.New(slog.NewJSONHandler(io.Discard, nil)),
+		ResourceID: "https://int.ikigenba.com/srv/wiki/mcp",
+		AuthServer: "https://int.ikigenba.com",
+		Version:    "test-version",
+		Service:    "wiki",
+		Register:   spec.Handlers,
+		DB:         conn,
+	})
+	if err != nil {
+		t.Fatalf("server.New: %v", err)
+	}
+	return srv.Handler
+}
+
+func startBuildSpecWorker(t *testing.T, parent context.Context, run func(context.Context) error) (func(), <-chan error) {
+	t.Helper()
+	if run == nil {
+		t.Fatal("buildSpec worker is nil")
+	}
+	ctx, cancel := context.WithCancel(parent)
+	done := make(chan error, 1)
+	go func() {
+		done <- run(ctx)
+	}()
+	stop := func() {
+		cancel()
+		select {
+		case err := <-done:
+			if err != nil {
+				t.Fatalf("buildSpec worker returned error: %v", err)
+			}
+		case <-time.After(3 * time.Second):
+			t.Fatal("buildSpec worker did not stop")
+		}
+	}
+	return stop, done
+}
+
+func waitBuildSpecJob(t *testing.T, ctx context.Context, conn *sql.DB, jobID, want string, workerErr <-chan error) wiki.JobStatus {
+	t.Helper()
+	deadline := time.Now().Add(3 * time.Second)
+	jobs := wiki.NewJobStore(conn)
+	var last wiki.JobStatus
+	for time.Now().Before(deadline) {
+		select {
+		case err := <-workerErr:
+			if err != nil {
+				t.Fatalf("buildSpec worker returned before job completed: %v", err)
+			}
+			t.Fatal("buildSpec worker stopped before job completed")
+		default:
+		}
+		status, err := jobs.Status(ctx, jobID)
+		if err == nil {
+			last = status
+			if status.Status == want {
+				return status
+			}
+			if status.Status == wiki.JobFailed {
+				t.Fatalf("job %s failed: %s", jobID, status.Error)
+			}
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatalf("job %s status = %+v, want %s", jobID, last, want)
+	return wiki.JobStatus{}
+}
+
+func assertCallJSONField(t *testing.T, raw, key string, want any) {
+	t.Helper()
+	var fields map[string]any
+	if err := json.Unmarshal([]byte(raw), &fields); err != nil {
+		t.Fatalf("decode %s as JSON object: %v", raw, err)
+	}
+	if got := fields[key]; got != want {
+		t.Fatalf("JSON field %s in %s = %#v, want %#v", key, raw, got, want)
+	}
+}
+
 type capturingProvider struct {
 	responses []string
 	requests  []agentkit.Request
+}
+
+type capturingEmbeddingProvider struct {
+	mu       sync.Mutex
+	vectors  [][]float32
+	usage    agentkit.EmbeddingUsage
+	requests []agentkit.EmbedRequest
+}
+
+func (p *capturingEmbeddingProvider) Embed(_ context.Context, req *agentkit.EmbedRequest) *agentkit.EmbedRoundTrip {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if req != nil {
+		p.requests = append(p.requests, *req)
+	}
+	return agentkit.NewEmbedRoundTrip(cloneVectors(p.vectors), p.usage, nil, nil)
+}
+
+func (p *capturingEmbeddingProvider) Name() string {
+	return "capturing-embed"
+}
+
+func (p *capturingEmbeddingProvider) Pricing(string) (agentkit.EmbeddingPricing, bool) {
+	return agentkit.EmbeddingPricing{InputToken: 1}, true
+}
+
+func (p *capturingEmbeddingProvider) Requests() []agentkit.EmbedRequest {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return append([]agentkit.EmbedRequest(nil), p.requests...)
+}
+
+func cloneVectors(in [][]float32) [][]float32 {
+	out := make([][]float32, len(in))
+	for i := range in {
+		out[i] = append([]float32(nil), in[i]...)
+	}
+	return out
 }
 
 type surfaceWiki struct{}
