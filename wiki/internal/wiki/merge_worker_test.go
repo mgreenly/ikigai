@@ -505,6 +505,7 @@ func TestMergeWorkerKeepsDoneMergeWhenAfterCommitWinnerEmbedFails(t *testing.T) 
 			return errors.New("embed transport down")
 		},
 	}
+	cache := &mergeVectorCacheRecorder{}
 	svc := wikidomain.NewService(
 		conn,
 		nil,
@@ -515,6 +516,7 @@ func TestMergeWorkerKeepsDoneMergeWhenAfterCommitWinnerEmbedFails(t *testing.T) 
 			time.Date(2026, 6, 25, 15, 10, 2, 0, time.UTC),
 		),
 		wikidomain.WithPageEmbedder("merge-model", embedder),
+		wikidomain.WithVectorCacheRemover(cache.Remove),
 	)
 	jobID, err := svc.MergeSubjects(ctx, "subject-loser", "subject-winner")
 	if err != nil {
@@ -565,6 +567,9 @@ func TestMergeWorkerKeepsDoneMergeWhenAfterCommitWinnerEmbedFails(t *testing.T) 
 	}
 	if len(embeddings) != 0 {
 		t.Fatalf("embeddings = %+v, want no winner vector so catch-up owns stale page", embeddings)
+	}
+	if len(cache.removed) != 1 || cache.removed[0] != "subject-loser" {
+		t.Fatalf("cache removals = %#v, want loser removed before failed winner reembed", cache.removed)
 	}
 }
 
