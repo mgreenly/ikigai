@@ -9,5 +9,5 @@ flips that one marker. This file deliberately carries **no bare status glyph**
 anywhere but on a phase line, so the anchored grep matches only phase lines.
 
 Phase 01 ✅ realizes D1, D2, D3 — landing handler + embedded Carbon template/assets in `internal/web`, wired at `GET /{$}` (ungated in-process) in `cmd/ledger/main.go`
-Phase 02 ⬜ realizes D4 — nginx fragment: add the exact-match session-gated `= /srv/ledger/` location, validated by a content-assertion test
+Phase 02 ✅ realizes D4 — nginx fragment: add the exact-match session-gated `= /srv/ledger/` location, validated by a content-assertion test
 Phase 03 ⬜ realizes D5 — purge the stale "no UI" line from `ledger/AGENTS.md`/`CLAUDE.md` and state the landing-page truth (structural; docs-only)
