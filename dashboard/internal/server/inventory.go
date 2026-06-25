@@ -2,9 +2,22 @@ package server
 
 import (
 	"net/http"
+	"net/url"
+	"strings"
 
 	"appkit/inventory"
 )
+
+// Href is the landing-page service link target. serviceRow already carries the
+// raw MCP URL for display; derive the mount path by removing the trailing mcp
+// segment so the template links the service name to the service root.
+func (r serviceRow) Href() string {
+	u, err := url.Parse(r.URL)
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSuffix(u.Path, "mcp")
+}
 
 // inventoryService is one entry in the /services response: the service's name,
 // its mount path, and the full MCP resource URL self-templated from the request.

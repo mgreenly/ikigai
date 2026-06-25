@@ -13,8 +13,7 @@
   <header class="banner">
     <p class="wordmark">ikigenba</p>
     <nav class="identity">
-      <a href="/profile" class="btn btn-secondary btn-sm">Profile</a>
-      <span class="owner">{{.Owner}}</span>
+      <a href="/profile">{{.Owner}}</a>
       <form method="POST" action="/logout">
         <button type="submit" class="btn btn-danger-ghost btn-sm">Sign out</button>
       </form>
@@ -67,7 +66,7 @@
         </thead>
         <tbody>
           {{range .Services}}
-          <tr><td>{{.Name}}</td><td>{{.URL}}</td></tr>
+          <tr><td><a href="{{.Href}}">{{.Name}}</a></td><td>{{.URL}}</td></tr>
           {{end}}
         </tbody>
       </table>
