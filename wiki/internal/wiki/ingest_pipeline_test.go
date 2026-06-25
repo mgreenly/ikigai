@@ -79,6 +79,67 @@ func TestIngestReturnsPendingThenWorkerCommitsPage(t *testing.T) {
 	}
 }
 
+func TestWorkerStoresPageVectorAfterCommit(t *testing.T) {
+	// R-71BM-KZ5R
+	// R-72JI-YQWG
+	// R-73RF-CIN5
+	ctx := context.Background()
+	conn := migratedWikiDB(t, ctx)
+	defer conn.Close()
+
+	prov := &scriptedProvider{responses: []string{
+		`{"subjects":[{
+			"type":"entity",
+			"kind":"company",
+			"name":"Acme Robotics",
+			"occurred_at":"",
+			"claims":["Acme Robotics opened a background-vector lab."]
+		}]}`,
+		`{"title":"Acme Robotics","body":"Acme Robotics opened a background-vector lab."}`,
+	}}
+	embedder := &scriptedEmbedder{vectors: [][]float32{{0.4, 0.6}}}
+	client := llm.New(prov, nil)
+	svc := wikidomain.NewService(
+		conn,
+		extract.New(client, llm.CallSite{Model: "extract-model"}),
+		compile.New(client, llm.CallSite{Model: "compile-model"}, nil),
+		func() time.Time { return time.Date(2026, 6, 25, 15, 0, 0, 0, time.UTC) },
+		wikidomain.WithPageEmbedder("embed-model", embedder),
+	)
+	stop := startWorker(t, ctx, svc)
+	defer stop()
+
+	jobID, err := svc.Ingest(ctx, "owner@example.com", "Acme Robotics opened a background-vector lab.", "Vector lab", nil)
+	if err != nil {
+		t.Fatalf("Ingest: %v", err)
+	}
+	status := waitJobStatus(t, ctx, svc, jobID, wikidomain.JobDone)
+	if len(status.Subjects) != 1 {
+		t.Fatalf("subjects = %#v, want one integrated subject", status.Subjects)
+	}
+	waitEmbeddingCount(t, ctx, conn, 1)
+
+	if got := embedder.Inputs(); len(got) != 1 || len(got[0]) != 1 || got[0][0] != "Acme Robotics opened a background-vector lab." {
+		t.Fatalf("embed inputs = %#v, want compiled page body", got)
+	}
+	if got := embedder.Roles(); len(got) != 1 || got[0] != agentkit.InputDocument {
+		t.Fatalf("embed roles = %#v, want document role", got)
+	}
+	embeddings, err := wikidomain.NewEmbeddingStore(conn).LoadAll(ctx)
+	if err != nil {
+		t.Fatalf("LoadAll: %v", err)
+	}
+	if len(embeddings) != 1 ||
+		embeddings[0].SubjectID != status.Subjects[0] ||
+		embeddings[0].Model != "embed-model" ||
+		embeddings[0].Dims != 2 {
+		t.Fatalf("embedding metadata = %+v, want stored vector for committed subject", embeddings)
+	}
+	if got := embeddings[0].Vec; len(got) != 2 || got[0] != 0.4 || got[1] != 0.6 {
+		t.Fatalf("embedding vector = %#v, want scripted page vector", embeddings[0].Vec)
+	}
+}
+
 func TestWorkerReusesSubjectAndCompilesCompleteClaims(t *testing.T) {
 	// R-MDN8-RAVN
 	ctx := context.Background()
@@ -235,6 +296,25 @@ func waitJobStatus(t *testing.T, ctx context.Context, svc *wikidomain.Service, j
 	return wikidomain.JobStatus{}
 }
 
+func waitEmbeddingCount(t *testing.T, ctx context.Context, conn *sql.DB, want int) {
+	t.Helper()
+
+	deadline := time.Now().Add(3 * time.Second)
+	var last int
+	for time.Now().Before(deadline) {
+		embeddings, err := wikidomain.NewEmbeddingStore(conn).LoadAll(ctx)
+		if err != nil {
+			t.Fatalf("LoadAll: %v", err)
+		}
+		last = len(embeddings)
+		if last == want {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatalf("embedding count = %d, want %d", last, want)
+}
+
 // scriptedProvider returns a queued list of responses in order, recording each
 // request it receives so tests can assert on call counts and prompt contents.
 type scriptedProvider struct {
@@ -287,4 +367,43 @@ func requestText(req agentkit.Request) string {
 		}
 	}
 	return b.String()
+}
+
+type scriptedEmbedder struct {
+	mu      sync.Mutex
+	vectors [][]float32
+	inputs  [][]string
+	roles   []agentkit.InputType
+}
+
+func (e *scriptedEmbedder) Embed(_ context.Context, inputs []string, role agentkit.InputType) (*agentkit.EmbedResult, error) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	e.inputs = append(e.inputs, append([]string(nil), inputs...))
+	e.roles = append(e.roles, role)
+	vec := []float32(nil)
+	if len(e.vectors) > 0 {
+		vec = append([]float32(nil), e.vectors[0]...)
+		e.vectors = e.vectors[1:]
+	}
+	return &agentkit.EmbedResult{Vectors: [][]float32{vec}}, nil
+}
+
+func (e *scriptedEmbedder) Inputs() [][]string {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	out := make([][]string, len(e.inputs))
+	for i := range e.inputs {
+		out[i] = append([]string(nil), e.inputs[i]...)
+	}
+	return out
+}
+
+func (e *scriptedEmbedder) Roles() []agentkit.InputType {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	return append([]agentkit.InputType(nil), e.roles...)
 }
