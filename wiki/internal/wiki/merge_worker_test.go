@@ -4,11 +4,15 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	agentkit "github.com/ikigenba/agentkit"
+
+	"wiki/internal/llm"
 	"wiki/internal/page"
 	wikidomain "wiki/internal/wiki"
 	"wiki/internal/worker"
@@ -304,6 +308,251 @@ func TestMergeWorkerSerializesDuplicateMergeJobsIntoOneFold(t *testing.T) {
 	}
 }
 
+func TestMergeWorkerReembedsWinnerAfterCommitAndEvictsLoserVector(t *testing.T) {
+	// R-MRG8-K2WP
+	// R-EV2H-6RKN
+	ctx := context.Background()
+	conns, cleanup := migratedConns(t, ctx)
+	defer cleanup()
+	saveMergeFixture(t, ctx, conns.Write)
+
+	store := wikidomain.NewEmbeddingStore(conns.Write)
+	if err := store.Upsert(ctx, wikidomain.Embedding{
+		SubjectID:   "subject-winner",
+		Model:       "old-model",
+		Dims:        1,
+		Vec:         []float32{0.1},
+		ContentHash: "old-winner",
+		UpdatedAt:   101,
+	}); err != nil {
+		t.Fatalf("seed winner embedding: %v", err)
+	}
+	if err := store.Upsert(ctx, wikidomain.Embedding{
+		SubjectID:   "subject-loser",
+		Model:       "old-model",
+		Dims:        1,
+		Vec:         []float32{0.9},
+		ContentHash: "old-loser",
+		UpdatedAt:   102,
+	}); err != nil {
+		t.Fatalf("seed loser embedding: %v", err)
+	}
+
+	var jobID string
+	embedder := &mergeRecordingPageEmbedder{
+		vectors: [][]float32{{0.25, 0.75}},
+		onEmbed: func(embedCtx context.Context, inputs []string, role agentkit.InputType) error {
+			if got := llm.JobID(embedCtx); got != jobID {
+				t.Errorf("embed job id = %q, want merge job %q", got, jobID)
+			}
+			if role != agentkit.InputDocument {
+				t.Errorf("embed role = %v, want document", role)
+			}
+			page, err := wikidomain.NewPageStore(conns.Read).GetBySubject(ctx, "subject-winner")
+			if err != nil {
+				t.Errorf("winner page not visible to read handle during embed: %v", err)
+				return err
+			}
+			if len(inputs) != 1 || inputs[0] != page.Body || page.Body != "Loser fact.\nWinner fact." {
+				t.Errorf("embed inputs = %#v with page %+v, want committed combined winner body", inputs, page)
+			}
+			return nil
+		},
+	}
+	cache := &mergeVectorCacheRecorder{
+		onRemove: func(subjectID string) {
+			if subjectID != "subject-loser" {
+				t.Errorf("removed cache subject = %q, want loser", subjectID)
+			}
+			if _, err := wikidomain.NewSubjectStore(conns.Read).Get(ctx, "subject-loser"); !errors.Is(err, sql.ErrNoRows) {
+				t.Errorf("loser subject lookup during cache remove = %v, want committed deletion", err)
+			}
+		},
+	}
+	svc := wikidomain.NewService(
+		conns,
+		nil,
+		&scriptedMergeCompiler{},
+		mergeSequenceTimes(
+			time.Date(2026, 6, 25, 15, 0, 0, 0, time.UTC),
+			time.Date(2026, 6, 25, 15, 0, 1, 0, time.UTC),
+			time.Date(2026, 6, 25, 15, 0, 2, 0, time.UTC),
+		),
+		wikidomain.WithPageEmbedder("merge-model", embedder),
+		wikidomain.WithVectorCacheUpdater(cache.Upsert),
+		wikidomain.WithVectorCacheRemover(cache.Remove),
+	)
+	var err error
+	jobID, err = svc.MergeSubjects(ctx, "subject-loser", "subject-winner")
+	if err != nil {
+		t.Fatalf("MergeSubjects: %v", err)
+	}
+	processed, err := svc.ProcessNext(ctx)
+	if err != nil {
+		t.Fatalf("ProcessNext: %v", err)
+	}
+	if !processed {
+		t.Fatal("ProcessNext processed = false, want true")
+	}
+
+	embeddings, err := wikidomain.NewEmbeddingStore(conns.Read).LoadAll(ctx)
+	if err != nil {
+		t.Fatalf("LoadAll: %v", err)
+	}
+	if len(embeddings) != 1 || embeddings[0].SubjectID != "subject-winner" {
+		t.Fatalf("embeddings = %+v, want only winner after loser purge", embeddings)
+	}
+	if embeddings[0].Model != "merge-model" || !reflect.DeepEqual(embeddings[0].Vec, []float32{0.25, 0.75}) {
+		t.Fatalf("winner embedding = %+v, want freshly embedded merge vector", embeddings[0])
+	}
+	if len(cache.removed) != 1 || cache.removed[0] != "subject-loser" {
+		t.Fatalf("cache removals = %#v, want loser removed after commit", cache.removed)
+	}
+	if len(cache.upserts) != 1 ||
+		cache.upserts[0].subjectID != "subject-winner" ||
+		cache.upserts[0].title != "Winner Subject" ||
+		!reflect.DeepEqual(cache.upserts[0].vec, []float32{0.25, 0.75}) {
+		t.Fatalf("cache upserts = %+v, want current winner vector", cache.upserts)
+	}
+}
+
+func TestMergeWorkerRollsBackLoserEmbeddingDeleteWhenTransactionFails(t *testing.T) {
+	// R-LP5Q-9XTD
+	ctx := context.Background()
+	conn := migratedWikiDB(t, ctx)
+	defer conn.Close()
+	saveMergeFixture(t, ctx, conn)
+
+	loserEmbedding := wikidomain.Embedding{
+		SubjectID:   "subject-loser",
+		Model:       "old-model",
+		Dims:        1,
+		Vec:         []float32{0.9},
+		ContentHash: "old-loser",
+		UpdatedAt:   202,
+	}
+	store := wikidomain.NewEmbeddingStore(conn)
+	if err := store.Upsert(ctx, loserEmbedding); err != nil {
+		t.Fatalf("seed loser embedding: %v", err)
+	}
+
+	svc := wikidomain.NewService(conn, nil, &scriptedMergeCompiler{
+		body: strings.Repeat("x", 12001),
+	}, mergeClockAt(time.Date(2026, 6, 25, 15, 5, 0, 0, time.UTC)))
+	jobID, err := svc.MergeSubjects(ctx, "subject-loser", "subject-winner")
+	if err != nil {
+		t.Fatalf("MergeSubjects: %v", err)
+	}
+	processed, err := svc.ProcessNext(ctx)
+	if err != nil {
+		t.Fatalf("ProcessNext: %v", err)
+	}
+	if !processed {
+		t.Fatal("ProcessNext processed = false, want true")
+	}
+	status, err := svc.JobStatus(ctx, jobID)
+	if err != nil {
+		t.Fatalf("JobStatus: %v", err)
+	}
+	if status.Status != wikidomain.JobFailed || !strings.Contains(status.Error, "CHECK constraint failed") {
+		t.Fatalf("status = %+v, want failed page constraint error", status)
+	}
+	assertMergeFixtureStillSeparate(t, ctx, conn)
+	embeddings, err := store.LoadAll(ctx)
+	if err != nil {
+		t.Fatalf("LoadAll: %v", err)
+	}
+	if !reflect.DeepEqual(embeddings, []wikidomain.Embedding{loserEmbedding}) {
+		t.Fatalf("embeddings = %+v, want loser row restored by rollback", embeddings)
+	}
+}
+
+func TestMergeWorkerKeepsDoneMergeWhenAfterCommitWinnerEmbedFails(t *testing.T) {
+	// R-FM7A-D0SZ
+	// R-WS3C-J4QB
+	ctx := context.Background()
+	conn := migratedWikiDB(t, ctx)
+	defer conn.Close()
+	saveMergeFixture(t, ctx, conn)
+	if err := wikidomain.NewEmbeddingStore(conn).Upsert(ctx, wikidomain.Embedding{
+		SubjectID:   "subject-loser",
+		Model:       "old-model",
+		Dims:        1,
+		Vec:         []float32{0.4},
+		ContentHash: "old-loser",
+		UpdatedAt:   303,
+	}); err != nil {
+		t.Fatalf("seed loser embedding: %v", err)
+	}
+
+	embedder := &mergeRecordingPageEmbedder{
+		onEmbed: func(context.Context, []string, agentkit.InputType) error {
+			return errors.New("embed transport down")
+		},
+	}
+	svc := wikidomain.NewService(
+		conn,
+		nil,
+		&scriptedMergeCompiler{},
+		mergeSequenceTimes(
+			time.Date(2026, 6, 25, 15, 10, 0, 0, time.UTC),
+			time.Date(2026, 6, 25, 15, 10, 1, 0, time.UTC),
+			time.Date(2026, 6, 25, 15, 10, 2, 0, time.UTC),
+		),
+		wikidomain.WithPageEmbedder("merge-model", embedder),
+	)
+	jobID, err := svc.MergeSubjects(ctx, "subject-loser", "subject-winner")
+	if err != nil {
+		t.Fatalf("MergeSubjects: %v", err)
+	}
+	processed, err := svc.ProcessNext(ctx)
+	if err != nil {
+		t.Fatalf("ProcessNext: %v", err)
+	}
+	if !processed {
+		t.Fatal("ProcessNext processed = false, want true")
+	}
+
+	status, err := svc.JobStatus(ctx, jobID)
+	if err != nil {
+		t.Fatalf("JobStatus: %v", err)
+	}
+	if status.Status != wikidomain.JobDone || status.Error != "" {
+		t.Fatalf("status = %+v, want durable done merge despite after-commit embed failure", status)
+	}
+	if _, err := wikidomain.NewSubjectStore(conn).Get(ctx, "subject-loser"); !errors.Is(err, sql.ErrNoRows) {
+		t.Fatalf("loser subject lookup = %v, want deleted", err)
+	}
+	alias, err := wikidomain.NewAliasStore(conn).GetByNormName(ctx, "Loser Subject")
+	if err != nil {
+		t.Fatalf("GetByNormName loser alias: %v", err)
+	}
+	if alias.SubjectID != "subject-winner" {
+		t.Fatalf("alias = %+v, want loser name pointed at winner", alias)
+	}
+	claims, _, err := wikidomain.NewClaimStore(conn).ListBySubject(ctx, "subject-winner", page.Params{})
+	if err != nil {
+		t.Fatalf("ListBySubject winner: %v", err)
+	}
+	if got := claimBodies(claims); got != "Loser fact.\nWinner fact." {
+		t.Fatalf("winner claim bodies = %q, want combined claims", got)
+	}
+	page, err := wikidomain.NewPageStore(conn).GetBySubject(ctx, "subject-winner")
+	if err != nil {
+		t.Fatalf("GetBySubject winner: %v", err)
+	}
+	if page.Title != "Winner Subject" || page.Body != "Loser fact.\nWinner fact." {
+		t.Fatalf("winner page = %+v, want committed merged page", page)
+	}
+	embeddings, err := wikidomain.NewEmbeddingStore(conn).LoadAll(ctx)
+	if err != nil {
+		t.Fatalf("LoadAll: %v", err)
+	}
+	if len(embeddings) != 0 {
+		t.Fatalf("embeddings = %+v, want no winner vector so catch-up owns stale page", embeddings)
+	}
+}
+
 type mergeCompileCall struct {
 	Subject wikidomain.Subject
 	Claims  []wikidomain.Claim
@@ -312,6 +561,7 @@ type mergeCompileCall struct {
 type scriptedMergeCompiler struct {
 	mu    sync.Mutex
 	err   error
+	body  string
 	calls []mergeCompileCall
 }
 
@@ -324,6 +574,9 @@ func (c *scriptedMergeCompiler) Compile(_ context.Context, subject wikidomain.Su
 	c.mu.Unlock()
 	if c.err != nil {
 		return "", "", c.err
+	}
+	if c.body != "" {
+		return subject.Name, c.body, nil
 	}
 	return subject.Name, claimBodies(claims), nil
 }
@@ -418,3 +671,55 @@ func mergeSequenceTimes(times ...time.Time) func() time.Time {
 		return t
 	}
 }
+
+type mergeRecordingPageEmbedder struct {
+	vectors [][]float32
+	inputs  [][]string
+	roles   []agentkit.InputType
+	onEmbed func(context.Context, []string, agentkit.InputType) error
+}
+
+func (e *mergeRecordingPageEmbedder) Embed(ctx context.Context, inputs []string, role agentkit.InputType) (*agentkit.EmbedResult, error) {
+	e.inputs = append(e.inputs, append([]string(nil), inputs...))
+	e.roles = append(e.roles, role)
+	if e.onEmbed != nil {
+		if err := e.onEmbed(ctx, inputs, role); err != nil {
+			return nil, err
+		}
+	}
+	vec := []float32(nil)
+	if len(e.vectors) > 0 {
+		vec = append([]float32(nil), e.vectors[0]...)
+		e.vectors = e.vectors[1:]
+	}
+	return &agentkit.EmbedResult{Vectors: [][]float32{vec}}, nil
+}
+
+type mergeVectorCacheRecorder struct {
+	upserts  []mergeVectorCacheUpsert
+	removed  []string
+	onRemove func(subjectID string)
+}
+
+type mergeVectorCacheUpsert struct {
+	subjectID string
+	title     string
+	vec       []float32
+}
+
+func (c *mergeVectorCacheRecorder) Upsert(subjectID, title string, vec []float32) {
+	c.upserts = append(c.upserts, mergeVectorCacheUpsert{
+		subjectID: subjectID,
+		title:     title,
+		vec:       append([]float32(nil), vec...),
+	})
+}
+
+func (c *mergeVectorCacheRecorder) Remove(subjectID string) {
+	c.removed = append(c.removed, subjectID)
+	if c.onRemove != nil {
+		c.onRemove(subjectID)
+	}
+}
+
+var _ wikidomain.PageEmbedder = (*mergeRecordingPageEmbedder)(nil)

@@ -19,13 +19,24 @@ type Embedding struct {
 
 // EmbeddingStore persists page embeddings for startup search-cache loading.
 type EmbeddingStore struct {
-	read  *sql.DB
-	write *sql.DB
+	read  sqlStore
+	write sqlStore
 }
 
 func NewEmbeddingStore(db any) *EmbeddingStore {
-	c := mustConns(db)
-	return &EmbeddingStore{read: c.Read, write: c.Write}
+	switch v := db.(type) {
+	case Conns:
+		c := mustConns(v)
+		return &EmbeddingStore{read: c.Read, write: c.Write}
+	case *sql.DB:
+		c := mustConns(v)
+		return &EmbeddingStore{read: c.Read, write: c.Write}
+	case sqlStore:
+		return &EmbeddingStore{read: v, write: v}
+	default:
+		c := mustConns(db)
+		return &EmbeddingStore{read: c.Read, write: c.Write}
+	}
 }
 
 // Upsert writes or replaces the single embedding row for a subject.
@@ -46,6 +57,12 @@ func (s *EmbeddingStore) Upsert(ctx context.Context, e Embedding) error {
 		e.ContentHash,
 		e.UpdatedAt,
 	)
+	return err
+}
+
+// Delete removes the stored embedding for one subject.
+func (s *EmbeddingStore) Delete(ctx context.Context, subjectID string) error {
+	_, err := s.write.ExecContext(ctx, `DELETE FROM page_embeddings WHERE subject_id = ?`, subjectID)
 	return err
 }
 

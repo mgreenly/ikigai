@@ -43,26 +43,27 @@ type Compiler interface {
 
 // Service coordinates ingest jobs and the single background integration worker.
 type Service struct {
-	write        *sql.DB
-	jobs         *JobStore
-	subjects     *SubjectStore
-	aliases      *AliasStore
-	resolver     *Resolver
-	claims       *ClaimStore
-	pages        *PageStore
-	embeddings   *EmbeddingStore
-	merges       *SubjectMergeStore
-	pageEmbedder PageEmbedder
-	embedModel   string
-	vectorCache  vectorCache
-	extractor    Extractor
-	compiler     Compiler
-	now          func() time.Time
-	newID        func() string
-	wake         chan struct{}
-	mu           sync.Mutex
-	cancels      map[string]*jobCancel
-	mergeMu      sync.Mutex
+	write             *sql.DB
+	jobs              *JobStore
+	subjects          *SubjectStore
+	aliases           *AliasStore
+	resolver          *Resolver
+	claims            *ClaimStore
+	pages             *PageStore
+	embeddings        *EmbeddingStore
+	merges            *SubjectMergeStore
+	pageEmbedder      PageEmbedder
+	embedModel        string
+	vectorCache       VectorCache
+	vectorCacheRemove func(subjectID string)
+	extractor         Extractor
+	compiler          Compiler
+	now               func() time.Time
+	newID             func() string
+	wake              chan struct{}
+	mu                sync.Mutex
+	cancels           map[string]*jobCancel
+	mergeMu           sync.Mutex
 }
 
 type jobCancel struct {
@@ -506,18 +507,24 @@ func (s *Service) mergeSubjects(ctx context.Context, job Job) error {
 	claims := NewClaimStore(tx)
 	pages := NewPageStore(tx)
 	aliases := NewAliasStore(tx)
+	embeddings := NewEmbeddingStore(tx)
 	if _, err := subjects.Get(ctx, merge.ToSubjectID); errors.Is(err, sql.ErrNoRows) {
-		return finishDoneInTx(ctx, tx, job.ID, s.now())
+		_, err := finishDoneInTx(ctx, tx, job.ID, s.now())
+		return err
 	} else if err != nil {
 		return err
 	}
 	loser, err = subjects.Get(ctx, merge.FromSubjectID)
 	if errors.Is(err, sql.ErrNoRows) {
-		return finishDoneInTx(ctx, tx, job.ID, s.now())
+		_, err := finishDoneInTx(ctx, tx, job.ID, s.now())
+		return err
 	} else if err != nil {
 		return err
 	}
 	if err := pages.DeleteBySubject(ctx, merge.FromSubjectID); err != nil {
+		return err
+	}
+	if err := embeddings.Delete(ctx, merge.FromSubjectID); err != nil {
 		return err
 	}
 	if err := claims.RepointSubject(ctx, merge.FromSubjectID, merge.ToSubjectID); err != nil {
@@ -542,15 +549,23 @@ func (s *Service) mergeSubjects(ctx context.Context, job Job) error {
 	if err := subjects.Delete(ctx, merge.FromSubjectID); err != nil {
 		return err
 	}
-	if err := pages.Upsert(ctx, Page{
+	winnerPage := Page{
 		ID:        merge.ToSubjectID,
 		SubjectID: merge.ToSubjectID,
 		Title:     title,
 		Body:      body,
-	}); err != nil {
+	}
+	if err := pages.Upsert(ctx, winnerPage); err != nil {
 		return err
 	}
-	return finishDoneInTx(ctx, tx, job.ID, s.now())
+	committed, err := finishDoneInTx(ctx, tx, job.ID, s.now())
+	if err != nil || !committed {
+		return err
+	}
+	if s.vectorCacheRemove != nil {
+		s.vectorCacheRemove(merge.FromSubjectID)
+	}
+	return s.embedAndStore(ctx, winnerPage)
 }
 
 func (s *Service) mergeForJob(ctx context.Context, jobID string) (SubjectMerge, bool, error) {
@@ -589,21 +604,21 @@ func (s *Service) finishStaleMerge(ctx context.Context, jobID string) error {
 	return err
 }
 
-func finishDoneInTx(ctx context.Context, tx *sql.Tx, jobID string, finishedAt time.Time) error {
+func finishDoneInTx(ctx context.Context, tx *sql.Tx, jobID string, finishedAt time.Time) (bool, error) {
 	res, err := tx.ExecContext(ctx,
 		`UPDATE jobs SET status = ?, finished_at = ?, error = '' WHERE id = ? AND status = ?`,
 		JobDone, formatTime(finishedAt), jobID, JobWorking)
 	if err != nil {
-		return err
+		return false, err
 	}
 	n, err := res.RowsAffected()
 	if err != nil {
-		return err
+		return false, err
 	}
 	if n == 0 {
-		return nil
+		return false, nil
 	}
-	return tx.Commit()
+	return true, tx.Commit()
 }
 
 func (s *Service) plannedSubject(ctx context.Context, known map[string]Subject, item extract.ExtractedSubject) (Subject, bool, error) {

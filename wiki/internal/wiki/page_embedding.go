@@ -13,7 +13,8 @@ type PageEmbedder interface {
 	Embed(ctx context.Context, inputs []string, role agentkit.InputType) (*agentkit.EmbedResult, error)
 }
 
-type vectorCache func(subjectID, title string, vec []float32)
+// VectorCache updates the in-memory vector search cache for one subject.
+type VectorCache func(subjectID, title string, vec []float32)
 
 // ServiceOption configures optional service dependencies.
 type ServiceOption func(*Service)
@@ -36,6 +37,16 @@ func WithVectorCacheUpdater(update func(subjectID, title string, vec []float32))
 			return
 		}
 		s.vectorCache = update
+	}
+}
+
+// WithVectorCacheRemover installs the in-memory vector cache removal hook.
+func WithVectorCacheRemover(remove func(subjectID string)) ServiceOption {
+	return func(s *Service) {
+		if s == nil {
+			return
+		}
+		s.vectorCacheRemove = remove
 	}
 }
 
