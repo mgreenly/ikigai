@@ -34,4 +34,4 @@
 .wiki-eval-cache/
 
 # --- wiki build-loop ephemeral brief (gather creates, verify deletes; never committed) ---
-/wiki/docs/brief.md
+/wiki/project/prompts/brief.md
