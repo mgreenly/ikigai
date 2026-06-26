@@ -44,6 +44,25 @@ func TestLandingHandlerRendersInjectedNameAndVersion(t *testing.T) {
 	}
 }
 
+func TestLandingHandlerUsesCanonicalWikiLandingCopy(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+
+	LandingHandler("wiki", "v-test")(rec, req)
+
+	body := rec.Body.String()
+	for _, want := range []string{
+		"<title>wiki · wiki</title>",
+		`<div class="eyebrow">Knowledge base</div>`,
+		"Wiki compiles maintained knowledge into searchable pages and answers grounded in source material.",
+		`<dd><code>POST /mcp</code></dd>`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("body missing %q: %s", want, body)
+		}
+	}
+}
+
 func TestLandingHandlerUsesEmbeddedCarbonAssets(t *testing.T) {
 	// R-LAND-CARB
 	if _, err := fs.Stat(assets, "static/tokens.css"); err != nil {
@@ -75,7 +94,7 @@ func TestLandingHandlerUsesEmbeddedCarbonAssets(t *testing.T) {
 	if got := cssRec.Header().Get("Content-Type"); !strings.HasPrefix(got, "text/css") {
 		t.Fatalf("tokens.css Content-Type = %q, want text/css", got)
 	}
-	if !strings.Contains(cssRec.Body.String(), "--carbon-interactive") {
+	if !strings.Contains(cssRec.Body.String(), "--color-accent") {
 		t.Fatalf("tokens.css does not contain Carbon token: %s", cssRec.Body.String())
 	}
 }
@@ -89,7 +108,7 @@ func TestExactRootMuxDoesNotServeLandingForOtherPaths(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, path, nil)
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, req)
-		if rec.Code == http.StatusOK && strings.Contains(rec.Body.String(), "Carbon landing") {
+		if rec.Code == http.StatusOK && strings.Contains(rec.Body.String(), "Knowledge base") {
 			t.Fatalf("%s received landing page unexpectedly: status=%d body=%s", path, rec.Code, rec.Body.String())
 		}
 	}
