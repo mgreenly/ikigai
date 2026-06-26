@@ -12,3 +12,4 @@ Phase 07 ✅ realizes D6 (completion) — Vendor MCP client; cut suite.go off lo
 Phase 08 ✅ realizes D3 (completion) — Validation via published provider registries
 Phase 09 ✅ realizes D7 (completion) — Finish runner off local agentkit (delete buildRequest, copy FramingPrompt)
 Phase 10 ✅ realizes D1 (completion) — Pin agentkit v0.1.1, purge local agentkit dependency, add import guard
+Phase 11 ✅ realizes D10 — the landing page: a new `internal/web` package (embedded Carbon `tokens.css` + woff2 fonts + `landing.tmpl`) and `LandingHandler(Service, Version)` wired ungated at `GET /{$}` in `cmd/prompts/main.go`'s `registerRoutes`, with a sibling embedded `/static/` asset route — renders name+version, 200 `text/html`, exact-root only, no token required
