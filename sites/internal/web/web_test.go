@@ -1,8 +1,12 @@
 package web
 
 import (
+	"bytes"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -73,17 +77,17 @@ func TestStaticHandlerServesTokensCSS(t *testing.T) {
 	if rec.Code != http.StatusOK || !strings.HasPrefix(rec.Header().Get("Content-Type"), "text/css") {
 		t.Fatalf("GET /static/tokens.css returned status %d Content-Type %q", rec.Code, rec.Header().Get("Content-Type"))
 	}
-	if !strings.Contains(body, `url("/srv/sites/static/fonts/space-grotesk.woff2")`) {
+	if !strings.Contains(body, `url('/static/fonts/space-grotesk.woff2')`) {
 		t.Fatalf("tokens.css does not point at embedded service font path: %q", body)
 	}
 	for _, want := range []string{
-		"--color-background:",
-		"--space-4: 4px;",
-		"--type-display-size: 56px;",
-		"--type-display-line: 1.04;",
-		"--type-label-size: 12px;",
-		"--type-label-weight: 500;",
-		"border-radius: var(--radius-tight);",
+		"--color-bg:",
+		"--space-4:  16px;",
+		"--text-display-size:",
+		"--text-display-lh:",
+		"--text-label-size:",
+		"--text-label-weight:",
+		"--border-width:",
 	} {
 		if !strings.Contains(body, want) {
 			t.Fatalf("tokens.css missing Carbon landing token %q in: %q", want, body)
@@ -97,11 +101,46 @@ func TestLandingHTMLReferencesOwnEmbeddedStaticPath(t *testing.T) {
 	body := rec.Body.String()
 
 	// R-ASST-5K9Q
-	if !strings.Contains(body, `/srv/sites/static/tokens.css`) {
+	if !strings.Contains(body, `/static/tokens.css`) {
 		t.Fatalf("landing HTML does not reference embedded static path: %q", body)
 	}
 	if strings.Contains(body, "dashboard") || strings.Contains(body, "://") {
 		t.Fatalf("landing HTML references a cross-service or remote asset URL: %q", body)
+	}
+}
+
+func TestLandingTemplateConformsToCronCanonicalWithSitesCopy(t *testing.T) {
+	webDir := currentWebDir(t)
+	sitesLanding := readFile(t, filepath.Join(webDir, "landing.html"))
+	cronLanding := string(readFile(t, filepath.Join(webDir, "..", "..", "..", "cron", "internal", "web", "landing.html")))
+
+	want := cronLanding
+	for _, replacement := range []struct {
+		old string
+		new string
+	}{
+		{`<title>{{.Service}} · cron</title>`, `<title>{{.Service}} · sites</title>`},
+		{`<div class="eyebrow">Scheduled event emitter</div>`, `<div class="eyebrow">Static website host</div>`},
+		{`<p>Cron keeps named schedules in SQLite and emits typed event-plane messages at minute boundaries.</p>`, `<p>Sites hosts file-backed static websites and serves them through the suite gateway.</p>`},
+	} {
+		if !strings.Contains(want, replacement.old) {
+			t.Fatalf("cron canonical landing template missing %q", replacement.old)
+		}
+		want = strings.Replace(want, replacement.old, replacement.new, 1)
+	}
+
+	if got := string(sitesLanding); got != want {
+		t.Fatalf("sites landing template does not match cron canonical template with the sites substitutions")
+	}
+}
+
+func TestTokensCSSMatchesCronCanonical(t *testing.T) {
+	webDir := currentWebDir(t)
+	sitesTokens := readFile(t, filepath.Join(webDir, "static", "tokens.css"))
+	cronTokens := readFile(t, filepath.Join(webDir, "..", "..", "..", "cron", "internal", "web", "static", "tokens.css"))
+
+	if !bytes.Equal(sitesTokens, cronTokens) {
+		t.Fatalf("sites tokens.css differs from cron canonical tokens.css")
 	}
 }
 
@@ -126,4 +165,24 @@ func TestStaticHandlerServesEmbeddedFonts(t *testing.T) {
 			t.Fatalf("GET %s returned an empty body", font)
 		}
 	}
+}
+
+func currentWebDir(t *testing.T) string {
+	t.Helper()
+
+	_, file, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("runtime.Caller failed")
+	}
+	return filepath.Dir(file)
+}
+
+func readFile(t *testing.T, name string) []byte {
+	t.Helper()
+
+	body, err := os.ReadFile(name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return body
 }
