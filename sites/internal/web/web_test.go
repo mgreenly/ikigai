@@ -109,6 +109,23 @@ func TestLandingHTMLReferencesOwnEmbeddedStaticPath(t *testing.T) {
 	}
 }
 
+func TestLandingHandlerRendersHomeLinkBeforeMain(t *testing.T) {
+	rec := httptest.NewRecorder()
+	LandingHandler("sites", "home-link-test").ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+	body := rec.Body.String()
+
+	// R-HOME-9S3W
+	if !strings.Contains(body, `<body>
+  <a class="home" href="/">Home</a>
+  <main>`) {
+		t.Fatalf("landing HTML does not render Home link as the first body child before main: %q", body)
+	}
+	if !strings.Contains(body, `.home {`) || !strings.Contains(body, `.home:hover,
+    .home:focus-visible`) {
+		t.Fatalf("landing HTML does not include inline .home style rule: %q", body)
+	}
+}
+
 func TestLandingTemplateConformsToCronCanonicalWithSitesCopy(t *testing.T) {
 	webDir := currentWebDir(t)
 	sitesLanding := readFile(t, filepath.Join(webDir, "landing.html"))
