@@ -77,8 +77,8 @@ func TestLandingHandlerRendersHomeLinkToDashboardApex(t *testing.T) {
 		`<a class="home" href="/">Home</a>`,
 		".home {",
 		"position: absolute;",
-		"top: var(--space-6);",
-		"left: var(--space-6);",
+		"top: var(--space-8);",
+		"position: relative;",
 	} {
 		if !strings.Contains(body, want) {
 			t.Fatalf("body missing %q:\n%s", want, body)

@@ -42,8 +42,8 @@ func TestLandingHandlerRendersTopLeftHomeLink(t *testing.T) {
 	for _, want := range []string{
 		".home {",
 		"position: absolute;",
-		"top: var(--space-6);",
-		"left: var(--space-6);",
+		"top: var(--space-8);",
+		"position: relative;",
 		".home:hover,\n    .home:focus-visible {",
 	} {
 		if !strings.Contains(body, want) {

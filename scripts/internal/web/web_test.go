@@ -73,7 +73,7 @@ func TestLandingHandlerRendersHomeLinkToDashboardApex(t *testing.T) {
 	}
 
 	body := rec.Body.String()
-	if !strings.Contains(body, `<body>`+"\n"+`  <a class="home" href="/">Home</a>`) {
+	if !strings.Contains(body, `<main>`+"\n"+`    <a class="home" href="/">Home</a>`) {
 		t.Fatalf("landing HTML does not put the Home link first in the body:\n%s", body)
 	}
 	if count := strings.Count(body, `href="/"`); count != 1 {
@@ -81,8 +81,8 @@ func TestLandingHandlerRendersHomeLinkToDashboardApex(t *testing.T) {
 	}
 	for _, want := range []string{
 		`.home {`,
-		`top: var(--space-6);`,
-		`left: var(--space-6);`,
+		`top: var(--space-8);`,
+		`position: relative;`,
 		`.home:hover,`,
 		`.home:focus-visible {`,
 	} {

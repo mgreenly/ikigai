@@ -115,10 +115,9 @@ func TestLandingHandlerRendersHomeLinkBeforeMain(t *testing.T) {
 	body := rec.Body.String()
 
 	// R-HOME-9S3W
-	if !strings.Contains(body, `<body>
-  <a class="home" href="/">Home</a>
-  <main>`) {
-		t.Fatalf("landing HTML does not render Home link as the first body child before main: %q", body)
+	if !strings.Contains(body, `<main>
+    <a class="home" href="/">Home</a>`) {
+		t.Fatalf("landing HTML does not render Home link as the first body child inside main: %q", body)
 	}
 	if !strings.Contains(body, `.home {`) || !strings.Contains(body, `.home:hover,
     .home:focus-visible`) {

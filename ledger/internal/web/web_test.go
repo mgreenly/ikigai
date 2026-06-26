@@ -59,8 +59,8 @@ func TestLandingMarkupIncludesHomeLink(t *testing.T) {
 		`<a class="home" href="/">Home</a>`,
 		".home {",
 		"position: absolute",
-		"top: var(--space-6)",
-		"left: var(--space-6)",
+		"top: var(--space-8)",
+		"position: relative",
 		".home:hover,",
 		".home:focus-visible",
 	} {

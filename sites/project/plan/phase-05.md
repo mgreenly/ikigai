@@ -12,8 +12,8 @@ rationale.**
 
 **What gets changed (markup only — no Go logic, no nginx, no handler signature):**
 
-- **`sites/internal/web/landing.html`** — add, as the **first child of `<body>`** (before
-  `<main>`), the anchor:
+- **`sites/internal/web/landing.html`** — add, as the **first child of `<main>`** (inside
+  the centered column), the anchor:
 
   ```html
   <a class="home" href="/">Home</a>

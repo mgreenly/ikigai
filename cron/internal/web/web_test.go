@@ -65,14 +65,14 @@ func TestLandingHandlerRendersHomeLinkToApex(t *testing.T) {
 	if !strings.Contains(body, `<a class="home" href="/">Home</a>`) {
 		t.Fatalf("landing body does not contain the home apex link:\n%s", body)
 	}
-	if strings.Index(body, `<a class="home" href="/">Home</a>`) > strings.Index(body, "<main>") {
-		t.Fatalf("home link does not appear before main:\n%s", body)
+	if strings.Index(body, `<a class="home" href="/">Home</a>`) < strings.Index(body, "<main>") {
+		t.Fatalf("home link does not appear inside main:\n%s", body)
 	}
 	for _, want := range []string{
 		".home {",
 		"position: absolute;",
-		"top: var(--space-6);",
-		"left: var(--space-6);",
+		"top: var(--space-8);",
+		"position: relative;",
 		".home:hover,",
 		".home:focus-visible",
 	} {

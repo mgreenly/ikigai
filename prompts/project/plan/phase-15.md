@@ -12,8 +12,8 @@ rationale.**
 
 **What gets changed (markup only — no Go logic, no nginx, no handler signature):**
 
-- **`prompts/internal/web/landing.tmpl`** — add, as the **first child of `<body>`** (before
-  `<main>`), the anchor:
+- **`prompts/internal/web/landing.tmpl`** — add, as the **first child of `<main>`** (inside
+  the centered column), the anchor:
 
   ```html
   <a class="home" href="/">Home</a>

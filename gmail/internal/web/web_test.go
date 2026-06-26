@@ -71,10 +71,9 @@ func TestLandingHandlerRendersHomeLinkFirstInBody(t *testing.T) {
 	LandingHandler("gmail", "v-test").ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
 	body := rec.Body.String()
 
-	if !strings.Contains(body, `<body>
-  <a class="home" href="/">Home</a>
-  <main>`) {
-		t.Fatalf("home link was not the first body child before main:\n%s", body)
+	if !strings.Contains(body, `<main>
+    <a class="home" href="/">Home</a>`) {
+		t.Fatalf("home link was not the first body child inside main:\n%s", body)
 	}
 	if !strings.Contains(body, `.home {`) {
 		t.Fatalf("body missing home style rule:\n%s", body)

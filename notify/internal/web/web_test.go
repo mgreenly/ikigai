@@ -57,14 +57,14 @@ func TestLandingIncludesHomeLinkToDashboardApex(t *testing.T) {
 	if !strings.Contains(body, `<a class="home" href="/">Home</a>`) {
 		t.Fatalf("body does not render Home link to apex: %s", body)
 	}
-	if strings.Index(body, `<a class="home" href="/">Home</a>`) > strings.Index(body, "<main>") {
-		t.Fatalf("Home link is not before main: %s", body)
+	if strings.Index(body, `<a class="home" href="/">Home</a>`) < strings.Index(body, "<main>") {
+		t.Fatalf("Home link is not inside main: %s", body)
 	}
 	for _, want := range []string{
 		".home {",
 		"position: absolute;",
-		"top: var(--space-6);",
-		"left: var(--space-6);",
+		"top: var(--space-8);",
+		"position: relative;",
 		".home:hover,\n    .home:focus-visible",
 		"color: var(--color-text);",
 	} {

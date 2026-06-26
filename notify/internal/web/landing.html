@@ -22,8 +22,8 @@
 
     .home {
       position: absolute;
-      top: var(--space-6);
-      left: var(--space-6);
+      top: var(--space-8);
+      left: 0;
       font-family: var(--font-mono);
       font-size: var(--text-label-size);
       line-height: var(--text-label-lh);
@@ -39,6 +39,7 @@
     }
 
     main {
+      position: relative;
       width: min(100% - 32px, 960px);
       min-height: 100vh;
       margin: 0 auto;
@@ -127,8 +128,8 @@
   </style>
 </head>
 <body>
-  <a class="home" href="/">Home</a>
   <main>
+    <a class="home" href="/">Home</a>
     <section aria-labelledby="page-title">
       <div class="eyebrow">Push notifier</div>
       <h1 id="page-title">{{.Service}}</h1>
