@@ -28,7 +28,7 @@ func TestLandingHandlerRendersHTMLWithServiceAndVersion(t *testing.T) {
 
 	body := rec.Body.String()
 	if count := strings.Count(body, "scripts-test"); count != 3 {
-		t.Fatalf("service name count = %d, want 3 in title, aria label, and heading\n%s", count, body)
+		t.Fatalf("service name count = %d, want 3 in title, heading, and service detail\n%s", count, body)
 	}
 	if count := strings.Count(body, "v9.8.7"); count != 1 {
 		t.Fatalf("version count = %d, want 1\n%s", count, body)
@@ -61,16 +61,33 @@ func TestLandingHandlerLinksOnlyAppLocalStaticAssets(t *testing.T) {
 	}
 }
 
-func TestLandingHandlerUsesCarbonCardTypographyClasses(t *testing.T) {
+func TestLandingHandlerUsesCronCanonicalStructureForScripts(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
 
 	LandingHandler("scripts", "dev").ServeHTTP(rec, req)
 
 	body := rec.Body.String()
-	for _, want := range []string{`class="shell"`, `class="card"`, "<h1>scripts</h1>", `class="version"`} {
+	for _, want := range []string{
+		`<title>scripts · scripts</title>`,
+		`<link rel="stylesheet" href="/static/tokens.css">`,
+		`<a class="home" href="/">Home</a>`,
+		`<section aria-labelledby="page-title">`,
+		`<div class="eyebrow">Script runner</div>`,
+		`<h1 id="page-title">scripts</h1>`,
+		`Scripts runs deterministic Python scripts wired to suite events and publishes completion events back to the event plane.`,
+		`<dl aria-label="Service details">`,
+		`<dt>API</dt>`,
+		`<dd><code>POST /mcp</code></dd>`,
+		`class="version"`,
+	} {
 		if !strings.Contains(body, want) {
 			t.Fatalf("landing HTML missing %q:\n%s", want, body)
+		}
+	}
+	for _, forbidden := range []string{`class="shell"`, `class="card"`, `Scheduled event emitter`, `minute boundaries`} {
+		if strings.Contains(body, forbidden) {
+			t.Fatalf("landing HTML contains stale markup %q:\n%s", forbidden, body)
 		}
 	}
 }
@@ -118,10 +135,10 @@ func TestTokensCSSDeclaresEmbeddedFontFaces(t *testing.T) {
 	body := rec.Body.String()
 	for _, want := range []string{
 		`@font-face`,
-		`url("/static/fonts/space-grotesk.woff2")`,
-		`url("/static/fonts/ibm-plex-sans.woff2")`,
-		`url("/static/fonts/ibm-plex-mono-400.woff2")`,
-		`url("/static/fonts/ibm-plex-mono-500.woff2")`,
+		`url('/static/fonts/space-grotesk.woff2')`,
+		`url('/static/fonts/ibm-plex-sans.woff2')`,
+		`url('/static/fonts/ibm-plex-mono-400.woff2')`,
+		`url('/static/fonts/ibm-plex-mono-500.woff2')`,
 		`font-family: 'Space Grotesk'`,
 		`font-family: 'IBM Plex Mono'`,
 	} {
@@ -152,7 +169,7 @@ func TestExactRootRouteDoesNotShadowExistingPaths(t *testing.T) {
 
 	root := httptest.NewRecorder()
 	mux.ServeHTTP(root, httptest.NewRequest(http.MethodGet, "/", nil))
-	if root.Code != http.StatusOK || !strings.Contains(root.Body.String(), "<h1>scripts</h1>") {
+	if root.Code != http.StatusOK || !strings.Contains(root.Body.String(), `<h1 id="page-title">scripts</h1>`) {
 		t.Fatalf("root did not dispatch landing handler: status=%d body=%q", root.Code, root.Body.String())
 	}
 
@@ -177,7 +194,7 @@ func TestExactRootRouteDoesNotShadowExistingPaths(t *testing.T) {
 			if rec.Code != http.StatusOK || rec.Body.String() != tc.body {
 				t.Fatalf("GET %s = status %d body %q, want stub handler body %q", tc.path, rec.Code, rec.Body.String(), tc.body)
 			}
-			if strings.Contains(rec.Body.String(), "<h1>scripts</h1>") {
+			if strings.Contains(rec.Body.String(), `<h1 id="page-title">scripts</h1>`) {
 				t.Fatalf("GET %s returned landing page: status=%d body=%q", tc.path, rec.Code, rec.Body.String())
 			}
 		})
@@ -185,7 +202,7 @@ func TestExactRootRouteDoesNotShadowExistingPaths(t *testing.T) {
 
 	nope := httptest.NewRecorder()
 	mux.ServeHTTP(nope, httptest.NewRequest(http.MethodGet, "/nope", nil))
-	if nope.Code == http.StatusOK && strings.Contains(nope.Body.String(), "<h1>scripts</h1>") {
+	if nope.Code == http.StatusOK && strings.Contains(nope.Body.String(), `<h1 id="page-title">scripts</h1>`) {
 		t.Fatalf("GET /nope returned landing page: status=%d body=%q", nope.Code, nope.Body.String())
 	}
 	if nope.Code != http.StatusNotFound {
