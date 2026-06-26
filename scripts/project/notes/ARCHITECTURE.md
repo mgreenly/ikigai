@@ -70,9 +70,11 @@ No `sandbox/` package (no persistent per-script folder) and no `engine/` package
   shutdown. scripts adds: (a) construct `script.Service` (store, runner, work +
   runs dirs) and inject into the MCP handler; (b) the **crash-recovery sweep**
   after migrate; (c) one `consumer.Run` worker per upstream producer.
-- **`internal/server`** (via appkit) — `POST /mcp` behind `requireIdentityHeaders`;
-  ungated `GET /health` and `GET /feed` and the PRM doc. nginx is the sole trust
-  boundary.
+- **`internal/server`** (via appkit) — `POST /mcp` behind `requireIdentityHeaders`
+  (the bearer-gated MCP door) and `GET /{$}` serving the **human web landing page**
+  (service name + version, dashboard-session-cookie-gated at nginx); ungated
+  `GET /health` and `GET /feed` and the PRM doc. nginx is the sole trust boundary
+  for both doors — scripts still runs no token logic.
 - **`internal/db`** — SQLite open + embedded migration runner. scripts adds its
   domain migration + the eventplane outbox/feed_offset migrations (§4).
 - **`internal/ids`** — ULID generation (script ids, run ids).

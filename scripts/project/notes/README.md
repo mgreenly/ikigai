@@ -16,6 +16,12 @@ service) whose **domain is deterministic Python scripts**. It is the sibling of
 **deterministic `python3` process**. It lets the owner create, edit, run, and
 supervise **scripts**, and to wire scripts to fire on **suite events**.
 
+Under `/srv/scripts/` scripts serves two doors: an **MCP surface for agents**
+(bearer-gated) and a **human web landing page** (dashboard-session-cookie-gated)
+that shows the service name and version, alongside its event-plane
+producer/consumer feeds. It still runs **no token logic** — nginx remains the
+sole trust boundary for both doors.
+
 scripts is the suite's **deterministic glue**. A script is a small Python
 program that reacts to an event (a contact created, a ledger entry posted, a
 cron tick) or runs on demand, does something exact and repeatable, and reports a
