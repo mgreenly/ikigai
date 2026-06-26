@@ -12,6 +12,8 @@ import (
 func TestLandingHandlerRendersHTMLWithServiceAndVersion(t *testing.T) {
 	// R-LAND-7Q3D
 	// R-LAND-3T9H
+	// R-LAND-9R5F
+	// R-LAND-1S7G
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
 
@@ -42,8 +44,7 @@ func TestLandingHandlerRendersHTMLWithServiceAndVersion(t *testing.T) {
 }
 
 func TestLandingHandlerLinksOnlyAppLocalStaticAssets(t *testing.T) {
-	// R-LAND-9R5F
-	// R-ASST-9Z3P
+	// R-ASST-7Y1N
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
 
@@ -61,7 +62,6 @@ func TestLandingHandlerLinksOnlyAppLocalStaticAssets(t *testing.T) {
 }
 
 func TestLandingHandlerUsesCarbonCardTypographyClasses(t *testing.T) {
-	// R-LAND-1S7G
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
 
@@ -77,6 +77,7 @@ func TestLandingHandlerUsesCarbonCardTypographyClasses(t *testing.T) {
 
 func TestStaticHandlerServesTokensAndFonts(t *testing.T) {
 	// R-ASST-5X8M
+	// R-ASST-9Z3P
 	cases := []struct {
 		path        string
 		contentType string
@@ -109,7 +110,6 @@ func TestStaticHandlerServesTokensAndFonts(t *testing.T) {
 }
 
 func TestTokensCSSDeclaresEmbeddedFontFaces(t *testing.T) {
-	// R-ASST-7Y1N
 	req := httptest.NewRequest(http.MethodGet, "/static/tokens.css", nil)
 	rec := httptest.NewRecorder()
 
@@ -134,6 +134,7 @@ func TestTokensCSSDeclaresEmbeddedFontFaces(t *testing.T) {
 func TestExactRootRouteDoesNotShadowExistingPaths(t *testing.T) {
 	// R-ROUT-8U2J
 	// R-ROUT-1V4K
+	// R-ROUT-3W6L
 	mux := http.NewServeMux()
 	mux.Handle("GET /{$}", LandingHandler("scripts", "dev"))
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
@@ -193,7 +194,6 @@ func TestExactRootRouteDoesNotShadowExistingPaths(t *testing.T) {
 }
 
 func TestCompositionRootMountsLandingUngatedAndKeepsMCPWiring(t *testing.T) {
-	// R-ROUT-3W6L
 	src, err := os.ReadFile("../../cmd/scripts/main.go")
 	if err != nil {
 		t.Fatal(err)
