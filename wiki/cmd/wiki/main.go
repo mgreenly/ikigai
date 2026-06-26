@@ -109,8 +109,11 @@ func buildSpec(cfg wiki.Config) appkit.Spec {
 		jobs := wiki.NewJobStore(conns)
 		aliases := wiki.NewAliasStore(read)
 		statusService := publicStatusService{service: svc}
-		rt.HandleFunc("GET /{$}", web.LandingHandler(rt.Service(), rt.Version()))
-		rt.Handle("GET /static/", web.StaticHandler())
+		rt.Handle("/", web.NewHandler(rt.Service(), rt.Version(), wiki.Mount,
+			web.WithOrphanLister(orphanAdapter{svc: svc}),
+			web.WithAsker(asker),
+			web.WithPageFinder(pageService),
+		))
 		rt.Handle("POST /mcp", rt.RequireIdentity(
 			mcp.NewHandler(rt.Version(), rt.Service(), rt.Health(),
 				mcp.WithIngestService(svc),
@@ -252,6 +255,25 @@ func (r mergePathResolver) GetByPath(ctx context.Context, path string) (wiki.Sub
 	return subject, err
 }
 
+type orphanAdapter struct {
+	svc *wiki.Service
+}
+
+func (a orphanAdapter) Orphans(ctx context.Context) ([]web.Ref, error) {
+	subjects, err := a.svc.Orphans(ctx)
+	if err != nil {
+		return nil, err
+	}
+	refs := make([]web.Ref, 0, len(subjects))
+	for _, subject := range subjects {
+		refs = append(refs, web.Ref{
+			Href: "subject/" + wiki.Path(subject),
+			Name: subject.Name,
+		})
+	}
+	return refs, nil
+}
+
 type publicSubjectService struct {
 	subjects *wiki.SubjectStore
 	pages    *wiki.PageStore
@@ -345,20 +367,20 @@ type pathPageService struct {
 	service  *wiki.Service
 }
 
-func (s pathPageService) PageByPath(ctx context.Context, path string) (publicPage, error) {
+func (s pathPageService) PageByPath(ctx context.Context, path string) (web.SubjectView, error) {
 	subject, err := s.resolver.ResolveByPath(ctx, path)
 	if errors.Is(err, wiki.ErrSubjectNotFound) {
-		return publicPage{}, sql.ErrNoRows
+		return web.SubjectView{}, sql.ErrNoRows
 	}
 	if err != nil {
-		return publicPage{}, err
+		return web.SubjectView{}, err
 	}
 	page, err := s.service.PageWithLinks(ctx, subject.ID)
 	if err != nil {
-		return publicPage{}, err
+		return web.SubjectView{}, err
 	}
 	page.Body = wiki.RenderFooter(page.Body, page.Mentions, page.MentionedBy)
-	return publicPage{
+	return web.SubjectView{
 		Path:  wiki.Path(subject),
 		Title: page.Title,
 		Body:  page.Body,

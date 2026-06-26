@@ -1,0 +1,111 @@
+{{define "layout"}}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <base href="{{.Mount}}">
+  <title>{{.Service}} · wiki</title>
+  <link rel="stylesheet" href="static/tokens.css">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--color-text);
+      background: var(--color-bg);
+      font-family: var(--font-body);
+      font-size: var(--text-body-size);
+      line-height: var(--text-body-lh);
+    }
+
+    main,
+    footer {
+      width: min(100% - 32px, 960px);
+      margin: 0 auto;
+    }
+
+    main {
+      min-height: calc(100vh - 96px);
+      padding: var(--space-16) 0 var(--space-10);
+      display: grid;
+      align-content: center;
+      gap: var(--space-8);
+    }
+
+    h1 {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: clamp(40px, 8vw, var(--text-display-size));
+      line-height: var(--text-display-lh);
+      font-weight: var(--text-display-weight);
+      letter-spacing: 0;
+    }
+
+    form {
+      display: flex;
+      max-width: 680px;
+      border: var(--border-width) solid var(--color-border);
+    }
+
+    input,
+    button {
+      min-height: 48px;
+      border: 0;
+      font: inherit;
+    }
+
+    input {
+      min-width: 0;
+      flex: 1;
+      padding: 0 var(--space-4);
+      color: var(--color-text);
+      background: var(--color-bg);
+    }
+
+    button {
+      padding: 0 var(--space-5);
+      color: var(--color-bg);
+      background: var(--color-accent);
+      cursor: pointer;
+    }
+
+    nav {
+      max-width: 680px;
+      border-top: var(--border-width) solid var(--color-border);
+    }
+
+    ul {
+      margin: 0;
+      padding: var(--space-4) 0 0;
+      display: grid;
+      gap: var(--space-3);
+      list-style: none;
+    }
+
+    a {
+      color: var(--color-text);
+      text-decoration-thickness: var(--border-width);
+      text-underline-offset: 0.2em;
+    }
+
+    footer {
+      padding: 0 0 var(--space-6);
+      font-family: var(--font-mono);
+      font-size: var(--text-label-size);
+      line-height: var(--text-label-lh);
+      font-weight: var(--text-label-weight);
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+    }
+  </style>
+</head>
+<body>
+  <main>
+    {{block "main" .}}{{end}}
+  </main>
+  <footer>{{.Service}} {{.Version}}</footer>
+</body>
+</html>{{end}}

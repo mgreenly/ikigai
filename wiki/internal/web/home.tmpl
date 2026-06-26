@@ -1,0 +1,16 @@
+{{define "home"}}{{template "layout" .}}{{end}}
+
+{{define "main"}}
+<h1>{{.Service}}</h1>
+<form action="" method="get" role="search">
+  <input type="text" name="q" aria-label="Search wiki">
+  <button type="submit">Search</button>
+</form>
+{{if .Orphans}}
+<nav aria-label="Orphan pages">
+  <ul>
+    {{range .Orphans}}<li><a href="{{.Href}}">{{.Name}}</a></li>{{end}}
+  </ul>
+</nav>
+{{end}}
+{{end}}
