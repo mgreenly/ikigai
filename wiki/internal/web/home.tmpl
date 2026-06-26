@@ -3,14 +3,35 @@
 {{define "main"}}
 <h1>{{.Service}}</h1>
 <form action="" method="get" role="search">
-  <input type="text" name="q" aria-label="Search wiki">
+  <input type="text" name="q" aria-label="Search wiki" value="{{.Query}}">
   <button type="submit">Search</button>
 </form>
+{{if .Asked}}
+<article aria-label="Answer">
+  <h2>{{.Query}}</h2>
+  <p>{{.Answer.Text}}</p>
+  {{if .Cites}}
+  <nav aria-label="Cited pages">
+    <ul>
+      {{range .Cites}}<li><a href="{{.Href}}">{{.Name}}</a></li>{{end}}
+    </ul>
+  </nav>
+  {{end}}
+  {{if .Mentions}}
+  <nav aria-label="Mentioned subjects">
+    <ul>
+      {{range .Mentions}}<li><a href="{{.Href}}">{{.Name}}</a></li>{{end}}
+    </ul>
+  </nav>
+  {{end}}
+</article>
+{{else}}
 {{if .Orphans}}
 <nav aria-label="Orphan pages">
   <ul>
     {{range .Orphans}}<li><a href="{{.Href}}">{{.Name}}</a></li>{{end}}
   </ul>
 </nav>
+{{end}}
 {{end}}
 {{end}}

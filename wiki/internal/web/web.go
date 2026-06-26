@@ -8,6 +8,7 @@ import (
 	"html/template"
 	"io/fs"
 	"net/http"
+	"strings"
 
 	"wiki/internal/ask"
 )
@@ -34,8 +35,10 @@ type OrphanLister interface {
 	Orphans(ctx context.Context) ([]Ref, error)
 }
 
-// Mentioner is reserved for the subject-page mention seam added by later phases.
-type Mentioner interface{}
+// Mentioner lists wiki subjects mentioned by rendered answer text.
+type Mentioner interface {
+	MentionsIn(ctx context.Context, text string) ([]Ref, error)
+}
 
 // Ref is a mount-relative link target for the read surface.
 type Ref struct {
@@ -74,7 +77,7 @@ func WithOrphanLister(o OrphanLister) Option {
 	}
 }
 
-// WithMentioner injects the mention seam for later subject-page routes.
+// WithMentioner injects the answer mention lookup seam.
 func WithMentioner(m Mentioner) Option {
 	return func(h *handler) {
 		h.mentions = m
@@ -96,7 +99,13 @@ type pageData struct {
 	Service string
 	Version string
 	Mount   string
-	Orphans []Ref
+
+	Query    string
+	Asked    bool
+	Answer   ask.Answer
+	Cites    []Ref
+	Mentions []Ref
+	Orphans  []Ref
 }
 
 // NewHandler builds the read-surface mux.
@@ -113,6 +122,12 @@ func NewHandler(service, version, mount string, opts ...Option) http.Handler {
 }
 
 func (h *handler) home(w http.ResponseWriter, r *http.Request) {
+	query := strings.TrimSpace(r.URL.Query().Get("q"))
+	if query != "" {
+		h.ask(w, r, query)
+		return
+	}
+
 	var orphans []Ref
 	if h.orphans != nil {
 		refs, err := h.orphans.Orphans(r.Context())
@@ -131,6 +146,52 @@ func (h *handler) home(w http.ResponseWriter, r *http.Request) {
 		Orphans: orphans,
 	}); err != nil {
 		http.Error(w, "render home page", http.StatusInternalServerError)
+	}
+}
+
+func (h *handler) ask(w http.ResponseWriter, r *http.Request, question string) {
+	if h.asker == nil {
+		http.Error(w, "ask wiki", http.StatusNotImplemented)
+		return
+	}
+	answer, err := h.asker.Ask(r.Context(), r.Header.Get("X-Owner-Email"), question)
+	if err != nil {
+		http.Error(w, "ask wiki", http.StatusInternalServerError)
+		return
+	}
+
+	cites := make([]Ref, 0, len(answer.Citations))
+	for _, citation := range answer.Citations {
+		if citation.Path == "" || citation.Title == "" {
+			continue
+		}
+		cites = append(cites, Ref{
+			Href: "subject/" + citation.Path,
+			Name: citation.Title,
+		})
+	}
+	var mentions []Ref
+	if h.mentions != nil {
+		refs, err := h.mentions.MentionsIn(r.Context(), answer.Text)
+		if err != nil {
+			http.Error(w, "link answer mentions", http.StatusInternalServerError)
+			return
+		}
+		mentions = refs
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := pageTemplates.ExecuteTemplate(w, "home", pageData{
+		Service:  h.service,
+		Version:  h.version,
+		Mount:    h.mount,
+		Query:    question,
+		Asked:    true,
+		Answer:   answer,
+		Cites:    cites,
+		Mentions: mentions,
+	}); err != nil {
+		http.Error(w, "render ask page", http.StatusInternalServerError)
 	}
 }
 

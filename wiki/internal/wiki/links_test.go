@@ -206,6 +206,91 @@ func TestPageWithLinksProjectsAliasAwareInboundAndOutbound(t *testing.T) {
 	}
 }
 
+func TestMentionsInReturnsSubjectHrefRefsForWholeMatches(t *testing.T) {
+	ctx := context.Background()
+	conn := migratedDB(t, ctx)
+	defer conn.Close()
+	svc := NewService(conn, nil, nil, nil)
+	subjects := NewSubjectStore(conn)
+
+	saveSubject(t, ctx, subjects, Subject{ID: "subject-cat", Name: "Cat", Type: "entity"})
+	saveSubject(t, ctx, subjects, Subject{ID: "subject-category", Name: "Category Theory", Type: "concept"})
+
+	got, err := svc.MentionsIn(ctx, "Category theory mentions a cat, not concatenate.")
+	if err != nil {
+		t.Fatalf("MentionsIn: %v", err)
+	}
+	want := []Ref{
+		{Path: "concept/category-theory", Name: "Category Theory"},
+		{Path: "entity/cat", Name: "Cat"},
+	}
+	if !sameRefs(got, want) {
+		t.Fatalf("MentionsIn = %+v, want whole-match subject refs %+v", got, want)
+	}
+}
+
+func TestMentionsInResolvesAliasKeysToCanonicalSubject(t *testing.T) {
+	// R-AWIU-P1OK
+	ctx := context.Background()
+	conn := migratedDB(t, ctx)
+	defer conn.Close()
+	svc := NewService(conn, nil, nil, nil)
+	subjects := NewSubjectStore(conn)
+	aliases := NewAliasStore(conn)
+
+	saveSubject(t, ctx, subjects, Subject{ID: "subject-lumen", Name: "Current Initiative", Type: "concept"})
+	if err := aliases.Insert(ctx, Alias{
+		Name:      "Project Lumen",
+		SubjectID: "subject-lumen",
+		CreatedBy: "owner@example.com",
+		CreatedAt: "2026-06-25T12:00:00Z",
+	}); err != nil {
+		t.Fatalf("Insert alias: %v", err)
+	}
+
+	got, err := svc.MentionsIn(ctx, "The answer names Project Lumen, never the canonical title.")
+	if err != nil {
+		t.Fatalf("MentionsIn: %v", err)
+	}
+	want := []Ref{{Path: "concept/current-initiative", Name: "Current Initiative"}}
+	if !sameRefs(got, want) {
+		t.Fatalf("MentionsIn = %+v, want alias to canonical ref %+v", got, want)
+	}
+}
+
+func TestMentionsInOrdersAndDedupesWebRefs(t *testing.T) {
+	// R-AXQR-2TF9
+	ctx := context.Background()
+	conn := migratedDB(t, ctx)
+	defer conn.Close()
+	svc := NewService(conn, nil, nil, nil)
+	subjects := NewSubjectStore(conn)
+	aliases := NewAliasStore(conn)
+
+	saveSubject(t, ctx, subjects, Subject{ID: "subject-z", Name: "Zeta Lab", Type: "entity"})
+	saveSubject(t, ctx, subjects, Subject{ID: "subject-a", Name: "Alpha Plan", Type: "concept"})
+	if err := aliases.Insert(ctx, Alias{
+		Name:      "Project A",
+		SubjectID: "subject-a",
+		CreatedBy: "owner@example.com",
+		CreatedAt: "2026-06-25T12:00:00Z",
+	}); err != nil {
+		t.Fatalf("Insert alias: %v", err)
+	}
+
+	got, err := svc.MentionsIn(ctx, "Zeta Lab discussed Alpha Plan, Project A, and Zeta Lab again.")
+	if err != nil {
+		t.Fatalf("MentionsIn: %v", err)
+	}
+	want := []Ref{
+		{Path: "concept/alpha-plan", Name: "Alpha Plan"},
+		{Path: "entity/zeta-lab", Name: "Zeta Lab"},
+	}
+	if !sameRefs(got, want) {
+		t.Fatalf("MentionsIn = %+v, want sorted deduped web refs %+v", got, want)
+	}
+}
+
 func TestRenderFooterAppendsMarkdownLinks(t *testing.T) {
 	// R-ZZ8Y-6MHH
 	got := RenderFooter("Page body.\n", []Ref{
@@ -282,4 +367,16 @@ func upsertPage(t *testing.T, ctx context.Context, store *PageStore, page Page) 
 	if err := store.Upsert(ctx, page); err != nil {
 		t.Fatalf("Upsert page %s: %v", page.ID, err)
 	}
+}
+
+func sameRefs(got, want []Ref) bool {
+	if len(got) != len(want) {
+		return false
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			return false
+		}
+	}
+	return true
 }

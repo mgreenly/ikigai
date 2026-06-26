@@ -143,6 +143,28 @@ func (s *Service) PageWithLinks(ctx context.Context, subjectID string) (LinkedPa
 	return linked, nil
 }
 
+// MentionsIn returns public read-surface links for subjects named in text.
+func (s *Service) MentionsIn(ctx context.Context, text string) ([]Ref, error) {
+	if s == nil {
+		return nil, fmt.Errorf("wiki: nil service")
+	}
+	subjects, err := listAllSubjects(ctx, s.subjects, "", "")
+	if err != nil {
+		return nil, err
+	}
+	aliases, err := s.aliases.ListAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	subjectKeysByID := subjectKeysFor(subjects, aliases)
+	subjectKeys := make([]SubjectKeys, 0, len(subjectKeysByID))
+	for _, keys := range subjectKeysByID {
+		subjectKeys = append(subjectKeys, keys)
+	}
+	return refsFor(Mentions(text, subjectKeys)), nil
+}
+
 func subjectKeysFor(subjects []Subject, aliases []Alias) map[string]SubjectKeys {
 	byID := make(map[string]SubjectKeys, len(subjects))
 	for _, subject := range subjects {

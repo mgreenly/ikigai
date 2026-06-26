@@ -112,6 +112,7 @@ func buildSpec(cfg wiki.Config) appkit.Spec {
 		rt.Handle("/", web.NewHandler(rt.Service(), rt.Version(), wiki.Mount,
 			web.WithOrphanLister(orphanAdapter{svc: svc}),
 			web.WithAsker(asker),
+			web.WithMentioner(mentionAdapter{svc: svc}),
 			web.WithPageFinder(pageService),
 		))
 		rt.Handle("POST /mcp", rt.RequireIdentity(
@@ -269,6 +270,25 @@ func (a orphanAdapter) Orphans(ctx context.Context) ([]web.Ref, error) {
 		refs = append(refs, web.Ref{
 			Href: "subject/" + wiki.Path(subject),
 			Name: subject.Name,
+		})
+	}
+	return refs, nil
+}
+
+type mentionAdapter struct {
+	svc *wiki.Service
+}
+
+func (a mentionAdapter) MentionsIn(ctx context.Context, text string) ([]web.Ref, error) {
+	mentions, err := a.svc.MentionsIn(ctx, text)
+	if err != nil {
+		return nil, err
+	}
+	refs := make([]web.Ref, 0, len(mentions))
+	for _, mention := range mentions {
+		refs = append(refs, web.Ref{
+			Href: "subject/" + mention.Path,
+			Name: mention.Name,
 		})
 	}
 	return refs, nil

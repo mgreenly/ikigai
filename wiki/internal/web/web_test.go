@@ -7,6 +7,8 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"wiki/internal/ask"
 )
 
 type stubOrphanLister struct {
@@ -16,6 +18,32 @@ type stubOrphanLister struct {
 
 func (s *stubOrphanLister) Orphans(context.Context) ([]Ref, error) {
 	s.called++
+	return s.refs, nil
+}
+
+type stubAsker struct {
+	answer   ask.Answer
+	called   int
+	owner    string
+	question string
+}
+
+func (s *stubAsker) Ask(_ context.Context, owner, question string) (ask.Answer, error) {
+	s.called++
+	s.owner = owner
+	s.question = question
+	return s.answer, nil
+}
+
+type stubMentioner struct {
+	refs   []Ref
+	called int
+	text   string
+}
+
+func (s *stubMentioner) MentionsIn(_ context.Context, text string) ([]Ref, error) {
+	s.called++
+	s.text = text
 	return s.refs, nil
 }
 
@@ -83,6 +111,143 @@ func TestHomeHandlerRendersSearchFormTargetingBase(t *testing.T) {
 	}
 	if got := strings.Count(body, `type="text" name="q"`); got != 1 {
 		t.Fatalf("q text input count = %d, want 1; body=%s", got, body)
+	}
+}
+
+func TestAskHandlerCallsAskerWithQuestionAndOwner(t *testing.T) {
+	// R-WFPZ-2LTM
+	asker := &stubAsker{answer: ask.Answer{
+		Found: true,
+		Text:  "Grace owns the scheduler.",
+	}}
+	req := httptest.NewRequest(http.MethodGet, "/?q=Who+owns+the+scheduler%3F", nil)
+	req.Header.Set("X-Owner-Email", "owner@example.com")
+	rec := httptest.NewRecorder()
+
+	NewHandler("wiki", "v-test", "/srv/wiki/", WithAsker(asker)).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200; body=%s", rec.Code, rec.Body.String())
+	}
+	if asker.called != 1 {
+		t.Fatalf("Ask calls = %d, want 1", asker.called)
+	}
+	if asker.owner != "owner@example.com" || asker.question != "Who owns the scheduler?" {
+		t.Fatalf("Ask called with owner=%q question=%q, want owner header and trimmed q", asker.owner, asker.question)
+	}
+}
+
+func TestAskHandlerRendersAnswerAndCitationsAsSubjectLinks(t *testing.T) {
+	// R-ARN9-5YPS
+	asker := &stubAsker{answer: ask.Answer{
+		Found: true,
+		Text:  "Grace owns the scheduler.",
+		Citations: []ask.Citation{
+			{Path: "entity/grace-hopper", Title: "Grace Hopper"},
+		},
+	}}
+	req := httptest.NewRequest(http.MethodGet, "/?q=scheduler", nil)
+	rec := httptest.NewRecorder()
+
+	NewHandler("wiki", "v-test", "/srv/wiki/", WithAsker(asker)).ServeHTTP(rec, req)
+
+	body := rec.Body.String()
+	for _, want := range []string{
+		"<article",
+		"Grace owns the scheduler.",
+		`<a href="subject/entity/grace-hopper">Grace Hopper</a>`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("ask page missing %q: %s", want, body)
+		}
+	}
+}
+
+func TestAskHandlerRendersMentionedSubjectsFromAnswerText(t *testing.T) {
+	// R-AU31-XI76
+	asker := &stubAsker{answer: ask.Answer{
+		Found: true,
+		Text:  "Acme Corp uses the Widget.",
+	}}
+	mentioner := &stubMentioner{refs: []Ref{
+		{Href: "subject/entity/acme-corp", Name: "Acme Corp"},
+		{Href: "subject/concept/widget", Name: "Widget"},
+	}}
+	req := httptest.NewRequest(http.MethodGet, "/?q=tools", nil)
+	rec := httptest.NewRecorder()
+
+	NewHandler("wiki", "v-test", "/srv/wiki/", WithAsker(asker), WithMentioner(mentioner)).ServeHTTP(rec, req)
+
+	body := rec.Body.String()
+	if mentioner.called != 1 || mentioner.text != "Acme Corp uses the Widget." {
+		t.Fatalf("MentionsIn called %d with %q, want answer text", mentioner.called, mentioner.text)
+	}
+	for _, want := range []string{
+		`<a href="subject/entity/acme-corp">Acme Corp</a>`,
+		`<a href="subject/concept/widget">Widget</a>`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("ask page missing mention link %q: %s", want, body)
+		}
+	}
+}
+
+func TestAskHandlerRendersHonestEmptyWithoutCitationNav(t *testing.T) {
+	// R-ASV5-JQGH
+	asker := &stubAsker{answer: ask.Answer{
+		Found: false,
+		Text:  "The wiki holds nothing on that question.",
+	}}
+	req := httptest.NewRequest(http.MethodGet, "/?q=unknown", nil)
+	rec := httptest.NewRecorder()
+
+	NewHandler("wiki", "v-test", "/srv/wiki/", WithAsker(asker)).ServeHTTP(rec, req)
+
+	body := rec.Body.String()
+	if !strings.Contains(body, "The wiki holds nothing on that question.") {
+		t.Fatalf("ask page missing honest-empty text: %s", body)
+	}
+	if strings.Contains(body, `aria-label="Cited pages"`) {
+		t.Fatalf("ask page rendered citation nav for empty answer: %s", body)
+	}
+}
+
+func TestAskHandlerOmitsMentionSectionWhenAnswerMentionsAreEmpty(t *testing.T) {
+	// R-AVAY-B9XV
+	asker := &stubAsker{answer: ask.Answer{
+		Found: true,
+		Text:  "No known subject is named here.",
+	}}
+	req := httptest.NewRequest(http.MethodGet, "/?q=unknown", nil)
+	rec := httptest.NewRecorder()
+
+	NewHandler("wiki", "v-test", "/srv/wiki/", WithAsker(asker), WithMentioner(&stubMentioner{})).ServeHTTP(rec, req)
+
+	body := rec.Body.String()
+	if !strings.Contains(body, "No known subject is named here.") {
+		t.Fatalf("ask page missing answer text: %s", body)
+	}
+	if strings.Contains(body, `aria-label="Mentioned subjects"`) {
+		t.Fatalf("ask page rendered mention section for empty mentions: %s", body)
+	}
+}
+
+func TestBlankQueryKeepsHomePageOnOrphanSeam(t *testing.T) {
+	asker := &stubAsker{}
+	lister := &stubOrphanLister{refs: []Ref{{Href: "subject/entity/acme", Name: "Acme"}}}
+	req := httptest.NewRequest(http.MethodGet, "/?q=+++", nil)
+	rec := httptest.NewRecorder()
+
+	NewHandler("wiki", "v-test", "/srv/wiki/", WithAsker(asker), WithOrphanLister(lister)).ServeHTTP(rec, req)
+
+	if asker.called != 0 {
+		t.Fatalf("Ask calls = %d, want blank q to stay on home page", asker.called)
+	}
+	if lister.called != 1 {
+		t.Fatalf("Orphans calls = %d, want home page orphan seam", lister.called)
+	}
+	if !strings.Contains(rec.Body.String(), `<a href="subject/entity/acme">Acme</a>`) {
+		t.Fatalf("home page missing orphan link: %s", rec.Body.String())
 	}
 }
 
