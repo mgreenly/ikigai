@@ -38,6 +38,33 @@ func TestLandingHandlerRendersInjectedNameAndVersion(t *testing.T) {
 	}
 }
 
+func TestLandingHandlerRendersCanonicalPromptsLanding(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+
+	LandingHandler("prompts-canary", "v2035.04.19-phase14")(rec, req)
+
+	body := rec.Body.String()
+	for _, want := range []string{
+		"<title>prompts-canary · prompts</title>",
+		`<a class="home" href="/">Home</a>`,
+		`<div class="eyebrow">Agent sessions</div>`,
+		`<h1 id="page-title">prompts-canary</h1>`,
+		"Prompts runs configured agent sessions through MCP tools and records the resulting outputs.",
+		`<dl aria-label="Service details">`,
+		"<dt>Service</dt>",
+		"<dd>prompts-canary</dd>",
+		"<dt>Version</dt>",
+		`<dd class="version">v2035.04.19-phase14</dd>`,
+		"<dt>API</dt>",
+		"<dd><code>POST /mcp</code></dd>",
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("body missing %q:\n%s", want, body)
+		}
+	}
+}
+
 func TestLandingAssetsAreEmbeddedAndServed(t *testing.T) {
 	// R-LAND-CARB
 	if _, err := content.ReadFile("static/tokens.css"); err != nil {

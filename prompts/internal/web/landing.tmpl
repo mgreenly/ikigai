@@ -1,117 +1,154 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{.Service}} {{.Version}}</title>
-    <link rel="stylesheet" href="/static/tokens.css">
-    <style>
-      @font-face {
-        font-family: "Space Grotesk";
-        src: url("/static/fonts/space-grotesk.woff2") format("woff2");
-        font-weight: 600 700;
-        font-style: normal;
-        font-display: swap;
-      }
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.Service}} · prompts</title>
+  <link rel="stylesheet" href="/static/tokens.css">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
 
-      @font-face {
-        font-family: "IBM Plex Mono";
-        src: url("/static/fonts/ibm-plex-mono-500.woff2") format("woff2");
-        font-weight: 500;
-        font-style: normal;
-        font-display: swap;
-      }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--color-text);
+      background: var(--color-bg);
+      font-family: var(--font-body);
+      font-size: var(--text-body-size);
+      line-height: var(--text-body-lh);
+    }
 
-      @font-face {
-        font-family: "IBM Plex Sans";
-        src: url("/static/fonts/ibm-plex-sans.woff2") format("woff2");
-        font-weight: 400 600;
-        font-style: normal;
-        font-display: swap;
-      }
+    main {
+      width: min(100% - 32px, 960px);
+      min-height: 100vh;
+      margin: 0 auto;
+      padding: var(--space-16) 0;
+      display: grid;
+      align-content: center;
+      gap: var(--space-12);
+    }
 
-      * {
-        box-sizing: border-box;
-      }
+    .eyebrow,
+    .version,
+    dt {
+      font-family: var(--font-mono);
+      font-size: var(--text-label-size);
+      line-height: var(--text-label-lh);
+      font-weight: var(--text-label-weight);
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+    }
 
-      html,
-      body {
-        min-height: 100%;
-      }
+    .home {
+      position: absolute;
+      top: var(--space-6);
+      left: var(--space-6);
+      font-family: var(--font-mono);
+      font-size: var(--text-label-size);
+      line-height: var(--text-label-lh);
+      font-weight: var(--text-label-weight);
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+      text-decoration: none;
+    }
 
-      body {
-        margin: 0;
-        min-height: 100vh;
-        display: grid;
-        place-items: center;
-        padding: var(--space-8);
-        color: var(--color-text);
-        background:
-          linear-gradient(var(--color-border), var(--color-border)) 50% 0 / 1px 100% no-repeat,
-          var(--color-bg);
-        font-family: var(--font-body);
-      }
+    .home:hover,
+    .home:focus-visible {
+      color: var(--color-text);
+    }
 
+    h1 {
+      margin: var(--space-3) 0 0;
+      font-family: var(--font-display);
+      font-size: clamp(40px, 8vw, var(--text-display-size));
+      line-height: var(--text-display-lh);
+      font-weight: var(--text-display-weight);
+      letter-spacing: 0;
+    }
+
+    p {
+      max-width: 680px;
+      margin: var(--space-6) 0 0;
+      color: var(--color-text-muted);
+      font-size: var(--text-body-lg-size);
+      line-height: var(--text-body-lg-lh);
+    }
+
+    dl {
+      margin: 0;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      border-top: var(--border-width) solid var(--color-border);
+      border-bottom: var(--border-width) solid var(--color-border);
+    }
+
+    dl > div {
+      min-width: 0;
+      padding: var(--space-6) var(--space-4);
+      border-left: var(--border-width) solid var(--color-border);
+    }
+
+    dl > div:first-child {
+      border-left: 0;
+    }
+
+    dd {
+      margin: var(--space-2) 0 0;
+      overflow-wrap: anywhere;
+      font-size: var(--text-body-lg-size);
+      line-height: var(--text-body-lg-lh);
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: 0.95em;
+    }
+
+    @media (max-width: 720px) {
       main {
-        width: min(100%, 448px);
-        border: var(--border-width) solid var(--color-border);
-        border-radius: var(--radius-lg);
-        background: var(--color-surface);
-        box-shadow: var(--shadow-sm);
+        padding: var(--space-12) 0;
       }
 
-      .accent {
-        height: var(--space-1);
-        background: var(--color-accent);
-        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      dl {
+        grid-template-columns: 1fr;
       }
 
-      .content {
-        padding: var(--space-12);
+      dl > div {
+        border-left: 0;
+        border-top: var(--border-width) solid var(--color-border);
       }
 
-      h1 {
-        margin: 0;
-        color: var(--color-text);
-        font-family: var(--font-display);
-        font-size: clamp(40px, 9vw, var(--text-display-size));
-        font-weight: var(--text-display-weight);
-        line-height: var(--text-display-lh);
-        letter-spacing: 0;
+      dl > div:first-child {
+        border-top: 0;
       }
+    }
+  </style>
+</head>
+<body>
+  <a class="home" href="/">Home</a>
+  <main>
+    <section aria-labelledby="page-title">
+      <div class="eyebrow">Agent sessions</div>
+      <h1 id="page-title">{{.Service}}</h1>
+      <p>Prompts runs configured agent sessions through MCP tools and records the resulting outputs.</p>
+    </section>
 
-      .version {
-        display: inline-block;
-        margin-top: var(--space-6);
-        padding: var(--space-2) var(--space-3);
-        border: var(--border-width) solid var(--color-border-strong);
-        border-radius: var(--radius);
-        color: var(--color-text-muted);
-        background: var(--color-bg);
-        font-family: var(--font-mono);
-        font-size: var(--text-label-size);
-        font-weight: var(--text-label-weight);
-        line-height: var(--text-label-lh);
-      }
-
-      @media (max-width: 520px) {
-        body {
-          padding: var(--space-4);
-        }
-
-        .content {
-          padding: var(--space-8);
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <main aria-label="{{.Service}} service">
-      <div class="accent"></div>
-      <section class="content">
-        <h1>{{.Service}}</h1>
-        <div class="version">{{.Version}}</div>
-      </section>
-    </main>
-  </body>
+    <dl aria-label="Service details">
+      <div>
+        <dt>Service</dt>
+        <dd>{{.Service}}</dd>
+      </div>
+      <div>
+        <dt>Version</dt>
+        <dd class="version">{{.Version}}</dd>
+      </div>
+      <div>
+        <dt>API</dt>
+        <dd><code>POST /mcp</code></dd>
+      </div>
+    </dl>
+  </main>
+</body>
 </html>
