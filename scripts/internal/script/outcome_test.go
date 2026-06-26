@@ -58,8 +58,8 @@ func TestCompletionEvent(t *testing.T) {
 			name: "triggered run populates trigger fields",
 			in: FinishRunInput{
 				RunID: "r4", ScriptID: "s1", ScriptName: "reactor",
-				Status:  RunSucceeded,
-				ExitCode: exit0,
+				Status:        RunSucceeded,
+				ExitCode:      exit0,
 				TriggerSource: "crm", TriggerType: "contact.created", TriggerEventID: "evt-123",
 			},
 			wantEmit: true, wantType: EventSucceeded,

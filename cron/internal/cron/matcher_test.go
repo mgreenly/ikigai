@@ -14,26 +14,26 @@ func ut(year, month, day, hour, min int) time.Time {
 // naming the field. We assert rejection (err != nil), not the exact message.
 func TestParse_Invalid(t *testing.T) {
 	bad := []string{
-		"",                  // empty
-		"* * * *",           // 4 fields
-		"* * * * * *",       // 6 fields
-		"60 * * * *",        // minute out of range
-		"* 24 * * *",        // hour out of range
-		"* * 0 * *",         // dom below 1
-		"* * 32 * *",        // dom above 31
-		"* * * 0 *",         // month below 1
-		"* * * 13 *",        // month above 12
-		"* * * * 8",         // dow above 7
-		"*/0 * * * *",       // zero step
-		"*/-1 * * * *",      // negative step
-		"5-1 * * * *",       // descending range
-		"a * * * *",         // non-numeric value
-		"1-b * * * *",       // non-numeric range bound
-		"1,,2 * * * *",      // empty list element
-		"1- * * * *",        // dangling range
-		"/5 * * * *",        // step with no range
-		"1-5/x * * * *",     // non-numeric step
-		"* * * * 1-2-3",     // malformed range
+		"",              // empty
+		"* * * *",       // 4 fields
+		"* * * * * *",   // 6 fields
+		"60 * * * *",    // minute out of range
+		"* 24 * * *",    // hour out of range
+		"* * 0 * *",     // dom below 1
+		"* * 32 * *",    // dom above 31
+		"* * * 0 *",     // month below 1
+		"* * * 13 *",    // month above 12
+		"* * * * 8",     // dow above 7
+		"*/0 * * * *",   // zero step
+		"*/-1 * * * *",  // negative step
+		"5-1 * * * *",   // descending range
+		"a * * * *",     // non-numeric value
+		"1-b * * * *",   // non-numeric range bound
+		"1,,2 * * * *",  // empty list element
+		"1- * * * *",    // dangling range
+		"/5 * * * *",    // step with no range
+		"1-5/x * * * *", // non-numeric step
+		"* * * * 1-2-3", // malformed range
 	}
 	for _, expr := range bad {
 		if _, err := Parse(expr); err == nil {

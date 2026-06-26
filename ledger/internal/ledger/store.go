@@ -251,8 +251,8 @@ type rowScanner interface {
 
 func scanTransaction(r rowScanner) (Transaction, error) {
 	var (
-		t                       Transaction
-		createdAt               string
+		t                        Transaction
+		createdAt                string
 		reversesID, reversedByID sql.NullString
 	)
 	if err := r.Scan(&t.ID, &t.Date, &t.Description, &createdAt, &reversesID, &reversedByID); err != nil {

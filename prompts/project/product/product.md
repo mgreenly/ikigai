@@ -10,6 +10,8 @@ The prompts service is hardcoded to a single provider (Anthropic) with a narrow 
 
 Replace the local `./agentkit` dependency with the published `github.com/ikigenba/agentkit` package, and expose its full provider and configuration surface through the prompts MCP API. A prompt now declares which provider and model it runs on, and optionally tunes any generation or retry setting the agentkit supports. The change is mechanical at the library boundary and additive at the API surface — existing behavior is preserved under a clean migration.
 
+prompts' primary surface stays **MCP** (the owner works through an agent and tools, not screens), but it now also serves one small **human web page** — a landing page at its mount root (`…/srv/prompts/`) showing the service **name** and **version** — so a logged-in person who opens it in a browser sees a styled page, not a raw error. That page is the seed of prompts' own web surface; v1 is deliberately just name+version, gated by the dashboard browser session like any web page in the suite. Agents are unaffected — they keep working through MCP.
+
 ## Users
 
 The box owner, operating through an agent connected to the prompts MCP service. The owner states intent in natural language ("run this on OpenAI with low temperature"); the agent maps that to the structured MCP parameters. The owner never writes raw JSON — that is the agent's job.
@@ -24,6 +26,7 @@ The box owner, operating through an agent connected to the prompts MCP service. 
 - **Validation at create/update time.** An unknown provider or a model not recognised for the chosen provider is rejected immediately with a clear error. A run is never started with a config that cannot be resolved.
 - **Edits take effect on the next run.** The runner pins its execution inputs at spawn time, so in-flight runs are unaffected. Any edit to provider, model, or config is reflected starting with the next run.
 - **Backfill migration for existing prompts.** Existing rows with no provider set are migrated to `anthropic` so they continue to work without user intervention.
+- **Serve a landing page.** At the mount root, present a small styled web page showing the service **name** and **version** to a person who opens it in a browser. It is for **logged-in humans** (gated by the dashboard browser session, like any web page in the suite — any signed-in user may view it); agents continue to use MCP. v1 shows only name+version and reads nothing about the viewer; the page exists to be the foundation prompts' web surface grows from.
 
 **Out of scope (nothing else):** No new providers beyond the four agentkit already supports. No changes to how tools or MCP servers are wired into runs. No changes to the trigger or event model. No new run management capabilities. The `system_prompt` field remains a dedicated top-level field and is not part of the config object.
 
@@ -60,6 +63,8 @@ The MCP tool accepts `provider: "openai"`, `model: "gpt-4o"`, and a config objec
 
 **Existing prompts** continue to run without any owner action. They are silently migrated to `provider: "anthropic"` and behave identically to before.
 
+**Opening prompts in a browser shows a page, not an error.** A logged-in dashboard user who navigates to the prompts mount root gets a small, on-brand page naming the service and its version; someone without a valid session is turned away. Agents are unaffected — they keep working through MCP.
+
 **Unsupported keys for a model** (e.g. `thinking_budget` on a model that does not support extended thinking) are passed through and silently ignored by the agentkit — the run proceeds normally.
 
 ## Success criteria (outcomes)
@@ -72,3 +77,4 @@ The MCP tool accepts `provider: "openai"`, `model: "gpt-4o"`, and a config objec
 - A prompt running on the `zai` provider with `base_url` set in its config targets that URL.
 - A config value not supported by the chosen model (e.g. `thinking_budget` on a non-reasoning model) does not cause the run to fail.
 - Editing a prompt's provider, model, or config while a run is in flight does not affect that run; the change is reflected only in the next run.
+- As a logged-in dashboard user I open the prompts mount root in a browser and see a styled page showing the service name and its version; without a valid session the page is refused, and the agent-facing MCP surface is unchanged.

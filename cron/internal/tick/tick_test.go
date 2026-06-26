@@ -130,7 +130,7 @@ func TestFire_MultipleSchedulesOneTick(t *testing.T) {
 	mustCreate(t, store, ctx, now, "every", "* * * * *")
 	mustCreate(t, store, ctx, now, "top-of-hour", "0 * * * *")
 	mustCreate(t, store, ctx, now, "never-now", "30 * * * *") // minute 30 only
-	slot := time.Date(2026, 6, 6, 3, 0, 0, 0, time.UTC)        // minute 0
+	slot := time.Date(2026, 6, 6, 3, 0, 0, 0, time.UTC)       // minute 0
 
 	n, err := w.Fire(ctx, slot, slot)
 	if err != nil {

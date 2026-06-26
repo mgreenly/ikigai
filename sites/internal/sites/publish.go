@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-// ErrInvalidTier — tier is neither PublicSeg nor PrivateSeg (includes '').
+// ErrInvalidTier — tier is neither PublicSeg nor PrivateSeg (includes ”).
 var ErrInvalidTier = errors.New("sites: invalid tier")
 
 // symlinkTarget builds the relative symlink target a served link points at:
@@ -65,7 +65,7 @@ func (s *Store) Publish(ctx context.Context, name, tier string) error {
 }
 
 // Unpublish removes a site's served symlink (the current tier's, if any) and
-// flips the row back to unpublished (tier='', published=0, published_at=NULL).
+// flips the row back to unpublished (tier=”, published=0, published_at=NULL).
 // It is safe to call on an already-unpublished site: a missing link is tolerated
 // and the row update is a no-op flip. This lets Phase-4 delete always unpublish
 // before RemoveAll(working) to guarantee the unpublish-before-teardown ordering.

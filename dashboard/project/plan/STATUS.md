@@ -13,3 +13,4 @@ Phase 02 ✅ realizes D3 — move personal-access-token management (form + list 
 Phase 03 ✅ realizes D4 — move OAuth grant management (live block + SSE + revoke) onto the profile page; redirect grant revoke to `/profile`; remove grants from the landing
 Phase 04 ✅ realizes D5 — landing composition: link each service name to `/srv/<svc>/`, link the owner email to `/profile`, keep sign-out and install instructions on the landing
 Phase 05 ✅ realizes D6 — purge the stale "single hybrid page / don't split" rule from `dashboard/AGENTS.md` and state the three-page truth
+Phase 06 ⬜ realizes D7 — login composition: keep the control-plane tagline + sign-in CTA verbatim and add a name-origin colophon below the CTA on the logged-out `/` that explains the ikigenba portmanteau as a name + its two subcomponents (ikigai, genba)

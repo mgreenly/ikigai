@@ -20,7 +20,7 @@ const (
 // stays stable as the set of tunables grows. Minimal day-one.
 type Config struct {
 	// Day-one minimal. Reserved for later; validated/normalized at create.
-	Interpreter string `json:"interpreter,omitempty"` // reserved; "python3" only day-one
+	Interpreter string `json:"interpreter,omitempty"`  // reserved; "python3" only day-one
 	TimeoutSecs int    `json:"timeout_secs,omitempty"` // reserved; SCRIPTS_RUN_TTL is the backstop
 }
 

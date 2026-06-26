@@ -43,8 +43,8 @@ func TestReconcile_WritesOverwritesDeletes(t *testing.T) {
 	mustWrite(t, root, "sub/gone.js", "stale")
 
 	desired := map[string][]byte{
-		"keep.html":     []byte("NEW"),       // overwrite
-		"new.txt":       []byte("fresh"),     // brand new
+		"keep.html":      []byte("NEW"),      // overwrite
+		"new.txt":        []byte("fresh"),    // brand new
 		"assets/img.bin": []byte{0x00, 0xff}, // new, binary-safe (no UTF-8 check)
 	}
 	existing := readWorking(t, root)

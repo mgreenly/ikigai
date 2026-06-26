@@ -42,6 +42,7 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - D36 → `project/design/D36.md` — Preparing the question: one analysis call — owns R-QB7A-Z95U, R-QCF7-D0WJ, R-QDN3-QSN8
 - D37 → `project/design/D37.md` — Wire the recording embedder at the composition root (close the D34 gap) — owns R-LFOY-L6TZ, R-SIFE-Z88I, R-JEC4-3M6O, R-NWE2-CUPE
 - D38 → `project/design/D38.md` — Keep the meaning lane consistent across a merge (close the D35 merge gap) — owns R-MRG8-K2WP, R-LP5Q-9XTD, R-EV2H-6RKN, R-FM7A-D0SZ, R-WS3C-J4QB
+- D39 → `project/design/D39.md` — The landing page: a session-gated human web surface (`GET /{$}`) — owns R-LAND-PG01, R-LAND-NMVR, R-LAND-CARB, R-LAND-ROOT, R-LAND-UNGT
 
 ## Verification ids → Decision
 
@@ -177,6 +178,11 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - R-JDMA-UHS3 → D5 → `project/design/D05.md`
 - R-JEC4-3M6O → D37 → `project/design/D37.md`
 - R-JEU7-89IS → D5 → `project/design/D05.md`
+- R-LAND-CARB → D39 → `project/design/D39.md`
+- R-LAND-NMVR → D39 → `project/design/D39.md`
+- R-LAND-PG01 → D39 → `project/design/D39.md`
+- R-LAND-ROOT → D39 → `project/design/D39.md`
+- R-LAND-UNGT → D39 → `project/design/D39.md`
 - R-LFOY-L6TZ → D37 → `project/design/D37.md`
 - R-LP5Q-9XTD → D38 → `project/design/D38.md`
 - R-M8RN-87WV → D4 → `project/design/D04.md`

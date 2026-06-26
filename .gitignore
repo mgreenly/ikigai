@@ -33,8 +33,6 @@
 # --- wiki-eval harness output cache (P13): pure memoization, content-addressed ---
 .wiki-eval-cache/
 
-# --- wiki build-loop ephemeral brief (gather creates, verify deletes; never committed) ---
-/wiki/project/prompts/brief.md
-
-# --- webhooks build-loop ephemeral brief (gather creates, verify deletes; never committed) ---
-/webhooks/project/prompts/brief.md
+# --- build-loop ephemeral brief (gather creates, verify deletes; never committed) ---
+# Every app's ralph loop writes its own project/prompts/brief.md seam.
+*/project/prompts/brief.md

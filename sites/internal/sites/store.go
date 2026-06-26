@@ -118,7 +118,7 @@ func parseTime(s string) time.Time {
 }
 
 // Create validates the slug + reserved guard, then inserts a fresh row with
-// tier='' and published=0. created_at/updated_at are set to now (UTC). Returns
+// tier=” and published=0. created_at/updated_at are set to now (UTC). Returns
 // ErrExists if the name is already taken.
 func (s *Store) Create(ctx context.Context, name string) (Site, error) {
 	if err := validateName(name); err != nil {
