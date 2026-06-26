@@ -2,6 +2,7 @@ package markdown
 
 import (
 	"bytes"
+	"html/template"
 	"regexp"
 
 	"github.com/microcosm-cc/bluemonday"
@@ -22,12 +23,12 @@ var (
 )
 
 // Render converts Markdown into sanitized HTML suitable for browser display.
-func Render(source string) (string, error) {
+func Render(source string) template.HTML {
 	var out bytes.Buffer
 	if err := renderer.Convert([]byte(source), &out); err != nil {
-		return "", err
+		return ""
 	}
-	return safeHTML.Sanitize(out.String()), nil
+	return template.HTML(safeHTML.Sanitize(out.String()))
 }
 
 func newPolicy() *bluemonday.Policy {
