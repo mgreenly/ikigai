@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"wiki/internal/ask"
+	"wiki/internal/markdown"
 )
 
 //go:embed layout.tmpl home.tmpl subject.tmpl static/tokens.css static/fonts/*.woff2
@@ -105,13 +106,15 @@ type pageData struct {
 	Version string
 	Mount   string
 
-	Query    string
-	Asked    bool
-	Answer   ask.Answer
-	Cites    []Ref
-	Mentions []Ref
-	Orphans  []Ref
-	Subject  SubjectView
+	Query       string
+	Asked       bool
+	Answer      ask.Answer
+	AnswerHTML  template.HTML
+	Cites       []Ref
+	Mentions    []Ref
+	Orphans     []Ref
+	Subject     SubjectView
+	SubjectHTML template.HTML
 }
 
 // NewHandler builds the read-surface mux.
@@ -189,14 +192,15 @@ func (h *handler) ask(w http.ResponseWriter, r *http.Request, question string) {
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := homeTemplates.ExecuteTemplate(w, "home", pageData{
-		Service:  h.service,
-		Version:  h.version,
-		Mount:    h.mount,
-		Query:    question,
-		Asked:    true,
-		Answer:   answer,
-		Cites:    cites,
-		Mentions: mentions,
+		Service:    h.service,
+		Version:    h.version,
+		Mount:      h.mount,
+		Query:      question,
+		Asked:      true,
+		Answer:     answer,
+		AnswerHTML: markdown.Render(answer.Text),
+		Cites:      cites,
+		Mentions:   mentions,
 	}); err != nil {
 		http.Error(w, "render ask page", http.StatusInternalServerError)
 	}
@@ -220,6 +224,7 @@ func (h *handler) subject(w http.ResponseWriter, r *http.Request) {
 				Title: "Subject not found",
 				Body:  "No page exists for this subject.",
 			},
+			SubjectHTML: markdown.Render("No page exists for this subject."),
 		}); renderErr != nil {
 			http.Error(w, "render subject page", http.StatusInternalServerError)
 		}
@@ -232,10 +237,11 @@ func (h *handler) subject(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := subjectTemplates.ExecuteTemplate(w, "subject", pageData{
-		Service: h.service,
-		Version: h.version,
-		Mount:   h.mount,
-		Subject: subject,
+		Service:     h.service,
+		Version:     h.version,
+		Mount:       h.mount,
+		Subject:     subject,
+		SubjectHTML: markdown.Render(subject.Body),
 	}); err != nil {
 		http.Error(w, "render subject page", http.StatusInternalServerError)
 	}

@@ -3,7 +3,7 @@
 {{define "main"}}
 <article aria-label="Subject page">
   <h1>{{.Subject.Title}}</h1>
-  <p>{{.Subject.Body}}</p>
+  <div class="prose">{{.SubjectHTML}}</div>
 </article>
 {{if .Subject.Outbound}}
 <nav aria-label="Mentions">

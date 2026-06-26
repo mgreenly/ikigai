@@ -176,6 +176,26 @@ func TestAskHandlerRendersAnswerAndCitationsAsSubjectLinks(t *testing.T) {
 	}
 }
 
+func TestAskHandlerRendersMarkdownAnswerHTML(t *testing.T) {
+	// R-NPVU-26CX
+	asker := &stubAsker{answer: ask.Answer{
+		Found: true,
+		Text:  "**Acme** makes widgets.",
+	}}
+	req := httptest.NewRequest(http.MethodGet, "/?q=widgets", nil)
+	rec := httptest.NewRecorder()
+
+	NewHandler("wiki", "v-test", "/srv/wiki/", WithAsker(asker)).ServeHTTP(rec, req)
+
+	body := rec.Body.String()
+	if !strings.Contains(body, "<strong>Acme</strong>") {
+		t.Fatalf("ask page missing rendered strong markdown: %s", body)
+	}
+	if strings.Contains(body, "**Acme**") {
+		t.Fatalf("ask page rendered literal markdown: %s", body)
+	}
+}
+
 func TestAskHandlerRendersMentionedSubjectsFromAnswerText(t *testing.T) {
 	// R-AU31-XI76
 	asker := &stubAsker{answer: ask.Answer{
@@ -261,6 +281,32 @@ func TestBlankQueryKeepsHomePageOnOrphanSeam(t *testing.T) {
 	}
 	if !strings.Contains(rec.Body.String(), `<a href="subject/entity/acme">Acme</a>`) {
 		t.Fatalf("home page missing orphan link: %s", rec.Body.String())
+	}
+}
+
+func TestAskAndSubjectPagesWrapRenderedBodiesInProse(t *testing.T) {
+	// R-9EPS-LWWY
+	asker := &stubAsker{answer: ask.Answer{
+		Found: true,
+		Text:  "Acme makes widgets.",
+	}}
+	askReq := httptest.NewRequest(http.MethodGet, "/?q=widgets", nil)
+	askRec := httptest.NewRecorder()
+
+	NewHandler("wiki", "v-test", "/srv/wiki/", WithAsker(asker)).ServeHTTP(askRec, askReq)
+
+	if !strings.Contains(askRec.Body.String(), `<div class="prose"><p>Acme makes widgets.</p>`) {
+		t.Fatalf("ask page missing prose wrapper around rendered answer: %s", askRec.Body.String())
+	}
+
+	finder := &stubPageFinder{view: SubjectView{Title: "Acme Corp", Body: "Acme makes widgets."}}
+	subjectReq := httptest.NewRequest(http.MethodGet, "/subject/entity/acme-corp", nil)
+	subjectRec := httptest.NewRecorder()
+
+	NewHandler("wiki", "v-test", "/srv/wiki/", WithPageFinder(finder)).ServeHTTP(subjectRec, subjectReq)
+
+	if !strings.Contains(subjectRec.Body.String(), `<div class="prose"><p>Acme makes widgets.</p>`) {
+		t.Fatalf("subject page missing prose wrapper around rendered body: %s", subjectRec.Body.String())
 	}
 }
 
@@ -432,6 +478,28 @@ func TestSubjectHandlerRendersTitleAndBody(t *testing.T) {
 	}
 }
 
+func TestSubjectHandlerRendersMarkdownBodyHTML(t *testing.T) {
+	// R-NONX-OEM8
+	finder := &stubPageFinder{view: SubjectView{
+		Title: "Acme Corp",
+		Body:  "## Overview\n\nAcme makes **widgets**.",
+	}}
+	req := httptest.NewRequest(http.MethodGet, "/subject/entity/acme-corp", nil)
+	rec := httptest.NewRecorder()
+
+	NewHandler("wiki", "v-test", "/srv/wiki/", WithPageFinder(finder)).ServeHTTP(rec, req)
+
+	body := rec.Body.String()
+	for _, want := range []string{"<h2", "<strong>widgets</strong>"} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("subject page missing rendered markdown %q: %s", want, body)
+		}
+	}
+	if strings.Contains(body, "## Overview") || strings.Contains(body, "**widgets**") {
+		t.Fatalf("subject page rendered literal markdown: %s", body)
+	}
+}
+
 func TestSubjectHandlerRendersFoundHTMLShell(t *testing.T) {
 	// R-PH2F-47LB
 	req := httptest.NewRequest(http.MethodGet, "/subject/entity/acme-corp", nil)
@@ -588,20 +656,41 @@ func TestSubjectHandlerRendersNotFoundHTMLShell(t *testing.T) {
 	}
 }
 
-func TestSubjectHandlerEscapesBodyHTML(t *testing.T) {
-	// R-PN5X-12AS
-	req := httptest.NewRequest(http.MethodGet, "/subject/entity/acme-corp", nil)
+func TestLayoutProseStylesMarkdownElementsWithTokens(t *testing.T) {
+	// R-9FXO-ZONN
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
 
-	NewHandler("wiki", "v-test", "/srv/wiki/", WithPageFinder(&stubPageFinder{
-		view: SubjectView{Title: "Acme Corp", Body: "<script>x</script>"},
-	})).ServeHTTP(rec, req)
+	NewHandler("wiki", "v-test", "/srv/wiki/").ServeHTTP(rec, req)
 
-	body := rec.Body.String()
-	if !strings.Contains(body, "&lt;script&gt;x&lt;/script&gt;") {
-		t.Fatalf("subject page missing escaped script body: %s", body)
+	styleStart := strings.Index(rec.Body.String(), "<style>")
+	styleEnd := strings.Index(rec.Body.String(), "</style>")
+	if styleStart < 0 || styleEnd < 0 || styleEnd <= styleStart {
+		t.Fatalf("served page missing inline style: %s", rec.Body.String())
 	}
-	if strings.Contains(body, "<script>x</script>") {
-		t.Fatalf("subject page rendered raw script body: %s", body)
+	style := rec.Body.String()[styleStart:styleEnd]
+	proseStart := strings.Index(style, ".prose")
+	proseEnd := strings.Index(style, "    form {")
+	if proseStart < 0 || proseEnd < 0 || proseEnd <= proseStart {
+		t.Fatalf("inline style missing prose rule block: %s", style)
+	}
+	proseRules := style[proseStart:proseEnd]
+	for _, want := range []string{
+		".prose h1",
+		".prose h6",
+		".prose ul",
+		".prose ol",
+		".prose li",
+		".prose code",
+		".prose pre",
+		".prose blockquote",
+		".prose table",
+	} {
+		if !strings.Contains(proseRules, want) {
+			t.Fatalf("prose styles missing selector %q: %s", want, proseRules)
+		}
+	}
+	if !strings.Contains(proseRules, "var(--") {
+		t.Fatalf("prose styles do not reference design tokens: %s", proseRules)
 	}
 }

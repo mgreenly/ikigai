@@ -9,7 +9,7 @@
 {{if .Asked}}
 <article aria-label="Answer">
   <h2>{{.Query}}</h2>
-  <p>{{.Answer.Text}}</p>
+  <div class="prose">{{.AnswerHTML}}</div>
   {{if .Cites}}
   <nav aria-label="Cited pages">
     <ul>

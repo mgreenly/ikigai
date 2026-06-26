@@ -64,6 +64,82 @@
       white-space: pre-wrap;
     }
 
+    .prose {
+      display: grid;
+      gap: var(--space-4);
+      color: var(--color-text);
+    }
+
+    .prose h1,
+    .prose h2,
+    .prose h3,
+    .prose h4,
+    .prose h5,
+    .prose h6 {
+      margin: var(--space-5) 0 0;
+      font-family: var(--font-display);
+      line-height: var(--text-h2-lh);
+      letter-spacing: 0;
+    }
+
+    .prose p {
+      margin: 0;
+      white-space: normal;
+    }
+
+    .prose ul,
+    .prose ol {
+      margin: 0;
+      padding: 0 0 0 var(--space-6);
+      display: grid;
+      gap: var(--space-2);
+      list-style: revert;
+    }
+
+    .prose li {
+      padding-left: var(--space-1);
+    }
+
+    .prose code {
+      padding: 0 var(--space-1);
+      font-family: var(--font-mono);
+      background: var(--color-surface);
+      border: var(--border-width) solid var(--color-border);
+    }
+
+    .prose pre {
+      margin: 0;
+      padding: var(--space-4);
+      overflow-x: auto;
+      background: var(--color-surface);
+      border: var(--border-width) solid var(--color-border);
+    }
+
+    .prose pre code {
+      padding: 0;
+      border: 0;
+      background: transparent;
+    }
+
+    .prose blockquote {
+      margin: 0;
+      padding: 0 0 0 var(--space-4);
+      color: var(--color-text-muted);
+      border-left: var(--border-width) solid var(--color-border);
+    }
+
+    .prose table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .prose th,
+    .prose td {
+      padding: var(--space-2);
+      border: var(--border-width) solid var(--color-border);
+      text-align: left;
+    }
+
     form {
       display: flex;
       max-width: 680px;
