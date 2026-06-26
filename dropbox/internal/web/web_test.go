@@ -76,15 +76,15 @@ func TestStaticHandlerServesTokensCSS(t *testing.T) {
 	if rec.Code != http.StatusOK || rec.Header().Get("Content-Type") != "text/css; charset=utf-8" {
 		t.Fatalf("GET /static/tokens.css returned status %d Content-Type %q", rec.Code, rec.Header().Get("Content-Type"))
 	}
-	if !strings.Contains(body, `url("/srv/dropbox/static/fonts/space-grotesk.woff2")`) {
+	if !strings.Contains(body, `url('/static/fonts/space-grotesk.woff2')`) {
 		t.Fatalf("tokens.css does not point at embedded service font path: %q", body)
 	}
 	for _, want := range []string{
 		"--font-display: 'Space Grotesk'",
-		"--font-body: 'IBM Plex Sans'",
-		"--font-mono: 'IBM Plex Mono'",
-		"--text-display-size: 56px;",
-		"--text-label-size: 12px;",
+		"--font-body:    'IBM Plex Sans'",
+		"--font-mono:    'IBM Plex Mono'",
+		"--text-display-size:   56px;",
+		"--text-label-size:     12px;",
 		"--color-surface:",
 	} {
 		if !strings.Contains(body, want) {
@@ -99,10 +99,10 @@ func TestLandingHTMLReferencesOwnEmbeddedStaticPath(t *testing.T) {
 	body := rec.Body.String()
 
 	// R-ASST-5K8L
-	if !strings.Contains(body, `/srv/dropbox/static/tokens.css`) {
+	if !strings.Contains(body, `/static/tokens.css`) {
 		t.Fatalf("landing HTML does not reference embedded static path: %q", body)
 	}
-	if strings.Contains(body, "dashboard") || strings.Contains(body, "://") {
+	if strings.Contains(body, "/srv/") || strings.Contains(body, "dashboard") || strings.Contains(body, "://") {
 		t.Fatalf("landing HTML references a cross-service or remote asset URL: %q", body)
 	}
 }

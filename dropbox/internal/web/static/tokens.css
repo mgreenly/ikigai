@@ -1,109 +1,207 @@
-/* Carbon design tokens vendored for the dropbox landing page. */
+/* ==========================================================================
+   Carbon — Design Tokens
+   A monochrome system on neutral grays, signalled by a single blue highlight
+   and a red reserved strictly for errors.
+
+   Source of truth: design-bible.html (theme: Carbon).
+   Layers:  primitives (ramps + scales)  ->  semantic aliases  ->  component CSS.
+   Components should reference the SEMANTIC tokens (--color-*, --space-*, etc.),
+   not the raw ramp steps.
+   ========================================================================== */
+
+/* Fonts — vendored locally for the cron landing page. */
 @font-face {
   font-family: 'Space Grotesk';
-  font-style: normal;
+  src: url('/static/fonts/space-grotesk.woff2') format('woff2');
   font-weight: 600 700;
+  font-style: normal;
   font-display: swap;
-  src: url("/srv/dropbox/static/fonts/space-grotesk.woff2") format("woff2");
 }
 
 @font-face {
   font-family: 'IBM Plex Sans';
-  font-style: normal;
+  src: url('/static/fonts/ibm-plex-sans.woff2') format('woff2');
   font-weight: 400 600;
+  font-style: normal;
   font-display: swap;
-  src: url("/srv/dropbox/static/fonts/ibm-plex-sans.woff2") format("woff2");
 }
 
 @font-face {
   font-family: 'IBM Plex Mono';
-  font-style: normal;
+  src: url('/static/fonts/ibm-plex-mono-400.woff2') format('woff2');
   font-weight: 400;
+  font-style: normal;
   font-display: swap;
-  src: url("/srv/dropbox/static/fonts/ibm-plex-mono-400.woff2") format("woff2");
 }
 
 @font-face {
   font-family: 'IBM Plex Mono';
-  font-style: normal;
+  src: url('/static/fonts/ibm-plex-mono-500.woff2') format('woff2');
   font-weight: 500;
+  font-style: normal;
   font-display: swap;
-  src: url("/srv/dropbox/static/fonts/ibm-plex-mono-500.woff2") format("woff2");
 }
 
 :root {
-  --color-bg: #ffffff;
-  --color-surface: #fafafa;
-  --color-text: #09090b;
-  --color-text-muted: #52525b;
-  --color-border: #e4e4e7;
-  --color-accent: #2563eb;
-  --font-display: 'Space Grotesk', sans-serif;
-  --font-body: 'IBM Plex Sans', sans-serif;
-  --font-mono: 'IBM Plex Mono', monospace;
-  --text-display-size: 56px;
-  --text-display-lh: 1.04;
-  --text-display-weight: 700;
-  --text-label-size: 12px;
-  --text-label-lh: 1.4;
-  --text-label-weight: 500;
-  --space-2: 8px;
-  --space-4: 16px;
-  --space-6: 24px;
-  --space-8: 32px;
+  /* ----------------------------------------------------------------------
+     PRIMITIVES — raw ramps. Reference these only when defining new
+     semantic aliases, not directly in components.
+     ---------------------------------------------------------------------- */
+
+  /* Neutral ramp — the workhorse. ~80% of the UI is built from these. */
+  --neutral-0:   #FFFFFF;
+  --neutral-50:  #FAFAFA;
+  --neutral-100: #F4F4F5;
+  --neutral-200: #E4E4E7;
+  --neutral-300: #D4D4D8;
+  --neutral-400: #A1A1AA;
+  --neutral-500: #71717A;
+  --neutral-600: #52525B;
+  --neutral-700: #3F3F46;
+  --neutral-800: #27272A;
+  --neutral-900: #18181B;
+  --neutral-950: #09090B;
+
+  /* Accent ramp (blue) — the ONLY signal color. */
+  --accent-50:  #EFF6FF;
+  --accent-100: #DBEAFE;
+  --accent-300: #93C5FD;
+  --accent-500: #3B82F6;
+  --accent-600: #2563EB;
+  --accent-700: #1D4ED8;
+
+  /* Error ramp (red) — reserved for errors / destructive actions only. */
+  --error-50:  #FEF2F2;
+  --error-300: #FCA5A5;
+  --error-500: #EF4444;
+  --error-600: #DC2626;
+  --error-700: #B91C1C;
+
+  /* ----------------------------------------------------------------------
+     SEMANTIC COLOR — what components actually use. Re-point these (only
+     these) to support theming / dark mode later.
+     ---------------------------------------------------------------------- */
+  --color-bg:            #FFFFFF;  /* page background            */
+  --color-surface:       #FAFAFA;  /* cards, panels              */
+  --color-surface-2:     #F4F4F5;  /* recessed / inset surfaces  */
+
+  --color-text:          #09090B;  /* primary text               */
+  --color-text-muted:    #52525B;  /* secondary text             */
+  --color-text-subtle:   #A1A1AA;  /* captions, placeholders     */
+
+  --color-border:        #E4E4E7;  /* hairline separators        */
+  --color-border-strong: #D4D4D8;  /* emphasized edges           */
+
+  --color-accent:        #2563EB;  /* links, primary, focus      */
+  --color-accent-weak:   #EFF4FE;  /* accent tint / focus ring   */
+  --color-accent-fg:     #FFFFFF;  /* text/icon on accent fill   */
+
+  --color-error:         #DC2626;  /* error / destructive        */
+  --color-error-weak:    #FEF2F2;  /* error tint background      */
+
+  /* ----------------------------------------------------------------------
+     TYPOGRAPHY
+     ---------------------------------------------------------------------- */
+  --font-display: 'Space Grotesk', sans-serif;  /* display & headings   */
+  --font-body:    'IBM Plex Sans', sans-serif;  /* body & UI            */
+  --font-mono:    'IBM Plex Mono', monospace;   /* labels, code, data   */
+
+  /* Type scale — size / line-height / weight. (Letter-spacing: -.02em on
+     sizes above 28px; 0 otherwise.) */
+  --text-display-size:   56px;  --text-display-lh:   1.04;  --text-display-weight: 700;
+  --text-h1-size:        40px;  --text-h1-lh:        1.1;   --text-h1-weight:      600;
+  --text-h2-size:        30px;  --text-h2-lh:        1.16;  --text-h2-weight:      600;
+  --text-h3-size:        22px;  --text-h3-lh:        1.25;  --text-h3-weight:      600;
+  --text-body-lg-size:   18px;  --text-body-lg-lh:   1.6;   --text-body-lg-weight: 400;
+  --text-body-size:      15px;  --text-body-lh:      1.6;   --text-body-weight:    400;
+  --text-small-size:     13px;  --text-small-lh:     1.5;   --text-small-weight:   400;
+  --text-label-size:     12px;  --text-label-lh:     1.4;   --text-label-weight:   500;
+
+  /* ----------------------------------------------------------------------
+     SPACING — 4px grid. Never use arbitrary values.
+     ---------------------------------------------------------------------- */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-6:  24px;
+  --space-8:  32px;
   --space-12: 48px;
-  --radius-lg: 8px;
-  --shadow-md: 0 4px 14px rgba(9, 9, 11, .09);
-}
+  --space-16: 64px;
 
-* {
-  box-sizing: border-box;
-}
+  /* ----------------------------------------------------------------------
+     SIZING — control heights, icons, avatars.
+     ---------------------------------------------------------------------- */
+  --control-h-sm: 30px;
+  --control-h-md: 38px;
+  --control-h-lg: 46px;
 
-html,
-body {
-  min-height: 100%;
-}
+  --icon-sm: 14px;
+  --icon-md: 18px;
+  --icon-lg: 24px;
 
-body {
-  margin: 0;
-  background: var(--color-bg);
-  color: var(--color-text);
-  font-family: var(--font-body);
-}
+  --avatar-sm: 24px;
+  --avatar-md: 36px;
+  --avatar-lg: 48px;
 
-.landing-shell {
-  min-height: 100vh;
-  display: grid;
-  place-items: center;
-  padding: var(--space-8);
-}
+  --touch-target-min: 44px;  /* minimum hit area for interactive elements */
 
-.landing-card {
-  width: min(100%, 520px);
-  padding: var(--space-12);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
-  text-align: center;
-}
+  /* ----------------------------------------------------------------------
+     LAYOUT — max content width, gutters, grid. (Breakpoints below are
+     for reference; CSS custom properties can't be used inside @media.)
+       sm 640px · md 768px · lg 1024px · xl 1280px
+     ---------------------------------------------------------------------- */
+  --layout-max-width: 1120px;
+  --layout-gutter:    32px;
+  --layout-columns:   12;
+  --layout-col-gap:   24px;
 
-.landing-label,
-.landing-version {
-  margin: 0;
-  color: var(--color-text-muted);
-  font-family: var(--font-mono);
-  font-size: var(--text-label-size);
-  font-weight: var(--text-label-weight);
-  line-height: var(--text-label-lh);
-  text-transform: uppercase;
-}
+  /* ----------------------------------------------------------------------
+     BORDERS & RADIUS — tight corners; prefer hairline borders to shadow.
+     ---------------------------------------------------------------------- */
+  --border-width:        1px;  /* default hairline   */
+  --border-width-strong: 2px;  /* emphasis / focus   */
+  --border-width-heavy:  4px;  /* active / selected  */
 
-h1 {
-  margin: var(--space-4) 0 var(--space-6);
-  font-family: var(--font-display);
-  font-size: var(--text-display-size);
-  font-weight: var(--text-display-weight);
-  line-height: var(--text-display-lh);
+  --radius-sm:  2px;
+  --radius:     4px;   /* default */
+  --radius-lg:  8px;
+  --radius-xl:  14px;
+  --radius-pill: 999px;
+
+  /* ----------------------------------------------------------------------
+     SHADOW & ELEVATION — subtle. Elevation: 0 flat · 1 raised(sm) ·
+     2 overlay(md) · 3 floating(lg) · 4 top(xl).
+     ---------------------------------------------------------------------- */
+  --shadow-sm: 0 1px 2px rgba(9,9,11,.06);
+  --shadow-md: 0 4px 14px rgba(9,9,11,.09);
+  --shadow-lg: 0 12px 28px rgba(9,9,11,.12);
+  --shadow-xl: 0 24px 48px rgba(9,9,11,.16);
+
+  /* ----------------------------------------------------------------------
+     MOTION
+     ---------------------------------------------------------------------- */
+  --duration-instant: 0ms;
+  --duration-fast:    120ms;
+  --duration-base:    200ms;
+  --duration-slow:    320ms;
+  --duration-slower:  480ms;
+
+  --ease-standard: cubic-bezier(.2,0,0,1);    /* most transitions      */
+  --ease-entrance: cubic-bezier(0,0,0,1);     /* elements appearing    */
+  --ease-exit:     cubic-bezier(.3,0,1,1);    /* elements leaving      */
+  --ease-spring:   cubic-bezier(.5,1.5,.4,1); /* playful emphasis      */
+
+  /* ----------------------------------------------------------------------
+     Z-INDEX — named layers. Never hand-tune stacking.
+     ---------------------------------------------------------------------- */
+  --z-base:     0;
+  --z-raised:   10;
+  --z-sticky:   100;
+  --z-dropdown: 1000;
+  --z-overlay:  1100;
+  --z-modal:    1200;
+  --z-popover:  1300;
+  --z-toast:    1400;
+  --z-tooltip:  1500;
 }
