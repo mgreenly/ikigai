@@ -65,6 +65,31 @@ func TestLandingHandlerRendersCanonicalGmailCopy(t *testing.T) {
 	}
 }
 
+func TestLandingHandlerRendersHomeLinkFirstInBody(t *testing.T) {
+	// R-HOME-7Q9U
+	rec := httptest.NewRecorder()
+	LandingHandler("gmail", "v-test").ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+	body := rec.Body.String()
+
+	if !strings.Contains(body, `<body>
+  <a class="home" href="/">Home</a>
+  <main>`) {
+		t.Fatalf("home link was not the first body child before main:\n%s", body)
+	}
+	if !strings.Contains(body, `.home {`) {
+		t.Fatalf("body missing home style rule:\n%s", body)
+	}
+	if !strings.Contains(body, `.home:hover,
+    .home:focus-visible {
+      color: var(--color-text);
+    }`) {
+		t.Fatalf("body missing home hover/focus style rule:\n%s", body)
+	}
+	if strings.Contains(body, `>Dashboard</a>`) {
+		t.Fatalf("home link used Dashboard copy instead of Home:\n%s", body)
+	}
+}
+
 func TestLandingTemplateLinksEmbeddedTokens(t *testing.T) {
 	// R-LAND-7J2N
 	rec := httptest.NewRecorder()
