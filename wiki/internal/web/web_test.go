@@ -432,6 +432,29 @@ func TestSubjectHandlerRendersTitleAndBody(t *testing.T) {
 	}
 }
 
+func TestSubjectHandlerRendersFoundHTMLShell(t *testing.T) {
+	// R-PH2F-47LB
+	req := httptest.NewRequest(http.MethodGet, "/subject/entity/acme-corp", nil)
+	rec := httptest.NewRecorder()
+
+	NewHandler("wiki", "v-test", "/srv/wiki/", WithPageFinder(&stubPageFinder{
+		view: SubjectView{Title: "Acme Corp", Body: "Acme makes widgets."},
+	})).ServeHTTP(rec, req)
+
+	body := rec.Body.String()
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200; body=%s", rec.Code, body)
+	}
+	if got := rec.Header().Get("Content-Type"); got != "text/html; charset=utf-8" {
+		t.Fatalf("Content-Type = %q, want text/html; charset=utf-8", got)
+	}
+	for _, want := range []string{"<!doctype html>", `<base href="/srv/wiki/">`, "<footer>wiki v-test</footer>"} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("found subject page missing %q: %s", want, body)
+		}
+	}
+}
+
 func TestSubjectHandlerRendersMentionsBeforeMentionedBy(t *testing.T) {
 	// R-PIAB-HZC0
 	finder := &stubPageFinder{view: SubjectView{
