@@ -12,4 +12,4 @@ Phase 01 ✅ realizes D1, D2, D3 — landing handler + embedded Carbon template/
 Phase 02 ✅ realizes D4 — nginx fragment: add the exact-match session-gated `= /srv/crm/` location, validated by a content-assertion test
 Phase 03 ✅ realizes D5 — purge the stale "no UI" line from `crm/AGENTS.md`/`CLAUDE.md` and state the landing-page truth (structural; docs-only)
 Phase 04 ✅ realizes D6 — conform the landing page (markup + tokens) to the cron canonical template; per-service data only (eyebrow + description + title); structural content check
-Phase 05 ⬜ realizes D7 — add the top-left Home link to the dashboard landing page; covers R-HOME-3L5Q
+Phase 05 ✅ realizes D7 — add the top-left Home link to the dashboard landing page; covers R-HOME-3L5Q
