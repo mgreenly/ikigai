@@ -1,6 +1,6 @@
 // Command cron is the loopback-only scheduled-event-emitter service behind
-// nginx. It serves both doors under /srv/cron/: a bearer-gated MCP surface for
-// agents and a dashboard-session-cookie-gated human web landing page. It trusts
+// nginx. It serves a bearer-gated MCP surface for agents and a
+// dashboard-session-cookie-gated human web landing page under /srv/cron/. It trusts
 // the X-Owner-Email / X-Client-Id headers nginx injects after a successful
 // auth_request against the dashboard's authorization server, and performs no
 // token logic of its own; nginx remains the sole trust boundary for both doors.
