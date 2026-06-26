@@ -9,6 +9,8 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - D3 → `project/design/D03.md` — Embedded Carbon design assets (sites's own copy) — owns R-ASST-3H7N, R-ASST-5K9Q, R-ASST-7M2S
 - D4 → `project/design/D04.md` — nginx fragment: the exact-match session-gated `= /srv/sites/` landing root beside the existing static tiers — owns R-NGNX-3P6T, R-NGNX-5R8V, R-NGNX-7T1X, R-NGNX-9W4Z
 - D5 → `project/design/D05.md` — Docs state current truth: state the standardized landing card in sites's self-description (no "no UI" claim to purge) — none (structural; docs-only)
+- D6 → `project/design/D06.md` — Conform the landing page to the cron canonical template — none (structural; markup-only)
+- D7 → `project/design/D07.md` — A top-left Home link to the dashboard landing page — owns R-HOME-9S3W
 
 ## Verification ids → Decision
 
@@ -26,3 +28,4 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - R-ROUT-4Q8B → D2 → `project/design/D02.md`
 - R-ROUT-6S1D → D2 → `project/design/D02.md`
 - R-ROUT-8U3F → D2 → `project/design/D02.md`
+- R-HOME-9S3W → D7 → `project/design/D07.md`

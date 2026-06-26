@@ -9,6 +9,8 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - D3 → `project/design/D03.md` — Embedded Carbon design assets (ledger's own copy) — owns R-ASST-3T7V, R-ASST-5W9X, R-ASST-7Y2Z
 - D4 → `project/design/D04.md` — nginx fragment: the exact-match session-gated `= /srv/ledger/` location — owns R-NGNX-2B4C, R-NGNX-4D6E, R-NGNX-6F8G, R-NGNX-8H1J
 - D5 → `project/design/D05.md` — Docs state current truth: purge the stale "no UI" line — none (structural; docs-only)
+- D6 → `project/design/D06.md` — Conform the landing page to the cron canonical template — none (structural; markup-only)
+- D7 → `project/design/D07.md` — A top-left Home link to the dashboard landing page — owns R-HOME-4M6R
 
 ## Verification ids → Decision
 
@@ -26,3 +28,4 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - R-ROUT-2M6N → D2 → `project/design/D02.md`
 - R-ROUT-4P8Q → D2 → `project/design/D02.md`
 - R-ROUT-6R1S → D2 → `project/design/D02.md`
+- R-HOME-4M6R → D7 → `project/design/D07.md`

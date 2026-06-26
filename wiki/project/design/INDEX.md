@@ -43,6 +43,8 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - D37 → `project/design/D37.md` — Wire the recording embedder at the composition root (close the D34 gap) — owns R-LFOY-L6TZ, R-SIFE-Z88I, R-JEC4-3M6O, R-NWE2-CUPE
 - D38 → `project/design/D38.md` — Keep the meaning lane consistent across a merge (close the D35 merge gap) — owns R-MRG8-K2WP, R-LP5Q-9XTD, R-EV2H-6RKN, R-FM7A-D0SZ, R-WS3C-J4QB
 - D39 → `project/design/D39.md` — The landing page: a session-gated human web surface (`GET /{$}`) — owns R-LAND-PG01, R-LAND-NMVR, R-LAND-CARB, R-LAND-ROOT, R-LAND-UNGT
+- D40 → `project/design/D40.md` — Conform the landing page to the cron canonical template — none (structural; markup-only)
+- D41 → `project/design/D41.md` — A top-left Home link to the dashboard landing page — owns R-HOME-3U5Y
 
 ## Verification ids → Decision
 
@@ -266,3 +268,4 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - R-ZWT5-F303 → D12 → `project/design/D12.md`
 - R-ZY11-SUQS → D12 → `project/design/D12.md`
 - R-ZZ8Y-6MHH → D12 → `project/design/D12.md`
+- R-HOME-3U5Y → D41 → `project/design/D41.md`

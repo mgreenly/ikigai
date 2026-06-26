@@ -9,6 +9,8 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - D3 → `project/design/D03.md` — Embedded Carbon design assets (crm's own copy) — owns R-ASST-2B8C, R-ASST-4D1E, R-ASST-6F3G
 - D4 → `project/design/D04.md` — nginx fragment: the exact-match session-gated `= /srv/crm/` location — owns R-NGNX-2H5J, R-NGNX-4K7L, R-NGNX-6M9N, R-NGNX-8P1Q
 - D5 → `project/design/D05.md` — Docs state current truth: purge the stale "no UI" line — none (structural; docs-only)
+- D6 → `project/design/D06.md` — Conform the landing page to the cron canonical template — none (structural; markup-only)
+- D7 → `project/design/D07.md` — A top-left Home link to the dashboard landing page — owns R-HOME-3L5Q
 
 ## Verification ids → Decision
 
@@ -26,3 +28,4 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - R-ROUT-3T2V → D2 → `project/design/D02.md`
 - R-ROUT-5W4X → D2 → `project/design/D02.md`
 - R-ROUT-7Y6Z → D2 → `project/design/D02.md`
+- R-HOME-3L5Q → D7 → `project/design/D07.md`

@@ -16,6 +16,8 @@ Each Decision maps to its `DNN.md` file. Every `R-XXXX-XXXX` id maps to its Deci
 | D8 | project/design/D08.md | DB migration | R-KBLR-VBHQ, R-KCTO-938F |
 | D9 | project/design/D09.md | MCP schema | R-KE1K-MUZ4, R-KF9H-0MPT |
 | D10 | project/design/D10.md | The landing page: a session-gated human web surface (`GET /{$}`) | R-LAND-PG01, R-LAND-NMVR, R-LAND-CARB, R-LAND-ROOT, R-LAND-UNGT |
+| D11 | project/design/D11.md | Conform the landing page to the cron canonical template | none — structural |
+| D12 | project/design/D12.md | A top-left Home link to the dashboard landing page | R-HOME-2T4X |
 
 ## Verification ids → Decision
 
@@ -44,3 +46,4 @@ Each Decision maps to its `DNN.md` file. Every `R-XXXX-XXXX` id maps to its Deci
 | R-LAND-PG01 | D10 | project/design/D10.md |
 | R-LAND-ROOT | D10 | project/design/D10.md |
 | R-LAND-UNGT | D10 | project/design/D10.md |
+| R-HOME-2T4X | D12 | project/design/D12.md |

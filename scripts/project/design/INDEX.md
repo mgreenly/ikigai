@@ -9,6 +9,8 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - D3 → `project/design/D03.md` — Embedded Carbon design assets (scripts's own copy) — owns R-ASST-5X8M, R-ASST-7Y1N, R-ASST-9Z3P
 - D4 → `project/design/D04.md` — nginx fragment: the exact-match session-gated `= /srv/scripts/` location — owns R-NGNX-2A5Q, R-NGNX-4B7R, R-NGNX-6C9S, R-NGNX-8D1T
 - D5 → `project/design/D05.md` — Docs state current truth: state the landing-page surface in scripts's doctrine — none (structural; docs-only)
+- D6 → `project/design/D06.md` — Conform the landing page to the cron canonical template — none (structural; markup-only)
+- D7 → `project/design/D07.md` — A top-left Home link to the dashboard landing page — owns R-HOME-8R2V
 
 ## Verification ids → Decision
 
@@ -26,3 +28,4 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - R-ROUT-1V4K → D2 → `project/design/D02.md`
 - R-ROUT-3W6L → D2 → `project/design/D02.md`
 - R-ROUT-8U2J → D2 → `project/design/D02.md`
+- R-HOME-8R2V → D7 → `project/design/D07.md`

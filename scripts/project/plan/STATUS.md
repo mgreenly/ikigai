@@ -11,3 +11,5 @@ anywhere but on a phase line, so the anchored grep matches only phase lines.
 Phase 01 ✅ realizes D1, D2, D3 — landing handler + embedded Carbon template/assets in `internal/web`, wired at `GET /{$}` (ungated in-process) in `cmd/scripts/main.go`
 Phase 02 ✅ realizes D4 — nginx fragment: add the exact-match session-gated `= /srv/scripts/` location, validated by a content-assertion test
 Phase 03 ✅ realizes D5 — state the landing-page surface in scripts's doctrine (`project/notes/README.md` + `ARCHITECTURE.md`) (structural; docs-only)
+Phase 04 ⬜ realizes D6 — conform the landing page (markup + tokens) to the cron canonical template; per-service data only (eyebrow + description + title); structural content check
+Phase 05 ⬜ realizes D7 — add the top-left Home link to the dashboard landing page; covers R-HOME-8R2V
