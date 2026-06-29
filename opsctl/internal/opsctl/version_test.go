@@ -101,6 +101,11 @@ func TestVersionTakingBoundariesRejectInvalidSemVer(t *testing.T) {
 	ctx := context.Background()
 	root := t.TempDir()
 	app := "ledger"
+	for _, good := range []string{"v0.7.1", "v1.2.3-rc.1", "v1.2.3+build.5", "v1.2.3-rc.1+build.5"} {
+		if !validVersion(good) {
+			t.Fatalf("validVersion(%q) = false, want true", good)
+		}
+	}
 	invalid := []string{"0.7.1", "v1", "v1.2", "not-semver"}
 	for _, bad := range invalid {
 		if validVersion(bad) {
