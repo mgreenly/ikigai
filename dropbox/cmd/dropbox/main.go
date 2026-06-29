@@ -118,21 +118,14 @@ func main() {
 			ip := config.EnvOr(os.Getenv, "DROPBOX_IP", "127.0.0.1")
 			contentBase = "http://" + ip + ":" + strconv.Itoa(port)
 
-			// The private local mirror (PLAN.md §4): a 0750 subdir of data/. An
-			// explicit DROPBOX_MIRROR_PATH always wins. Otherwise derive it from the
-			// data dir: on the box opsctl stamps DROPBOX_DB_PATH=/opt/dropbox/data/
-			// dropbox.db, so the mirror lands at /opt/dropbox/data/mirror (a writable
-			// subdir of data/, owned by the service user) rather than the cwd-relative
-			// ./tmp default which is unwritable under /opt/dropbox. Falls back to the
-			// dev default ./tmp/mirror when neither env var is set.
-			mirrorPath := os.Getenv("DROPBOX_MIRROR_PATH")
-			if mirrorPath == "" {
-				if dbPath := os.Getenv("DROPBOX_DB_PATH"); dbPath != "" {
-					mirrorPath = filepath.Join(filepath.Dir(dbPath), "mirror")
-				} else {
-					mirrorPath = "./tmp/mirror"
-				}
-			}
+			// The private local mirror (PLAN.md §4): a 0750 subdir beside the durable
+			// DB. An explicit DROPBOX_MIRROR_PATH always wins. Otherwise derive it
+			// from DROPBOX_DB_PATH: on the box opsctl stamps
+			// DROPBOX_DB_PATH=/opt/dropbox/state/dropbox.db, so the mirror lands at
+			// /opt/dropbox/state/mirror (owned with the service's durable state)
+			// rather than the legacy data/ tree or rebuildable cache/tmp space. Falls
+			// back to the dev default ./tmp/mirror when no DB path is set.
+			mirrorPath := defaultMirrorPath(os.Getenv)
 			mirror, err := dropbox.NewMirror(mirrorPath)
 			if err != nil {
 				return fmt.Errorf("mirror: %w", err)
@@ -209,4 +202,14 @@ func main() {
 			},
 		},
 	})
+}
+
+func defaultMirrorPath(getenv func(string) string) string {
+	if mirrorPath := getenv("DROPBOX_MIRROR_PATH"); mirrorPath != "" {
+		return mirrorPath
+	}
+	if dbPath := getenv("DROPBOX_DB_PATH"); dbPath != "" {
+		return filepath.Join(filepath.Dir(dbPath), "mirror")
+	}
+	return "./tmp/mirror"
 }

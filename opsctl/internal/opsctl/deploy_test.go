@@ -504,6 +504,97 @@ func TestNotifySetupDeployBootsHealthWithStateAndCachePaths(t *testing.T) {
 	}
 }
 
+// R-4LKF-FB23
+func TestDropboxSetupDeployBootsHealthWithStateCacheAndMirrorPaths(t *testing.T) {
+	root := t.TempDir()
+	sysRoot := t.TempDir()
+	const app = "dropbox"
+	const version = "v0.8.0"
+	l := NewLayoutSys(root, sysRoot, app)
+	if err := os.MkdirAll(l.LocationsDir(), 0o755); err != nil {
+		t.Fatalf("create locations dir: %v", err)
+	}
+
+	sys := &dropboxBootSystem{
+		stubSystem: &stubSystem{},
+		t:          t,
+		layout:     l,
+		port:       freePort(t),
+	}
+	o := &Opsctl{
+		Root:    root,
+		SysRoot: sysRoot,
+		Keep:    3,
+		System:  sys,
+		Runner:  RealRunner{},
+		Out:     io.Discard,
+		Err:     io.Discard,
+	}
+
+	fragment := "location /srv/dropbox/ {\n    proxy_pass http://127.0.0.1:__PORT__;\n}\n"
+	if err := o.Setup(context.Background(), SetupOptions{App: app, Port: 3005, Fragment: fragment}); err != nil {
+		t.Fatalf("setup dropbox: %v", err)
+	}
+
+	artifact := buildDropboxArtifact(t, version)
+	if err := o.Stage(context.Background(), app, version, artifact, false); err != nil {
+		t.Fatalf("stage dropbox: %v", err)
+	}
+	if err := o.Deploy(context.Background(), app, version); err != nil {
+		t.Fatalf("deploy dropbox: %v", err)
+	}
+
+	if _, err := os.Stat(l.DBPath()); err != nil {
+		t.Fatalf("dropbox DB was not created under state/: %v", err)
+	}
+	if got := filepath.Dir(l.GenerationPath()); got != l.CacheDir() {
+		t.Fatalf("generation sidecar parent = %q, want cache dir %q", got, l.CacheDir())
+	}
+	if _, err := os.Stat(l.LibexecBinary(version)); err != nil {
+		t.Fatalf("dropbox binary missing under libexec/: %v", err)
+	}
+	target, err := os.Readlink(l.RunLink())
+	if err != nil {
+		t.Fatalf("bin/run is not a symlink: %v", err)
+	}
+	if want := l.runTarget(version); target != want {
+		t.Fatalf("bin/run -> %q, want %q", target, want)
+	}
+
+	mirrorDir := filepath.Join(l.StateDir(), "mirror")
+	if fi, err := os.Stat(mirrorDir); err != nil || !fi.IsDir() {
+		t.Fatalf("dropbox mirror was not created under state/: %v", err)
+	}
+	for _, forbidden := range []string{
+		filepath.Join(l.AppDir(), "data", "mirror"),
+		filepath.Join(l.CacheDir(), "mirror"),
+		filepath.Join(l.AppDir(), "tmp", "mirror"),
+	} {
+		if _, err := os.Stat(forbidden); err == nil {
+			t.Fatalf("dropbox mirror unexpectedly created at rebuildable/legacy path %s", forbidden)
+		} else if !os.IsNotExist(err) {
+			t.Fatalf("stat forbidden mirror path %s: %v", forbidden, err)
+		}
+	}
+
+	manifest, err := os.ReadFile(l.ManifestPath())
+	if err != nil {
+		t.Fatalf("read manifest: %v", err)
+	}
+	for _, want := range []string{
+		"APP=dropbox",
+		"DROPBOX_DB_PATH=" + l.DBPath(),
+		"DROPBOX_GENERATION_PATH=" + l.GenerationPath(),
+	} {
+		if !strings.Contains(string(manifest), want) {
+			t.Fatalf("manifest missing %q\n--- manifest ---\n%s", want, manifest)
+		}
+	}
+	if !strings.Contains(sys.healthBody, `"status":"ok"`) || !strings.Contains(sys.healthBody, `"service":"dropbox"`) {
+		t.Fatalf("health response = %s, want dropbox ok envelope", sys.healthBody)
+	}
+}
+
 type notifyBootSystem struct {
 	*stubSystem
 	t          *testing.T
@@ -581,6 +672,84 @@ func (s *notifyBootSystem) IsActive(ctx context.Context, app string) error {
 	}
 }
 
+type dropboxBootSystem struct {
+	*stubSystem
+	t          *testing.T
+	layout     Layout
+	port       int
+	healthBody string
+	started    bool
+}
+
+func (s *dropboxBootSystem) IsActive(ctx context.Context, app string) error {
+	if s.started {
+		return nil
+	}
+	runCtx, cancel := context.WithCancel(context.Background())
+	var stdout, stderr bytes.Buffer
+	cmd := exec.CommandContext(runCtx, s.layout.RunLink(), "serve")
+	cmd.Env = append(os.Environ(), manifestEnv(s.layout.ManifestPath())...)
+	cmd.Env = append(cmd.Env,
+		fmt.Sprintf("DROPBOX_PORT=%d", s.port),
+		"DROPBOX_IP=127.0.0.1",
+		"DROPBOX_APP_KEY=test-key",
+		"DROPBOX_APP_SECRET=test-secret",
+		"DROPBOX_REFRESH_TOKEN=test-refresh-token",
+		"DROPBOX_LONGPOLL_TIMEOUT=1",
+		"HTTPS_PROXY=http://127.0.0.1:1",
+		"HTTP_PROXY=http://127.0.0.1:1",
+	)
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	if err := cmd.Start(); err != nil {
+		cancel()
+		return fmt.Errorf("start dropbox serve: %w", err)
+	}
+	done := make(chan error, 1)
+	go func() { done <- cmd.Wait() }()
+	s.started = true
+	s.t.Cleanup(func() {
+		cancel()
+		select {
+		case <-done:
+		case <-time.After(5 * time.Second):
+			if cmd.Process != nil {
+				_ = cmd.Process.Kill()
+			}
+			<-done
+		}
+	})
+
+	waitURL := fmt.Sprintf("http://127.0.0.1:%d/health", s.port)
+	deadline := time.After(10 * time.Second)
+	tick := time.NewTicker(10 * time.Millisecond)
+	defer tick.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			cancel()
+			return ctx.Err()
+		case err := <-done:
+			cancel()
+			return fmt.Errorf("dropbox serve exited before health: %w\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+		case <-deadline:
+			cancel()
+			return fmt.Errorf("dropbox did not reach /health\nstdout:\n%s\nstderr:\n%s", stdout.String(), stderr.String())
+		case <-tick.C:
+			resp, err := http.Get(waitURL)
+			if err != nil {
+				continue
+			}
+			body, readErr := io.ReadAll(resp.Body)
+			resp.Body.Close()
+			if readErr == nil && resp.StatusCode == http.StatusOK {
+				s.healthBody = string(body)
+				return nil
+			}
+		}
+	}
+}
+
 func buildNotifyArtifact(t *testing.T, version string) string {
 	t.Helper()
 	out := filepath.Join(t.TempDir(), "notify")
@@ -593,6 +762,22 @@ func buildNotifyArtifact(t *testing.T, version string) string {
 	cmd.Env = append(os.Environ(), "CGO_ENABLED=0", "GOOS=linux", "GOARCH=amd64", "GOFLAGS=-buildvcs=false")
 	if b, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("build notify artifact: %v\n%s", err, b)
+	}
+	return out
+}
+
+func buildDropboxArtifact(t *testing.T, version string) string {
+	t.Helper()
+	out := filepath.Join(t.TempDir(), "dropbox")
+	dropboxDir, err := filepath.Abs(filepath.Join("..", "..", "..", "dropbox"))
+	if err != nil {
+		t.Fatalf("resolve dropbox dir: %v", err)
+	}
+	cmd := exec.Command("go", "build", "-trimpath", "-ldflags", "-X appkit.version="+version+" -X appkit.commit=abcdef0", "-o", out, "./cmd/dropbox")
+	cmd.Dir = dropboxDir
+	cmd.Env = append(os.Environ(), "CGO_ENABLED=0", "GOOS=linux", "GOARCH=amd64", "GOFLAGS=-buildvcs=false")
+	if b, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("build dropbox artifact: %v\n%s", err, b)
 	}
 	return out
 }
