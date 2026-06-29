@@ -78,7 +78,7 @@ var groups = []group{
 		{"deploy", "opsctl deploy <app> <version>"},
 		{"rollback", "opsctl rollback <app> [version]"},
 		{"prune", "opsctl prune <app> [--keep <n>]"},
-		{"backup", "opsctl backup <app>"},
+		{"backup", "opsctl backup <app>|--all"},
 		{"restore", "opsctl restore <app> [snapshot-key]"},
 	}},
 	{"Inspect", []verb{
@@ -278,12 +278,19 @@ func runRollback(ctx context.Context, root, name string, args []string) error {
 
 func runBackup(ctx context.Context, root, name string, args []string) error {
 	fs := newFlagSet(name)
+	all := fs.Bool("all", false, "backup every deployed app and the apex cert")
 	if err := fs.Parse(args); err != nil {
 		return helpErr(err)
 	}
 	pos := fs.Args()
+	if *all {
+		if len(pos) != 0 {
+			return fmt.Errorf("usage: opsctl backup <app>|--all")
+		}
+		return opsctl.New(root).BackupAll(ctx)
+	}
 	if len(pos) != 1 || strings.HasPrefix(pos[0], "-") {
-		return fmt.Errorf("usage: opsctl backup <app>")
+		return fmt.Errorf("usage: opsctl backup <app>|--all")
 	}
 	return opsctl.New(root).Backup(ctx, pos[0])
 }

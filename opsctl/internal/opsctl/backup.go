@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -17,6 +18,38 @@ import (
 const backupKeep = 30
 
 func (o *Opsctl) Backup(ctx context.Context, app string) (err error) {
+	if err := o.backupState(ctx, app); err != nil {
+		return err
+	}
+	if app == apexApp {
+		if err := o.backupCert(ctx, app); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (o *Opsctl) BackupAll(ctx context.Context) error {
+	apps, err := o.discoverApps()
+	if err != nil {
+		return fmt.Errorf("backup --all: discover apps: %w", err)
+	}
+	var errs []error
+	for _, app := range apps {
+		if err := o.backupState(ctx, app); err != nil {
+			errs = append(errs, fmt.Errorf("%s: %w", app, err))
+		}
+	}
+	if err := o.backupCert(ctx, apexApp); err != nil {
+		errs = append(errs, fmt.Errorf("%s cert: %w", apexApp, err))
+	}
+	if len(errs) > 0 {
+		return fmt.Errorf("backup --all: %d failure(s): %w", len(errs), errors.Join(errs...))
+	}
+	return nil
+}
+
+func (o *Opsctl) backupState(ctx context.Context, app string) (err error) {
 	l := o.layout(app)
 	store := o.objectStore()
 	if err := o.Stop(ctx, app, nil); err != nil {
@@ -38,13 +71,6 @@ func (o *Opsctl) Backup(ctx context.Context, app string) (err error) {
 	if err := createStateArchive(ctx, l, archive); err != nil {
 		return err
 	}
-	certArchive := ""
-	if app == "dashboard" {
-		certArchive = filepath.Join(work, "cert.tar")
-		if err := createCertArchive(ctx, l, certArchive); err != nil {
-			return err
-		}
-	}
 	f, err := os.Open(archive)
 	if err != nil {
 		return fmt.Errorf("backup: open archive: %w", err)
@@ -58,24 +84,39 @@ func (o *Opsctl) Backup(ctx context.Context, app string) (err error) {
 	if err := store.Put(ctx, latestKey(app), strings.NewReader(key+"\n")); err != nil {
 		return err
 	}
-	if app == "dashboard" {
-		certFile, err := os.Open(certArchive)
-		if err != nil {
-			return fmt.Errorf("backup: open cert archive: %w", err)
-		}
-		defer certFile.Close()
-		certKey := certSnapshotKey(app, time.Now().UTC())
-		if err := store.Put(ctx, certKey, certFile); err != nil {
-			return err
-		}
-		if err := store.Put(ctx, certLatestKey(app), strings.NewReader(certKey+"\n")); err != nil {
-			return err
-		}
-	}
 	if err := pruneBackups(ctx, store, app); err != nil {
 		return err
 	}
 	o.logf("backed up %s to %s", app, key)
+	return nil
+}
+
+func (o *Opsctl) backupCert(ctx context.Context, app string) error {
+	l := o.layout(app)
+	store := o.objectStore()
+	work, err := os.MkdirTemp("", "opsctl-backup-cert-*")
+	if err != nil {
+		return fmt.Errorf("backup: temp dir: %w", err)
+	}
+	defer os.RemoveAll(work)
+
+	archive := filepath.Join(work, "cert.tar")
+	if err := createCertArchive(ctx, l, archive); err != nil {
+		return err
+	}
+	certFile, err := os.Open(archive)
+	if err != nil {
+		return fmt.Errorf("backup: open cert archive: %w", err)
+	}
+	defer certFile.Close()
+	certKey := certSnapshotKey(app, time.Now().UTC())
+	if err := store.Put(ctx, certKey, certFile); err != nil {
+		return err
+	}
+	if err := store.Put(ctx, certLatestKey(app), strings.NewReader(certKey+"\n")); err != nil {
+		return err
+	}
+	o.logf("backed up %s cert to %s", app, certKey)
 	return nil
 }
 

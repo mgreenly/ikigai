@@ -168,6 +168,17 @@ func (l Layout) RenewServicePath() string {
 	return filepath.Join(l.SystemdDir(), "ikigenba-certbot-renew.service")
 }
 
+// BackupTimerPath / BackupServicePath are the suite-owned nightly box sweep
+// timer+service. The service runs `opsctl backup --all`; the timer owns the
+// deterministic 03:00 America/Chicago cadence.
+func (l Layout) BackupTimerPath() string {
+	return filepath.Join(l.SystemdDir(), "ikigenba-backup.timer")
+}
+
+func (l Layout) BackupServicePath() string {
+	return filepath.Join(l.SystemdDir(), "ikigenba-backup.service")
+}
+
 // NginxConfDir is <SysRoot>/etc/nginx/conf.d — where the apex server block lands.
 func (l Layout) NginxConfDir() string {
 	return filepath.Join(l.SysRoot, "etc", "nginx", "conf.d")

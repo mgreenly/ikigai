@@ -69,3 +69,22 @@ Description=ikigenba certbot renewal
 Type=oneshot
 ExecStart=/usr/bin/certbot renew --quiet --deploy-hook "systemctl reload nginx"
 `
+
+const backupTimer = `[Unit]
+Description=ikigenba nightly backup timer
+
+[Timer]
+OnCalendar=*-*-* 03:00:00 America/Chicago
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+`
+
+const backupService = `[Unit]
+Description=ikigenba nightly backup sweep
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/opsctl backup --all
+`
