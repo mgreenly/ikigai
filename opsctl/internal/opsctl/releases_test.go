@@ -2,6 +2,7 @@ package opsctl
 
 import (
 	"context"
+	"os"
 	"strings"
 	"testing"
 )
@@ -59,5 +60,30 @@ func TestReleases_None(t *testing.T) {
 	}
 	if !strings.Contains(buf.String(), "no releases") {
 		t.Errorf("empty releases output = %q, want a 'no releases' notice", buf.String())
+	}
+}
+
+func TestReleases_OrdersPatchVersionsNumerically(t *testing.T) {
+	// R-3X6F-RW87
+	root := t.TempDir()
+	app := "ledger"
+	l := NewLayout(root, app)
+	for _, v := range []string{"v0.7.10", "v0.7.9"} {
+		if err := os.MkdirAll(l.ReleaseDir(v), 0o755); err != nil {
+			t.Fatalf("mkdir release %s: %v", v, err)
+		}
+	}
+
+	o := newOpsctl(t, root, app, &stubSystem{}, fakeEnv(app, "v0.7.10", 1, ""))
+	var buf strings.Builder
+	o.Out = &buf
+	if err := o.Releases(context.Background(), app); err != nil {
+		t.Fatalf("releases: %v", err)
+	}
+
+	lines := strings.Split(strings.TrimSpace(buf.String()), "\n")
+	want := []string{"v0.7.9", "v0.7.10"}
+	if strings.Join(lines, ",") != strings.Join(want, ",") {
+		t.Fatalf("releases order = %v, want %v", lines, want)
 	}
 }
