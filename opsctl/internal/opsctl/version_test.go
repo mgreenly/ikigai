@@ -106,7 +106,17 @@ func TestVersionTakingBoundariesRejectInvalidSemVer(t *testing.T) {
 			t.Fatalf("validVersion(%q) = false, want true", good)
 		}
 	}
-	invalid := []string{"0.7.1", "v1", "v1.2", "not-semver"}
+	invalid := []string{
+		"0.7.1",
+		"v1",
+		"v1.2",
+		"not-semver",
+		"v1.2.3.4",
+		"v01.2.3",
+		"v1.02.3",
+		"v1.2.03",
+		"v1.2.3-",
+	}
 	for _, bad := range invalid {
 		if validVersion(bad) {
 			t.Fatalf("validVersion(%q) = true, want false", bad)
