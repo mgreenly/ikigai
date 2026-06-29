@@ -17,6 +17,7 @@ type fakeStore struct {
 	data    map[string][]byte
 	deleted []string
 	failPut bool
+	events  *[]string
 }
 
 func newFakeStore() *fakeStore {
@@ -32,6 +33,9 @@ func (s *fakeStore) Put(ctx context.Context, key string, r io.Reader) error {
 		return err
 	}
 	s.data[key] = b
+	if s.events != nil {
+		*s.events = append(*s.events, backupPutEvent(key))
+	}
 	return nil
 }
 
@@ -63,6 +67,55 @@ func (s *fakeStore) Delete(ctx context.Context, key string) error {
 
 func testOps(root string, sys *stubSystem, store *fakeStore) *Opsctl {
 	return &Opsctl{Root: root, System: sys, Store: store, Out: io.Discard, Err: io.Discard}
+}
+
+func backupPutEvent(key string) string {
+	switch {
+	case strings.HasPrefix(key, snapshotPrefix("dashboard")):
+		return "put:dashboard:snapshot"
+	case key == latestKey("dashboard"):
+		return "put:dashboard:latest"
+	case strings.HasPrefix(key, snapshotPrefix("ledger")):
+		return "put:ledger:snapshot"
+	case key == latestKey("ledger"):
+		return "put:ledger:latest"
+	case strings.HasPrefix(key, snapshotPrefix("crm")):
+		return "put:crm:snapshot"
+	case key == latestKey("crm"):
+		return "put:crm:latest"
+	case strings.HasPrefix(key, certPrefix("dashboard")) && key != certLatestKey("dashboard"):
+		return "put:dashboard:cert"
+	case key == certLatestKey("dashboard"):
+		return "put:dashboard:cert-latest"
+	default:
+		return "put:" + key
+	}
+}
+
+type sweepSystem struct {
+	stubSystem
+	failStop string
+	events   *[]string
+}
+
+func (s *sweepSystem) Systemctl(ctx context.Context, args ...string) error {
+	if len(args) >= 2 && (args[0] == "stop" || args[0] == "start") {
+		*s.events = append(*s.events, args[0]+":"+args[1])
+	}
+	if len(args) >= 2 && args[0] == "stop" && args[1] == s.failStop {
+		return fmt.Errorf("forced stop failure for %s", s.failStop)
+	}
+	return nil
+}
+
+func writeRunLink(t *testing.T, l Layout) {
+	t.Helper()
+	if err := os.MkdirAll(l.BinDir(), 0o755); err != nil {
+		t.Fatalf("mkdir bin dir: %v", err)
+	}
+	if err := os.Symlink(filepath.Join("..", "libexec", l.App+"-v1.0.0"), l.RunLink()); err != nil {
+		t.Fatalf("write run link: %v", err)
+	}
 }
 
 func writeStateFile(t *testing.T, l Layout, name, body string) {
@@ -292,6 +345,73 @@ func TestBackupDashboardWritesIndependentCertObjectAndLatest(t *testing.T) {
 	}
 	if logs := out.String() + errOut.String(); strings.Contains(logs, privateKey) {
 		t.Fatalf("backup output leaked private key material: %q", logs)
+	}
+}
+
+func TestBackupAllContinuesAfterOneServiceFailsAndStillBacksUpCert(t *testing.T) {
+	// R-ROS8-V2MX
+	root := t.TempDir()
+	sysRoot := t.TempDir()
+	for _, app := range []string{"crm", "dashboard", "ledger"} {
+		l := NewLayoutSys(root, sysRoot, app)
+		writeRunLink(t, l)
+		writeStateFile(t, l, app+".db", app+" state")
+	}
+	dash := NewLayoutSys(root, sysRoot, "dashboard")
+	writeCertFile(t, dash, "archive/int.example.com/privkey1.pem", "private")
+	writeCertFile(t, dash, "archive/int.example.com/fullchain1.pem", "chain")
+	writeCertFile(t, dash, "renewal/int.example.com.conf", "renewal")
+	writeCertFile(t, dash, "live/int.example.com/fullchain.pem", "live")
+
+	var events []string
+	store := newFakeStore()
+	store.events = &events
+	sys := &sweepSystem{failStop: "crm", events: &events}
+	o := &Opsctl{Root: root, SysRoot: sysRoot, System: sys, Store: store, Out: io.Discard, Err: io.Discard}
+
+	err := o.BackupAll(context.Background())
+	if err == nil {
+		t.Fatal("BackupAll succeeded, want non-zero after crm stop failure")
+	}
+	if !strings.Contains(err.Error(), "crm") || !strings.Contains(err.Error(), "forced stop failure") {
+		t.Fatalf("BackupAll error = %q, want crm stop failure", err)
+	}
+
+	if _, ok := store.data[latestKey("crm")]; ok {
+		t.Fatalf("crm latest was written despite stop failure")
+	}
+	for _, app := range []string{"dashboard", "ledger"} {
+		key := strings.TrimSpace(string(store.data[latestKey(app)]))
+		if !strings.HasPrefix(key, snapshotPrefix(app)) {
+			t.Fatalf("%s latest = %q, want snapshot key", app, key)
+		}
+		if got := tarFile(t, store.data[key], "state/"+app+".db"); got != app+" state" {
+			t.Fatalf("%s archive state = %q", app, got)
+		}
+	}
+	certKey, certArchive := certObject(t, store, "dashboard")
+	if latest := strings.TrimSpace(string(store.data[certLatestKey("dashboard")])); latest != certKey {
+		t.Fatalf("cert latest = %q, want %q", latest, certKey)
+	}
+	if got := tarFile(t, certArchive, "etc/letsencrypt/live/int.example.com/fullchain.pem"); got != "live" {
+		t.Fatalf("cert archive live chain = %q, want live", got)
+	}
+
+	wantEvents := []string{
+		"stop:crm",
+		"stop:dashboard",
+		"put:dashboard:snapshot",
+		"put:dashboard:latest",
+		"start:dashboard",
+		"stop:ledger",
+		"put:ledger:snapshot",
+		"put:ledger:latest",
+		"start:ledger",
+		"put:dashboard:cert",
+		"put:dashboard:cert-latest",
+	}
+	if strings.Join(events, "|") != strings.Join(wantEvents, "|") {
+		t.Fatalf("sweep events = %v, want %v", events, wantEvents)
 	}
 }
 

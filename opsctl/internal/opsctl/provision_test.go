@@ -125,6 +125,12 @@ func TestInitBox_WritesApexSubstrate(t *testing.T) {
 	if got := readRepoFile(t, l.RenewServicePath()); got != renewService {
 		t.Fatalf("renew service mismatch:\n--- got ---\n%q", got)
 	}
+	if got := readRepoFile(t, l.BackupTimerPath()); got != backupTimer {
+		t.Fatalf("backup timer mismatch:\n--- got ---\n%q\n--- want ---\n%q", got, backupTimer)
+	}
+	if got := readRepoFile(t, l.BackupServicePath()); got != backupService {
+		t.Fatalf("backup service mismatch:\n--- got ---\n%q", got)
+	}
 
 	// Privileged box ops were REQUESTED through the seam, in order — and not run.
 	// Greenfield box (cert absent): the first cert is bootstrapped via certbot
@@ -139,9 +145,54 @@ func TestInitBox_WritesApexSubstrate(t *testing.T) {
 		"obtain-cert:int.ikigenba.com",
 		"daemon-reload",
 		"enable-now:ikigenba-certbot-renew.timer",
+		"enable-now:ikigenba-backup.timer",
 	}
 	if got := sys.opSeq(); strings.Join(got, "|") != strings.Join(wantOps, "|") {
 		t.Fatalf("init-box ops = %v, want %v", got, wantOps)
+	}
+}
+
+func TestInitBoxWritesNightlyBackupTimerInChicagoTime(t *testing.T) {
+	// R-RNKC-HAW8
+	root := t.TempDir()
+	sysRoot := t.TempDir()
+	sys := &stubSystem{}
+	o := newProvisioner(t, root, sysRoot, sys)
+
+	if err := o.InitBox(context.Background(), InitBoxOptions{
+		DefaultApp: "dashboard",
+		Domain:     "int.ikigenba.com",
+		Port:       3000,
+		ApexBlock:  readRepoFile(t, "../../../dashboard/etc/nginx.conf"),
+		SkipCert:   true,
+	}); err != nil {
+		t.Fatalf("init-box --skip-cert: %v", err)
+	}
+
+	l := NewLayoutSys(root, sysRoot, "dashboard")
+	timer := readRepoFile(t, l.BackupTimerPath())
+	for _, want := range []string{
+		"OnCalendar=*-*-* 03:00:00 America/Chicago\n",
+		"Persistent=true\n",
+	} {
+		if !strings.Contains(timer, want) {
+			t.Fatalf("backup timer missing %q:\n%s", want, timer)
+		}
+	}
+	service := readRepoFile(t, l.BackupServicePath())
+	if !strings.Contains(service, "ExecStart=/usr/local/bin/opsctl backup --all\n") {
+		t.Fatalf("backup service does not run backup --all:\n%s", service)
+	}
+	gotOps := sys.opSeq()
+	enabled := false
+	for _, op := range gotOps {
+		if op == "enable-now:ikigenba-backup.timer" {
+			enabled = true
+			break
+		}
+	}
+	if !enabled {
+		t.Fatalf("backup timer was not enabled now; ops = %v", gotOps)
 	}
 }
 
@@ -171,6 +222,7 @@ func TestInitBox_SkipCert(t *testing.T) {
 		"install-packages:nginx,certbot",
 		"daemon-reload",
 		"enable-now:ikigenba-certbot-renew.timer",
+		"enable-now:ikigenba-backup.timer",
 	}
 	if got := sys.opSeq(); strings.Join(got, "|") != strings.Join(wantOps, "|") {
 		t.Fatalf("init-box --skip-cert ops = %v, want %v", got, wantOps)
@@ -209,6 +261,7 @@ func TestInitBox_CertExists(t *testing.T) {
 		"obtain-cert:int.ikigenba.com",
 		"daemon-reload",
 		"enable-now:ikigenba-certbot-renew.timer",
+		"enable-now:ikigenba-backup.timer",
 	}
 	if got := sys.opSeq(); strings.Join(got, "|") != strings.Join(wantOps, "|") {
 		t.Fatalf("init-box (cert exists) ops = %v, want %v", got, wantOps)

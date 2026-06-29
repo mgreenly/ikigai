@@ -125,7 +125,8 @@ func (o *Opsctl) InitBox(ctx context.Context, opts InitBoxOptions) error {
 		o.logf("skip-cert: staging apex block only (nginx not validated/started; cert issued later)")
 	}
 
-	// 6. The certbot renewal timer (suite-owned), enabled now.
+	// 6. The suite-owned timers, enabled now: certbot renewal and the nightly
+	//    backup sweep.
 	o.logf("write + enable renewal timer %s", l.RenewTimerPath())
 	if err := writeFileAtomic(l.RenewServicePath(), []byte(renewService), 0o644); err != nil {
 		return fmt.Errorf("init-box: write renew service: %w", err)
@@ -133,11 +134,21 @@ func (o *Opsctl) InitBox(ctx context.Context, opts InitBoxOptions) error {
 	if err := writeFileAtomic(l.RenewTimerPath(), []byte(renewTimer), 0o644); err != nil {
 		return fmt.Errorf("init-box: write renew timer: %w", err)
 	}
+	o.logf("write + enable backup timer %s", l.BackupTimerPath())
+	if err := writeFileAtomic(l.BackupServicePath(), []byte(backupService), 0o644); err != nil {
+		return fmt.Errorf("init-box: write backup service: %w", err)
+	}
+	if err := writeFileAtomic(l.BackupTimerPath(), []byte(backupTimer), 0o644); err != nil {
+		return fmt.Errorf("init-box: write backup timer: %w", err)
+	}
 	if err := o.System.DaemonReload(ctx); err != nil {
 		return fmt.Errorf("init-box: daemon-reload: %w", err)
 	}
 	if err := o.System.EnableUnit(ctx, "ikigenba-certbot-renew.timer", true); err != nil {
 		return fmt.Errorf("init-box: enable renew timer: %w", err)
+	}
+	if err := o.System.EnableUnit(ctx, "ikigenba-backup.timer", true); err != nil {
+		return fmt.Errorf("init-box: enable backup timer: %w", err)
 	}
 
 	o.logf("init-box complete — next: opsctl setup <app> per service")
