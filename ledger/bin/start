@@ -13,7 +13,7 @@ BIN="build/${APP}.bin"
 PIDFILE="build/${APP}.pid"
 
 if [[ ! -x "$BIN" ]]; then
-  bin/build
+  make build
 fi
 
 if [[ -f "$PIDFILE" ]] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
@@ -21,6 +21,6 @@ if [[ -f "$PIDFILE" ]] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
   exit 1
 fi
 
-LEDGER_PORT="${LEDGER_PORT:-${PORT}}" "./$BIN" --port "${LEDGER_PORT:-${PORT}}" &
+LEDGER_PORT="${LEDGER_PORT:-${PORT}}" "./$BIN" serve &
 echo $! > "$PIDFILE"
 echo "ledger started (pid $(cat "$PIDFILE")) on 127.0.0.1:${LEDGER_PORT:-${PORT}}"
