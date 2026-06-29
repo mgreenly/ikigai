@@ -77,6 +77,30 @@ func TestPrune_KeepsExactlyN(t *testing.T) {
 	}
 }
 
+func TestPrune_NewestSetUsesSemanticNumericOrdering(t *testing.T) {
+	// R-3X6F-RW87
+	root := t.TempDir()
+	app := "ledger"
+	l := NewLayout(root, app)
+	for _, v := range []string{"v0.7.10", "v0.7.9"} {
+		if err := os.MkdirAll(l.ReleaseDir(v), 0o755); err != nil {
+			t.Fatalf("mkdir release %s: %v", v, err)
+		}
+	}
+
+	o := newOpsctl(t, root, app, &stubSystem{}, fakeEnv(app, "v0.7.10", 1, ""))
+	o.Keep = 1
+	if err := o.Prune(context.Background(), app); err != nil {
+		t.Fatalf("prune: %v", err)
+	}
+
+	got := releaseDirs(t, l)
+	want := []string{"v0.7.10"}
+	if len(got) != len(want) || got[0] != want[0] {
+		t.Fatalf("after prune kept %v, want %v", got, want)
+	}
+}
+
 // TestPrune_NeverDeletesCurrentEvenIfOldest sets current to an OLD release (via a
 // rollback) and then installs a chain; prune with a small N must still preserve
 // current's target and its predecessor, never deleting the live rollback target.
