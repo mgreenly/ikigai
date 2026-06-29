@@ -110,6 +110,8 @@ func TestVersionTakingBoundariesRejectInvalidSemVer(t *testing.T) {
 		"0.7.1",
 		"v1",
 		"v1.2",
+		"v1.2-rc.1",
+		"v1.2+build.1",
 		"not-semver",
 		"v1.2.3.4",
 		"v01.2.3",
