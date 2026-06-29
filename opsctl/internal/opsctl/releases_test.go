@@ -87,3 +87,28 @@ func TestReleases_OrdersPatchVersionsNumerically(t *testing.T) {
 		t.Fatalf("releases order = %v, want %v", lines, want)
 	}
 }
+
+func TestReleases_OrdersPrereleasesBySemVerPrecedence(t *testing.T) {
+	// R-3YEC-5NYW
+	root := t.TempDir()
+	app := "ledger"
+	l := NewLayout(root, app)
+	for _, v := range []string{"v1.0.0", "v1.0.0-rc.10", "v1.0.0-rc.2"} {
+		if err := os.MkdirAll(l.ReleaseDir(v), 0o755); err != nil {
+			t.Fatalf("mkdir release %s: %v", v, err)
+		}
+	}
+
+	o := newOpsctl(t, root, app, &stubSystem{}, fakeEnv(app, "v1.0.0", 1, ""))
+	var buf strings.Builder
+	o.Out = &buf
+	if err := o.Releases(context.Background(), app); err != nil {
+		t.Fatalf("releases: %v", err)
+	}
+
+	lines := strings.Split(strings.TrimSpace(buf.String()), "\n")
+	want := []string{"v1.0.0-rc.2", "v1.0.0-rc.10", "v1.0.0"}
+	if strings.Join(lines, ",") != strings.Join(want, ",") {
+		t.Fatalf("releases order = %v, want %v", lines, want)
+	}
+}
