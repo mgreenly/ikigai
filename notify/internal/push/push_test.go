@@ -10,7 +10,9 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -254,5 +256,116 @@ func TestEndToEndContactCreatedPush(t *testing.T) {
 	// … but NO new push is fired for it.
 	if got := ntfy.snapshot(); len(got) != 1 {
 		t.Fatalf("non-contact.created produced a push: got %d pushes, want 1", len(got))
+	}
+}
+
+// R-4LKF-FB23
+func TestNotifyConsumerReconstructsCursorAfterProducerCacheRemint(t *testing.T) {
+	dir := t.TempDir()
+	discard := slog.New(slog.NewJSONHandler(io.Discard, nil))
+
+	producerDB := filepath.Join(dir, "producer.db")
+	generationPath := filepath.Join(dir, "cache", "crm.db.generation")
+	if err := os.MkdirAll(filepath.Dir(generationPath), 0o755); err != nil {
+		t.Fatalf("create producer cache dir: %v", err)
+	}
+	pdb := openDB(t, producerDB, outbox.SchemaSQL)
+	ob1, err := outbox.New(pdb, outbox.Options{
+		Source:         "crm",
+		DBPath:         producerDB,
+		GenerationPath: generationPath,
+		Logger:         discard,
+	})
+	if err != nil {
+		t.Fatalf("outbox.New first boot: %v", err)
+	}
+
+	var (
+		mu      sync.Mutex
+		current = ob1
+	)
+	feed := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		ob := current
+		mu.Unlock()
+		ob.FeedHandler().ServeHTTP(w, r)
+	}))
+	t.Cleanup(feed.Close)
+
+	ntfy := newNtfyMock(t)
+	client := push.NewClient(ntfy.srv.URL, "topic", "tok", discard)
+	notifyDB := filepath.Join(dir, "notify", "state", "notify.db")
+	if err := os.MkdirAll(filepath.Dir(notifyDB), 0o755); err != nil {
+		t.Fatalf("create notify state dir: %v", err)
+	}
+	cdb := openDB(t, notifyDB, consumer.SchemaSQL)
+
+	emit(t, ob1, pdb, "contact.created", `{"id":"c1","display_name":"Alice"}`)
+	runNotifyConsumerUntil(t, feed.URL+"/feed", cdb, push.Handler(client, discard), func() bool {
+		cur := cursorFor(t, cdb, "crm")
+		return cur.Valid && strings.HasPrefix(cur.String, ob1.Generation()+".")
+	})
+	waitFor(t, "first push", func() bool { return len(ntfy.snapshot()) >= 1 })
+	cur1 := cursorFor(t, cdb, "crm").String
+
+	if err := os.Remove(generationPath); err != nil {
+		t.Fatalf("remove producer generation sidecar: %v", err)
+	}
+	ob2, err := outbox.New(pdb, outbox.Options{
+		Source:         "crm",
+		DBPath:         producerDB,
+		GenerationPath: generationPath,
+		Logger:         discard,
+	})
+	if err != nil {
+		t.Fatalf("outbox.New after cache remint: %v", err)
+	}
+	if ob2.Generation() == ob1.Generation() {
+		t.Fatalf("producer generation did not change after cache sidecar removal")
+	}
+	mu.Lock()
+	current = ob2
+	mu.Unlock()
+
+	emit(t, ob2, pdb, "contact.created", `{"id":"c2","display_name":"Bob"}`)
+	runNotifyConsumerUntil(t, feed.URL+"/feed", cdb, push.Handler(client, discard), func() bool {
+		cur := cursorFor(t, cdb, "crm")
+		return cur.Valid && strings.HasPrefix(cur.String, ob2.Generation()+".")
+	})
+	cur2 := cursorFor(t, cdb, "crm").String
+	if cur2 == cur1 {
+		t.Fatalf("notify cursor stayed at stale producer generation %q", cur1)
+	}
+	if !strings.HasPrefix(cur2, ob2.Generation()+".") {
+		t.Fatalf("notify cursor = %q, want new producer generation %q", cur2, ob2.Generation())
+	}
+	waitFor(t, "push after cache remint", func() bool {
+		for _, p := range ntfy.snapshot() {
+			if p.body == "Bob" {
+				return true
+			}
+		}
+		return false
+	})
+}
+
+func runNotifyConsumerUntil(t *testing.T, feedURL string, db *sql.DB, h consumer.Handler, done func() bool) {
+	t.Helper()
+	ctx, cancel := context.WithCancel(context.Background())
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- consumer.Run(ctx, consumer.Config{
+			FeedURL:    feedURL,
+			From:       "earliest",
+			DB:         db,
+			Source:     "crm",
+			ConsumerID: "notify",
+			Logger:     slog.New(slog.NewJSONHandler(io.Discard, nil)),
+		}, h)
+	}()
+	waitFor(t, "notify consumer condition", done)
+	cancel()
+	if err := <-errCh; err != nil {
+		t.Fatalf("consumer.Run returned non-nil: %v", err)
 	}
 }
