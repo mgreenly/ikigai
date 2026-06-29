@@ -1,6 +1,7 @@
 package config_test
 
 import (
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -47,12 +48,13 @@ func TestResolve_LocalhostDefaults(t *testing.T) {
 }
 
 func TestResolve_ExplicitOverrideWins(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "var", "data", "ledger.db")
 	cfg, err := config.Resolve("ledger", "/srv/ledger/", 3002, envFunc(map[string]string{
 		"IKIGENBA_DOMAIN":    "int.ikigenba.com",
 		"LEDGER_RESOURCE_ID": "https://override.example/srv/ledger/mcp",
 		"LEDGER_AUTH_SERVER": "https://override.example",
 		"LEDGER_PORT":        "9999",
-		"LEDGER_DB_PATH":     "/var/data/ledger.db",
+		"LEDGER_DB_PATH":     dbPath,
 	}))
 	if err != nil {
 		t.Fatalf("Resolve: %v", err)
@@ -66,11 +68,41 @@ func TestResolve_ExplicitOverrideWins(t *testing.T) {
 	if cfg.Port != 9999 {
 		t.Errorf("Port = %d, want 9999", cfg.Port)
 	}
-	if cfg.DBPath != "/var/data/ledger.db" {
+	if cfg.DBPath != dbPath {
 		t.Errorf("DBPath = %q, want explicit", cfg.DBPath)
 	}
-	if want := "/var/data/ledger.db.generation"; cfg.GenerationPath != want {
+	if want := dbPath + ".generation"; cfg.GenerationPath != want {
 		t.Errorf("GenerationPath = %q, want %q (derived from DBPath)", cfg.GenerationPath, want)
+	}
+}
+
+func TestResolve_UnitStateCachePathsAreIndependent(t *testing.T) {
+	// R-485J-7TWG
+	root := t.TempDir()
+	dbPath := filepath.Join(root, "opt", "ledger", "state", "ledger.db")
+	genPath := filepath.Join(root, "opt", "ledger", "cache", "ledger.db.generation")
+
+	cfg, err := config.Resolve("ledger", "/srv/ledger/", 3002, envFunc(map[string]string{
+		"LEDGER_DB_PATH":         dbPath,
+		"LEDGER_GENERATION_PATH": genPath,
+	}))
+	if err != nil {
+		t.Fatalf("Resolve: %v", err)
+	}
+	if cfg.DBPath != dbPath {
+		t.Fatalf("DBPath = %q, want %q", cfg.DBPath, dbPath)
+	}
+	if cfg.GenerationPath != genPath {
+		t.Fatalf("GenerationPath = %q, want %q", cfg.GenerationPath, genPath)
+	}
+	if got := filepath.Base(filepath.Dir(cfg.DBPath)); got != "state" {
+		t.Errorf("DBPath parent = %q, want state", got)
+	}
+	if got := filepath.Base(filepath.Dir(cfg.GenerationPath)); got != "cache" {
+		t.Errorf("GenerationPath parent = %q, want cache", got)
+	}
+	if filepath.Dir(cfg.DBPath) == filepath.Dir(cfg.GenerationPath) {
+		t.Fatalf("DBPath and GenerationPath share a directory: %s", filepath.Dir(cfg.DBPath))
 	}
 }
 

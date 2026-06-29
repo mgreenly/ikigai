@@ -3,10 +3,16 @@ package appkit
 import (
 	"bytes"
 	"context"
+	"encoding/json"
+	"fmt"
+	"net"
+	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"appkit/internal/testmigrations"
 )
@@ -293,5 +299,112 @@ func TestDispatch_ServeRejectsBadLogLevel(t *testing.T) {
 	}
 	if !strings.Contains(errs, "invalid log level") {
 		t.Errorf("stderr = %q, want an invalid-log-level error", errs)
+	}
+}
+
+func TestDispatch_ServeReconstructsCacheAndGenerationOnBoot(t *testing.T) {
+	// R-4E91-4OLX
+	root := t.TempDir()
+	appRoot := filepath.Join(root, "opt", "widget")
+	stateDir := filepath.Join(appRoot, "state")
+	cacheDir := filepath.Join(appRoot, "cache")
+	if err := os.MkdirAll(stateDir, 0o750); err != nil {
+		t.Fatalf("create state dir: %v", err)
+	}
+
+	dbPath := filepath.Join(stateDir, "widget.db")
+	genPath := filepath.Join(cacheDir, "widget.db.generation")
+	if _, err := os.Stat(cacheDir); !os.IsNotExist(err) {
+		t.Fatalf("cache dir exists before boot (stat err = %v)", err)
+	}
+	if _, err := os.Stat(genPath); !os.IsNotExist(err) {
+		t.Fatalf("generation sidecar exists before boot (stat err = %v)", err)
+	}
+
+	port := freeLoopbackPort(t)
+	addr := net.JoinHostPort("127.0.0.1", strconv.Itoa(port))
+	reachedHealth := false
+	spec := testSpec()
+	spec.Workers = []func(context.Context) error{
+		func(ctx context.Context) error {
+			ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+			defer cancel()
+			if err := waitForHealth(ctx, addr, "widget"); err != nil {
+				return err
+			}
+			reachedHealth = true
+			return nil
+		},
+	}
+
+	env := map[string]string{
+		"WIDGET_DB_PATH":         dbPath,
+		"WIDGET_GENERATION_PATH": genPath,
+		"WIDGET_PORT":            strconv.Itoa(port),
+	}
+	code, _, errs := run(t, spec, env, "serve")
+	if code != 0 {
+		t.Fatalf("serve exit = %d, stderr=%q", code, errs)
+	}
+	if !reachedHealth {
+		t.Fatal("serve returned without reaching /health")
+	}
+	if info, err := os.Stat(cacheDir); err != nil || !info.IsDir() {
+		t.Fatalf("cache dir after boot = (%v, %v), want directory", info, err)
+	}
+	generation, err := os.ReadFile(genPath)
+	if err != nil {
+		t.Fatalf("read generation sidecar: %v", err)
+	}
+	if strings.TrimSpace(string(generation)) == "" {
+		t.Fatal("generation sidecar is empty")
+	}
+	if info, err := os.Stat(dbPath); err != nil || info.IsDir() {
+		t.Fatalf("db file after boot = (%v, %v), want file", info, err)
+	}
+}
+
+func freeLoopbackPort(t *testing.T) int {
+	t.Helper()
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("allocate loopback port: %v", err)
+	}
+	defer ln.Close()
+	return ln.Addr().(*net.TCPAddr).Port
+}
+
+func waitForHealth(ctx context.Context, addr, service string) error {
+	client := &http.Client{Timeout: 200 * time.Millisecond}
+	tick := time.NewTicker(25 * time.Millisecond)
+	defer tick.Stop()
+	var lastErr error
+	for {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://"+addr+"/health", nil)
+		if err != nil {
+			return err
+		}
+		resp, err := client.Do(req)
+		if err == nil {
+			var body map[string]any
+			decodeErr := json.NewDecoder(resp.Body).Decode(&body)
+			closeErr := resp.Body.Close()
+			if resp.StatusCode == http.StatusOK && decodeErr == nil && closeErr == nil &&
+				body["status"] == "ok" && body["service"] == service {
+				return nil
+			}
+			lastErr = fmt.Errorf("health response status=%d body=%v decode=%v close=%v", resp.StatusCode, body, decodeErr, closeErr)
+		} else {
+			lastErr = err
+		}
+
+		select {
+		case <-ctx.Done():
+			if lastErr != nil {
+				return fmt.Errorf("health never became ready: %w", lastErr)
+			}
+			return ctx.Err()
+		case <-tick.C:
+		}
 	}
 }

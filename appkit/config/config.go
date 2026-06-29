@@ -11,6 +11,8 @@ package config
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -45,8 +47,20 @@ func Resolve(app, mount string, defaultPort int, getenv func(string) string) (Co
 
 	resourceID, authServer := composeURLs(getenv, up, mount)
 
-	dbPath := EnvOr(getenv, up+"_DB_PATH", "./tmp/"+app+".db")
-	genPath := EnvOr(getenv, up+"_GENERATION_PATH", dbPath+".generation")
+	dbPathKey := up + "_DB_PATH"
+	genPathKey := up + "_GENERATION_PATH"
+	dbPath := EnvOr(getenv, dbPathKey, "./tmp/"+app+".db")
+	genPath := EnvOr(getenv, genPathKey, dbPath+".generation")
+	if getenv(dbPathKey) != "" {
+		if err := ensureParentDir(dbPath, 0o750); err != nil {
+			return Config{}, fmt.Errorf("%s: %w", dbPathKey, err)
+		}
+	}
+	if getenv(genPathKey) != "" {
+		if err := ensureParentDir(genPath, 0o755); err != nil {
+			return Config{}, fmt.Errorf("%s: %w", genPathKey, err)
+		}
+	}
 
 	return Config{
 		IP:             EnvOr(getenv, up+"_IP", "127.0.0.1"),
@@ -84,6 +98,17 @@ func EnvOr(getenv func(string) string, key, def string) string {
 		return v
 	}
 	return def
+}
+
+func ensureParentDir(path string, mode os.FileMode) error {
+	dir := filepath.Dir(path)
+	if dir == "." || dir == "" {
+		return nil
+	}
+	if err := os.MkdirAll(dir, mode); err != nil {
+		return fmt.Errorf("create parent dir %s: %w", dir, err)
+	}
+	return nil
 }
 
 // EnvOrInt returns def when key is unset/empty, the parsed value when it holds a
