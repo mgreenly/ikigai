@@ -1,9 +1,20 @@
 package main
 
 import (
+	"errors"
+	"os"
+	"os/exec"
 	"strings"
 	"testing"
 )
+
+func TestMain(m *testing.M) {
+	if os.Getenv("OPSCTL_TEST_MAIN") == "1" {
+		main()
+		return
+	}
+	os.Exit(m.Run())
+}
 
 // TestHelpCoversDispatchTable is the core coverage guard: the dispatch table
 // (`runners`, what `opsctl <verb>` can actually run) and the help registry
@@ -105,6 +116,40 @@ func TestNoDuplicateVerbNames(t *testing.T) {
 				t.Errorf("duplicate verb name %q", v.name)
 			}
 			seen[v.name] = true
+		}
+	}
+}
+
+func TestInvalidVersionInputsExitNonZero(t *testing.T) {
+	// R-439X-OQXO
+	for _, bad := range []string{"0.7.1", "v1", "v1.2", "not-semver"} {
+		for _, tc := range []struct {
+			name string
+			args []string
+		}{
+			{name: "stage", args: []string{"stage", "ledger", bad, "--artifact", "artifact"}},
+			{name: "deploy", args: []string{"deploy", "ledger", bad}},
+			{name: "rollback", args: []string{"rollback", "ledger", bad}},
+		} {
+			t.Run(tc.name+"/"+bad, func(t *testing.T) {
+				cmd := exec.Command(os.Args[0], tc.args...)
+				cmd.Env = append(os.Environ(), "OPSCTL_TEST_MAIN=1", "OPSCTL_ROOT="+t.TempDir())
+				out, err := cmd.CombinedOutput()
+				if err == nil {
+					t.Fatalf("opsctl %s exited 0, want non-zero; output:\n%s", strings.Join(tc.args, " "), out)
+				}
+				var exitErr *exec.ExitError
+				if !errors.As(err, &exitErr) {
+					t.Fatalf("opsctl %s failed without an exit status: %v; output:\n%s", strings.Join(tc.args, " "), err, out)
+				}
+				if exitErr.ExitCode() == 0 {
+					t.Fatalf("opsctl %s exit code = 0, want non-zero; output:\n%s", strings.Join(tc.args, " "), out)
+				}
+				got := string(out)
+				if !strings.Contains(got, "invalid") || !strings.Contains(got, bad) {
+					t.Fatalf("opsctl %s output = %q, want invalid-version refusal naming %q", strings.Join(tc.args, " "), got, bad)
+				}
+			})
 		}
 	}
 }
