@@ -3,6 +3,7 @@ package opsctl
 import (
 	"context"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -75,5 +76,29 @@ func TestStatus_AllAppsDiscovery(t *testing.T) {
 	}
 	if strings.Contains(out, "notify") {
 		t.Errorf("status all listed the un-deployed app notify:\n%s", out)
+	}
+}
+
+func TestStatus_InvalidCurrentVersionFailsLoudly(t *testing.T) {
+	// R-439X-OQXO
+	root := t.TempDir()
+	app := "ledger"
+	l := NewLayout(root, app)
+	if err := os.MkdirAll(filepath.Dir(l.CurrentLink()), 0o755); err != nil {
+		t.Fatalf("mkdir current parent: %v", err)
+	}
+	if err := os.Symlink(filepath.Join("releases", "v1.2"), l.CurrentLink()); err != nil {
+		t.Fatalf("symlink invalid current: %v", err)
+	}
+
+	o := newOpsctl(t, root, app, &stubSystem{}, fakeEnv(app, "v1.2.3", 1, ""))
+	err := o.Status(context.Background(), app)
+	if err == nil {
+		t.Fatal("Status with invalid current version exited nil, want invalid-version error")
+	}
+	for _, want := range []string{"status: ledger", "invalid current version \"v1.2\""} {
+		if !strings.Contains(err.Error(), want) {
+			t.Fatalf("Status invalid current err = %v, want substring %q", err, want)
+		}
 	}
 }
