@@ -5,7 +5,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 
@@ -254,5 +256,39 @@ func TestCursorRoundTrip(t *testing.T) {
 		if _, _, ok := parseCursor(bad); ok {
 			t.Errorf("parseCursor(%q) should be unintelligible", bad)
 		}
+	}
+}
+
+// R-4BT8-D54J
+func TestLoadOrMintGenerationMintsNewEpochWhenSidecarAbsentAfterRestore(t *testing.T) {
+	genPath := filepath.Join(t.TempDir(), "outbox.generation")
+
+	before, err := loadOrMintGeneration(genPath)
+	if err != nil {
+		t.Fatalf("initial loadOrMintGeneration: %v", err)
+	}
+	if before == "" {
+		t.Fatal("initial generation is empty")
+	}
+	if err := os.Remove(genPath); err != nil {
+		t.Fatalf("remove generation sidecar to simulate restore: %v", err)
+	}
+
+	after, err := loadOrMintGeneration(genPath)
+	if err != nil {
+		t.Fatalf("post-restore loadOrMintGeneration: %v", err)
+	}
+	if after == "" {
+		t.Fatal("post-restore generation is empty")
+	}
+	if after == before {
+		t.Fatalf("post-restore generation reused old epoch %q", before)
+	}
+	b, err := os.ReadFile(genPath)
+	if err != nil {
+		t.Fatalf("read re-minted generation sidecar: %v", err)
+	}
+	if got := strings.TrimSpace(string(b)); got != after {
+		t.Fatalf("sidecar content = %q, want re-minted generation %q", got, after)
 	}
 }
