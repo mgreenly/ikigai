@@ -86,6 +86,13 @@ func (o *Opsctl) Stage(ctx context.Context, app, version, artifact string, force
 	if err := copyExecutable(artifact, relBin); err != nil {
 		return fmt.Errorf("stage: place artifact: %w", err)
 	}
+	libexecFile := l.ReleaseLibexecFile(version)
+	if err := os.MkdirAll(filepath.Dir(libexecFile), 0o755); err != nil {
+		return fmt.Errorf("stage: mkdir libexec dir: %w", err)
+	}
+	if err := os.WriteFile(libexecFile, []byte{}, 0o644); err != nil {
+		return fmt.Errorf("stage: touch libexec version file: %w", err)
+	}
 
 	// On success: delete the /tmp artifact (decision 2). Leave it only on the
 	// refusal/error paths above, which return before reaching here.

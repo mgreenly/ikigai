@@ -45,7 +45,7 @@ func TestCompareVersion_BuildMetadataPrecedenceEqual(t *testing.T) {
 	}
 }
 
-func TestCompareVersion_PrecedenceEqualBuildsUseReleaseBinaryMtime(t *testing.T) {
+func TestCompareVersion_PrecedenceEqualBuildsUseLibexecMtime(t *testing.T) {
 	// R-4221-AZ6Z
 	l := NewLayout(t.TempDir(), "ledger")
 	older := "v0.7.1+aaaa"
@@ -57,13 +57,26 @@ func TestCompareVersion_PrecedenceEqualBuildsUseReleaseBinaryMtime(t *testing.T)
 		if err := os.WriteFile(l.ReleaseBinary(v), []byte("fake"), 0o755); err != nil {
 			t.Fatalf("write release binary %s: %v", v, err)
 		}
+		libexecFile := l.ReleaseLibexecFile(v)
+		if err := os.MkdirAll(filepath.Dir(libexecFile), 0o755); err != nil {
+			t.Fatalf("mkdir libexec %s: %v", v, err)
+		}
+		if err := os.WriteFile(libexecFile, []byte("stamp"), 0o644); err != nil {
+			t.Fatalf("write libexec file %s: %v", v, err)
+		}
 	}
 	base := time.Unix(1700000000, 0)
-	if err := os.Chtimes(l.ReleaseBinary(older), base, base); err != nil {
-		t.Fatalf("chtime older: %v", err)
+	if err := os.Chtimes(l.ReleaseBinary(older), base.Add(time.Hour), base.Add(time.Hour)); err != nil {
+		t.Fatalf("chtime older binary: %v", err)
 	}
-	if err := os.Chtimes(l.ReleaseBinary(newer), base.Add(time.Hour), base.Add(time.Hour)); err != nil {
-		t.Fatalf("chtime newer: %v", err)
+	if err := os.Chtimes(l.ReleaseBinary(newer), base, base); err != nil {
+		t.Fatalf("chtime newer binary: %v", err)
+	}
+	if err := os.Chtimes(l.ReleaseLibexecFile(older), base, base); err != nil {
+		t.Fatalf("chtime older libexec: %v", err)
+	}
+	if err := os.Chtimes(l.ReleaseLibexecFile(newer), base.Add(time.Hour), base.Add(time.Hour)); err != nil {
+		t.Fatalf("chtime newer libexec: %v", err)
 	}
 
 	if got := l.compareVersion(older, newer); got >= 0 {
