@@ -595,6 +595,104 @@ func TestDropboxSetupDeployBootsHealthWithStateCacheAndMirrorPaths(t *testing.T)
 	}
 }
 
+// R-4LKF-FB23
+func TestPromptsSetupDeployBootsHealthWithStateSandboxesAndCacheRuns(t *testing.T) {
+	root := t.TempDir()
+	sysRoot := t.TempDir()
+	const app = "prompts"
+	const version = "v0.12.0"
+	l := NewLayoutSys(root, sysRoot, app)
+	if err := os.MkdirAll(l.LocationsDir(), 0o755); err != nil {
+		t.Fatalf("create locations dir: %v", err)
+	}
+
+	staleRunsDir := filepath.Join(l.CacheDir(), "runs")
+	if err := os.MkdirAll(filepath.Join(staleRunsDir, "stale-run"), 0o755); err != nil {
+		t.Fatalf("create stale runs dir: %v", err)
+	}
+
+	sys := &promptsBootSystem{
+		stubSystem: &stubSystem{},
+		t:          t,
+		layout:     l,
+		port:       freePort(t),
+	}
+	o := &Opsctl{
+		Root:    root,
+		SysRoot: sysRoot,
+		Keep:    3,
+		System:  sys,
+		Runner:  RealRunner{},
+		Out:     io.Discard,
+		Err:     io.Discard,
+	}
+
+	fragment := "location /srv/prompts/ {\n    proxy_pass http://127.0.0.1:__PORT__;\n}\n"
+	if err := o.Setup(context.Background(), SetupOptions{App: app, Port: 3004, Fragment: fragment}); err != nil {
+		t.Fatalf("setup prompts: %v", err)
+	}
+
+	artifact := buildPromptsArtifact(t, version)
+	if err := o.Stage(context.Background(), app, version, artifact, false); err != nil {
+		t.Fatalf("stage prompts: %v", err)
+	}
+	if err := o.Deploy(context.Background(), app, version); err != nil {
+		t.Fatalf("deploy prompts: %v", err)
+	}
+
+	if _, err := os.Stat(l.DBPath()); err != nil {
+		t.Fatalf("prompts DB was not created under state/: %v", err)
+	}
+	sandboxesDir := filepath.Join(l.StateDir(), "sandboxes")
+	if fi, err := os.Stat(sandboxesDir); err != nil || !fi.IsDir() {
+		t.Fatalf("prompts sandboxes dir was not created under state/: %v", err)
+	}
+	if got := filepath.Dir(l.GenerationPath()); got != l.CacheDir() {
+		t.Fatalf("generation sidecar parent = %q, want cache dir %q", got, l.CacheDir())
+	}
+	if _, err := os.Stat(l.GenerationPath()); err != nil {
+		t.Fatalf("prompts generation sidecar missing under cache/: %v", err)
+	}
+	if _, err := os.Stat(l.LibexecBinary(version)); err != nil {
+		t.Fatalf("prompts binary missing under libexec/: %v", err)
+	}
+	target, err := os.Readlink(l.RunLink())
+	if err != nil {
+		t.Fatalf("bin/run is not a symlink: %v", err)
+	}
+	if want := l.runTarget(version); target != want {
+		t.Fatalf("bin/run -> %q, want %q", target, want)
+	}
+
+	if fi, err := os.Stat(staleRunsDir); err != nil || !fi.IsDir() {
+		t.Fatalf("prompts runs dir was not recreated under cache/: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(staleRunsDir, "stale-run")); !os.IsNotExist(err) {
+		t.Fatalf("stale non-state run survived boot recreation: %v", err)
+	}
+	forbidden := filepath.Join(l.StateDir(), "runs")
+	if _, err := os.Stat(forbidden); !os.IsNotExist(err) {
+		t.Fatalf("prompts runs unexpectedly created under durable state: %v", err)
+	}
+
+	manifest, err := os.ReadFile(l.ManifestPath())
+	if err != nil {
+		t.Fatalf("read manifest: %v", err)
+	}
+	for _, want := range []string{
+		"APP=prompts",
+		"PROMPTS_DB_PATH=" + l.DBPath(),
+		"PROMPTS_GENERATION_PATH=" + l.GenerationPath(),
+	} {
+		if !strings.Contains(string(manifest), want) {
+			t.Fatalf("manifest missing %q\n--- manifest ---\n%s", want, manifest)
+		}
+	}
+	if !strings.Contains(sys.healthBody, `"status":"ok"`) || !strings.Contains(sys.healthBody, `"service":"prompts"`) {
+		t.Fatalf("health response = %s, want prompts ok envelope", sys.healthBody)
+	}
+}
+
 type notifyBootSystem struct {
 	*stubSystem
 	t          *testing.T
@@ -750,6 +848,88 @@ func (s *dropboxBootSystem) IsActive(ctx context.Context, app string) error {
 	}
 }
 
+type promptsBootSystem struct {
+	*stubSystem
+	t          *testing.T
+	layout     Layout
+	port       int
+	healthBody string
+	started    bool
+}
+
+func (s *promptsBootSystem) IsActive(ctx context.Context, app string) error {
+	if s.started {
+		return nil
+	}
+	runCtx, cancel := context.WithCancel(context.Background())
+	var stdout, stderr bytes.Buffer
+	cmd := exec.CommandContext(runCtx, s.layout.RunLink(), "serve")
+	cmd.Env = append(os.Environ(), manifestEnv(s.layout.ManifestPath())...)
+	cmd.Env = append(cmd.Env,
+		fmt.Sprintf("PROMPTS_PORT=%d", s.port),
+		"PROMPTS_IP=127.0.0.1",
+		"PROMPTS_CRON_FEED_URL=http://127.0.0.1:1/feed",
+		"PROMPTS_CRM_FEED_URL=http://127.0.0.1:1/feed",
+		"PROMPTS_LEDGER_FEED_URL=http://127.0.0.1:1/feed",
+		"PROMPTS_DROPBOX_FEED_URL=http://127.0.0.1:1/feed",
+		"PROMPTS_SCRIPTS_FEED_URL=http://127.0.0.1:1/feed",
+		"PROMPTS_PROMPTS_FEED_URL=http://127.0.0.1:1/feed",
+		"ANTHROPIC_API_KEY=sk-test",
+		"OPENAI_API_KEY=sk-test",
+		"GEMINI_API_KEY=sk-test",
+		"ZAI_API_KEY=sk-test",
+	)
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	if err := cmd.Start(); err != nil {
+		cancel()
+		return fmt.Errorf("start prompts serve: %w", err)
+	}
+	done := make(chan error, 1)
+	go func() { done <- cmd.Wait() }()
+	s.started = true
+	s.t.Cleanup(func() {
+		cancel()
+		select {
+		case <-done:
+		case <-time.After(5 * time.Second):
+			if cmd.Process != nil {
+				_ = cmd.Process.Kill()
+			}
+			<-done
+		}
+	})
+
+	waitURL := fmt.Sprintf("http://127.0.0.1:%d/health", s.port)
+	deadline := time.After(10 * time.Second)
+	tick := time.NewTicker(10 * time.Millisecond)
+	defer tick.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			cancel()
+			return ctx.Err()
+		case err := <-done:
+			cancel()
+			return fmt.Errorf("prompts serve exited before health: %w\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+		case <-deadline:
+			cancel()
+			return fmt.Errorf("prompts did not reach /health\nstdout:\n%s\nstderr:\n%s", stdout.String(), stderr.String())
+		case <-tick.C:
+			resp, err := http.Get(waitURL)
+			if err != nil {
+				continue
+			}
+			body, readErr := io.ReadAll(resp.Body)
+			resp.Body.Close()
+			if readErr == nil && resp.StatusCode == http.StatusOK {
+				s.healthBody = string(body)
+				return nil
+			}
+		}
+	}
+}
+
 func buildNotifyArtifact(t *testing.T, version string) string {
 	t.Helper()
 	out := filepath.Join(t.TempDir(), "notify")
@@ -762,6 +942,22 @@ func buildNotifyArtifact(t *testing.T, version string) string {
 	cmd.Env = append(os.Environ(), "CGO_ENABLED=0", "GOOS=linux", "GOARCH=amd64", "GOFLAGS=-buildvcs=false")
 	if b, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("build notify artifact: %v\n%s", err, b)
+	}
+	return out
+}
+
+func buildPromptsArtifact(t *testing.T, version string) string {
+	t.Helper()
+	out := filepath.Join(t.TempDir(), "prompts")
+	promptsDir, err := filepath.Abs(filepath.Join("..", "..", "..", "prompts"))
+	if err != nil {
+		t.Fatalf("resolve prompts dir: %v", err)
+	}
+	cmd := exec.Command("go", "build", "-trimpath", "-ldflags", "-X appkit.version="+version+" -X appkit.commit=abcdef0", "-o", out, "./cmd/prompts")
+	cmd.Dir = promptsDir
+	cmd.Env = append(os.Environ(), "CGO_ENABLED=0", "GOOS=linux", "GOARCH=amd64", "GOFLAGS=-buildvcs=false")
+	if b, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("build prompts artifact: %v\n%s", err, b)
 	}
 	return out
 }

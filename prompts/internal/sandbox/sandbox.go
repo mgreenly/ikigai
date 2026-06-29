@@ -1,7 +1,7 @@
-// Package sandbox owns the per-run sandbox folders under data/runs/.
+// Package sandbox owns the per-run sandbox folders under the durable state tree.
 //
-// Each run gets its own workspace data/runs/<run_id>/sandbox/ which is the
-// agent's only durable workspace for that run. This package has two jobs:
+// Each run gets its own workspace <sandboxesDir>/<run_id>/sandbox/ which is the
+// agent's durable workspace for that run. This package has two jobs:
 //
 //  1. Lifecycle + confinement root for the engine: Create/Remove a
 //     run's sandbox folder and expose its absolute path (Root) as the
@@ -12,8 +12,8 @@
 //     sandbox folder, rejecting any path that escapes it. The sandbox is
 //     read-only from the foreground — the agent writes via the engine toolset.
 //
-// The Manager is rooted at the runs dir; every id it takes is a run_id, and
-// resolves to <runsDir>/<run_id>/sandbox.
+// The Manager is rooted at the sandboxes dir; every id it takes is a run_id, and
+// resolves to <sandboxesDir>/<run_id>/sandbox.
 package sandbox
 
 import (
@@ -24,8 +24,8 @@ import (
 	"strings"
 )
 
-// Manager owns the data/runs/<run_id>/sandbox/ folders under a base
-// directory (the runs dir).
+// Manager owns the <sandboxesDir>/<run_id>/sandbox folders under a base
+// directory.
 type Manager struct {
 	base string
 }
@@ -37,8 +37,8 @@ type Entry struct {
 	Size  int64  `json:"size"`
 }
 
-// New returns a Manager rooted at baseDir (the runs dir, e.g.
-// "<data>/runs"), creating baseDir if needed.
+// New returns a Manager rooted at baseDir (the durable sandboxes dir, e.g.
+// "<state>/sandboxes"), creating baseDir if needed.
 func New(baseDir string) (*Manager, error) {
 	if baseDir == "" {
 		return nil, fmt.Errorf("sandbox: base dir is empty")
@@ -78,7 +78,7 @@ func (m *Manager) Remove(id string) error {
 
 // Root returns the absolute confinement root for run id — the value the
 // engine's Dispatch consumes as sandboxRoot. It resolves to
-// <runsDir>/<run_id>/sandbox and need not exist yet.
+// <sandboxesDir>/<run_id>/sandbox and need not exist yet.
 //
 // If id is invalid (empty, contains a path separator or "..") Root returns
 // the empty string; callers should Create (which validates) first.

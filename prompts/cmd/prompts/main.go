@@ -208,21 +208,22 @@ func registerRoutes(rt *appkit.Router) error {
 		return err
 	}
 
-	// The run data tree (data/runs/<run_id>/, each holding output.jsonl + a
-	// per-run sandbox/) lives alongside the db file — the same PROMPTS_DB_PATH
-	// appkit resolved (default ./tmp/prompts.db; /opt/prompts/data/prompts.db on
-	// the box) — mirroring the on-box /opt/prompts/data layout.
+	// PROMPTS_DB_PATH is appkit's state DB path. Sandboxes are durable state
+	// beside it; runs are boot-recreated scratch under the generation cache.
 	dbPath := config.EnvOr(os.Getenv, "PROMPTS_DB_PATH", "./tmp/prompts.db")
+	generationPath := config.EnvOr(os.Getenv, "PROMPTS_GENERATION_PATH", filepath.Join(filepath.Dir(dbPath), "prompts.db.generation"))
 	// PROMPTS_MANIFEST_ROOT is the box inventory root the runner reads at run
 	// spawn to discover the suite's other loopback MCP services (Surface 2 —
 	// in-run suite tools). Defaults to /opt, the on-box layout root.
 	manifestRoot := config.EnvOr(os.Getenv, "PROMPTS_MANIFEST_ROOT", "/opt")
-	dataDir := filepath.Join(filepath.Dir(dbPath), "data")
-	// The run directory is the on-disk unit (data/runs/<run_id>/), holding
-	// both the run's output.jsonl and its per-run sandbox/ workspace. The
-	// sandbox Manager is rooted at runsDir and keyed by run_id.
-	runsDir := filepath.Join(dataDir, "runs")
-	sb, err := sandbox.New(runsDir)
+	stateDir := filepath.Dir(dbPath)
+	sandboxesDir := filepath.Join(stateDir, "sandboxes")
+	cacheDir := filepath.Dir(generationPath)
+	runsDir := filepath.Join(cacheDir, "runs")
+	if err := recreateRunsDir(runsDir); err != nil {
+		return err
+	}
+	sb, err := sandbox.New(sandboxesDir)
 	if err != nil {
 		return fmt.Errorf("prompts: sandbox: %w", err)
 	}
@@ -251,5 +252,18 @@ func registerRoutes(rt *appkit.Router) error {
 	}
 
 	rt.Handle("POST /mcp", rt.RequireIdentity(mcp.NewHandler(svc, rt.Version(), rt.Service(), rt.Health())))
+	return nil
+}
+
+func recreateRunsDir(runsDir string) error {
+	if runsDir == "" || runsDir == "." || runsDir == string(os.PathSeparator) {
+		return fmt.Errorf("prompts: invalid runs dir %q", runsDir)
+	}
+	if err := os.RemoveAll(runsDir); err != nil {
+		return fmt.Errorf("prompts: recreate runs dir: remove %s: %w", runsDir, err)
+	}
+	if err := os.MkdirAll(runsDir, 0o755); err != nil {
+		return fmt.Errorf("prompts: recreate runs dir: mkdir %s: %w", runsDir, err)
+	}
 	return nil
 }

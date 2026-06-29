@@ -55,10 +55,12 @@ func newTestService(t *testing.T) (*Service, *Store, *sandbox.Manager, string) {
 		t.Fatalf("db.Migrate: %v", err)
 	}
 
-	// The sandbox Manager is rooted at the runs dir (A2): a run's sandbox is
-	// runs/<run_id>/sandbox, sharing the run directory with its output.jsonl.
-	runsDir := t.TempDir()
-	sb, err := sandbox.New(runsDir)
+	root := t.TempDir()
+	runsDir := filepath.Join(root, "cache", "runs")
+	if err := os.MkdirAll(runsDir, 0o755); err != nil {
+		t.Fatalf("create runs dir: %v", err)
+	}
+	sb, err := sandbox.New(filepath.Join(root, "state", "sandboxes"))
 	if err != nil {
 		t.Fatalf("sandbox.New: %v", err)
 	}
@@ -155,6 +157,53 @@ func TestConcurrentRunsIsolatedSandboxes(t *testing.T) {
 	fr := svc.runner.(*fakeRunner)
 	if got := fr.spawnCount(); got != 2 {
 		t.Fatalf("spawn count: want 2, got %d", got)
+	}
+}
+
+func TestRunUsesDurableSandboxAndRecreatedRunsDir(t *testing.T) {
+	// R-4LKF-FB23
+	t.Setenv("ANTHROPIC_API_KEY", "sk-test")
+	ctx := context.Background()
+
+	conn, err := db.Open(filepath.Join(t.TempDir(), "prompts.db"))
+	if err != nil {
+		t.Fatalf("db.Open: %v", err)
+	}
+	t.Cleanup(func() { conn.Close() })
+	if err := db.Migrate(ctx, conn); err != nil {
+		t.Fatalf("db.Migrate: %v", err)
+	}
+
+	root := t.TempDir()
+	stateSandboxes := filepath.Join(root, "state", "sandboxes")
+	cacheRuns := filepath.Join(root, "cache", "runs")
+	if err := os.MkdirAll(cacheRuns, 0o755); err != nil {
+		t.Fatalf("create cache runs dir: %v", err)
+	}
+	sb, err := sandbox.New(stateSandboxes)
+	if err != nil {
+		t.Fatalf("sandbox.New: %v", err)
+	}
+
+	store := NewStore(conn)
+	svc := NewService(store, sb, cacheRuns, &fakeRunner{})
+	p := mustCreate(t, svc, ownerA)
+	run, err := svc.Run(ctx, ownerA, p.ID)
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	if _, err := os.Stat(filepath.Join(cacheRuns, run.ID, "input", "user_prompt.txt")); err != nil {
+		t.Fatalf("run input was not materialized under cache/runs: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(stateSandboxes, run.ID, "sandbox")); err != nil {
+		t.Fatalf("run sandbox was not materialized under state/sandboxes: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(cacheRuns, run.ID, "sandbox")); !os.IsNotExist(err) {
+		t.Fatalf("legacy cache/runs sandbox exists or errored: %v", err)
+	}
+	if got, want := run.LogPath, filepath.Join(cacheRuns, run.ID, "output.jsonl"); got != want {
+		t.Fatalf("LogPath = %q, want %q", got, want)
 	}
 }
 
