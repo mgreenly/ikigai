@@ -2,6 +2,7 @@ package opsctl
 
 import (
 	"os"
+	"strings"
 
 	"golang.org/x/mod/semver"
 )
@@ -12,6 +13,13 @@ const versionShape = "canonical SemVer 2.0 vMAJOR.MINOR.PATCH[-prerelease][+buil
 // form: vMAJOR.MINOR.PATCH[-prerelease][+build]. Build metadata is valid identity
 // text, but not part of SemVer precedence.
 func validVersion(v string) bool {
+	core := v
+	if i := strings.IndexAny(core, "-+"); i >= 0 {
+		core = core[:i]
+	}
+	if strings.Count(core, ".") != 2 {
+		return false
+	}
 	if !semver.IsValid(v) {
 		return false
 	}
