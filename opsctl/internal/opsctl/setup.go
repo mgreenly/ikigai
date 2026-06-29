@@ -94,31 +94,62 @@ func (o *Opsctl) Setup(ctx context.Context, opts SetupOptions) error {
 		return fmt.Errorf("setup: ensure app user: %w", err)
 	}
 
-	// 2. The /opt/<app> tree (PLAN §1.4). data/ is 0750, the rest 0755 — matching
-	//    the old bin/setup install -d modes. The DB itself is never created here.
+	// 2. The /opt/<app> tree.
 	o.logf("create /opt/%s tree", app)
-	if err := mkdirAll755(
-		l.AppDir(), l.ReleasesDir(), l.BinDir(), l.EtcDir(), l.BackupsDir(),
-	); err != nil {
-		return fmt.Errorf("setup: create app tree: %w", err)
-	}
-	if err := os.MkdirAll(l.DataDir(), 0o750); err != nil {
-		return fmt.Errorf("setup: create data dir: %w", err)
-	}
-
-	// 2b. The OPTIONAL world-readable www/ tree (sites only). data/ is 0750 so
-	//     nginx (www-data) cannot traverse it; sites serves from this 0755 subtree
-	//     instead. Create each requested dir at 0755, then `chown -R <app>:<app>`
-	//     the www ROOT so the tree is owned by the service user but still
-	//     traversable+readable by www-data (/opt/<app> itself is already 0755).
-	//     Apps that request none skip this entirely — behavior unchanged.
-	if len(opts.WWWDirs) > 0 {
-		o.logf("create world-readable www tree for %s", app)
-		if err := mkdirAll755(opts.WWWDirs...); err != nil {
-			return fmt.Errorf("setup: create www tree: %w", err)
+	if opts.Fragment == "" {
+		// Worker/no-route services use the current state/cache/libexec layout. The
+		// app-owned state dir is traverse-only for non-owners, the DB exists with
+		// service-private group-readable bits, and the web subtree is group-readable
+		// by nginx's web group.
+		if err := mkdirAll755(
+			l.AppDir(), l.BinDir(), l.EtcDir(), l.LibexecDir(), l.CacheDir(), l.BackupsDir(),
+		); err != nil {
+			return fmt.Errorf("setup: create app tree: %w", err)
 		}
-		if err := o.System.ChownTree(ctx, app, app, l.WWWRoot()); err != nil {
-			return fmt.Errorf("setup: chown www tree: %w", err)
+		if err := mkdirAllMode(0o711, l.StateDir()); err != nil {
+			return fmt.Errorf("setup: create state dir: %w", err)
+		}
+		if err := ensureFileMode(l.DBPath(), 0o640); err != nil {
+			return fmt.Errorf("setup: create db: %w", err)
+		}
+		if err := mkdirAllMode(0o750, l.WWWDir(), l.WWWPublicDir(), l.WWWPrivateDir()); err != nil {
+			return fmt.Errorf("setup: create www dirs: %w", err)
+		}
+		if err := o.System.ChownTree(ctx, app, app, l.StateDir()); err != nil {
+			return fmt.Errorf("setup: chown state dir: %w", err)
+		}
+		if err := o.System.ChownTree(ctx, app, app, l.DBPath()); err != nil {
+			return fmt.Errorf("setup: chown db: %w", err)
+		}
+		if err := o.System.ChownTree(ctx, app, "web", l.WWWDir()); err != nil {
+			return fmt.Errorf("setup: chown www dirs: %w", err)
+		}
+	} else {
+		// Path-routed services still consume the existing fragment-driven setup
+		// contract guarded by the provisioning tests.
+		if err := mkdirAll755(
+			l.AppDir(), l.ReleasesDir(), l.BinDir(), l.EtcDir(), l.BackupsDir(),
+		); err != nil {
+			return fmt.Errorf("setup: create app tree: %w", err)
+		}
+		if err := os.MkdirAll(l.DataDir(), 0o750); err != nil {
+			return fmt.Errorf("setup: create data dir: %w", err)
+		}
+
+		// 2b. The OPTIONAL world-readable www/ tree (sites only). data/ is 0750 so
+		//     nginx (www-data) cannot traverse it; sites serves from this 0755 subtree
+		//     instead. Create each requested dir at 0755, then `chown -R <app>:<app>`
+		//     the www ROOT so the tree is owned by the service user but still
+		//     traversable+readable by www-data (/opt/<app> itself is already 0755).
+		//     Apps that request none skip this entirely — behavior unchanged.
+		if len(opts.WWWDirs) > 0 {
+			o.logf("create world-readable www tree for %s", app)
+			if err := mkdirAll755(opts.WWWDirs...); err != nil {
+				return fmt.Errorf("setup: create www tree: %w", err)
+			}
+			if err := o.System.ChownTree(ctx, app, app, l.WWWRoot()); err != nil {
+				return fmt.Errorf("setup: chown www tree: %w", err)
+			}
 		}
 	}
 
@@ -188,6 +219,29 @@ func mkdirAll755(dirs ...string) error {
 		}
 	}
 	return nil
+}
+
+func mkdirAllMode(mode os.FileMode, dirs ...string) error {
+	for _, d := range dirs {
+		if err := os.MkdirAll(d, mode); err != nil {
+			return err
+		}
+		if err := os.Chmod(d, mode); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func ensureFileMode(path string, mode os.FileMode) error {
+	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, mode)
+	if err != nil {
+		return err
+	}
+	if err := f.Close(); err != nil {
+		return err
+	}
+	return os.Chmod(path, mode)
 }
 
 // renderFragment substitutes __PORT__ with the loopback port, exactly as the old
