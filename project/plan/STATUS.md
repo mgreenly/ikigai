@@ -15,7 +15,7 @@ Phase 02  ✅  realizes D4                  — bump/ship emit v-prefixed SemVer
 Phase 03  ✅  realizes —                   — Layout path scheme for /opt/<svc>/ (structural; D1 paths)
 Phase 04  ✅  realizes D1                  — setup materializes the install tree (perms, web group, nginx)
 Phase 05  ✅  realizes D2                  — libexec/ + bin/run symlink swap for deploy/rollback/prune
-Phase 06  ⬜  realizes D5, D6              — appkit state/cache config boundary + boot reconstruction
+Phase 06  ✅  realizes D5, D6              — appkit state/cache config boundary + boot reconstruction
 Phase 07  ⬜  realizes D6                  — eventplane epoch re-mint by exclusion
 Phase 08  ⬜  realizes D7, D5              — opsctl backup/restore core + ObjectStore seam + S3 round-trip
 Phase 08a ⬜  realizes D7                  — apex TLS cert backup/restore stream (dashboard)
