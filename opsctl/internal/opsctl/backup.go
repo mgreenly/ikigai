@@ -38,6 +38,13 @@ func (o *Opsctl) Backup(ctx context.Context, app string) (err error) {
 	if err := createStateArchive(ctx, l, archive); err != nil {
 		return err
 	}
+	certArchive := ""
+	if app == "dashboard" {
+		certArchive = filepath.Join(work, "cert.tar")
+		if err := createCertArchive(ctx, l, certArchive); err != nil {
+			return err
+		}
+	}
 	f, err := os.Open(archive)
 	if err != nil {
 		return fmt.Errorf("backup: open archive: %w", err)
@@ -50,6 +57,20 @@ func (o *Opsctl) Backup(ctx context.Context, app string) (err error) {
 	}
 	if err := store.Put(ctx, latestKey(app), strings.NewReader(key+"\n")); err != nil {
 		return err
+	}
+	if app == "dashboard" {
+		certFile, err := os.Open(certArchive)
+		if err != nil {
+			return fmt.Errorf("backup: open cert archive: %w", err)
+		}
+		defer certFile.Close()
+		certKey := certSnapshotKey(app, time.Now().UTC())
+		if err := store.Put(ctx, certKey, certFile); err != nil {
+			return err
+		}
+		if err := store.Put(ctx, certLatestKey(app), strings.NewReader(certKey+"\n")); err != nil {
+			return err
+		}
 	}
 	if err := pruneBackups(ctx, store, app); err != nil {
 		return err
@@ -107,6 +128,11 @@ func (o *Opsctl) Restore(ctx context.Context, app, key string, confirm io.Reader
 	if err := replaceStateFromArchive(ctx, l, archive); err != nil {
 		return err
 	}
+	if app == "dashboard" {
+		if err := restoreLatestCert(ctx, store, l, work); err != nil {
+			return err
+		}
+	}
 	o.logf("restored %s from %s", app, key)
 	return nil
 }
@@ -146,6 +172,21 @@ func createStateArchive(ctx context.Context, l Layout, dst string) error {
 	return nil
 }
 
+func createCertArchive(ctx context.Context, l Layout, dst string) error {
+	root := letsEncryptRoot(l)
+	for _, name := range []string{"archive", "renewal", "live"} {
+		path := filepath.Join(root, name)
+		if _, err := os.Stat(path); err != nil {
+			return fmt.Errorf("backup: cert %s: %w", path, err)
+		}
+	}
+	if err := execTar(ctx, "tar", "-cf", dst, "-C", l.SysRoot,
+		"etc/letsencrypt/archive", "etc/letsencrypt/renewal", "etc/letsencrypt/live"); err != nil {
+		return fmt.Errorf("backup: tar cert: %w", err)
+	}
+	return nil
+}
+
 func putPreRestore(ctx context.Context, store ObjectStore, l Layout, app, work string) error {
 	if _, err := os.Stat(l.StateDir()); err != nil {
 		return fmt.Errorf("restore: pre-restore state dir %s: %w", l.StateDir(), err)
@@ -160,6 +201,33 @@ func putPreRestore(ctx context.Context, store ObjectStore, l Layout, app, work s
 	}
 	defer f.Close()
 	return store.Put(ctx, preRestoreKey(app, time.Now().UTC()), f)
+}
+
+func restoreLatestCert(ctx context.Context, store ObjectStore, l Layout, work string) error {
+	var latest strings.Builder
+	if err := store.Get(ctx, certLatestKey(l.App), &latest); err != nil {
+		return fmt.Errorf("restore: read cert latest: %w", err)
+	}
+	key := strings.TrimSpace(latest.String())
+	if key == "" {
+		return fmt.Errorf("restore: cert latest is empty")
+	}
+	archive := filepath.Join(work, "cert-restore.tar")
+	out, err := os.Create(archive)
+	if err != nil {
+		return fmt.Errorf("restore: create cert archive: %w", err)
+	}
+	if err := store.Get(ctx, key, out); err != nil {
+		out.Close()
+		return err
+	}
+	if err := out.Close(); err != nil {
+		return fmt.Errorf("restore: close cert archive: %w", err)
+	}
+	if err := replaceCertFromArchive(ctx, l, archive); err != nil {
+		return err
+	}
+	return nil
 }
 
 func replaceStateFromArchive(ctx context.Context, l Layout, archive string) error {
@@ -180,6 +248,27 @@ func replaceStateFromArchive(ctx context.Context, l Layout, archive string) erro
 	}
 	if _, err := os.Stat(l.StateDir()); err != nil {
 		return fmt.Errorf("restore: archive did not contain state/: %w", err)
+	}
+	return nil
+}
+
+func replaceCertFromArchive(ctx context.Context, l Layout, archive string) error {
+	root := letsEncryptRoot(l)
+	for _, name := range []string{"archive", "renewal", "live"} {
+		if err := os.RemoveAll(filepath.Join(root, name)); err != nil {
+			return fmt.Errorf("restore: clear cert %s: %w", name, err)
+		}
+	}
+	if err := os.MkdirAll(root, 0o755); err != nil {
+		return fmt.Errorf("restore: mkdir cert root: %w", err)
+	}
+	if err := execTar(ctx, "tar", "-xf", archive, "-C", l.SysRoot); err != nil {
+		return fmt.Errorf("restore: untar cert: %w", err)
+	}
+	for _, name := range []string{"archive", "renewal", "live"} {
+		if _, err := os.Stat(filepath.Join(root, name)); err != nil {
+			return fmt.Errorf("restore: cert archive did not contain %s/: %w", name, err)
+		}
 	}
 	return nil
 }
@@ -229,9 +318,19 @@ func pruneBackups(ctx context.Context, store ObjectStore, app string) error {
 
 func snapshotPrefix(app string) string { return app + "/snapshots/" }
 func latestKey(app string) string      { return app + "/latest" }
+func certPrefix(app string) string     { return app + "/cert/" }
+func certLatestKey(app string) string  { return certPrefix(app) + "latest" }
+
+func letsEncryptRoot(l Layout) string {
+	return filepath.Join(l.SysRoot, "etc", "letsencrypt")
+}
 
 func snapshotKey(app string, t time.Time) string {
 	return snapshotPrefix(app) + t.Format("20060102T150405.000000000Z") + ".tar"
+}
+
+func certSnapshotKey(app string, t time.Time) string {
+	return certPrefix(app) + t.Format("20060102T150405.000000000Z") + ".tar"
 }
 
 func preRestoreKey(app string, t time.Time) string {

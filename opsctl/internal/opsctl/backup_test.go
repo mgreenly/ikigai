@@ -76,6 +76,17 @@ func writeStateFile(t *testing.T, l Layout, name, body string) {
 	}
 }
 
+func writeCertFile(t *testing.T, l Layout, name, body string) {
+	t.Helper()
+	path := filepath.Join(letsEncryptRoot(l), name)
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatalf("mkdir cert file: %v", err)
+	}
+	if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
+		t.Fatalf("write cert file: %v", err)
+	}
+}
+
 func tarList(t *testing.T, b []byte) []string {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "archive.tar")
@@ -132,6 +143,20 @@ func snapshotObject(t *testing.T, store *fakeStore) (string, []byte) {
 	return keys[0], store.data[keys[0]]
 }
 
+func certObject(t *testing.T, store *fakeStore, app string) (string, []byte) {
+	t.Helper()
+	var keys []string
+	for key := range store.data {
+		if strings.HasPrefix(key, certPrefix(app)) && key != certLatestKey(app) {
+			keys = append(keys, key)
+		}
+	}
+	if len(keys) != 1 {
+		t.Fatalf("cert object count = %d, want 1: %v", len(keys), keys)
+	}
+	return keys[0], store.data[keys[0]]
+}
+
 func makeArchive(t *testing.T, root, app string, files map[string]string) []byte {
 	t.Helper()
 	l := NewLayout(root, app)
@@ -145,6 +170,23 @@ func makeArchive(t *testing.T, root, app string, files map[string]string) []byte
 	b, err := os.ReadFile(archive)
 	if err != nil {
 		t.Fatalf("read archive: %v", err)
+	}
+	return b
+}
+
+func makeCertArchive(t *testing.T, sysRoot, app string, files map[string]string) []byte {
+	t.Helper()
+	l := NewLayoutSys(t.TempDir(), sysRoot, app)
+	for name, body := range files {
+		writeCertFile(t, l, name, body)
+	}
+	archive := filepath.Join(t.TempDir(), "cert.tar")
+	if err := createCertArchive(context.Background(), l, archive); err != nil {
+		t.Fatalf("create cert archive: %v", err)
+	}
+	b, err := os.ReadFile(archive)
+	if err != nil {
+		t.Fatalf("read cert archive: %v", err)
 	}
 	return b
 }
@@ -203,6 +245,56 @@ func TestBackupArchiveContainsOnlyStateDirectory(t *testing.T) {
 	}
 }
 
+func TestBackupDashboardWritesIndependentCertObjectAndLatest(t *testing.T) {
+	// R-TAOX-5LKS
+	root := t.TempDir()
+	sysRoot := t.TempDir()
+	l := NewLayoutSys(root, sysRoot, "dashboard")
+	writeStateFile(t, l, "dashboard.db", "state bytes")
+	privateKey := "PRIVATE-KEY-MATERIAL-SHOULD-STAY-OPAQUE"
+	writeCertFile(t, l, "archive/int.example.com/privkey1.pem", privateKey)
+	writeCertFile(t, l, "archive/int.example.com/fullchain1.pem", "chain bytes")
+	writeCertFile(t, l, "renewal/int.example.com.conf", "renewal config")
+	writeCertFile(t, l, "live/int.example.com/fullchain.pem", "live chain")
+
+	var out, errOut bytes.Buffer
+	store := newFakeStore()
+	o := &Opsctl{Root: root, SysRoot: sysRoot, System: &stubSystem{}, Store: store, Out: &out, Err: &errOut}
+	if err := o.Backup(context.Background(), "dashboard"); err != nil {
+		t.Fatalf("Backup: %v", err)
+	}
+
+	stateKey := strings.TrimSpace(string(store.data[latestKey("dashboard")]))
+	if !strings.HasPrefix(stateKey, snapshotPrefix("dashboard")) {
+		t.Fatalf("state latest = %q, want snapshot key", stateKey)
+	}
+	certKey, certArchive := certObject(t, store, "dashboard")
+	if latest := strings.TrimSpace(string(store.data[certLatestKey("dashboard")])); latest != certKey {
+		t.Fatalf("cert latest = %q, want %q", latest, certKey)
+	}
+	if certKey == stateKey {
+		t.Fatalf("cert key %q unexpectedly equals state key", certKey)
+	}
+
+	entries := strings.Join(tarList(t, certArchive), "\n")
+	for _, want := range []string{
+		"etc/letsencrypt/archive/int.example.com/privkey1.pem",
+		"etc/letsencrypt/archive/int.example.com/fullchain1.pem",
+		"etc/letsencrypt/renewal/int.example.com.conf",
+		"etc/letsencrypt/live/int.example.com/fullchain.pem",
+	} {
+		if !strings.Contains(entries, want) {
+			t.Fatalf("cert archive entries:\n%s\nmissing %s", entries, want)
+		}
+	}
+	if got := tarFile(t, certArchive, "etc/letsencrypt/archive/int.example.com/privkey1.pem"); got != privateKey {
+		t.Fatalf("private key bytes = %q, want exact opaque bytes", got)
+	}
+	if logs := out.String() + errOut.String(); strings.Contains(logs, privateKey) {
+		t.Fatalf("backup output leaked private key material: %q", logs)
+	}
+}
+
 func TestBackupRetentionKeepsThirtySnapshotsWithoutPruningLatestOrPreRestore(t *testing.T) {
 	// R-4J4M-NRKP
 	root := t.TempDir()
@@ -254,6 +346,66 @@ func TestRestoreDefaultsThroughLatestButRequiresInteractiveConfirmation(t *testi
 	}
 	if string(got) != "old" {
 		t.Fatalf("live db = %q, want old state unchanged", got)
+	}
+}
+
+func TestRestoreDashboardRestoresCertLatestIndependentOfStateSnapshotWithoutIssuance(t *testing.T) {
+	// R-TBWT-JDBH
+	root := t.TempDir()
+	sysRoot := t.TempDir()
+	l := NewLayoutSys(root, sysRoot, "dashboard")
+	writeStateFile(t, l, "dashboard.db", "old state")
+	writeCertFile(t, l, "archive/int.example.com/privkey1.pem", "old private")
+	writeCertFile(t, l, "renewal/int.example.com.conf", "old renewal")
+	writeCertFile(t, l, "live/int.example.com/fullchain.pem", "old live")
+
+	store := newFakeStore()
+	stateKey := snapshotPrefix("dashboard") + "chosen-state.tar"
+	store.data[stateKey] = makeArchive(t, t.TempDir(), "dashboard", map[string]string{
+		"dashboard.db": "new state",
+	})
+	store.data[latestKey("dashboard")] = []byte(snapshotPrefix("dashboard") + "different-latest.tar\n")
+
+	certKey := certPrefix("dashboard") + "chosen-cert.tar"
+	privateKey := "RESTORED-PRIVATE-KEY-MATERIAL"
+	store.data[certKey] = makeCertArchive(t, t.TempDir(), "dashboard", map[string]string{
+		"archive/int.example.com/privkey1.pem":   privateKey,
+		"archive/int.example.com/fullchain1.pem": "restored chain",
+		"renewal/int.example.com.conf":           "restored renewal",
+		"live/int.example.com/fullchain.pem":     "restored live",
+	})
+	store.data[certLatestKey("dashboard")] = []byte(certKey + "\n")
+
+	var out, errOut bytes.Buffer
+	sys := &stubSystem{}
+	o := &Opsctl{Root: root, SysRoot: sysRoot, System: sys, Store: store, Out: &out, Err: &errOut}
+	if err := o.Restore(context.Background(), "dashboard", stateKey, strings.NewReader("dashboard\n")); err != nil {
+		t.Fatalf("Restore: %v", err)
+	}
+
+	checks := map[string]string{
+		filepath.Join(l.StateDir(), "dashboard.db"):                                 "new state",
+		filepath.Join(letsEncryptRoot(l), "archive/int.example.com/privkey1.pem"):   privateKey,
+		filepath.Join(letsEncryptRoot(l), "archive/int.example.com/fullchain1.pem"): "restored chain",
+		filepath.Join(letsEncryptRoot(l), "renewal/int.example.com.conf"):           "restored renewal",
+		filepath.Join(letsEncryptRoot(l), "live/int.example.com/fullchain.pem"):     "restored live",
+	}
+	for path, want := range checks {
+		got, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("read %s: %v", path, err)
+		}
+		if string(got) != want {
+			t.Fatalf("%s = %q, want %q", path, got, want)
+		}
+	}
+	for _, op := range sys.opSeq() {
+		if strings.HasPrefix(op, "obtain-cert") {
+			t.Fatalf("restore invoked cert issuance op %q; ops = %v", op, sys.opSeq())
+		}
+	}
+	if logs := out.String() + errOut.String(); strings.Contains(logs, privateKey) {
+		t.Fatalf("restore output leaked private key material: %q", logs)
 	}
 }
 
