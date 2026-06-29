@@ -34,7 +34,7 @@ func releaseDirs(t *testing.T, l Layout) []string {
 			out = append(out, e.Name())
 		}
 	}
-	sort.Slice(out, func(i, j int) bool { return lessVersion(out[i], out[j]) })
+	sort.SliceStable(out, func(i, j int) bool { return l.compareVersion(out[i], out[j]) < 0 })
 	return out
 }
 

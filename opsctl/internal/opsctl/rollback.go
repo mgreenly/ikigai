@@ -26,6 +26,9 @@ func (o *Opsctl) Rollback(ctx context.Context, app, target string) error {
 	if app == "" {
 		return fmt.Errorf("rollback: app is required")
 	}
+	if target != "" && !validVersion(target) {
+		return fmt.Errorf("rollback: invalid target version %q: want canonical SemVer vMAJOR.MINOR.PATCH", target)
+	}
 	l := o.layout(app)
 
 	from, err := o.currentVersion(l)
@@ -135,6 +138,6 @@ func (o *Opsctl) listReleases(l Layout) ([]string, error) {
 			out = append(out, e.Name())
 		}
 	}
-	sort.Slice(out, func(i, j int) bool { return lessVersion(out[i], out[j]) })
+	sort.SliceStable(out, func(i, j int) bool { return l.compareVersion(out[i], out[j]) < 0 })
 	return out, nil
 }
