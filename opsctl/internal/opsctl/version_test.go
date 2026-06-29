@@ -139,6 +139,9 @@ func TestVersionTakingBoundariesRejectInvalidSemVer(t *testing.T) {
 		"v1.02.3",
 		"v1.2.03",
 		"v1.2.3-",
+		"v1.2.3-rc..1",
+		"v1.2.3+",
+		"v1.2.3+build..1",
 	}
 	for _, bad := range invalid {
 		if validVersion(bad) {
