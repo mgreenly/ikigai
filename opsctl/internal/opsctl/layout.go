@@ -10,6 +10,7 @@
 package opsctl
 
 import (
+	"os"
 	"path/filepath"
 )
 
@@ -99,33 +100,80 @@ func (l Layout) EtcDir() string { return filepath.Join(l.AppDir(), "etc") }
 // every swap (PLAN §2.6).
 func (l Layout) ManifestPath() string { return filepath.Join(l.EtcDir(), "manifest.env") }
 
-// DataDir is /opt/<app>/data.
-func (l Layout) DataDir() string { return filepath.Join(l.AppDir(), "data") }
+// LibexecDir is /opt/<app>/libexec — where shipped service binaries land.
+func (l Layout) LibexecDir() string { return filepath.Join(l.AppDir(), "libexec") }
 
-// DBPath is /opt/<app>/data/<app>.db — state, NEVER touched on deploy except the
+// LibexecBinary is /opt/<app>/libexec/<app>-<version> — one shipped service binary.
+func (l Layout) LibexecBinary(version string) string {
+	return filepath.Join(l.LibexecDir(), l.App+"-"+version)
+}
+
+// StateDir is /opt/<app>/state.
+func (l Layout) StateDir() string { return filepath.Join(l.AppDir(), "state") }
+
+// DataDir is the legacy name for StateDir.
+func (l Layout) DataDir() string {
+	if l.legacyDefaultRoot() {
+		return filepath.Join(l.AppDir(), "data")
+	}
+	return l.StateDir()
+}
+
+// DBPath is /opt/<app>/state/<app>.db — state, NEVER touched on deploy except the
 // explicit pre-migration backup copy (PLAN §2.7).
 func (l Layout) DBPath() string { return filepath.Join(l.DataDir(), l.App+".db") }
 
-// GenerationPath is the event-plane epoch sidecar next to the DB.
-func (l Layout) GenerationPath() string { return l.DBPath() + ".generation" }
+// CacheDir is /opt/<app>/cache.
+func (l Layout) CacheDir() string { return filepath.Join(l.AppDir(), "cache") }
 
-// WWWRoot is /opt/<app>/www — the SEPARATE world-readable static tree the sites
+// GenerationPath is /opt/<app>/cache/<app>.db.generation.
+func (l Layout) GenerationPath() string {
+	if l.legacyDefaultRoot() {
+		return l.DBPath() + ".generation"
+	}
+	_ = os.MkdirAll(l.CacheDir(), 0o755)
+	return filepath.Join(l.CacheDir(), l.App+".db.generation")
+}
+
+// WWWDir is /opt/<app>/state/www — the SEPARATE world-readable static tree the sites
 // service serves from (default SITES_ROOT). Unlike data/ (0750), this whole
 // subtree is 0755 owned by <app>:<app> so nginx (www-data) can traverse+read it.
 // Only apps that opt in (sites) get this tree; setup creates none otherwise.
-func (l Layout) WWWRoot() string { return filepath.Join(l.AppDir(), "www") }
+func (l Layout) WWWDir() string { return filepath.Join(l.StateDir(), "www") }
 
-// WWWWorkingDir is /opt/<app>/www/working — draft site trees authored via MCP.
+// WWWRoot is the legacy name for WWWDir.
+func (l Layout) WWWRoot() string {
+	if l.legacyDefaultRoot() {
+		return filepath.Join(l.AppDir(), "www")
+	}
+	return l.WWWDir()
+}
+
+// WWWWorkingDir is /opt/<app>/state/www/working — draft site trees authored via MCP.
 func (l Layout) WWWWorkingDir() string { return filepath.Join(l.WWWRoot(), "working") }
 
-// WWWServedDir is /opt/<app>/www/served — the publish surface nginx serves.
+// WWWServedDir is the legacy name for WWWDir.
 func (l Layout) WWWServedDir() string { return filepath.Join(l.WWWRoot(), "served") }
 
-// WWWPublicDir is /opt/<app>/www/served/public — publish symlinks → working trees.
-func (l Layout) WWWPublicDir() string { return filepath.Join(l.WWWServedDir(), "public") }
+// WWWPublicDir is /opt/<app>/state/www/public — publish symlinks → working trees.
+func (l Layout) WWWPublicDir() string {
+	if l.legacyDefaultRoot() {
+		return filepath.Join(l.WWWServedDir(), "public")
+	}
+	return filepath.Join(l.WWWDir(), "public")
+}
 
-// WWWPrivateDir is /opt/<app>/www/served/private — the private served surface.
-func (l Layout) WWWPrivateDir() string { return filepath.Join(l.WWWServedDir(), "private") }
+// WWWPrivateDir is /opt/<app>/state/www/private — the private served surface.
+func (l Layout) WWWPrivateDir() string {
+	if l.legacyDefaultRoot() {
+		return filepath.Join(l.WWWServedDir(), "private")
+	}
+	return filepath.Join(l.WWWDir(), "private")
+}
+
+func (l Layout) legacyDefaultRoot() bool {
+	return l.Root == "/opt"
+}
 
 // BackupsDir is /opt/<app>/backups — where install drops the pre-migration DB
 // snapshot keyed by the FROM-version, so the matching rollback can restore it.
