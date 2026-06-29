@@ -40,8 +40,29 @@ func TestCompareVersion_PrereleaseOrdering(t *testing.T) {
 func TestCompareVersion_BuildMetadataPrecedenceEqual(t *testing.T) {
 	// R-40U4-X7GA
 	l := NewLayout(t.TempDir(), "ledger")
-	if got := l.compareVersion("v0.7.1+aaaa", "v0.7.1+bbbb"); got != 0 {
-		t.Fatalf("compareVersion(v0.7.1+aaaa, v0.7.1+bbbb) = %d, want precedence-equal", got)
+	a := "v0.7.1+aaaa"
+	b := "v0.7.1+bbbb"
+	if l.ReleaseDir(a) == l.ReleaseDir(b) {
+		t.Fatalf("ReleaseDir(%q) and ReleaseDir(%q) collapsed build metadata identity", a, b)
+	}
+	for _, v := range []string{a, b} {
+		libexecFile := l.ReleaseLibexecFile(v)
+		if err := os.MkdirAll(filepath.Dir(libexecFile), 0o755); err != nil {
+			t.Fatalf("mkdir libexec %s: %v", v, err)
+		}
+		if err := os.WriteFile(libexecFile, []byte(v), 0o644); err != nil {
+			t.Fatalf("write libexec file %s: %v", v, err)
+		}
+	}
+	sameTime := time.Unix(1700000100, 0)
+	if err := os.Chtimes(l.ReleaseLibexecFile(a), sameTime, sameTime); err != nil {
+		t.Fatalf("chtime libexec %s: %v", a, err)
+	}
+	if err := os.Chtimes(l.ReleaseLibexecFile(b), sameTime, sameTime); err != nil {
+		t.Fatalf("chtime libexec %s: %v", b, err)
+	}
+	if got := l.compareVersion(a, b); got != 0 {
+		t.Fatalf("compareVersion(%s, %s) = %d, want precedence-equal", a, b, got)
 	}
 }
 
