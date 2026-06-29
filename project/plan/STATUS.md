@@ -18,7 +18,7 @@ Phase 05  ✅  realizes D2                  — libexec/ + bin/run symlink swap 
 Phase 06  ✅  realizes D5, D6              — appkit state/cache config boundary + boot reconstruction
 Phase 07  ✅  realizes D6                  — eventplane epoch re-mint by exclusion
 Phase 08  ✅  realizes D7, D5              — opsctl backup/restore core + ObjectStore seam + S3 round-trip
-Phase 08a ⬜  realizes D7                  — apex TLS cert backup/restore stream (dashboard)
+Phase 08a ✅  realizes D7                  — apex TLS cert backup/restore stream (dashboard)
 Phase 09  ⬜  realizes D9                  — scheduled nightly box sweep (systemd timer + backup --all)
 Phase 10  ⬜  realizes D8                  — adopt dashboard into the new layout
 Phase 11  ⬜  realizes D8                  — adopt crm into the new layout
