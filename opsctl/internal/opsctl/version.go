@@ -6,7 +6,7 @@ import (
 	"golang.org/x/mod/semver"
 )
 
-const versionShape = "canonical SemVer vMAJOR.MINOR.PATCH[-prerelease][+build]"
+const versionShape = "canonical SemVer 2.0 vMAJOR.MINOR.PATCH[-prerelease][+build]"
 
 // validVersion accepts only canonical SemVer 2.0 release identities in Go module
 // form: vMAJOR.MINOR.PATCH[-prerelease][+build]. Build metadata is valid identity

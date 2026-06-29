@@ -179,7 +179,7 @@ func TestInvalidVersionErrorsDescribeAcceptedSemVerShape(t *testing.T) {
 	if err == nil {
 		t.Fatal("Deploy(v1) err = nil, want invalid-version refusal")
 	}
-	for _, want := range []string{"invalid version \"v1\"", versionShape} {
+	for _, want := range []string{"invalid version \"v1\"", versionShape, "SemVer 2.0"} {
 		if !strings.Contains(err.Error(), want) {
 			t.Fatalf("Deploy(v1) err = %q, want it to include %q", err, want)
 		}
