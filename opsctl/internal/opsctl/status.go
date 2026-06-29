@@ -35,7 +35,10 @@ func (o *Opsctl) Status(ctx context.Context, app string) error {
 	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
 	fmt.Fprintln(tw, "APP\tVERSION\tSHA\tACTIVE")
 	for _, a := range apps {
-		version, sha, active := o.appStatus(ctx, a)
+		version, sha, active, err := o.appStatus(ctx, a)
+		if err != nil {
+			return fmt.Errorf("status: %s: %w", a, err)
+		}
 		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", a, version, sha, active)
 	}
 	return tw.Flush()
@@ -44,12 +47,16 @@ func (o *Opsctl) Status(ctx context.Context, app string) error {
 // appStatus gathers one app's status row: the current version (current's
 // readlink basename, "-" if absent), the SHA the current binary self-reports
 // ("-" if it has no current release or won't exec), and the raw systemd state.
-func (o *Opsctl) appStatus(ctx context.Context, app string) (version, sha, active string) {
+func (o *Opsctl) appStatus(ctx context.Context, app string) (version, sha, active string, err error) {
 	l := o.layout(app)
 
 	version = "-"
 	sha = "-"
-	if v, err := o.currentVersion(l); err == nil && v != "" {
+	v, err := o.currentVersion(l)
+	if err != nil {
+		return "", "", "", err
+	}
+	if v != "" {
 		version = v
 		// Self-reported commit SHA from the live binary's `version` verb. Best
 		// effort: a missing/corrupt binary just leaves sha as "-".
@@ -64,5 +71,5 @@ func (o *Opsctl) appStatus(ctx context.Context, app string) (version, sha, activ
 	if state, err := o.System.IsActiveState(ctx, app); err == nil {
 		active = state
 	}
-	return version, sha, active
+	return version, sha, active, nil
 }
