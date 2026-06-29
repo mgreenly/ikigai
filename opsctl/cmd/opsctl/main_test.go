@@ -149,6 +149,9 @@ func TestInvalidVersionInputsExitNonZero(t *testing.T) {
 				if !strings.Contains(got, "invalid") || !strings.Contains(got, bad) {
 					t.Fatalf("opsctl %s output = %q, want invalid-version refusal naming %q", strings.Join(tc.args, " "), got, bad)
 				}
+				if !strings.Contains(got, "canonical SemVer") {
+					t.Fatalf("opsctl %s output = %q, want accepted version shape", strings.Join(tc.args, " "), got)
+				}
 			})
 		}
 	}
