@@ -17,7 +17,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 	"os"
 	"strings"
@@ -72,6 +74,8 @@ func main() {
 func registerRoutes(rt *appkit.Router) error {
 	getenv := os.Getenv
 	logger := rt.Logger()
+
+	registerHealth(rt)
 
 	conn := rt.DB()
 	if conn == nil {
@@ -176,6 +180,27 @@ func registerRoutes(rt *appkit.Router) error {
 		return err
 	}
 	return regHook(rt)
+}
+
+// registerHealth preserves appkit's standard /health surface for dashboard's
+// apex/default router. Default apps bypass appkit's standard route table, so the
+// dashboard composition root mounts the same envelope explicitly.
+func registerHealth(rt *appkit.Router) {
+	rt.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
+		details := map[string]any{}
+		if health := rt.Health(); health != nil {
+			var err error
+			details, err = health(r.Context())
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(appkit.Envelope(rt.Version(), rt.Service(), details)); err != nil {
+			rt.Logger().Error("write health response", "err", err)
+		}
+	})
 }
 
 // requireEnv returns an error naming every listed variable that is unset or
