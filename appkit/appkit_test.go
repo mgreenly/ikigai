@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -302,7 +303,7 @@ func TestDispatch_ServeRejectsBadLogLevel(t *testing.T) {
 	}
 }
 
-func TestDispatch_ServeReconstructsCacheAndGenerationOnBoot(t *testing.T) {
+func TestServiceBinaryBoot_ReconstructsCacheAndGenerationOnBoot(t *testing.T) {
 	// R-4E91-4OLX
 	root := t.TempDir()
 	appRoot := filepath.Join(root, "opt", "widget")
@@ -323,45 +324,141 @@ func TestDispatch_ServeReconstructsCacheAndGenerationOnBoot(t *testing.T) {
 
 	port := freeLoopbackPort(t)
 	addr := net.JoinHostPort("127.0.0.1", strconv.Itoa(port))
-	reachedHealth := false
-	spec := testSpec()
-	spec.Workers = []func(context.Context) error{
-		func(ctx context.Context) error {
-			ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-			defer cancel()
-			if err := waitForHealth(ctx, addr, "widget"); err != nil {
-				return err
-			}
-			reachedHealth = true
-			return nil
-		},
-	}
-
-	env := map[string]string{
+	bin := buildBootSmokeService(t)
+	stdout, stderr := startServiceBinaryAndReachHealth(t, bin, addr, map[string]string{
 		"WIDGET_DB_PATH":         dbPath,
 		"WIDGET_GENERATION_PATH": genPath,
 		"WIDGET_PORT":            strconv.Itoa(port),
-	}
-	code, _, errs := run(t, spec, env, "serve")
-	if code != 0 {
-		t.Fatalf("serve exit = %d, stderr=%q", code, errs)
-	}
-	if !reachedHealth {
-		t.Fatal("serve returned without reaching /health")
-	}
+	})
 	if info, err := os.Stat(cacheDir); err != nil || !info.IsDir() {
-		t.Fatalf("cache dir after boot = (%v, %v), want directory", info, err)
+		t.Fatalf("cache dir after binary boot = (%v, %v), want directory\nstdout:\n%s\nstderr:\n%s", info, err, stdout, stderr)
 	}
 	generation, err := os.ReadFile(genPath)
 	if err != nil {
-		t.Fatalf("read generation sidecar: %v", err)
+		t.Fatalf("read generation sidecar after binary boot: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
 	}
 	if strings.TrimSpace(string(generation)) == "" {
-		t.Fatal("generation sidecar is empty")
+		t.Fatalf("generation sidecar is empty\nstdout:\n%s\nstderr:\n%s", stdout, stderr)
 	}
 	if info, err := os.Stat(dbPath); err != nil || info.IsDir() {
-		t.Fatalf("db file after boot = (%v, %v), want file", info, err)
+		t.Fatalf("db file after binary boot = (%v, %v), want file\nstdout:\n%s\nstderr:\n%s", info, err, stdout, stderr)
 	}
+}
+
+func buildBootSmokeService(t *testing.T) string {
+	t.Helper()
+
+	appkitDir, err := filepath.Abs(".")
+	if err != nil {
+		t.Fatalf("resolve appkit dir: %v", err)
+	}
+	eventplaneDir, err := filepath.Abs(filepath.Join(appkitDir, "..", "eventplane"))
+	if err != nil {
+		t.Fatalf("resolve eventplane dir: %v", err)
+	}
+
+	dir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(dir, "migrations"), 0o755); err != nil {
+		t.Fatalf("create service migrations dir: %v", err)
+	}
+	files := map[string]string{
+		"go.mod": fmt.Sprintf(`module widgetbootsmoke
+
+go 1.26
+
+require (
+	appkit v0.0.0
+	eventplane v0.0.0
+)
+
+replace appkit => %s
+replace eventplane => %s
+`, filepath.ToSlash(appkitDir), filepath.ToSlash(eventplaneDir)),
+		"main.go": `package main
+
+import (
+	"embed"
+
+	"appkit"
+)
+
+//go:embed migrations/*.sql
+var migrations embed.FS
+
+func main() {
+	appkit.Main(appkit.Spec{
+		App:        "widget",
+		Mount:      "/srv/widget/",
+		Port:       3099,
+		MCP:        true,
+		Feed:       "/feed",
+		Migrations: migrations,
+	})
+}
+`,
+		filepath.Join("migrations", "001_schema_migrations.sql"): `CREATE TABLE schema_migrations (
+    version    INTEGER PRIMARY KEY,
+    applied_at TEXT    NOT NULL
+);
+`,
+		filepath.Join("migrations", "002_widgets.sql"): `CREATE TABLE widgets (
+    id   INTEGER PRIMARY KEY,
+    name TEXT NOT NULL
+);
+`,
+	}
+	for name, contents := range files {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(contents), 0o644); err != nil {
+			t.Fatalf("write service %s: %v", name, err)
+		}
+	}
+
+	bin := filepath.Join(dir, "widget")
+	cmd := exec.Command("go", "build", "-mod=mod", "-o", bin, ".")
+	cmd.Dir = dir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("build boot smoke service binary: %v\n%s", err, out)
+	}
+	return bin
+}
+
+func startServiceBinaryAndReachHealth(t *testing.T, bin, addr string, env map[string]string) (string, string) {
+	t.Helper()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	var stdout, stderr bytes.Buffer
+	cmd := exec.CommandContext(ctx, bin, "serve")
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	cmd.Env = append(os.Environ(), "OUTBOX_RETENTION_DAYS=7")
+	for k, v := range env {
+		cmd.Env = append(cmd.Env, k+"="+v)
+	}
+
+	if err := cmd.Start(); err != nil {
+		t.Fatalf("start service binary: %v", err)
+	}
+
+	waitErr := waitForHealth(ctx, addr, "widget")
+	if waitErr == nil {
+		if err := cmd.Process.Signal(os.Interrupt); err != nil {
+			t.Fatalf("interrupt service binary: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+		}
+	} else if cmd.Process != nil {
+		_ = cmd.Process.Kill()
+	}
+
+	err := cmd.Wait()
+	if waitErr != nil {
+		t.Fatalf("service binary did not reach /health: %v\nwait: %v\nstdout:\n%s\nstderr:\n%s", waitErr, err, stdout.String(), stderr.String())
+	}
+	if err != nil {
+		t.Fatalf("service binary exited after health with %v, want graceful SIGINT shutdown\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+	}
+	return stdout.String(), stderr.String()
 }
 
 func freeLoopbackPort(t *testing.T) int {
