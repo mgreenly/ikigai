@@ -165,9 +165,17 @@ func (o *Opsctl) Setup(ctx context.Context, opts SetupOptions) error {
 		return fmt.Errorf("setup: enable unit: %w", err)
 	}
 
-	// 4. nginx location fragment — substitute __PORT__, write, validate, reload.
-	if opts.Fragment != "" {
-		frag := renderFragment(opts.Fragment, opts.Port)
+	// 4. nginx location fragment — substitute __PORT__ for legacy source
+	// fragments, or generate the state/www public-private split for the new
+	// install tree when a routed service has no committed source fragment.
+	frag := ""
+	switch {
+	case opts.Fragment != "":
+		frag = renderFragment(opts.Fragment, opts.Port)
+	case opts.Port > 0:
+		frag = stateWWWFragment(l, opts.Port)
+	}
+	if frag != "" {
 		o.logf("write nginx fragment %s", l.FragmentPath())
 		if err := writeFileAtomic(l.FragmentPath(), []byte(frag), 0o644); err != nil {
 			return fmt.Errorf("setup: write fragment: %w", err)
@@ -252,6 +260,23 @@ func ensureFileMode(path string, mode os.FileMode) error {
 func renderFragment(src string, port int) string {
 	body := strings.ReplaceAll(src, "__PORT__", fmt.Sprintf("%d", port))
 	return strings.TrimRight(body, "\n") + "\n"
+}
+
+func stateWWWFragment(l Layout, port int) string {
+	return fmt.Sprintf(`location /srv/%[1]s/public/ {
+    alias %[2]s/;
+}
+
+location /srv/%[1]s/private/ {
+    auth_request /srv/%[1]s/introspect;
+    alias %[3]s/;
+}
+
+location = /srv/%[1]s/introspect {
+    internal;
+    proxy_pass http://127.0.0.1:%[4]d/srv/%[1]s/introspect;
+}
+`, l.App, l.WWWPublicDir(), l.WWWPrivateDir(), port)
 }
 
 // LoadFragmentFile reads a fragment source file (the committed etc/nginx.conf) for

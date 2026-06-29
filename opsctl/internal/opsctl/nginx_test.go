@@ -2,7 +2,6 @@ package opsctl
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -12,22 +11,10 @@ import (
 func TestSetupNginxFragmentServesPublicDirectlyAndPrivateBehindAuth(t *testing.T) {
 	const app = "svc"
 	o, _, l := newSetupTestOpsctl(t, app)
-	fragmentSource := fmt.Sprintf(`
-location /srv/%[1]s/public/ {
-    alias %[2]s/;
-}
-
-location /srv/%[1]s/private/ {
-    auth_request /srv/%[1]s/introspect;
-    alias %[3]s/;
-    proxy_pass http://127.0.0.1:__PORT__;
-}
-`, app, l.WWWPublicDir(), l.WWWPrivateDir())
 
 	if err := o.Setup(context.Background(), SetupOptions{
-		App:      app,
-		Port:     3104,
-		Fragment: fragmentSource,
+		App:  app,
+		Port: 3104,
 	}); err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -52,8 +39,12 @@ location /srv/%[1]s/private/ {
 	if !strings.Contains(private, "auth_request /srv/"+app+"/introspect;") {
 		t.Fatalf("private block is not behind the service introspection auth_request:\n%s", private)
 	}
-	if !strings.Contains(private, "proxy_pass http://127.0.0.1:3104;") {
-		t.Fatalf("private block did not receive port substitution:\n%s", private)
+	introspect := locationBlock(t, fragment, "= /srv/"+app+"/introspect")
+	if !strings.Contains(introspect, "internal;") {
+		t.Fatalf("introspection auth_request target is not internal:\n%s", introspect)
+	}
+	if !strings.Contains(introspect, "proxy_pass http://127.0.0.1:3104/srv/"+app+"/introspect;") {
+		t.Fatalf("introspection target does not proxy to the service port:\n%s", introspect)
 	}
 }
 
