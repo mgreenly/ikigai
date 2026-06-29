@@ -27,7 +27,7 @@ func (o *Opsctl) Rollback(ctx context.Context, app, target string) error {
 		return fmt.Errorf("rollback: app is required")
 	}
 	if target != "" && !validVersion(target) {
-		return fmt.Errorf("rollback: invalid target version %q: want canonical SemVer vMAJOR.MINOR.PATCH", target)
+		return fmt.Errorf("rollback: invalid target version %q: want %s", target, versionShape)
 	}
 	l := o.layout(app)
 
@@ -100,7 +100,7 @@ func (o *Opsctl) currentVersion(l Layout) (string, error) {
 	}
 	v := filepath.Base(dst)
 	if !validVersion(v) {
-		return "", fmt.Errorf("invalid current version %q: want canonical SemVer vMAJOR.MINOR.PATCH", v)
+		return "", fmt.Errorf("invalid current version %q: want %s", v, versionShape)
 	}
 	return v, nil
 }
@@ -141,7 +141,7 @@ func (o *Opsctl) listReleases(l Layout) ([]string, error) {
 		if e.IsDir() {
 			v := e.Name()
 			if !validVersion(v) {
-				return nil, fmt.Errorf("invalid release version %q under %s: want canonical SemVer vMAJOR.MINOR.PATCH", v, l.ReleasesDir())
+				return nil, fmt.Errorf("invalid release version %q under %s: want %s", v, l.ReleasesDir(), versionShape)
 			}
 			out = append(out, v)
 		}
