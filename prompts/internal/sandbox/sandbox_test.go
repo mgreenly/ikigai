@@ -17,6 +17,24 @@ func newManager(t *testing.T) *Manager {
 	return m
 }
 
+func TestRootUsesDurableSandboxesBase(t *testing.T) {
+	// R-4LKF-FB23
+	base := filepath.Join(t.TempDir(), "state", "sandboxes")
+	m, err := New(base)
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	if got, want := m.Root("run1"), filepath.Join(base, "run1", "sandbox"); got != want {
+		t.Fatalf("Root = %q, want %q", got, want)
+	}
+	if err := m.Create("run1"); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	if fi, err := os.Stat(filepath.Join(base, "run1", "sandbox")); err != nil || !fi.IsDir() {
+		t.Fatalf("durable sandbox not created under state/sandboxes: fi=%v err=%v", fi, err)
+	}
+}
+
 func TestCreateRootRemove(t *testing.T) {
 	m := newManager(t)
 
