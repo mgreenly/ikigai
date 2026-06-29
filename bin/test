@@ -29,6 +29,9 @@ for t in bin/*.test.sh; do
 done
 
 echo "==> go test (all workspace modules)"
-go test ./...
+while IFS= read -r module; do
+  echo "--- ${module#$REPO/}"
+  (cd "$module" && go test ./...)
+done < <(go list -m -f '{{.Dir}}')
 
 echo "==> all tests passed"
