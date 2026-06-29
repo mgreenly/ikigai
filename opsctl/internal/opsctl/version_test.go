@@ -161,6 +161,9 @@ func TestVersionTakingBoundariesRejectInvalidSemVer(t *testing.T) {
 		if err := o.Rollback(ctx, app, bad); err == nil || !strings.Contains(err.Error(), "invalid target version") {
 			t.Fatalf("Rollback(%q) err = %v, want invalid target version refusal", bad, err)
 		}
+		if err := o.preflight(ctx, artifact, app, bad); err == nil || !strings.Contains(err.Error(), "invalid version") {
+			t.Fatalf("preflight version arg %q err = %v, want invalid version refusal", bad, err)
+		}
 
 		artifact = stageArtifact(t, "ledger-"+strings.NewReplacer("/", "_").Replace(bad))
 		o = newOpsctl(t, root, app, &stubSystem{}, fakeEnv(app, bad, 1, ""))
