@@ -171,3 +171,17 @@ func TestReleaseIdentityBoundariesRejectInvalidSemVer(t *testing.T) {
 		t.Fatalf("currentVersion invalid target err = %v, want invalid current version refusal", err)
 	}
 }
+
+func TestInvalidVersionErrorsDescribeAcceptedSemVerShape(t *testing.T) {
+	// R-439X-OQXO
+	o := &Opsctl{}
+	err := o.Deploy(context.Background(), "ledger", "v1")
+	if err == nil {
+		t.Fatal("Deploy(v1) err = nil, want invalid-version refusal")
+	}
+	for _, want := range []string{"invalid version \"v1\"", versionShape} {
+		if !strings.Contains(err.Error(), want) {
+			t.Fatalf("Deploy(v1) err = %q, want it to include %q", err, want)
+		}
+	}
+}

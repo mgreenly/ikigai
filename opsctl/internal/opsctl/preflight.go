@@ -14,7 +14,7 @@ import (
 // manifest.env. Any failure aborts with the live release untouched.
 func (o *Opsctl) preflight(ctx context.Context, artifact, app, version string) error {
 	if !validVersion(version) {
-		return fmt.Errorf("preflight: invalid version %q: want canonical SemVer vMAJOR.MINOR.PATCH", version)
+		return fmt.Errorf("preflight: invalid version %q: want %s", version, versionShape)
 	}
 	if err := checkStaticAMD64(artifact); err != nil {
 		return err
@@ -28,7 +28,7 @@ func (o *Opsctl) preflight(ctx context.Context, artifact, app, version string) e
 	}
 	got := versionToken(out)
 	if !validVersion(got) {
-		return fmt.Errorf("preflight: artifact self-reports invalid version %q: want canonical SemVer vMAJOR.MINOR.PATCH", got)
+		return fmt.Errorf("preflight: artifact self-reports invalid version %q: want %s", got, versionShape)
 	}
 	if got != version {
 		return fmt.Errorf("preflight: artifact self-reports version %q, want %q", got, version)

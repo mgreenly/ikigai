@@ -31,7 +31,7 @@ func (o *Opsctl) Stage(ctx context.Context, app, version, artifact string, force
 		return fmt.Errorf("stage: app, version, and --artifact are all required")
 	}
 	if !validVersion(version) {
-		return fmt.Errorf("stage: invalid version %q: want canonical SemVer vMAJOR.MINOR.PATCH", version)
+		return fmt.Errorf("stage: invalid version %q: want %s", version, versionShape)
 	}
 	l := o.layout(app)
 
@@ -125,7 +125,7 @@ func (o *Opsctl) Deploy(ctx context.Context, app, version string) error {
 		return fmt.Errorf("deploy: app and version are both required")
 	}
 	if !validVersion(version) {
-		return fmt.Errorf("deploy: invalid version %q: want canonical SemVer vMAJOR.MINOR.PATCH", version)
+		return fmt.Errorf("deploy: invalid version %q: want %s", version, versionShape)
 	}
 	l := o.layout(app)
 	relBin := l.ReleaseBinary(version)
