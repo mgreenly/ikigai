@@ -7,19 +7,14 @@
 #   bin/bump <app> <major|minor|patch> [--dry-run]
 #
 # The SINGLE SOURCE OF TRUTH for a service's version is the committed file
-# <app>/VERSION — a bare SemVer number (e.g. 0.1.2), one line. Git tags are NO
-# LONGER the version mechanism. bump reads that file, increments the requested
-# field per SemVer, writes the new bare number back, and commits ONLY that file
-# straight to main, then pushes:
+# <app>/VERSION — a v-prefixed SemVer number (e.g. v0.1.2), one line. Git tags
+# are NO LONGER the version mechanism. bump reads that file, increments the
+# requested field per SemVer, writes the new v-prefixed number back, and commits
+# ONLY that file straight to main, then pushes:
 #
-#   patch  X.Y.Z -> X.Y.(Z+1)
-#   minor  X.Y.Z -> X.(Y+1).0
-#   major  X.Y.Z -> (X+1).0.0
-#
-# The file holds the BARE number (no leading "v"). The "v" prefix is a display /
-# release convention applied by bin/ship (and shown in commit messages /
-# human-facing prints here), NOT something stored in the file — bump deals only in
-# bare numbers.
+#   patch  vX.Y.Z -> vX.Y.(Z+1)
+#   minor  vX.Y.Z -> vX.(Y+1).0
+#   major  vX.Y.Z -> v(X+1).0.0
 #
 # Because version state is committed to main, bump enforces that it runs on main
 # and makes a PATH-LIMITED commit of just <app>/VERSION — unrelated working-tree
@@ -47,9 +42,9 @@ Flags:
   --dry-run    print the next version + commit message but write/commit/push NOTHING.
   -h, --help   show this help.
 
-The current version is read from the committed file <app>/VERSION (a bare X.Y.Z, no
-leading "v"). Git tags are no longer the version mechanism. Unless --dry-run, bump
-writes the new bare version, commits ONLY that file to main, and pushes origin main.
+The current version is read from the committed file <app>/VERSION (vX.Y.Z). Git
+tags are no longer the version mechanism. Unless --dry-run, bump writes the new
+v-prefixed version, commits ONLY that file to main, and pushes origin main.
 
 Next step after bumping:
   bin/ship <app>       # builds current main (HEAD); version comes from <app>/VERSION
@@ -91,7 +86,7 @@ cd "$REPO"
 VERSION_FILE="${APP}/VERSION"
 [ -d "$APP" ] || { echo "!! no such service dir: ${APP}/" >&2; exit 1; }
 [ -f "$VERSION_FILE" ] || {
-  echo "!! no ${VERSION_FILE} — ${APP} is not a versioned service (only the 7 deployable services carry a VERSION file)" >&2
+  echo "!! no ${VERSION_FILE} — ${APP} is not a versioned service" >&2
   exit 1
 }
 
@@ -105,13 +100,15 @@ if [ "$BRANCH" != "main" ]; then
 fi
 
 # --- read the current version from the committed file ----------------------
-# Strip surrounding whitespace/newline; the file holds a single bare X.Y.Z.
+# Strip surrounding whitespace/newline; the file holds a single vX.Y.Z.
 CUR_VER="$(tr -d '[:space:]' < "$VERSION_FILE")"
-if [[ ! "$CUR_VER" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-  echo "!! ${VERSION_FILE} is not a bare X.Y.Z version (got: '${CUR_VER}') — fix it before bumping" >&2
+if [[ ! "$CUR_VER" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+  echo "!! ${VERSION_FILE} is not a v-prefixed SemVer version (got: '${CUR_VER}') — fix it before bumping" >&2
   exit 1
 fi
-IFS=. read -r X Y Z <<<"$CUR_VER"
+X="${BASH_REMATCH[1]}"
+Y="${BASH_REMATCH[2]}"
+Z="${BASH_REMATCH[3]}"
 
 # --- increment the requested field -----------------------------------------
 case "$PART" in
@@ -119,8 +116,8 @@ case "$PART" in
   minor) Y=$((Y + 1)); Z=0 ;;
   patch) Z=$((Z + 1)) ;;
 esac
-NEW_VER="${X}.${Y}.${Z}"             # bare, as stored in the file
-COMMIT_MSG="${APP}: bump version to v${NEW_VER}"
+NEW_VER="v${X}.${Y}.${Z}"
+COMMIT_MSG="${APP}: bump version to ${NEW_VER}"
 
 echo ">> ${APP}: ${CUR_VER} -> ${NEW_VER} (${PART})"
 
@@ -134,14 +131,14 @@ if [ "$DRY_RUN" = "1" ]; then
 fi
 
 # --- write + path-limited commit + push ------------------------------------
-# Write the new BARE version, newline-terminated.
+# Write the new v-prefixed version, newline-terminated.
 printf '%s\n' "$NEW_VER" > "$VERSION_FILE"
 
 # Path-limited commit: `-- <pathspec>` stages+commits ONLY this file, so any
 # other unrelated edits in the working tree are never included in the version
 # commit. (No `git add` of the whole tree.)
 git commit -m "$COMMIT_MSG" -- "$VERSION_FILE"
-echo ">> committed ${VERSION_FILE} (v${NEW_VER}) at $(git rev-parse --short HEAD)"
+echo ">> committed ${VERSION_FILE} (${NEW_VER}) at $(git rev-parse --short HEAD)"
 
 echo ">> git push origin main"
 git push origin main
