@@ -334,13 +334,14 @@ func TestTailDurableAcrossRestartBeforeCommit(t *testing.T) {
 	})
 }
 
-// 13a: stale-epoch — a cursor minted under a prior generation is rejected and the
-// consumer re-bootstraps fresh, recovering against the new lineage (§9.3, §10.1).
-func TestResyncStaleEpoch(t *testing.T) {
+// R-4D14-QWV8
+func TestRestoreRemintRejectsOldCursorWithStaleEpoch(t *testing.T) {
 	dir := t.TempDir()
 	dbPath := filepath.Join(dir, "p.db")
+	genPath := filepath.Join(dir, "gen")
 
-	ob1, pdb, srv1 := newProducer(t, dbPath, filepath.Join(dir, "gen1"))
+	ob1, pdb, srv1 := newProducer(t, dbPath, genPath)
+	oldGen := ob1.Generation()
 	for i := 1; i <= 3; i++ {
 		emit(t, ob1, pdb, i)
 	}
@@ -348,20 +349,44 @@ func TestResyncStaleEpoch(t *testing.T) {
 	c1 := &collector{}
 	stop := runConsumer(t, baseConfig(cdb, srv1.URL, fromEarliest, io.Discard), c1.handle)
 	waitEvents(t, c1, 3)
+	var oldCursor string
+	waitFor(t, "pre-restore cursor persisted", func() bool {
+		cur, _ := cursorRow(t, cdb)
+		if !cur.Valid || !strings.HasPrefix(cur.String, oldGen+".") {
+			return false
+		}
+		oldCursor = cur.String
+		return strings.HasSuffix(cur.String, ".3")
+	})
 	stop()
 	srv1.Close()
 
-	// Rebuild: same DB file (seqs 1..3 preserved), fresh generation token.
-	ob2, _, srv2 := newProducer(t, dbPath, filepath.Join(dir, "gen2"))
-	_ = ob2
+	// Restore condition: the database file is present with the old seqs, but the
+	// external sidecar is absent, so boot re-mints the epoch at the same path.
+	if err := os.Remove(genPath); err != nil {
+		t.Fatalf("remove generation sidecar: %v", err)
+	}
+	ob2, _, srv2 := newProducer(t, dbPath, genPath)
+	newGen := ob2.Generation()
+	if newGen == oldGen {
+		t.Fatalf("restored boot reused old generation %q", oldGen)
+	}
+
 	var logbuf syncBuffer
 	c2 := &collector{}
 	runConsumer(t, baseConfig(cdb, srv2.URL, fromEarliest, &logbuf), c2.handle)
 
-	// The stale (gen1) cursor triggers stale-epoch; the consumer discards it and
-	// replays from the beginning under gen2.
+	// The stale pre-restore cursor triggers stale-epoch at connect; the consumer
+	// discards it and replays from the beginning under the re-minted epoch.
 	waitEvents(t, c2, 3)
 	waitFor(t, "stale-epoch logged", func() bool { return strings.Contains(logbuf.String(), "stale-epoch") })
+	if got := c2.ns(); fmt.Sprint(got) != fmt.Sprint([]int{1, 2, 3}) {
+		t.Fatalf("resync replayed wrong events: %v", got)
+	}
+	waitFor(t, "cursor advanced under re-minted epoch", func() bool {
+		cur, _ := cursorRow(t, cdb)
+		return cur.Valid && cur.String != oldCursor && strings.HasPrefix(cur.String, newGen+".") && strings.HasSuffix(cur.String, ".3")
+	})
 }
 
 // 13a: past-horizon — a cursor below the retention floor is real, unrecovered
