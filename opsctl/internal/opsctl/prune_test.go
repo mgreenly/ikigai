@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 )
@@ -26,14 +27,15 @@ func installSeq(t *testing.T, root, app string, sys *stubSystem, keep int, versi
 
 func releaseDirs(t *testing.T, l Layout) []string {
 	t.Helper()
-	entries, err := os.ReadDir(l.ReleasesDir())
+	entries, err := os.ReadDir(l.LibexecDir())
 	if err != nil {
-		t.Fatalf("read releases: %v", err)
+		t.Fatalf("read libexec: %v", err)
 	}
 	var out []string
+	prefix := l.App + "-"
 	for _, e := range entries {
-		if e.IsDir() {
-			out = append(out, e.Name())
+		if !e.IsDir() && strings.HasPrefix(e.Name(), prefix) {
+			out = append(out, strings.TrimPrefix(e.Name(), prefix))
 		}
 	}
 	sort.SliceStable(out, func(i, j int) bool { return l.compareVersion(out[i], out[j]) < 0 })
@@ -64,7 +66,7 @@ func TestPrune_KeepsExactlyN(t *testing.T) {
 	}
 
 	// current must still resolve to its target, and that target must survive.
-	cur := readlinkBase(t, l.CurrentLink())
+	cur := readRunVersion(t, l)
 	if cur != "v1.4.0" {
 		t.Fatalf("current = %q, want v1.4.0", cur)
 	}
@@ -79,14 +81,39 @@ func TestPrune_KeepsExactlyN(t *testing.T) {
 	}
 }
 
+func TestPrune_RemovesOldLibexecBinaries(t *testing.T) {
+	// R-3VYJ-E4HI
+	root := t.TempDir()
+	app := "ledger"
+	l := NewLayout(root, app)
+	sys := &stubSystem{}
+
+	installSeq(t, root, app, sys, 2, []string{"v1.0.0", "v1.1.0", "v1.2.0"})
+
+	if _, err := os.Stat(l.LibexecBinary("v1.0.0")); !os.IsNotExist(err) {
+		t.Fatalf("old libexec binary still exists after prune (err=%v)", err)
+	}
+	for _, v := range []string{"v1.1.0", "v1.2.0"} {
+		if _, err := os.Stat(l.LibexecBinary(v)); err != nil {
+			t.Fatalf("kept libexec binary %s missing after prune: %v", v, err)
+		}
+	}
+	if got := readRunVersion(t, l); got != "v1.2.0" {
+		t.Fatalf("live version = %q, want v1.2.0", got)
+	}
+}
+
 func TestPrune_NewestSetUsesSemanticNumericOrdering(t *testing.T) {
 	// R-3X6F-RW87
 	root := t.TempDir()
 	app := "ledger"
 	l := NewLayout(root, app)
 	for _, v := range []string{"v0.7.10", "v0.7.9"} {
-		if err := os.MkdirAll(l.ReleaseDir(v), 0o755); err != nil {
-			t.Fatalf("mkdir release %s: %v", v, err)
+		if err := os.MkdirAll(l.LibexecDir(), 0o755); err != nil {
+			t.Fatalf("mkdir libexec: %v", err)
+		}
+		if err := os.WriteFile(l.LibexecBinary(v), []byte(v), 0o755); err != nil {
+			t.Fatalf("write libexec binary %s: %v", v, err)
 		}
 	}
 
@@ -111,10 +138,7 @@ func TestPrune_NewestSetUsesLibexecMtimeForBuildMetadata(t *testing.T) {
 	older := "v1.0.0+old"
 	newer := "v1.0.0+new"
 	for _, v := range []string{older, newer} {
-		if err := os.MkdirAll(l.ReleaseDir(v), 0o755); err != nil {
-			t.Fatalf("mkdir release %s: %v", v, err)
-		}
-		libexecFile := l.ReleaseLibexecFile(v)
+		libexecFile := l.LibexecBinary(v)
 		if err := os.MkdirAll(filepath.Dir(libexecFile), 0o755); err != nil {
 			t.Fatalf("mkdir libexec %s: %v", v, err)
 		}
@@ -123,10 +147,10 @@ func TestPrune_NewestSetUsesLibexecMtimeForBuildMetadata(t *testing.T) {
 		}
 	}
 	base := time.Unix(1700000000, 0)
-	if err := os.Chtimes(l.ReleaseLibexecFile(older), base, base); err != nil {
+	if err := os.Chtimes(l.LibexecBinary(older), base, base); err != nil {
 		t.Fatalf("chtime older libexec: %v", err)
 	}
-	if err := os.Chtimes(l.ReleaseLibexecFile(newer), base.Add(time.Hour), base.Add(time.Hour)); err != nil {
+	if err := os.Chtimes(l.LibexecBinary(newer), base.Add(time.Hour), base.Add(time.Hour)); err != nil {
 		t.Fatalf("chtime newer libexec: %v", err)
 	}
 
@@ -157,8 +181,8 @@ func TestPrune_NeverDeletesCurrentTarget(t *testing.T) {
 	if err := o.Rollback(context.Background(), app, ""); err != nil {
 		t.Fatalf("rollback: %v", err)
 	}
-	if cur := readlinkBase(t, l.CurrentLink()); cur != "v2.0.0" {
-		t.Fatalf("current after rollback = %q, want v2.0.0", cur)
+	if cur := readRunVersion(t, l); cur != "v2.0.0" {
+		t.Fatalf("live version after rollback = %q, want v2.0.0", cur)
 	}
 
 	// Standalone prune with Keep=1 — would normally keep only v3.0.0, but current

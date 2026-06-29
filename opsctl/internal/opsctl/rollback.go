@@ -6,19 +6,20 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 )
 
-// Rollback repoints `current` at a prior release and restarts, following the ADR
+// Rollback repoints `bin/run` at a prior release and restarts, following the ADR
 // rollback sequence:
 //
 //  1. resolve the target — the immediately-prior release by default, or an
-//     explicit older <version> that still exists under releases/.
+//     explicit older <version> that still exists under libexec/.
 //  2. restore the DB FIRST iff the release being rolled back FROM advanced the
 //     schema (its pre-migration backup exists). The forward-only downgrade guard
 //     refuses to boot a DB whose recorded version exceeds the older binary's
 //     embedded max, so without restoring the matching snapshot the rolled-back
 //     binary would crash on start (PLAN §2.5, §1.4).
-//  3. atomic swap current → the target release.
+//  3. atomic swap bin/run → the target binary.
 //  4. restart + is-active.
 //
 // data/<app>.db is touched only by the explicit restore in step 2 (PLAN §2.7).
@@ -45,8 +46,8 @@ func (o *Opsctl) Rollback(ctx context.Context, app, target string) error {
 		if err != nil {
 			return err
 		}
-	} else if _, statErr := os.Stat(l.ReleaseDir(target)); statErr != nil {
-		return fmt.Errorf("rollback: target release %q does not exist under %s", target, l.ReleasesDir())
+	} else if _, statErr := os.Stat(l.LibexecBinary(target)); statErr != nil {
+		return fmt.Errorf("rollback: target release %q does not exist under %s", target, l.LibexecDir())
 	}
 	if target == from {
 		return fmt.Errorf("rollback: target %q is already current; nothing to do", target)
@@ -62,16 +63,16 @@ func (o *Opsctl) Rollback(ctx context.Context, app, target string) error {
 		// (Restart after the swap brings it back up on the restored DB.) We stop via
 		// restart-after-swap; here we drive restore through the TARGET binary so a
 		// producer re-mints its event-plane generation (Spec.Restore).
-		targetBin := l.ReleaseBinary(target)
+		targetBin := l.LibexecBinary(target)
 		if _, err := o.Runner.Run(ctx, targetBin, "restore",
 			[]string{"--from", backup}, o.dbEnv(l)); err != nil {
 			return fmt.Errorf("rollback: restore DB: %w", err)
 		}
 	}
 
-	// 3. Atomic swap current → target.
-	o.logf("atomic swap current -> releases/%s", target)
-	if err := atomicSwap(l.CurrentLink(), filepath.Join("releases", target)); err != nil {
+	// 3. Atomic swap bin/run → target.
+	o.logf("atomic swap bin/run -> libexec/%s-%s", app, target)
+	if err := atomicSwap(l.RunLink(), l.runTarget(target)); err != nil {
 		return fmt.Errorf("rollback: %w", err)
 	}
 
@@ -88,17 +89,22 @@ func (o *Opsctl) Rollback(ctx context.Context, app, target string) error {
 	return nil
 }
 
-// currentVersion returns the version `current` points at (the basename of its
-// target), or "" if current does not exist.
+// currentVersion returns the version `bin/run` points at (parsed from the
+// <app>-<version> basename), or "" if bin/run does not exist.
 func (o *Opsctl) currentVersion(l Layout) (string, error) {
-	dst, err := os.Readlink(l.CurrentLink())
+	dst, err := os.Readlink(l.RunLink())
 	if err != nil {
 		if os.IsNotExist(err) {
 			return "", nil
 		}
 		return "", err
 	}
-	v := filepath.Base(dst)
+	base := filepath.Base(dst)
+	prefix := l.App + "-"
+	if !strings.HasPrefix(base, prefix) {
+		return "", fmt.Errorf("invalid run target %q: want %s-vMAJOR.MINOR.PATCH", base, l.App)
+	}
+	v := strings.TrimPrefix(base, prefix)
 	if !validVersion(v) {
 		return "", fmt.Errorf("invalid current version %q: want %s", v, versionShape)
 	}
@@ -106,7 +112,7 @@ func (o *Opsctl) currentVersion(l Layout) (string, error) {
 }
 
 // priorRelease returns the release immediately preceding `from` in sorted order —
-// the default rollback target. It lists releases/, sorts by semantic version,
+// the default rollback target. It lists libexec binaries, sorts by semantic version,
 // and picks the highest that is strictly less than `from`.
 func (o *Opsctl) priorRelease(l Layout, from string) (string, error) {
 	rels, err := o.listReleases(l)
@@ -126,10 +132,10 @@ func (o *Opsctl) priorRelease(l Layout, from string) (string, error) {
 	return rels[idx-1], nil
 }
 
-// listReleases returns the version dir names under releases/, sorted ascending by
+// listReleases returns versions found under libexec/, sorted ascending by
 // semantic version (so the last is the newest, and priorRelease can index back).
 func (o *Opsctl) listReleases(l Layout) ([]string, error) {
-	entries, err := os.ReadDir(l.ReleasesDir())
+	entries, err := os.ReadDir(l.LibexecDir())
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil
@@ -137,14 +143,16 @@ func (o *Opsctl) listReleases(l Layout) ([]string, error) {
 		return nil, err
 	}
 	var out []string
+	prefix := l.App + "-"
 	for _, e := range entries {
-		if e.IsDir() {
-			v := e.Name()
-			if !validVersion(v) {
-				return nil, fmt.Errorf("invalid release version %q under %s: want %s", v, l.ReleasesDir(), versionShape)
-			}
-			out = append(out, v)
+		if e.IsDir() || !strings.HasPrefix(e.Name(), prefix) {
+			continue
 		}
+		v := strings.TrimPrefix(e.Name(), prefix)
+		if !validVersion(v) {
+			return nil, fmt.Errorf("invalid release version %q under %s: want %s", v, l.LibexecDir(), versionShape)
+		}
+		out = append(out, v)
 	}
 	sort.SliceStable(out, func(i, j int) bool { return l.compareVersion(out[i], out[j]) < 0 })
 	return out, nil

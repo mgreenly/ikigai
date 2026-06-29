@@ -42,11 +42,11 @@ func TestCompareVersion_BuildMetadataPrecedenceEqual(t *testing.T) {
 	l := NewLayout(t.TempDir(), "ledger")
 	a := "v0.7.1+aaaa"
 	b := "v0.7.1+bbbb"
-	if l.ReleaseDir(a) == l.ReleaseDir(b) {
-		t.Fatalf("ReleaseDir(%q) and ReleaseDir(%q) collapsed build metadata identity", a, b)
+	if l.LibexecBinary(a) == l.LibexecBinary(b) {
+		t.Fatalf("LibexecBinary(%q) and LibexecBinary(%q) collapsed build metadata identity", a, b)
 	}
 	for _, v := range []string{a, b} {
-		libexecFile := l.ReleaseLibexecFile(v)
+		libexecFile := l.LibexecBinary(v)
 		if err := os.MkdirAll(filepath.Dir(libexecFile), 0o755); err != nil {
 			t.Fatalf("mkdir libexec %s: %v", v, err)
 		}
@@ -55,10 +55,10 @@ func TestCompareVersion_BuildMetadataPrecedenceEqual(t *testing.T) {
 		}
 	}
 	sameTime := time.Unix(1700000100, 0)
-	if err := os.Chtimes(l.ReleaseLibexecFile(a), sameTime, sameTime); err != nil {
+	if err := os.Chtimes(l.LibexecBinary(a), sameTime, sameTime); err != nil {
 		t.Fatalf("chtime libexec %s: %v", a, err)
 	}
-	if err := os.Chtimes(l.ReleaseLibexecFile(b), sameTime, sameTime); err != nil {
+	if err := os.Chtimes(l.LibexecBinary(b), sameTime, sameTime); err != nil {
 		t.Fatalf("chtime libexec %s: %v", b, err)
 	}
 	if got := l.compareVersion(a, b); got != 0 {
@@ -72,13 +72,7 @@ func TestCompareVersion_PrecedenceEqualBuildsUseLibexecMtime(t *testing.T) {
 	older := "v0.7.1+aaaa"
 	newer := "v0.7.1+bbbb"
 	for _, v := range []string{older, newer} {
-		if err := os.MkdirAll(l.ReleaseDir(v), 0o755); err != nil {
-			t.Fatalf("mkdir release %s: %v", v, err)
-		}
-		if err := os.WriteFile(l.ReleaseBinary(v), []byte("fake"), 0o755); err != nil {
-			t.Fatalf("write release binary %s: %v", v, err)
-		}
-		libexecFile := l.ReleaseLibexecFile(v)
+		libexecFile := l.LibexecBinary(v)
 		if err := os.MkdirAll(filepath.Dir(libexecFile), 0o755); err != nil {
 			t.Fatalf("mkdir libexec %s: %v", v, err)
 		}
@@ -87,16 +81,10 @@ func TestCompareVersion_PrecedenceEqualBuildsUseLibexecMtime(t *testing.T) {
 		}
 	}
 	base := time.Unix(1700000000, 0)
-	if err := os.Chtimes(l.ReleaseBinary(older), base.Add(time.Hour), base.Add(time.Hour)); err != nil {
-		t.Fatalf("chtime older binary: %v", err)
-	}
-	if err := os.Chtimes(l.ReleaseBinary(newer), base, base); err != nil {
-		t.Fatalf("chtime newer binary: %v", err)
-	}
-	if err := os.Chtimes(l.ReleaseLibexecFile(older), base, base); err != nil {
+	if err := os.Chtimes(l.LibexecBinary(older), base, base); err != nil {
 		t.Fatalf("chtime older libexec: %v", err)
 	}
-	if err := os.Chtimes(l.ReleaseLibexecFile(newer), base.Add(time.Hour), base.Add(time.Hour)); err != nil {
+	if err := os.Chtimes(l.LibexecBinary(newer), base.Add(time.Hour), base.Add(time.Hour)); err != nil {
 		t.Fatalf("chtime newer libexec: %v", err)
 	}
 
@@ -180,24 +168,27 @@ func TestReleaseIdentityBoundariesRejectInvalidSemVer(t *testing.T) {
 	l := NewLayout(root, app)
 	o := &Opsctl{Root: root}
 
-	if err := os.MkdirAll(l.ReleaseDir("v1.0.0"), 0o755); err != nil {
-		t.Fatalf("mkdir valid release: %v", err)
+	if err := os.MkdirAll(l.LibexecDir(), 0o755); err != nil {
+		t.Fatalf("mkdir libexec: %v", err)
 	}
-	if err := os.MkdirAll(l.ReleaseDir("v1"), 0o755); err != nil {
-		t.Fatalf("mkdir invalid release: %v", err)
+	if err := os.WriteFile(l.LibexecBinary("v1.0.0"), []byte("ok"), 0o755); err != nil {
+		t.Fatalf("write valid release: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(l.LibexecDir(), app+"-v1"), []byte("bad"), 0o755); err != nil {
+		t.Fatalf("write invalid release: %v", err)
 	}
 	if _, err := o.listReleases(l); err == nil || !strings.Contains(err.Error(), "invalid release version \"v1\"") {
 		t.Fatalf("listReleases invalid dir err = %v, want invalid release version refusal", err)
 	}
 
-	if err := os.MkdirAll(filepath.Dir(l.CurrentLink()), 0o755); err != nil {
-		t.Fatalf("mkdir current dir: %v", err)
+	if err := os.MkdirAll(filepath.Dir(l.RunLink()), 0o755); err != nil {
+		t.Fatalf("mkdir run dir: %v", err)
 	}
-	if err := os.Symlink(filepath.Join("releases", "v1.2"), l.CurrentLink()); err != nil {
-		t.Fatalf("symlink invalid current: %v", err)
+	if err := os.Symlink(filepath.Join("..", "libexec", app+"-v1.2"), l.RunLink()); err != nil {
+		t.Fatalf("symlink invalid run target: %v", err)
 	}
 	if _, err := o.currentVersion(l); err == nil || !strings.Contains(err.Error(), "invalid current version \"v1.2\"") {
-		t.Fatalf("currentVersion invalid target err = %v, want invalid current version refusal", err)
+		t.Fatalf("currentVersion invalid target err = %v, want invalid version refusal", err)
 	}
 }
 

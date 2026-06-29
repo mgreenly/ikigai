@@ -6,10 +6,10 @@ import (
 	"os"
 )
 
-// Prune bounds the on-box release history: keep the N most recent releases
-// (Opsctl.Keep, default DefaultKeep) plus, unconditionally, current's target and
+// Prune bounds the on-box release history: keep the N most recent versions
+// (Opsctl.Keep, default DefaultKeep) plus, unconditionally, bin/run's target and
 // the immediate predecessor rollback would target — then delete older
-// releases/<version>/ dirs. It NEVER deletes current or its predecessor, even if
+// libexec/<app>-<version> binaries. It NEVER deletes the live target or its predecessor, even if
 // N would otherwise drop them (PLAN §C2, ADR prune). Runs at the tail of install
 // and is invocable standalone.
 //
@@ -42,7 +42,7 @@ func (o *Opsctl) Prune(ctx context.Context, app string) error {
 			continue
 		}
 		o.logf("prune release %s", v)
-		if err := os.RemoveAll(l.ReleaseDir(v)); err != nil {
+		if err := os.Remove(l.LibexecBinary(v)); err != nil && !os.IsNotExist(err) {
 			return fmt.Errorf("prune: remove release %s: %w", v, err)
 		}
 		// Drop the matching pre-migration backup for the pruned release.
@@ -54,7 +54,7 @@ func (o *Opsctl) Prune(ctx context.Context, app string) error {
 }
 
 // keepSet computes the set of release versions prune must retain: the newest N
-// (Opsctl.keep), plus current's target and the immediate predecessor (the live
+// (Opsctl.keep), plus bin/run's target and the immediate predecessor (the live
 // rollback target) regardless of N. rels is sorted ascending by version.
 func (o *Opsctl) keepSet(l Layout, rels []string, current string) map[string]bool {
 	keep := map[string]bool{}
@@ -69,7 +69,7 @@ func (o *Opsctl) keepSet(l Layout, rels []string, current string) map[string]boo
 		keep[v] = true
 	}
 
-	// current's target — never deleted.
+	// bin/run's target — never deleted.
 	if current != "" {
 		keep[current] = true
 		// The immediate predecessor of current (default rollback target) — never

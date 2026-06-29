@@ -8,13 +8,13 @@ import (
 )
 
 // Status reports, for one app or every installed app, the live release and its
-// health: the version `current` points at, the commit SHA that release's binary
+// health: the version `bin/run` points at, the commit SHA that release's binary
 // self-reports (via its `version` verb), and the systemd unit's raw state (via
 // IsActiveState — the state string regardless of exit code, so a "failed" or
 // "inactive" unit is shown rather than turned into an error).
 //
 // An empty app iterates the discovery helper (every OPSCTL_ROOT child with a
-// `current` symlink). The output is a simple aligned table: app · version · sha ·
+// `bin/run` symlink). The output is a simple aligned table: app · version · sha ·
 // active. It is read-only — nothing on the box changes.
 func (o *Opsctl) Status(ctx context.Context, app string) error {
 	var apps []string
@@ -44,8 +44,8 @@ func (o *Opsctl) Status(ctx context.Context, app string) error {
 	return tw.Flush()
 }
 
-// appStatus gathers one app's status row: the current version (current's
-// readlink basename, "-" if absent), the SHA the current binary self-reports
+// appStatus gathers one app's status row: the live version (bin/run's target
+// basename, "-" if absent), the SHA the live binary self-reports
 // ("-" if it has no current release or won't exec), and the raw systemd state.
 func (o *Opsctl) appStatus(ctx context.Context, app string) (version, sha, active string, err error) {
 	l := o.layout(app)
@@ -60,7 +60,7 @@ func (o *Opsctl) appStatus(ctx context.Context, app string) (version, sha, activ
 		version = v
 		// Self-reported commit SHA from the live binary's `version` verb. Best
 		// effort: a missing/corrupt binary just leaves sha as "-".
-		if out, err := o.Runner.Run(ctx, l.CurrentBinary(), "version", nil, nil); err == nil {
+		if out, err := o.Runner.Run(ctx, l.RunLink(), "version", nil, nil); err == nil {
 			if c := commitToken(out); c != "" {
 				sha = c
 			}

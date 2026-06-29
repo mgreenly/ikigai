@@ -9,12 +9,12 @@ import (
 	"strings"
 )
 
-// Stage places a new version into releases/<version>/<app> WITHOUT making it live.
+// Stage places a new version into libexec/<app>-<version> WITHOUT making it live.
 // It is the first half of the old monolithic install (ADR install steps 1–2):
 //
 //  1. preflight (static? amd64? version matches? manifest parses?) — refuse early.
-//  2. SHA collision guard against any already-placed releases/<version>/<app>.
-//  3. place the artifact into releases/<version>/<app>.
+//  2. SHA collision guard against any already-placed libexec/<app>-<version>.
+//  3. place the artifact into libexec/<app>-<version>.
 //
 // The stable etc/manifest.env and the live `current` symlink are NEVER touched by
 // stage — those change only at Deploy (the cutover), so a staged-but-not-deployed
@@ -41,7 +41,7 @@ func (o *Opsctl) Stage(ctx context.Context, app, version, artifact string, force
 		return err
 	}
 
-	relBin := l.ReleaseBinary(version)
+	relBin := l.LibexecBinary(version)
 
 	// 2. Collision guard: if a binary is already placed for this version, compare
 	//    commit SHAs. Same SHA → idempotent no-op (skip the copy). Different SHA, or
@@ -78,20 +78,13 @@ func (o *Opsctl) Stage(ctx context.Context, app, version, artifact string, force
 		}
 	}
 
-	// 3. Place the artifact into releases/<version>/<app>.
+	// 3. Place the artifact into libexec/<app>-<version>.
 	o.logf("place artifact -> %s", relBin)
-	if err := os.MkdirAll(l.ReleaseDir(version), 0o755); err != nil {
-		return fmt.Errorf("stage: mkdir release dir: %w", err)
+	if err := os.MkdirAll(l.LibexecDir(), 0o755); err != nil {
+		return fmt.Errorf("stage: mkdir libexec dir: %w", err)
 	}
 	if err := copyExecutable(artifact, relBin); err != nil {
 		return fmt.Errorf("stage: place artifact: %w", err)
-	}
-	libexecFile := l.ReleaseLibexecFile(version)
-	if err := os.MkdirAll(filepath.Dir(libexecFile), 0o755); err != nil {
-		return fmt.Errorf("stage: mkdir libexec dir: %w", err)
-	}
-	if err := os.WriteFile(libexecFile, []byte{}, 0o644); err != nil {
-		return fmt.Errorf("stage: touch libexec version file: %w", err)
 	}
 
 	// On success: delete the /tmp artifact (decision 2). Leave it only on the
@@ -113,10 +106,10 @@ func (o *Opsctl) Stage(ctx context.Context, app, version, artifact string, force
 //     by <version> so the matching rollback can restore it.
 //  5. migrate (forward-only).
 //  6. chown the data tree back to the <app> service user.
-//  7. ensure the stable bin/run link, then atomic swap current → releases/<version>.
+//  7. atomic swap bin/run → libexec/<app>-<version>.
 //  8. restart the unit + is-active, then prune old releases.
 //
-// It refuses early if the release was never staged (releases/<version>/<app> is
+// It refuses early if the release was never staged (libexec/<app>-<version> is
 // absent) so the manifest/schema/migrate execs never fail opaquely. data/<app>.db
 // is NEVER overwritten — only read/migrated/snapshotted (PLAN §2.7). bin/run and
 // etc/manifest.env stay valid throughout (PLAN §2.6).
@@ -128,7 +121,7 @@ func (o *Opsctl) Deploy(ctx context.Context, app, version string) error {
 		return fmt.Errorf("deploy: invalid version %q: want %s", version, versionShape)
 	}
 	l := o.layout(app)
-	relBin := l.ReleaseBinary(version)
+	relBin := l.LibexecBinary(version)
 
 	// Guard: the release must have been staged first. Refuse before any exec so a
 	// missing stage fails loudly instead of through an opaque manifest/migrate error.
@@ -189,8 +182,8 @@ func (o *Opsctl) Deploy(ctx context.Context, app, version string) error {
 	//    Ensure data/ exists so the app can create data/<app>.db on first migrate
 	//    (setup creates this tree on the box; deploy self-heals it). Creating the
 	//    directory never touches an existing DB file (PLAN §2.7).
-	if err := os.MkdirAll(l.DataDir(), 0o755); err != nil {
-		return fmt.Errorf("deploy: mkdir data dir: %w", err)
+	if err := os.MkdirAll(l.StateDir(), 0o755); err != nil {
+		return fmt.Errorf("deploy: mkdir state dir: %w", err)
 	}
 	o.logf("migrate %s", app)
 	if _, err := o.Runner.Run(ctx, relBin, "migrate", nil, o.dbEnv(l)); err != nil {
@@ -207,21 +200,15 @@ func (o *Opsctl) Deploy(ctx context.Context, app, version string) error {
 	// before the swap/restart. Unconditional + idempotent on every deploy: it also
 	// reclaims root-owned -wal/-shm files migrate may create against an EXISTING DB.
 	// The user/group is the bare app name to match setup exactly (EnsureSystemUser).
-	o.logf("chown %s -> %s:%s", l.DataDir(), app, app)
-	if err := o.System.ChownTree(ctx, app, app, l.DataDir()); err != nil {
-		return fmt.Errorf("deploy: chown data dir: %w", err)
+	o.logf("chown %s -> %s:%s", l.StateDir(), app, app)
+	if err := o.System.ChownTree(ctx, app, app, l.StateDir()); err != nil {
+		return fmt.Errorf("deploy: chown state dir: %w", err)
 	}
 
-	// Ensure the stable bin/run -> ../current/<app> link exists (self-heal). This
-	// is set at setup; deploy never repoints it (the cutover is `current`).
-	if err := ensureSymlink(l.RunLink(), l.RunTarget()); err != nil {
-		return fmt.Errorf("deploy: ensure bin/run: %w", err)
-	}
-
-	// 6. Atomic swap: current -> releases/<version>. The symlink only ever points
-	//    at a complete release (relative target so it survives a path move).
-	o.logf("atomic swap current -> releases/%s", version)
-	if err := atomicSwap(l.CurrentLink(), filepath.Join("releases", version)); err != nil {
+	// 6. Atomic swap: bin/run -> libexec/<app>-<version>. The symlink only ever
+	//    points at a complete executable (relative target so it survives a path move).
+	o.logf("atomic swap bin/run -> libexec/%s-%s", app, version)
+	if err := atomicSwap(l.RunLink(), l.runTarget(version)); err != nil {
 		return fmt.Errorf("deploy: %w", err)
 	}
 

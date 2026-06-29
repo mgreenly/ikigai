@@ -24,8 +24,8 @@ func TestStatus_SingleApp(t *testing.T) {
 	o.Runner = fakeRunner{
 		baseEnv: fakeEnv(app, "v1.0.0", 1, ""),
 		commitByPath: map[string]string{
-			l.ReleaseBinary("v1.0.0"): "deadbeef",
-			l.CurrentBinary():         "deadbeef", // status reads via the current symlink path
+			l.LibexecBinary("v1.0.0"): "deadbeef",
+			l.RunLink():               "deadbeef", // status reads via the stable run symlink path
 		},
 	}
 	if err := stageAndDeploy(t, o, app, "v1.0.0", stageArtifact(t, "ledger-a")); err != nil {
@@ -47,7 +47,7 @@ func TestStatus_SingleApp(t *testing.T) {
 
 // TestStatus_AllAppsDiscovery deploys two apps and asserts `status` (no arg)
 // discovers both via the OPSCTL_ROOT scan and reports a row for each, while a
-// setup-but-never-deployed tree (no `current` symlink) is skipped.
+// setup-but-never-deployed tree (no `bin/run` symlink) is skipped.
 func TestStatus_AllAppsDiscovery(t *testing.T) {
 	root := t.TempDir()
 	sys := &stubSystem{}
@@ -59,7 +59,7 @@ func TestStatus_AllAppsDiscovery(t *testing.T) {
 		}
 	}
 
-	// A bare app dir with no `current` symlink must NOT appear (only deployed apps).
+	// A bare app dir with no `bin/run` symlink must NOT appear (only deployed apps).
 	if err := os.MkdirAll(NewLayout(root, "notify").AppDir(), 0o755); err != nil {
 		t.Fatalf("mkdir notify tree: %v", err)
 	}
@@ -84,11 +84,11 @@ func TestStatus_InvalidCurrentVersionFailsLoudly(t *testing.T) {
 	root := t.TempDir()
 	app := "ledger"
 	l := NewLayout(root, app)
-	if err := os.MkdirAll(filepath.Dir(l.CurrentLink()), 0o755); err != nil {
-		t.Fatalf("mkdir current parent: %v", err)
+	if err := os.MkdirAll(filepath.Dir(l.RunLink()), 0o755); err != nil {
+		t.Fatalf("mkdir run parent: %v", err)
 	}
-	if err := os.Symlink(filepath.Join("releases", "v1.2"), l.CurrentLink()); err != nil {
-		t.Fatalf("symlink invalid current: %v", err)
+	if err := os.Symlink(filepath.Join("..", "libexec", app+"-v1.2"), l.RunLink()); err != nil {
+		t.Fatalf("symlink invalid run target: %v", err)
 	}
 
 	o := newOpsctl(t, root, app, &stubSystem{}, fakeEnv(app, "v1.2.3", 1, ""))

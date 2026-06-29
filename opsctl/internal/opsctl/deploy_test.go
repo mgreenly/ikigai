@@ -12,7 +12,6 @@ import (
 // runner carrying the given FAKE_* scenario env.
 func newOpsctl(t *testing.T, root, app string, sys *stubSystem, base []string) *Opsctl {
 	t.Helper()
-	sys.currentLink = NewLayout(root, app).CurrentLink()
 	sys.app = app
 	return &Opsctl{
 		Root:   root,
@@ -56,7 +55,7 @@ func itoa(n int) string {
 }
 
 // stageAndDeploy runs the two-verb cutover the old monolithic Install did in one
-// shot: stage the artifact into releases/<version>/ then deploy (activate) it. The
+// shot: stage the artifact into libexec/<app>-<version> then deploy it. The
 // acceptance tests below drive the full lifecycle through this helper so they
 // exercise both verbs exactly as an operator would.
 func stageAndDeploy(t *testing.T, o *Opsctl, app, version, artifact string) error {
@@ -67,14 +66,14 @@ func stageAndDeploy(t *testing.T, o *Opsctl, app, version, artifact string) erro
 	return o.Deploy(context.Background(), app, version)
 }
 
-// readlinkBase resolves current → its version basename.
-func readlinkBase(t *testing.T, link string) string {
+// readRunVersion resolves bin/run → its deployed version.
+func readRunVersion(t *testing.T, l Layout) string {
 	t.Helper()
-	dst, err := os.Readlink(link)
+	v, err := (&Opsctl{}).currentVersion(l)
 	if err != nil {
-		t.Fatalf("readlink %s: %v", link, err)
+		t.Fatalf("read live version: %v", err)
 	}
-	return filepath.Base(dst)
+	return v
 }
 
 // dbApplied reads the fake "DB" file (a single integer = applied schema version).
@@ -92,12 +91,12 @@ func dbApplied(t *testing.T, l Layout) (int, bool) {
 }
 
 // resolveThroughStablePaths asserts the launcher-facing stable paths are valid:
-// bin/run resolves (through current) to an existing binary, and etc/manifest.env
+// bin/run resolves to an existing binary, and etc/manifest.env
 // exists and names the app. This must hold after every install/rollback (PLAN
 // §2.6 — load-bearing at all times, including mid-swap).
 func resolveThroughStablePaths(t *testing.T, l Layout) {
 	t.Helper()
-	// bin/run -> ../current/<app>; resolving it must reach a real file.
+	// bin/run -> ../libexec/<app>-<version>; resolving it must reach a real file.
 	runResolved, err := filepath.EvalSymlinks(l.RunLink())
 	if err != nil {
 		t.Fatalf("bin/run does not resolve: %v", err)
@@ -131,8 +130,8 @@ func TestInstallInstallRollback_NoSchemaChange(t *testing.T) {
 	if err := stageAndDeploy(t, o, app, "v1.0.0", art1); err != nil {
 		t.Fatalf("deploy v1.0.0: %v", err)
 	}
-	if got := readlinkBase(t, l.CurrentLink()); got != "v1.0.0" {
-		t.Fatalf("current = %q, want v1.0.0", got)
+	if got := readRunVersion(t, l); got != "v1.0.0" {
+		t.Fatalf("live version = %q, want v1.0.0", got)
 	}
 	resolveThroughStablePaths(t, l)
 	applied1, ok := dbApplied(t, l)
@@ -148,8 +147,8 @@ func TestInstallInstallRollback_NoSchemaChange(t *testing.T) {
 	if err := stageAndDeploy(t, o2, app, "v1.1.0", art2); err != nil {
 		t.Fatalf("deploy v1.1.0: %v", err)
 	}
-	if got := readlinkBase(t, l.CurrentLink()); got != "v1.1.0" {
-		t.Fatalf("current = %q, want v1.1.0", got)
+	if got := readRunVersion(t, l); got != "v1.1.0" {
+		t.Fatalf("live version = %q, want v1.1.0", got)
 	}
 	resolveThroughStablePaths(t, l)
 
@@ -166,21 +165,13 @@ func TestInstallInstallRollback_NoSchemaChange(t *testing.T) {
 	if err := o2.Rollback(context.Background(), app, ""); err != nil {
 		t.Fatalf("rollback: %v", err)
 	}
-	if got := readlinkBase(t, l.CurrentLink()); got != "v1.0.0" {
-		t.Fatalf("after rollback current = %q, want v1.0.0", got)
+	if got := readRunVersion(t, l); got != "v1.0.0" {
+		t.Fatalf("after rollback live version = %q, want v1.0.0", got)
 	}
 	resolveThroughStablePaths(t, l)
 
-	// The stub observed current resolving to a complete release at EVERY restart.
-	for i, ver := range sys.seenAtRestart {
-		if !sys.binExistsAtRun[i] {
-			t.Errorf("restart #%d: current pointed at %q but the binary was not present (incomplete release)", i, ver)
-		}
-	}
-	// Three restarts: install, install, rollback — current was v1.0.0, v1.1.0, v1.0.0.
-	wantSeq := []string{"v1.0.0", "v1.1.0", "v1.0.0"}
-	if strings.Join(sys.seenAtRestart, ",") != strings.Join(wantSeq, ",") {
-		t.Fatalf("restart sequence saw current = %v, want %v", sys.seenAtRestart, wantSeq)
+	if sys.restarts != 3 {
+		t.Fatalf("restart count = %d, want 3", sys.restarts)
 	}
 }
 
@@ -239,8 +230,8 @@ func TestSchemaAdvance_BackupAndRollbackRestores(t *testing.T) {
 	if err := o2.Rollback(context.Background(), app, ""); err != nil {
 		t.Fatalf("rollback: %v", err)
 	}
-	if got := readlinkBase(t, l.CurrentLink()); got != "v1.0.0" {
-		t.Fatalf("after rollback current = %q, want v1.0.0", got)
+	if got := readRunVersion(t, l); got != "v1.0.0" {
+		t.Fatalf("after rollback live version = %q, want v1.0.0", got)
 	}
 	if applied, _ := dbApplied(t, l); applied != 2 {
 		t.Fatalf("after rollback applied = %d, want 2 (DB restored from pre-migration backup)", applied)
@@ -288,7 +279,7 @@ func TestPreflight_Rejections(t *testing.T) {
 // TestInstall_ConvertsLegacyBinRunFile asserts the conversion case the D2 box
 // prototype hit: when /opt/<app>/bin/run already exists as a REGULAR FILE (the
 // old pre-redesign layout's wrapper script), install must replace it with the
-// stable ../current/<app> symlink rather than failing with EEXIST.
+// stable versioned libexec symlink rather than failing with EEXIST.
 func TestInstall_ConvertsLegacyBinRunFile(t *testing.T) {
 	root := t.TempDir()
 	app := "ledger"
@@ -312,10 +303,45 @@ func TestInstall_ConvertsLegacyBinRunFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("bin/run is not a symlink after conversion: %v", err)
 	}
-	if got != l.RunTarget() {
-		t.Fatalf("bin/run -> %q, want %q", got, l.RunTarget())
+	if want := l.runTarget("v0.1.0"); got != want {
+		t.Fatalf("bin/run -> %q, want %q", got, want)
 	}
 	resolveThroughStablePaths(t, l)
+}
+
+func TestDeploy_SwapsBinRunToVersionedLibexecBinary(t *testing.T) {
+	// R-3TIQ-ML04
+	root := t.TempDir()
+	app := "ledger"
+	l := NewLayout(root, app)
+	sys := &stubSystem{}
+
+	o1 := newOpsctl(t, root, app, sys, fakeEnv(app, "v1.0.0", 1, ""))
+	if err := stageAndDeploy(t, o1, app, "v1.0.0", stageArtifact(t, "ledger-v1.0.0")); err != nil {
+		t.Fatalf("deploy v1.0.0: %v", err)
+	}
+	o2 := newOpsctl(t, root, app, sys, fakeEnv(app, "v1.1.0", 1, ""))
+	if err := stageAndDeploy(t, o2, app, "v1.1.0", stageArtifact(t, "ledger-v1.1.0")); err != nil {
+		t.Fatalf("deploy v1.1.0: %v", err)
+	}
+
+	target, err := os.Readlink(l.RunLink())
+	if err != nil {
+		t.Fatalf("read bin/run: %v", err)
+	}
+	if want := l.runTarget("v1.1.0"); target != want {
+		t.Fatalf("bin/run target = %q, want %q", target, want)
+	}
+	resolved, err := filepath.EvalSymlinks(l.RunLink())
+	if err != nil {
+		t.Fatalf("resolve bin/run: %v", err)
+	}
+	if resolved != l.LibexecBinary("v1.1.0") {
+		t.Fatalf("bin/run resolves to %q, want %q", resolved, l.LibexecBinary("v1.1.0"))
+	}
+	if _, err := os.Stat(l.LibexecBinary("v1.0.0")); err != nil {
+		t.Fatalf("previous libexec binary missing after deploy: %v", err)
+	}
 }
 
 // TestStampDataPaths asserts the regenerated manifest gains the absolute on-box
@@ -328,8 +354,8 @@ func TestStampDataPaths(t *testing.T) {
 	got := stampDataPaths(portable, l)
 
 	for _, want := range []string{
-		"LEDGER_DB_PATH=/opt/ledger/data/ledger.db",
-		"LEDGER_GENERATION_PATH=/opt/ledger/data/ledger.db.generation",
+		"LEDGER_DB_PATH=/opt/ledger/state/ledger.db",
+		"LEDGER_GENERATION_PATH=/opt/ledger/cache/ledger.db.generation",
 		"APP=ledger", "PORT=3002",
 	} {
 		if !strings.Contains(got, want) {
@@ -352,14 +378,14 @@ func TestStampDataPaths(t *testing.T) {
 	}
 }
 
-// TestInstall_ChownsDataDirToAppUser asserts install hands the data tree back to
+// TestInstall_ChownsStateDirToAppUser asserts install hands the state tree back to
 // the `<app>` service user after the root-run migrate (the cutover-reset bug:
 // migrate, run as root, creates a fresh DB owned root:root, which the unit's
 // dedicated <app> user cannot write — crash-loop). The chown must request the
 // bare app name as BOTH owner and group (matching setup's EnsureSystemUser) and
 // target the data dir, on every install. The stub records (never executes) the
 // op, so no real system path is chowned under the temp OPSCTL_ROOT.
-func TestInstall_ChownsDataDirToAppUser(t *testing.T) {
+func TestInstall_ChownsStateDirToAppUser(t *testing.T) {
 	root := t.TempDir()
 	app := "crm"
 	l := NewLayout(root, app)
@@ -370,7 +396,7 @@ func TestInstall_ChownsDataDirToAppUser(t *testing.T) {
 		t.Fatalf("deploy: %v", err)
 	}
 
-	want := "chown:" + app + ":" + app + ":" + l.DataDir()
+	want := "chown:" + app + ":" + app + ":" + l.StateDir()
 	var found bool
 	for _, op := range sys.opSeq() {
 		if op == want {

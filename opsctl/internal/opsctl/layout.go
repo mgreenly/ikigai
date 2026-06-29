@@ -1,6 +1,5 @@
 // Package opsctl is the on-box platform CLI's core: the install / rollback /
-// prune verbs over the versioned release-dir + atomic-symlink layout (PLAN §1.4,
-// ADR "opsctl — per-verb internals").
+// prune verbs over the versioned libexec binary + atomic bin/run symlink layout.
 //
 // EVERY filesystem operation is rooted at a configurable base (OPSCTL_ROOT,
 // default /opt) so the whole package is testable against a temp dir with no real
@@ -16,8 +15,8 @@ import (
 
 // Layout resolves the on-box paths for one app under a configurable root. The
 // real box uses root="/opt"; tests use a temp dir. The stable paths bin/run and
-// etc/manifest.env (PLAN §2.6) and the never-touched data/<app>.db (PLAN §2.7)
-// are computed here so every verb shares one definition.
+// etc/manifest.env and the never-touched state/<app>.db are computed here so
+// every verb shares one definition.
 //
 // SysRoot is the parallel base for the box's SYSTEM-config tree (/etc/systemd,
 // /etc/nginx, /var/lib/letsencrypt). install/rollback/prune never touch it; the
@@ -52,44 +51,31 @@ func NewLayoutSys(root, sysRoot, app string) Layout {
 // AppDir is /opt/<app> — the per-app install root.
 func (l Layout) AppDir() string { return filepath.Join(l.Root, l.App) }
 
-// ReleasesDir is /opt/<app>/releases — the parent of every versioned release.
-func (l Layout) ReleasesDir() string { return filepath.Join(l.AppDir(), "releases") }
-
-// ReleaseDir is /opt/<app>/releases/<version> — one version's directory.
-func (l Layout) ReleaseDir(version string) string {
-	return filepath.Join(l.ReleasesDir(), version)
-}
-
-// ReleaseBinary is /opt/<app>/releases/<version>/<app> — the binary for a version.
-func (l Layout) ReleaseBinary(version string) string {
-	return filepath.Join(l.ReleaseDir(version), l.App)
-}
-
-// ReleaseLibexecFile is /opt/<app>/releases/<version>/libexec/<app>: the
-// per-build file whose mtime breaks ties between SemVer-precedence-equal builds.
+// ReleaseLibexecFile is kept as the compareVersion tie-breaker path for existing
+// callers; under the current layout it is the shipped libexec binary itself.
 func (l Layout) ReleaseLibexecFile(version string) string {
-	return filepath.Join(l.ReleaseDir(version), "libexec", l.App)
+	return l.LibexecBinary(version)
 }
-
-// CurrentLink is /opt/<app>/current — the symlink swapped atomically to point at
-// the live release dir (ln -sfn semantics).
-func (l Layout) CurrentLink() string { return filepath.Join(l.AppDir(), "current") }
-
-// CurrentBinary is /opt/<app>/current/<app> — the binary reached through current.
-func (l Layout) CurrentBinary() string { return filepath.Join(l.CurrentLink(), l.App) }
 
 // BinDir is /opt/<app>/bin.
 func (l Layout) BinDir() string { return filepath.Join(l.AppDir(), "bin") }
 
-// RunLink is /opt/<app>/bin/run — the STABLE path ikigenba-launch execs. A
-// symlink to ../current/<app>; set once and never repointed (the cutover happens
-// at CurrentLink), so it stays valid mid-swap (PLAN §2.6).
+// RunLink is /opt/<app>/bin/run — the STABLE path ikigenba-launch execs. Deploy
+// and rollback atomically repoint it at a complete libexec/<app>-<version>
+// binary, so the launcher sees either the old binary or the new binary.
 func (l Layout) RunLink() string { return filepath.Join(l.BinDir(), "run") }
 
-// RunTarget is the relative target bin/run points at: ../current/<app>. Relative
-// so the symlink survives a box-path move and resolves through CurrentLink.
+// RunTarget returns the live bin/run target if it exists; before first deploy it
+// returns the unversioned libexec basename as a deterministic default.
 func (l Layout) RunTarget() string {
-	return filepath.Join("..", "current", l.App)
+	if dst, err := os.Readlink(l.RunLink()); err == nil {
+		return dst
+	}
+	return filepath.Join("..", "libexec", l.App)
+}
+
+func (l Layout) runTarget(version string) string {
+	return filepath.Join("..", "libexec", l.App+"-"+version)
 }
 
 // EtcDir is /opt/<app>/etc.
@@ -111,26 +97,15 @@ func (l Layout) LibexecBinary(version string) string {
 // StateDir is /opt/<app>/state.
 func (l Layout) StateDir() string { return filepath.Join(l.AppDir(), "state") }
 
-// DataDir is the legacy name for StateDir.
-func (l Layout) DataDir() string {
-	if l.legacyDefaultRoot() {
-		return filepath.Join(l.AppDir(), "data")
-	}
-	return l.StateDir()
-}
-
 // DBPath is /opt/<app>/state/<app>.db — state, NEVER touched on deploy except the
-// explicit pre-migration backup copy (PLAN §2.7).
-func (l Layout) DBPath() string { return filepath.Join(l.DataDir(), l.App+".db") }
+// explicit pre-migration backup copy.
+func (l Layout) DBPath() string { return filepath.Join(l.StateDir(), l.App+".db") }
 
 // CacheDir is /opt/<app>/cache.
 func (l Layout) CacheDir() string { return filepath.Join(l.AppDir(), "cache") }
 
 // GenerationPath is /opt/<app>/cache/<app>.db.generation.
 func (l Layout) GenerationPath() string {
-	if l.legacyDefaultRoot() {
-		return l.DBPath() + ".generation"
-	}
 	_ = os.MkdirAll(l.CacheDir(), 0o755)
 	return filepath.Join(l.CacheDir(), l.App+".db.generation")
 }
@@ -141,38 +116,19 @@ func (l Layout) GenerationPath() string {
 // Only apps that opt in (sites) get this tree; setup creates none otherwise.
 func (l Layout) WWWDir() string { return filepath.Join(l.StateDir(), "www") }
 
-// WWWRoot is the legacy name for WWWDir.
-func (l Layout) WWWRoot() string {
-	if l.legacyDefaultRoot() {
-		return filepath.Join(l.AppDir(), "www")
-	}
-	return l.WWWDir()
-}
+func (l Layout) WWWRoot() string { return l.WWWDir() }
 
 // WWWWorkingDir is /opt/<app>/state/www/working — draft site trees authored via MCP.
 func (l Layout) WWWWorkingDir() string { return filepath.Join(l.WWWRoot(), "working") }
 
-// WWWServedDir is the legacy name for WWWDir.
-func (l Layout) WWWServedDir() string { return filepath.Join(l.WWWRoot(), "served") }
-
 // WWWPublicDir is /opt/<app>/state/www/public — publish symlinks → working trees.
 func (l Layout) WWWPublicDir() string {
-	if l.legacyDefaultRoot() {
-		return filepath.Join(l.WWWServedDir(), "public")
-	}
 	return filepath.Join(l.WWWDir(), "public")
 }
 
 // WWWPrivateDir is /opt/<app>/state/www/private — the private served surface.
 func (l Layout) WWWPrivateDir() string {
-	if l.legacyDefaultRoot() {
-		return filepath.Join(l.WWWServedDir(), "private")
-	}
 	return filepath.Join(l.WWWDir(), "private")
-}
-
-func (l Layout) legacyDefaultRoot() bool {
-	return l.Root == "/opt"
 }
 
 // BackupsDir is /opt/<app>/backups — where install drops the pre-migration DB

@@ -51,7 +51,7 @@ type SetupOptions struct {
 // the old bin/setup split out from the box-global init-box (PLAN §D1):
 //
 //  1. create the dedicated --system app user (seam; idempotent),
-//  2. create the /opt/<app> tree (releases/ bin/ etc/ data/ backups/),
+//  2. create the /opt/<app> tree (libexec/ bin/ etc/ state/ cache/ backups/),
 //  3. write + enable-NOT-start the systemd unit
 //     (ExecStart=/usr/local/bin/ikigenba-launch <app>),
 //  4. drop the service's nginx fragment into conf.d/locations/<app>.conf (with
@@ -128,12 +128,12 @@ func (o *Opsctl) Setup(ctx context.Context, opts SetupOptions) error {
 		// Path-routed services still consume the existing fragment-driven setup
 		// contract guarded by the provisioning tests.
 		if err := mkdirAll755(
-			l.AppDir(), l.ReleasesDir(), l.BinDir(), l.EtcDir(), l.BackupsDir(),
+			l.AppDir(), l.BinDir(), l.EtcDir(), l.LibexecDir(), l.CacheDir(), l.BackupsDir(),
 		); err != nil {
 			return fmt.Errorf("setup: create app tree: %w", err)
 		}
-		if err := os.MkdirAll(l.DataDir(), 0o750); err != nil {
-			return fmt.Errorf("setup: create data dir: %w", err)
+		if err := os.MkdirAll(l.StateDir(), 0o750); err != nil {
+			return fmt.Errorf("setup: create state dir: %w", err)
 		}
 
 		// 2b. The OPTIONAL world-readable www/ tree (sites only). data/ is 0750 so
@@ -200,9 +200,9 @@ func (o *Opsctl) Setup(ctx context.Context, opts SetupOptions) error {
 
 // WWWDirsFor returns the absolute www-tree dirs setup must create for app under
 // root, or nil for apps that need no static tree. Only `sites` opts in: it serves
-// from a SEPARATE world-readable www/ tree (the stock data/ is 0750 <app>:<app>,
+// from a SEPARATE world-readable www/ tree (the stock state/ is 0750 <app>:<app>,
 // untraversable by nginx's www-data). The dirs are ordered parent-first so a
-// single mkdir pass suffices: www/ → working/ → served/ → served/{public,private}/.
+// single mkdir pass suffices: www/ → working/ → public/ → private/.
 // The command layer calls this to populate SetupOptions.WWWDirs, so the tree is
 // derived per-app — `opsctl setup sites …` provisions it with no operator flag.
 func WWWDirsFor(root, app string) []string {
@@ -213,7 +213,6 @@ func WWWDirsFor(root, app string) []string {
 	return []string{
 		l.WWWRoot(),
 		l.WWWWorkingDir(),
-		l.WWWServedDir(),
 		l.WWWPublicDir(),
 		l.WWWPrivateDir(),
 	}
