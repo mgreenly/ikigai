@@ -22,8 +22,8 @@ func validVersion(v string) bool {
 }
 
 // compareVersion orders release identities by SemVer precedence. If precedence is
-// equal, such as two builds that differ only by +metadata, the release binary
-// mtimes decide which build is newer. Missing binaries or equal mtimes leave the
+// equal, such as two builds that differ only by +metadata, the libexec file
+// mtimes decide which build is newer. Missing files or equal mtimes leave the
 // versions precedence-equal.
 func (l Layout) compareVersion(a, b string) int {
 	if !validVersion(a) || !validVersion(b) {
@@ -40,8 +40,8 @@ func (l Layout) compareVersion(a, b string) int {
 		return c
 	}
 
-	ai, aerr := os.Stat(l.ReleaseBinary(a))
-	bi, berr := os.Stat(l.ReleaseBinary(b))
+	ai, aerr := os.Stat(l.ReleaseLibexecFile(a))
+	bi, berr := os.Stat(l.ReleaseLibexecFile(b))
 	if aerr != nil || berr != nil {
 		return 0
 	}

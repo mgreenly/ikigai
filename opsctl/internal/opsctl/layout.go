@@ -64,6 +64,12 @@ func (l Layout) ReleaseBinary(version string) string {
 	return filepath.Join(l.ReleaseDir(version), l.App)
 }
 
+// ReleaseLibexecFile is /opt/<app>/releases/<version>/libexec/<app>: the
+// per-build file whose mtime breaks ties between SemVer-precedence-equal builds.
+func (l Layout) ReleaseLibexecFile(version string) string {
+	return filepath.Join(l.ReleaseDir(version), "libexec", l.App)
+}
+
 // CurrentLink is /opt/<app>/current — the symlink swapped atomically to point at
 // the live release dir (ln -sfn semantics).
 func (l Layout) CurrentLink() string { return filepath.Join(l.AppDir(), "current") }
