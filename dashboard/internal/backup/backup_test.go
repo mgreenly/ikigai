@@ -5,6 +5,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"appkit"
@@ -82,6 +83,36 @@ func TestBackup_S3RequiresBucket(t *testing.T) {
 	})
 	if err == nil {
 		t.Fatal("S3 backup with no bucket: want error, got nil")
+	}
+}
+
+func TestBackupRestore_S3BranchRetiredButLocalContractRemains(t *testing.T) {
+	// R-4ALB-ZDDU
+	t.Setenv("IKIGENBA_BACKUP_BUCKET", "")
+	t.Setenv("IKIGENBA_DOMAIN", "")
+	dbPath := freshDB(t)
+	snap := filepath.Join(t.TempDir(), "snap.db")
+	var stdout, stderr bytes.Buffer
+	if err := Backup(context.Background(), appkit.BackupReq{
+		App: "dashboard", DBPath: dbPath, Args: []string{"--out", snap}, Stdout: &stdout, Stderr: &stderr,
+	}); err != nil {
+		t.Fatalf("local Backup --out: %v", err)
+	}
+	if err := Backup(context.Background(), appkit.BackupReq{
+		App: "dashboard", DBPath: dbPath, Args: nil, Stdout: &stdout, Stderr: &stderr,
+	}); err == nil || !strings.Contains(err.Error(), "retired") {
+		t.Fatalf("S3 Backup error = %v, want retired", err)
+	}
+	restorePath := filepath.Join(t.TempDir(), "restored.db")
+	if err := Restore(context.Background(), appkit.RestoreReq{
+		App: "dashboard", DBPath: restorePath, Args: []string{"--from", snap}, Stdout: &stdout, Stderr: &stderr,
+	}); err != nil {
+		t.Fatalf("local Restore --from: %v", err)
+	}
+	if err := Restore(context.Background(), appkit.RestoreReq{
+		App: "dashboard", DBPath: restorePath, Args: nil, Stdout: &stdout, Stderr: &stderr,
+	}); err == nil || !strings.Contains(err.Error(), "retired") {
+		t.Fatalf("S3 Restore error = %v, want retired", err)
 	}
 }
 

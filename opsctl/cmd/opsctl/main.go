@@ -78,6 +78,8 @@ var groups = []group{
 		{"deploy", "opsctl deploy <app> <version>"},
 		{"rollback", "opsctl rollback <app> [version]"},
 		{"prune", "opsctl prune <app> [--keep <n>]"},
+		{"backup", "opsctl backup <app>"},
+		{"restore", "opsctl restore <app> [snapshot-key]"},
 	}},
 	{"Inspect", []verb{
 		{"status", "opsctl status [app]"},
@@ -117,6 +119,8 @@ var runners = map[string]runner{
 	"deploy":   runDeploy,
 	"rollback": runRollback,
 	"prune":    runPrune,
+	"backup":   runBackup,
+	"restore":  runRestore,
 	"status":   runStatus,
 	"releases": runReleases,
 	"start":    runServiceControl,
@@ -270,6 +274,39 @@ func runRollback(ctx context.Context, root, name string, args []string) error {
 		target = pos[1]
 	}
 	return opsctl.New(root).Rollback(ctx, pos[0], target)
+}
+
+func runBackup(ctx context.Context, root, name string, args []string) error {
+	fs := newFlagSet(name)
+	if err := fs.Parse(args); err != nil {
+		return helpErr(err)
+	}
+	pos := fs.Args()
+	if len(pos) != 1 || strings.HasPrefix(pos[0], "-") {
+		return fmt.Errorf("usage: opsctl backup <app>")
+	}
+	return opsctl.New(root).Backup(ctx, pos[0])
+}
+
+func runRestore(ctx context.Context, root, name string, args []string) error {
+	fs := newFlagSet(name)
+	if err := fs.Parse(args); err != nil {
+		return helpErr(err)
+	}
+	pos := fs.Args()
+	if len(pos) < 1 || len(pos) > 2 {
+		return fmt.Errorf("usage: opsctl restore <app> [snapshot-key]")
+	}
+	for _, p := range pos {
+		if strings.HasPrefix(p, "-") {
+			return fmt.Errorf("restore: unsupported flag %s; interactive confirmation is required and there is no --yes bypass", p)
+		}
+	}
+	key := ""
+	if len(pos) == 2 {
+		key = pos[1]
+	}
+	return opsctl.New(root).Restore(ctx, pos[0], key, os.Stdin)
 }
 
 func runPrune(ctx context.Context, root, name string, args []string) error {

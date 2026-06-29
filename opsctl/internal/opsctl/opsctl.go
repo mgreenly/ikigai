@@ -23,6 +23,7 @@ type Opsctl struct {
 	Keep    int       // releases prune retains (0 ⇒ DefaultKeep)
 	System  System    // systemd / provisioning seam
 	Runner  AppRunner // app-binary verb seam
+	Store   ObjectStore
 	// Out / Err are the human-readable progress streams (the verbs' data goes to
 	// the box, not here). Default os.Stdout / os.Stderr.
 	Out io.Writer

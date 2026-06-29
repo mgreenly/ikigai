@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -109,6 +110,18 @@ type AppRunner interface {
 	// Run executes `<binary> <verb> <args...>` with the given extra environment
 	// (KEY=VALUE) layered over the process env, returning the verb's stdout.
 	Run(ctx context.Context, binary, verb string, args []string, env []string) (stdout string, err error)
+}
+
+type ObjInfo struct {
+	Key  string
+	Size int64
+}
+
+type ObjectStore interface {
+	Put(ctx context.Context, key string, r io.Reader) error
+	Get(ctx context.Context, key string, w io.Writer) error
+	List(ctx context.Context, prefix string) ([]ObjInfo, error)
+	Delete(ctx context.Context, key string) error
 }
 
 // RealSystem drives systemd via systemctl. On the box opsctl runs privileged

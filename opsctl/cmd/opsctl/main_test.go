@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"os"
 	"os/exec"
@@ -51,6 +52,17 @@ func TestUsageNamesEveryDispatchableVerb(t *testing.T) {
 		if !strings.Contains(help, needle) {
 			t.Errorf("usage() does not name verb %q (missing %q)", name, needle)
 		}
+	}
+}
+
+func TestRestoreRejectsYesBypassBeforeCore(t *testing.T) {
+	// R-4KCJ-1JBE
+	err := runRestore(context.Background(), t.TempDir(), "restore", []string{"ledger", "--yes"})
+	if err == nil {
+		t.Fatal("runRestore accepted --yes, want refusal")
+	}
+	if got := err.Error(); !strings.Contains(got, "no --yes bypass") {
+		t.Fatalf("error = %q, want no --yes bypass refusal", got)
 	}
 }
 
