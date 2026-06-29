@@ -10,7 +10,7 @@ import (
 )
 
 // DefaultKeep is how many recent releases prune retains by default (PLAN §C2:
-// "prune keeps the right N", a small N). current's target and the immediate
+// "prune keeps the right N", a small N). bin/run's target and the immediate
 // predecessor rollback would aim at are always kept regardless of N.
 const DefaultKeep = 3
 
@@ -53,7 +53,7 @@ func (o *Opsctl) keep() int {
 func (o *Opsctl) layout(app string) Layout { return NewLayoutSys(o.Root, o.SysRoot, app) }
 
 // discoverApps lists the installed apps under OPSCTL_ROOT: the immediate
-// subdirectories of Root that carry a `current` symlink (a deployed release).
+// subdirectories of Root that carry a `bin/run` symlink (a deployed release).
 // Bare /opt children without one (a setup-but-never-deployed tree, or unrelated
 // dirs) are skipped, so `status` and friends report only live apps. The result is
 // sorted ascending by name.
@@ -75,7 +75,7 @@ func (o *Opsctl) discoverApps() ([]string, error) {
 			continue
 		}
 		l := o.layout(e.Name())
-		if fi, lerr := os.Lstat(l.CurrentLink()); lerr == nil && fi.Mode()&os.ModeSymlink != 0 {
+		if fi, lerr := os.Lstat(l.RunLink()); lerr == nil && fi.Mode()&os.ModeSymlink != 0 {
 			apps = append(apps, e.Name())
 		}
 	}
@@ -102,7 +102,7 @@ func (o *Opsctl) dbEnv(l Layout) []string {
 	}
 }
 
-// atomicSwap repoints the `current` symlink at target using the create-temp +
+// atomicSwap repoints a symlink at target using the create-temp +
 // rename technique — the POSIX-atomic equivalent of `ln -sfn`. The symlink only
 // ever resolves to a complete release: the temp link is fully formed before the
 // rename, and rename(2) on the same directory is atomic, so a concurrent
@@ -110,13 +110,16 @@ func (o *Opsctl) dbEnv(l Layout) []string {
 // one (PLAN §1.4, §2.6).
 func atomicSwap(linkPath, target string) error {
 	dir := filepath.Dir(linkPath)
-	tmp, err := os.MkdirTemp(dir, ".current-swap-*")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return fmt.Errorf("swap: mkdir parent: %w", err)
+	}
+	tmp, err := os.MkdirTemp(dir, ".run-swap-*")
 	if err != nil {
 		return fmt.Errorf("swap: temp dir: %w", err)
 	}
 	// Use a stable name inside the unique temp dir for the staged link, then move
 	// the link itself into place. os.MkdirTemp gives us a collision-free slot.
-	staged := filepath.Join(tmp, "current")
+	staged := filepath.Join(tmp, "run")
 	if err := os.Symlink(target, staged); err != nil {
 		os.RemoveAll(tmp)
 		return fmt.Errorf("swap: symlink: %w", err)
@@ -130,9 +133,8 @@ func atomicSwap(linkPath, target string) error {
 }
 
 // ensureSymlink makes linkPath a symlink to target, creating it if absent and
-// leaving it untouched if it already points there. Used for the stable bin/run
-// link (set once at setup, but install self-heals it so a fresh release dir is
-// never left without it). Unlike atomicSwap it is not a hot-path cutover.
+// leaving it untouched if it already points there. Unlike atomicSwap it is not a
+// hot-path cutover.
 func ensureSymlink(linkPath, target string) error {
 	if cur, err := os.Readlink(linkPath); err == nil {
 		if cur == target {
@@ -147,7 +149,7 @@ func ensureSymlink(linkPath, target string) error {
 	}
 	// linkPath either does not exist or exists as a NON-symlink (Readlink returns
 	// EINVAL on a regular file / dir). On a brand-new tree it is absent; on a
-	// conversion from the OLD layout it is the legacy `bin/run` wrapper SCRIPT (a
+	// conversion from an old layout it is a legacy `bin/run` wrapper script (a
 	// regular file). A plain os.Symlink fails with EEXIST in that case, so route
 	// the replacement through atomicSwap, whose rename(2) atomically replaces an
 	// existing regular file — leaving the stable path valid throughout.

@@ -251,17 +251,17 @@ func TestSetup_PathRoutedService(t *testing.T) {
 		t.Fatalf("ledger fragment mismatch:\n--- got ---\n%q\n--- want ---\n%q", got, wantFrag)
 	}
 
-	// The /opt/<app> tree exists (PLAN §1.4): releases/ bin/ etc/ data/ backups/.
+	// The /opt/<app> tree exists (PLAN §1.4): libexec/ bin/ etc/ state/ cache/ backups/.
 	for _, dir := range []string{
-		l.AppDir(), l.ReleasesDir(), l.BinDir(), l.EtcDir(), l.DataDir(), l.BackupsDir(),
+		l.AppDir(), l.LibexecDir(), l.BinDir(), l.EtcDir(), l.StateDir(), l.CacheDir(), l.BackupsDir(),
 	} {
 		if fi, err := os.Stat(dir); err != nil || !fi.IsDir() {
 			t.Fatalf("tree dir %s not created: %v", dir, err)
 		}
 	}
-	// data/ must be 0750 (the DB's parent), the rest 0755 — matching install -d.
-	if fi, _ := os.Stat(l.DataDir()); fi != nil && fi.Mode().Perm() != 0o750 {
-		t.Errorf("data dir perm = %o, want 0750", fi.Mode().Perm())
+	// state/ must be 0750 (the DB's parent), the rest 0755 — matching install -d.
+	if fi, _ := os.Stat(l.StateDir()); fi != nil && fi.Mode().Perm() != 0o750 {
+		t.Errorf("state dir perm = %o, want 0750", fi.Mode().Perm())
 	}
 	// The DB itself is never created by setup (PLAN §2.7 — state on first start).
 	if _, err := os.Stat(l.DBPath()); !os.IsNotExist(err) {
@@ -289,7 +289,7 @@ func TestSetup_PathRoutedService(t *testing.T) {
 
 // TestSetup_WWWTree provisions the sites service: in addition to the standard
 // tree, setup must create the SEPARATE world-readable www/ tree (working/,
-// served/, served/public/, served/private/, and the www/ root) at mode 0755 and
+// public/, private/, and the www/ root) at mode 0755 and
 // `chown -R sites:sites` the www root, so nginx (www-data) can traverse+read it
 // (the stock data/ is 0750 and untraversable). The WWWDirs are derived per-app
 // via WWWDirsFor, so `opsctl setup sites` provisions them with no operator flag.
@@ -315,7 +315,7 @@ func TestSetup_WWWTree(t *testing.T) {
 	// The four served/working dirs plus the www/ root all exist at exactly 0755 —
 	// world-traversable so www-data can reach the served trees.
 	for _, dir := range []string{
-		l.WWWRoot(), l.WWWWorkingDir(), l.WWWServedDir(), l.WWWPublicDir(), l.WWWPrivateDir(),
+		l.WWWRoot(), l.WWWWorkingDir(), l.WWWPublicDir(), l.WWWPrivateDir(),
 	} {
 		fi, err := os.Stat(dir)
 		if err != nil || !fi.IsDir() {
@@ -376,7 +376,7 @@ func TestSetup_InstallsPackages(t *testing.T) {
 }
 
 // TestWWWDirsFor_OnlySites asserts the www tree is derived per-app: sites gets
-// the five-dir tree, every other app gets none — so non-sites setup creates no
+// the four-dir tree, every other app gets none — so non-sites setup creates no
 // www dir (no regression). Pairs with the ledger setup test, which never sees a
 // www dir or a chown op.
 func TestWWWDirsFor_OnlySites(t *testing.T) {
@@ -385,11 +385,10 @@ func TestWWWDirsFor_OnlySites(t *testing.T) {
 	}
 	got := WWWDirsFor("/opt", "sites")
 	want := []string{
-		"/opt/sites/www",
-		"/opt/sites/www/working",
-		"/opt/sites/www/served",
-		"/opt/sites/www/served/public",
-		"/opt/sites/www/served/private",
+		"/opt/sites/state/www",
+		"/opt/sites/state/www/working",
+		"/opt/sites/state/www/public",
+		"/opt/sites/state/www/private",
 	}
 	if strings.Join(got, "|") != strings.Join(want, "|") {
 		t.Fatalf("WWWDirsFor(sites) = %v, want %v", got, want)

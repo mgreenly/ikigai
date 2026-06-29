@@ -69,8 +69,11 @@ func TestReleases_OrdersPatchVersionsNumerically(t *testing.T) {
 	app := "ledger"
 	l := NewLayout(root, app)
 	for _, v := range []string{"v0.7.10", "v0.7.9"} {
-		if err := os.MkdirAll(l.ReleaseDir(v), 0o755); err != nil {
-			t.Fatalf("mkdir release %s: %v", v, err)
+		if err := os.MkdirAll(l.LibexecDir(), 0o755); err != nil {
+			t.Fatalf("mkdir libexec: %v", err)
+		}
+		if err := os.WriteFile(l.LibexecBinary(v), []byte(v), 0o755); err != nil {
+			t.Fatalf("write release %s: %v", v, err)
 		}
 	}
 
@@ -94,8 +97,11 @@ func TestReleases_OrdersPrereleasesBySemVerPrecedence(t *testing.T) {
 	app := "ledger"
 	l := NewLayout(root, app)
 	for _, v := range []string{"v1.0.0", "v1.0.0-rc.10", "v1.0.0-rc.2"} {
-		if err := os.MkdirAll(l.ReleaseDir(v), 0o755); err != nil {
-			t.Fatalf("mkdir release %s: %v", v, err)
+		if err := os.MkdirAll(l.LibexecDir(), 0o755); err != nil {
+			t.Fatalf("mkdir libexec: %v", err)
+		}
+		if err := os.WriteFile(l.LibexecBinary(v), []byte(v), 0o755); err != nil {
+			t.Fatalf("write release %s: %v", v, err)
 		}
 	}
 

@@ -19,7 +19,7 @@ func newCommitOpsctl(t *testing.T, root, app string, sys *stubSystem, existCommi
 	o.Runner = fakeRunner{
 		baseEnv: fakeEnv(app, "v1.0.0", 1, ""),
 		commitByPath: map[string]string{
-			l.ReleaseBinary("v1.0.0"): existCommit,
+			l.LibexecBinary("v1.0.0"): existCommit,
 			artifact:                  incomingCommit,
 		},
 	}
@@ -43,7 +43,7 @@ func TestStage_SameSHANoOp(t *testing.T) {
 	if _, err := os.Stat(art1); !os.IsNotExist(err) {
 		t.Fatalf("first stage did not delete the /tmp artifact (err=%v)", err)
 	}
-	relBin := l.ReleaseBinary("v1.0.0")
+	relBin := l.LibexecBinary("v1.0.0")
 	info1, err := os.Stat(relBin)
 	if err != nil {
 		t.Fatalf("release binary missing after stage: %v", err)
