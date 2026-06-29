@@ -98,7 +98,11 @@ func (o *Opsctl) currentVersion(l Layout) (string, error) {
 		}
 		return "", err
 	}
-	return filepath.Base(dst), nil
+	v := filepath.Base(dst)
+	if !validVersion(v) {
+		return "", fmt.Errorf("invalid current version %q: want canonical SemVer vMAJOR.MINOR.PATCH", v)
+	}
+	return v, nil
 }
 
 // priorRelease returns the release immediately preceding `from` in sorted order —
@@ -135,7 +139,11 @@ func (o *Opsctl) listReleases(l Layout) ([]string, error) {
 	var out []string
 	for _, e := range entries {
 		if e.IsDir() {
-			out = append(out, e.Name())
+			v := e.Name()
+			if !validVersion(v) {
+				return nil, fmt.Errorf("invalid release version %q under %s: want canonical SemVer vMAJOR.MINOR.PATCH", v, l.ReleasesDir())
+			}
+			out = append(out, v)
 		}
 	}
 	sort.SliceStable(out, func(i, j int) bool { return l.compareVersion(out[i], out[j]) < 0 })

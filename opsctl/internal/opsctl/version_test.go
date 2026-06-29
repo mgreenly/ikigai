@@ -122,3 +122,31 @@ func TestVersionTakingBoundariesRejectInvalidSemVer(t *testing.T) {
 		}
 	}
 }
+
+func TestReleaseIdentityBoundariesRejectInvalidSemVer(t *testing.T) {
+	// R-439X-OQXO
+	root := t.TempDir()
+	app := "ledger"
+	l := NewLayout(root, app)
+	o := &Opsctl{Root: root}
+
+	if err := os.MkdirAll(l.ReleaseDir("v1.0.0"), 0o755); err != nil {
+		t.Fatalf("mkdir valid release: %v", err)
+	}
+	if err := os.MkdirAll(l.ReleaseDir("v1"), 0o755); err != nil {
+		t.Fatalf("mkdir invalid release: %v", err)
+	}
+	if _, err := o.listReleases(l); err == nil || !strings.Contains(err.Error(), "invalid release version \"v1\"") {
+		t.Fatalf("listReleases invalid dir err = %v, want invalid release version refusal", err)
+	}
+
+	if err := os.MkdirAll(filepath.Dir(l.CurrentLink()), 0o755); err != nil {
+		t.Fatalf("mkdir current dir: %v", err)
+	}
+	if err := os.Symlink(filepath.Join("releases", "v1.2"), l.CurrentLink()); err != nil {
+		t.Fatalf("symlink invalid current: %v", err)
+	}
+	if _, err := o.currentVersion(l); err == nil || !strings.Contains(err.Error(), "invalid current version \"v1.2\"") {
+		t.Fatalf("currentVersion invalid target err = %v, want invalid current version refusal", err)
+	}
+}

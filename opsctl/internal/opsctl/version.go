@@ -27,14 +27,7 @@ func validVersion(v string) bool {
 // versions precedence-equal.
 func (l Layout) compareVersion(a, b string) int {
 	if !validVersion(a) || !validVersion(b) {
-		switch {
-		case a < b:
-			return -1
-		case a > b:
-			return 1
-		default:
-			return 0
-		}
+		panic("compareVersion requires canonical SemVer versions")
 	}
 	if c := semver.Compare(a, b); c != 0 {
 		return c
