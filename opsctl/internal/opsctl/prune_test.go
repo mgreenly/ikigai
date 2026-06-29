@@ -3,8 +3,10 @@ package opsctl
 import (
 	"context"
 	"os"
+	"path/filepath"
 	"sort"
 	"testing"
+	"time"
 )
 
 // installSeq installs a sequence of versions (each with the same embedded schema,
@@ -96,6 +98,46 @@ func TestPrune_NewestSetUsesSemanticNumericOrdering(t *testing.T) {
 
 	got := releaseDirs(t, l)
 	want := []string{"v0.7.10"}
+	if len(got) != len(want) || got[0] != want[0] {
+		t.Fatalf("after prune kept %v, want %v", got, want)
+	}
+}
+
+func TestPrune_NewestSetUsesLibexecMtimeForBuildMetadata(t *testing.T) {
+	// R-4221-AZ6Z
+	root := t.TempDir()
+	app := "ledger"
+	l := NewLayout(root, app)
+	older := "v1.0.0+old"
+	newer := "v1.0.0+new"
+	for _, v := range []string{older, newer} {
+		if err := os.MkdirAll(l.ReleaseDir(v), 0o755); err != nil {
+			t.Fatalf("mkdir release %s: %v", v, err)
+		}
+		libexecFile := l.ReleaseLibexecFile(v)
+		if err := os.MkdirAll(filepath.Dir(libexecFile), 0o755); err != nil {
+			t.Fatalf("mkdir libexec %s: %v", v, err)
+		}
+		if err := os.WriteFile(libexecFile, []byte(v), 0o644); err != nil {
+			t.Fatalf("write libexec file %s: %v", v, err)
+		}
+	}
+	base := time.Unix(1700000000, 0)
+	if err := os.Chtimes(l.ReleaseLibexecFile(older), base, base); err != nil {
+		t.Fatalf("chtime older libexec: %v", err)
+	}
+	if err := os.Chtimes(l.ReleaseLibexecFile(newer), base.Add(time.Hour), base.Add(time.Hour)); err != nil {
+		t.Fatalf("chtime newer libexec: %v", err)
+	}
+
+	o := newOpsctl(t, root, app, &stubSystem{}, fakeEnv(app, newer, 1, ""))
+	o.Keep = 1
+	if err := o.Prune(context.Background(), app); err != nil {
+		t.Fatalf("prune: %v", err)
+	}
+
+	got := releaseDirs(t, l)
+	want := []string{newer}
 	if len(got) != len(want) || got[0] != want[0] {
 		t.Fatalf("after prune kept %v, want %v", got, want)
 	}
