@@ -2,7 +2,6 @@ package opsctl
 
 import (
 	"os"
-	"strings"
 
 	"golang.org/x/mod/semver"
 )
@@ -16,11 +15,8 @@ func validVersion(v string) bool {
 	if !semver.IsValid(v) {
 		return false
 	}
-	core := v
-	if i := strings.IndexAny(core, "-+"); i >= 0 {
-		core = core[:i]
-	}
-	return strings.Count(strings.TrimPrefix(core, "v"), ".") == 2
+	withoutBuild := v[:len(v)-len(semver.Build(v))]
+	return semver.Canonical(v) == withoutBuild
 }
 
 // compareVersion orders release identities by SemVer precedence. If precedence is
