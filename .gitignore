@@ -36,3 +36,5 @@
 # --- build-loop ephemeral brief (gather creates, verify deletes; never committed) ---
 # Every app's ralph loop writes its own project/prompts/brief.md seam.
 */project/prompts/brief.md
+# The suite-level (repo-root) loop's brief.
+/project/prompts/brief.md
