@@ -77,6 +77,9 @@ var (
 )
 
 func main() {
+	setDefaultEnv("SCRIPTS_DB_PATH", filepath.Join("state", "scripts.db"))
+	setDefaultEnv("SCRIPTS_GENERATION_PATH", filepath.Join("cache", "scripts.db.generation"))
+
 	var rt *appkit.Router
 
 	// One worker per upstream — the notify multi-cursor pattern. Each closes over
@@ -128,6 +131,13 @@ func main() {
 		},
 		Workers: workers,
 	})
+}
+
+func setDefaultEnv(key, value string) {
+	if os.Getenv(key) != "" {
+		return
+	}
+	_ = os.Setenv(key, value)
 }
 
 // runConsumer drives eventplane/consumer.Run over one upstream's /feed until ctx
@@ -183,15 +193,21 @@ func registerRoutes(rt *appkit.Router) error {
 		return err
 	}
 
-	// The run data tree lives alongside the db file (the same SCRIPTS_DB_PATH
-	// appkit resolved; default ./tmp/scripts.db), mirroring the on-box
-	// /opt/scripts/data layout.
-	dbPath := config.EnvOr(os.Getenv, "SCRIPTS_DB_PATH", "./tmp/scripts.db")
-	dataDir := filepath.Join(filepath.Dir(dbPath), "data")
-	runsDir := filepath.Join(dataDir, "runs")
+	// State is durable; runs are rebuildable execution trees. With the default
+	// on-box layout, SCRIPTS_DB_PATH=/opt/scripts/state/scripts.db and run dirs
+	// live at /opt/scripts/runs/<run_id>/ so backup/restore keeps only state/.
+	dbPath := config.EnvOr(os.Getenv, "SCRIPTS_DB_PATH", filepath.Join("state", "scripts.db"))
+	rootDir := filepath.Dir(filepath.Dir(dbPath))
+	if rootDir == "" {
+		rootDir = "."
+	}
+	runsDir := filepath.Join(rootDir, "runs")
+	if err := os.MkdirAll(runsDir, 0o700); err != nil {
+		return fmt.Errorf("scripts: create runs dir: %w", err)
+	}
 
 	store := script.NewStore(conn)
-	run := runner.New(store, dataDir, runTTL)
+	run := runner.New(store, rootDir, runTTL)
 	svc := script.NewService(store, runsDir, run)
 	// Wire the dropbox loopback client for the import verb. DROPBOX_BASE_URL is
 	// env-only (the loopback-URL-via-env shape notify uses for *_FEED_URL); the

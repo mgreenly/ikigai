@@ -37,7 +37,7 @@ const tailMax = 8192
 // Runner drives run lifecycles. It satisfies script.Runner.
 type Runner struct {
 	store   *script.Store
-	dataDir string // runs dir root: <dataDir>/runs/<run_id>/
+	dataDir string // service root: <dataDir>/runs/<run_id>/
 	ttl     time.Duration
 
 	mu      sync.Mutex
@@ -48,8 +48,8 @@ type Runner struct {
 	userCancelled map[string]bool
 }
 
-// New constructs a Runner over the store, the data dir (run trees live under
-// <dataDir>/runs/), and the per-run TTL backstop.
+// New constructs a Runner over the store, the service root (run trees live
+// under <dataDir>/runs/), and the per-run TTL backstop.
 func New(store *script.Store, dataDir string, ttl time.Duration) *Runner {
 	return &Runner{
 		store:         store,
@@ -60,7 +60,7 @@ func New(store *script.Store, dataDir string, ttl time.Duration) *Runner {
 	}
 }
 
-// runDir is the persistent per-run tree: <dataDir>/runs/<run_id>/.
+// runDir is the rebuildable per-run execution tree: <dataDir>/runs/<run_id>/.
 func (r *Runner) runDir(runID string) string {
 	return filepath.Join(r.dataDir, "runs", runID)
 }

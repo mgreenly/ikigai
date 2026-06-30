@@ -265,6 +265,61 @@ func TestCompositionRootMountsLandingUngatedAndKeepsMCPWiring(t *testing.T) {
 	}
 }
 
+func TestCompositionRootAdoptsNewScriptsLayout(t *testing.T) {
+	// R-4LKF-FB23
+	src, err := os.ReadFile("../../cmd/scripts/main.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	main := string(src)
+
+	for _, want := range []string{
+		`setDefaultEnv("SCRIPTS_DB_PATH", filepath.Join("state", "scripts.db"))`,
+		`setDefaultEnv("SCRIPTS_GENERATION_PATH", filepath.Join("cache", "scripts.db.generation"))`,
+		`dbPath := config.EnvOr(os.Getenv, "SCRIPTS_DB_PATH", filepath.Join("state", "scripts.db"))`,
+		`runsDir := filepath.Join(rootDir, "runs")`,
+		`os.MkdirAll(runsDir, 0o700)`,
+		`run := runner.New(store, rootDir, runTTL)`,
+		`svc := script.NewService(store, runsDir, run)`,
+	} {
+		if !strings.Contains(main, want) {
+			t.Fatalf("cmd/scripts/main.go missing new-layout wiring %q", want)
+		}
+	}
+	if strings.Contains(main, `filepath.Join(filepath.Dir(dbPath), "data")`) {
+		t.Fatalf("cmd/scripts/main.go still derives run data under the DB state directory")
+	}
+
+	manifest, err := os.ReadFile("../../etc/manifest.env")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		"SCRIPTS_DB_PATH=state/scripts.db\n",
+		"SCRIPTS_GENERATION_PATH=cache/scripts.db.generation\n",
+	} {
+		if !strings.Contains(string(manifest), want) {
+			t.Fatalf("manifest.env missing exported unit env %q", want)
+		}
+	}
+
+	for _, path := range []string{"../../bin/backup", "../../bin/restore"} {
+		body, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		text := string(body)
+		if !strings.Contains(text, "is retired; use opsctl") {
+			t.Fatalf("%s is not retired in favor of opsctl:\n%s", path, text)
+		}
+		for _, forbidden := range []string{"aws s3", "ssh ", "systemctl stop"} {
+			if strings.Contains(text, forbidden) {
+				t.Fatalf("%s still contains service-owned backup/restore mechanism %q:\n%s", path, forbidden, text)
+			}
+		}
+	}
+}
+
 func lineContaining(t *testing.T, text, needle string) string {
 	t.Helper()
 	for _, line := range strings.Split(text, "\n") {

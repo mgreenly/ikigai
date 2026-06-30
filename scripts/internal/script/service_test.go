@@ -469,6 +469,40 @@ func TestServiceRunOutputAndFs(t *testing.T) {
 	}
 }
 
+func TestServiceReadsRunFilesFromRebuildableRunsDir(t *testing.T) {
+	// R-4LKF-FB23
+	svc, store, _, runsDir := newTestService(t)
+	ctx := context.Background()
+	sc, _ := svc.Create(ctx, ownerA, CreateInput{Name: "x", Body: "print(1)"})
+	run := seedRun(t, store, sc.ID, RunSucceeded)
+
+	runDir := filepath.Join(runsDir, run.ID)
+	if err := os.MkdirAll(runDir, 0o700); err != nil {
+		t.Fatalf("mkdir run dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(runDir, "stdout.log"), []byte("fresh boot output\n"), 0o600); err != nil {
+		t.Fatalf("write stdout: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(runDir, "artifact.txt"), []byte("rebuilt\n"), 0o600); err != nil {
+		t.Fatalf("write artifact: %v", err)
+	}
+
+	out, err := svc.RunOutput(ctx, ownerA, run.ID, "stdout", 0, 0)
+	if err != nil {
+		t.Fatalf("RunOutput: %v", err)
+	}
+	if out != "fresh boot output\n" {
+		t.Fatalf("RunOutput = %q, want rebuildable run output", out)
+	}
+	body, err := svc.RunFsRead(ctx, ownerA, run.ID, "artifact.txt", 0, 0)
+	if err != nil {
+		t.Fatalf("RunFsRead: %v", err)
+	}
+	if body != "rebuilt\n" {
+		t.Fatalf("RunFsRead = %q, want artifact from runs dir", body)
+	}
+}
+
 // --- Import (Dropbox → scripts) ---
 
 // stubFetcher is a ContentFetcher returning canned bytes/err, so Import is

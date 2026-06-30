@@ -159,6 +159,33 @@ func TestSpawnSucceeds(t *testing.T) {
 	}
 }
 
+func TestSpawnUsesRebuildableRunsDirOutsideState(t *testing.T) {
+	// R-4LKF-FB23
+	requirePython(t)
+	st, _ := newStore(t)
+	root := t.TempDir()
+	stateDir := filepath.Join(root, "state")
+	if err := os.MkdirAll(stateDir, 0o700); err != nil {
+		t.Fatalf("mkdir state: %v", err)
+	}
+	r := New(st, root, 30*time.Second)
+
+	run := seed(t, st, "open('out.txt', 'w').write('artifact')\n")
+	r.Spawn(run, []byte("{}"))
+	got := waitTerminal(t, st, run.ID)
+
+	if got.Status != script.RunSucceeded {
+		t.Fatalf("status = %q, want succeeded", got.Status)
+	}
+	runDir := filepath.Join(root, "runs", run.ID)
+	if _, err := os.Stat(filepath.Join(runDir, "out.txt")); err != nil {
+		t.Fatalf("run artifact under non-state runs dir: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(stateDir, "runs")); !os.IsNotExist(err) {
+		t.Fatalf("state/runs should not exist for rebuildable execution trees; stat err=%v", err)
+	}
+}
+
 func TestSpawnFailsNonZero(t *testing.T) {
 	requirePython(t)
 	st, conn := newStore(t)

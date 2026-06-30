@@ -28,7 +28,7 @@ type Runner interface {
 type Service struct {
 	store   *Store
 	runner  Runner
-	dataDir string // runs dir root: a run's persisted tree is <dataDir>/<run_id>/
+	dataDir string // runs dir root: a run's rebuildable tree is <dataDir>/<run_id>/
 	now     func() time.Time
 	// Fetcher reads bytes from the dropbox mirror over loopback for Import. It is
 	// field-injected at the composition root (cmd/scripts sets svc.Fetcher), not a
@@ -41,7 +41,7 @@ type Service struct {
 //
 // runsDir is the directory that directly contains the per-run trees, i.e. the
 // value cmd/scripts passes is filepath.Join(<dataDir>, "runs"). A run's
-// persisted dir is therefore filepath.Join(runsDir, run_id). The runner is
+// rebuildable dir is therefore filepath.Join(runsDir, run_id). The runner is
 // constructed with the parent <dataDir> and joins "runs" itself
 // (runner.runDir = filepath.Join(dataDir, "runs", run_id)), so both the service
 // and the runner resolve to the identical <dataDir>/runs/<run_id>/ tree.
@@ -56,7 +56,7 @@ func NewService(store *Store, runsDir string, runner Runner) *Service {
 
 func (s *Service) nowStr() string { return s.now().UTC().Format(time.RFC3339Nano) }
 
-// runDir is the persisted per-run tree: <runsDir>/<run_id>/. dataDir already
+// runDir is the rebuildable per-run tree: <runsDir>/<run_id>/. dataDir already
 // includes the "runs" segment (see NewService), so we join only the run id —
 // matching runner.runDir which joins ("runs", run_id) onto its parent dataDir.
 func (s *Service) runDir(runID string) string {

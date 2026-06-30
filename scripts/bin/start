@@ -20,11 +20,16 @@ if [[ ! -x "$BIN" ]]; then
   bin/build
 fi
 
+mkdir -p state cache runs
+
 if [[ -f "$PIDFILE" ]] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
   echo "scripts already running (pid $(cat "$PIDFILE"))" >&2
   exit 1
 fi
 
-SCRIPTS_PORT="${SCRIPTS_PORT:-${PORT}}" "./$BIN" --port "${SCRIPTS_PORT:-${PORT}}" &
+SCRIPTS_PORT="${SCRIPTS_PORT:-${PORT}}" \
+SCRIPTS_DB_PATH="${SCRIPTS_DB_PATH:-state/scripts.db}" \
+SCRIPTS_GENERATION_PATH="${SCRIPTS_GENERATION_PATH:-cache/scripts.db.generation}" \
+"./$BIN" --port "${SCRIPTS_PORT:-${PORT}}" &
 echo $! > "$PIDFILE"
 echo "scripts started (pid $(cat "$PIDFILE")) on 127.0.0.1:${SCRIPTS_PORT:-${PORT}}"
