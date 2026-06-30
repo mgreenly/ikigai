@@ -28,7 +28,7 @@ Phase 14  ✅  realizes D8                  — adopt dropbox into the new layou
 Phase 15  ✅  realizes D8                  — adopt prompts into the new layout (classify sandboxes/, runs/)
 Phase 16  ✅  realizes D8                  — adopt wiki into the new layout
 Phase 17  ✅  realizes D8                  — adopt cron into the new layout
-Phase 18  ⬜  realizes D8                  — adopt gmail into the new layout
+Phase 18  ✅  realizes D8                  — adopt gmail into the new layout
 Phase 19  ⬜  realizes D8                  — adopt scripts into the new layout (classify runs/)
 Phase 20  ⬜  realizes D8                  — adopt sites into the new layout (relocate www/, repoint nginx)
 Phase 21  ⬜  realizes D8                  — adopt webhooks into the new layout
