@@ -138,6 +138,9 @@ func TestNginxStaticAssetsLocationSessionGated(t *testing.T) {
 			t.Fatalf("static assets block missing %q:\n%s", want, block)
 		}
 	}
+	if strings.Contains(block, "auth_request /_authn;") {
+		t.Fatalf("static assets block must be session-gated, not bearer-gated:\n%s", block)
+	}
 	if !exactMatchLanding.MatchString(conf) {
 		t.Fatalf("exact landing location must remain present")
 	}
