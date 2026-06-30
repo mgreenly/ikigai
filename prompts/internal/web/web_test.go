@@ -4,6 +4,7 @@ import (
 	"io/fs"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 )
@@ -102,7 +103,7 @@ func TestLandingAssetsAreEmbeddedAndServed(t *testing.T) {
 	pageReq := httptest.NewRequest(http.MethodGet, "/", nil)
 	pageRec := httptest.NewRecorder()
 	LandingHandler("prompts", "v11")(pageRec, pageReq)
-	if !strings.Contains(pageRec.Body.String(), `/static/tokens.css`) {
+	if !strings.Contains(pageRec.Body.String(), `href="static/tokens.css"`) {
 		t.Fatalf("landing page does not reference tokens.css:\n%s", pageRec.Body.String())
 	}
 
@@ -145,4 +146,116 @@ func TestLandingIsUngated(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status without identity or bearer = %d, want %d", rec.Code, http.StatusOK)
 	}
+}
+
+func TestTokensCSSUsesOptionalRelativeFontSources(t *testing.T) {
+	staticReq := httptest.NewRequest(http.MethodGet, "/tokens.css", nil)
+	staticRec := httptest.NewRecorder()
+	StaticHandler().ServeHTTP(staticRec, staticReq)
+
+	if staticRec.Code != http.StatusOK {
+		t.Fatalf("tokens.css status = %d, want %d", staticRec.Code, http.StatusOK)
+	}
+	css := staticRec.Body.String()
+
+	// R-DFKP-IVZU
+	if strings.Contains(css, "font-display: swap") {
+		t.Fatalf("tokens.css still contains font-display swap:\n%s", css)
+	}
+	if got, want := strings.Count(css, "@font-face"), strings.Count(css, "font-display: optional"); got != want {
+		t.Fatalf("font-display optional count = %d, want one per %d @font-face blocks", want, got)
+	}
+
+	// R-DGSL-WNQJ
+	if strings.Contains(css, "url('/static/fonts/") {
+		t.Fatalf("tokens.css still contains origin-absolute font URLs:\n%s", css)
+	}
+	for _, want := range []string{
+		"url('fonts/space-grotesk.woff2')",
+		"url('fonts/ibm-plex-sans.woff2')",
+		"url('fonts/ibm-plex-mono-400.woff2')",
+		"url('fonts/ibm-plex-mono-500.woff2')",
+	} {
+		if !strings.Contains(css, want) {
+			t.Fatalf("tokens.css missing relative font source %q:\n%s", want, css)
+		}
+	}
+}
+
+func TestLandingHeadUsesRelativeTokensAndPreloadsFonts(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+
+	LandingHandler("prompts", "v16")(rec, req)
+
+	head := renderedHead(t, rec.Body.String())
+
+	// R-DI0I-AFH8
+	if !strings.Contains(head, `href="static/tokens.css"`) {
+		t.Fatalf("head missing relative tokens.css link:\n%s", head)
+	}
+	if strings.Contains(head, `href="/static/tokens.css"`) {
+		t.Fatalf("head contains origin-absolute tokens.css link:\n%s", head)
+	}
+
+	// R-DJ8E-O77X
+	for _, font := range []string{"space-grotesk.woff2", "ibm-plex-sans.woff2"} {
+		want := `<link rel="preload" as="font" type="font/woff2" crossorigin href="static/fonts/` + font + `">`
+		if !strings.Contains(head, want) {
+			t.Fatalf("head missing font preload %q:\n%s", want, head)
+		}
+	}
+}
+
+func TestNginxStaticLocationUsesSessionAuth(t *testing.T) {
+	conf, err := os.ReadFile("../../etc/nginx.conf")
+	if err != nil {
+		t.Fatalf("read nginx conf: %v", err)
+	}
+	text := string(conf)
+	block := nginxLocationBlock(t, text, "location /srv/prompts/static/ {")
+
+	// R-DKGB-1YYM
+	for _, want := range []string{
+		"auth_request /_session-authn;",
+		"proxy_pass http://127.0.0.1:__PORT__/static/;",
+	} {
+		if !strings.Contains(block, want) {
+			t.Fatalf("static location missing %q:\n%s", want, block)
+		}
+	}
+	for _, want := range []string{
+		"location = /srv/prompts/.well-known/oauth-protected-resource",
+		"location = /srv/prompts/",
+		"location = /srv/prompts/feed { return 404; }",
+		"location /srv/prompts/ {",
+	} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("nginx conf missing existing location %q:\n%s", want, text)
+		}
+	}
+}
+
+func renderedHead(t *testing.T, html string) string {
+	t.Helper()
+	start := strings.Index(html, "<head>")
+	end := strings.Index(html, "</head>")
+	if start < 0 || end < 0 || end < start {
+		t.Fatalf("rendered page missing head:\n%s", html)
+	}
+	return html[start : end+len("</head>")]
+}
+
+func nginxLocationBlock(t *testing.T, conf, marker string) string {
+	t.Helper()
+	start := strings.Index(conf, marker)
+	if start < 0 {
+		t.Fatalf("nginx conf missing %q:\n%s", marker, conf)
+	}
+	rest := conf[start:]
+	end := strings.Index(rest, "\n}\n")
+	if end < 0 {
+		t.Fatalf("nginx conf location %q is not closed:\n%s", marker, rest)
+	}
+	return rest[:end+len("\n}")]
 }
