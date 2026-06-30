@@ -608,3 +608,67 @@ func TestRestoreReplacesStateByteForByteAndClearsCacheGeneration(t *testing.T) {
 		}
 	}
 }
+
+func TestRestoreRecreatesCacheAsEmptyDirectory(t *testing.T) {
+	// R-WP3M-PO1V
+	root := t.TempDir()
+	l := NewLayout(root, "ledger")
+	writeStateFile(t, l, "ledger.db", "old")
+	if err := os.MkdirAll(l.CacheDir(), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(l.CacheDir(), "cache.txt"), []byte("stale"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	store := newFakeStore()
+	snapshot := snapshotPrefix("ledger") + "snapshot.tar"
+	store.data[snapshot] = makeArchive(t, t.TempDir(), "ledger", map[string]string{"ledger.db": "new"})
+
+	if err := testOps(root, &stubSystem{}, store).Restore(context.Background(), "ledger", snapshot, strings.NewReader("ledger\n")); err != nil {
+		t.Fatalf("Restore: %v", err)
+	}
+
+	info, err := os.Stat(l.CacheDir())
+	if err != nil {
+		t.Fatalf("cache dir missing after restore: %v", err)
+	}
+	if !info.IsDir() {
+		t.Fatalf("cache path %s is not a directory", l.CacheDir())
+	}
+	entries, err := os.ReadDir(l.CacheDir())
+	if err != nil {
+		t.Fatalf("read cache dir: %v", err)
+	}
+	if len(entries) != 0 {
+		t.Fatalf("cache dir = %v, want empty", entries)
+	}
+}
+
+func TestRestoreChownsCacheToServiceUser(t *testing.T) {
+	// R-WQBJ-3FSK
+	root := t.TempDir()
+	l := NewLayout(root, "ledger")
+	writeStateFile(t, l, "ledger.db", "old")
+	store := newFakeStore()
+	snapshot := snapshotPrefix("ledger") + "snapshot.tar"
+	store.data[snapshot] = makeArchive(t, t.TempDir(), "ledger", map[string]string{"ledger.db": "new"})
+
+	sys := &stubSystem{}
+	if err := testOps(root, sys, store).Restore(context.Background(), "ledger", snapshot, strings.NewReader("ledger\n")); err != nil {
+		t.Fatalf("Restore: %v", err)
+	}
+
+	want := "chown:ledger:ledger:" + l.CacheDir()
+	var found bool
+	for _, op := range sys.opSeq() {
+		if op == want {
+			found = true
+		}
+		if strings.HasPrefix(op, "chown:root:") && strings.HasSuffix(op, l.CacheDir()) {
+			t.Fatalf("cache chowned to root: %q", op)
+		}
+	}
+	if !found {
+		t.Fatalf("restore ops = %v, want %q", sys.opSeq(), want)
+	}
+}

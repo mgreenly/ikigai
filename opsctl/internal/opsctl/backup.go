@@ -169,6 +169,12 @@ func (o *Opsctl) Restore(ctx context.Context, app, key string, confirm io.Reader
 	if err := replaceStateFromArchive(ctx, l, archive); err != nil {
 		return err
 	}
+	if err := os.MkdirAll(l.CacheDir(), 0o755); err != nil {
+		return fmt.Errorf("restore: recreate cache: %w", err)
+	}
+	if err := o.System.ChownTree(ctx, app, app, l.CacheDir()); err != nil {
+		return fmt.Errorf("restore: chown cache: %w", err)
+	}
 	if app == "dashboard" {
 		if err := restoreLatestCert(ctx, store, l, work); err != nil {
 			return err
