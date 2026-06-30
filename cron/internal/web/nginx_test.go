@@ -64,6 +64,40 @@ func TestNginxPreExistingServiceLocationsSurvive(t *testing.T) {
 	}
 }
 
+func TestNginxStaticLocationIsSessionGatedAndProxiesToStaticHandler(t *testing.T) {
+	conf := readNginxConfig(t)
+	static := nginxLocationBlock(t, conf, "location /srv/cron/static/ {")
+
+	for _, want := range []string{
+		"auth_request /_session-authn;",
+		"proxy_pass http://127.0.0.1:__PORT__/static/;",
+		"proxy_set_header Host $host;",
+		"proxy_set_header X-Forwarded-Proto $scheme;",
+		"proxy_http_version 1.1;",
+	} {
+		// R-2690-4RVV
+		if !strings.Contains(static, want) {
+			t.Fatalf("static location block does not contain %q:\n%s", want, static)
+		}
+	}
+	if strings.Contains(static, "auth_request /_authn;") {
+		t.Fatalf("static location block uses bearer auth_request:\n%s", static)
+	}
+
+	for _, header := range []string{
+		"location = /srv/cron/ {",
+		"location /srv/cron/ {",
+		"location = /srv/cron/feed { return 404; }",
+		"location = /srv/cron/.well-known/oauth-protected-resource {",
+		"location @cron_authn_500 {",
+	} {
+		// R-2690-4RVV
+		if !strings.Contains(conf, header) {
+			t.Fatalf("nginx config no longer contains %q:\n%s", header, conf)
+		}
+	}
+}
+
 func readNginxConfig(t *testing.T) string {
 	t.Helper()
 

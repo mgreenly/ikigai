@@ -118,7 +118,7 @@ func TestLandingTemplateUsesOnlyEmbeddedLocalAssets(t *testing.T) {
 			t.Fatalf("landing body contains runtime external asset reference %q:\n%s", disallowed, body)
 		}
 	}
-	for _, want := range []string{`href="/static/tokens.css"`, "/static/"} {
+	for _, want := range []string{`href="static/tokens.css"`} {
 		// R-ASST-5X9Y
 		if !strings.Contains(body, want) {
 			t.Fatalf("landing body does not contain %q:\n%s", want, body)
@@ -198,10 +198,10 @@ func TestStaticAssetsServeEmbeddedCarbonFiles(t *testing.T) {
 	css := requestAsset(t, mux, "/static/tokens.css", "text/css; charset=utf-8")
 	for _, want := range []string{
 		"@font-face",
-		"url('/static/fonts/space-grotesk.woff2')",
-		"url('/static/fonts/ibm-plex-sans.woff2')",
-		"url('/static/fonts/ibm-plex-mono-400.woff2')",
-		"url('/static/fonts/ibm-plex-mono-500.woff2')",
+		"url('fonts/space-grotesk.woff2')",
+		"url('fonts/ibm-plex-sans.woff2')",
+		"url('fonts/ibm-plex-mono-400.woff2')",
+		"url('fonts/ibm-plex-mono-500.woff2')",
 	} {
 		if !strings.Contains(css, want) {
 			t.Fatalf("tokens.css does not contain %q:\n%s", want, css)
@@ -228,6 +228,86 @@ func TestStaticAssetsServeEmbeddedCarbonFiles(t *testing.T) {
 	}
 }
 
+func TestStaticTokensCSSUsesOptionalFontDisplay(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.Handle("GET /static/", StaticHandler())
+
+	css := requestAsset(t, mux, "/static/tokens.css", "text/css; charset=utf-8")
+	fontFaceCount := strings.Count(css, "@font-face")
+	if fontFaceCount != 4 {
+		t.Fatalf("tokens.css has %d @font-face blocks, want 4:\n%s", fontFaceCount, css)
+	}
+	// R-21DE-LOX3
+	if got := strings.Count(css, "font-display: optional;"); got != fontFaceCount {
+		t.Fatalf("tokens.css has %d optional font-display declarations, want %d:\n%s", got, fontFaceCount, css)
+	}
+	if strings.Contains(css, "font-display: swap") {
+		t.Fatalf("tokens.css still contains font-display: swap:\n%s", css)
+	}
+}
+
+func TestStaticTokensCSSUsesDocumentRelativeFontSources(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.Handle("GET /static/", StaticHandler())
+
+	css := requestAsset(t, mux, "/static/tokens.css", "text/css; charset=utf-8")
+	if strings.Contains(css, "url('/static/fonts/") {
+		t.Fatalf("tokens.css still contains origin-absolute font URLs:\n%s", css)
+	}
+	for _, want := range []string{
+		"url('fonts/space-grotesk.woff2')",
+		"url('fonts/ibm-plex-sans.woff2')",
+		"url('fonts/ibm-plex-mono-400.woff2')",
+		"url('fonts/ibm-plex-mono-500.woff2')",
+	} {
+		// R-22LA-ZGNS
+		if !strings.Contains(css, want) {
+			t.Fatalf("tokens.css does not contain %q:\n%s", want, css)
+		}
+	}
+}
+
+func TestLandingHeadUsesDocumentRelativeStylesheet(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+
+	LandingHandler("cron", "test").ServeHTTP(rec, req)
+
+	head := headMarkup(t, rec.Body.String())
+	// R-23T7-D8EH
+	if !strings.Contains(head, `href="static/tokens.css"`) {
+		t.Fatalf("landing head does not link document-relative tokens.css:\n%s", head)
+	}
+	if strings.Contains(head, `href="/static/tokens.css"`) {
+		t.Fatalf("landing head still links origin-absolute tokens.css:\n%s", head)
+	}
+}
+
+func TestLandingHeadPreloadsDisplayAndBodyFonts(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+
+	LandingHandler("cron", "test").ServeHTTP(rec, req)
+
+	head := headMarkup(t, rec.Body.String())
+	mux := http.NewServeMux()
+	mux.Handle("GET /static/", StaticHandler())
+	css := requestAsset(t, mux, "/static/tokens.css", "text/css; charset=utf-8")
+	for _, font := range []string{"space-grotesk.woff2", "ibm-plex-sans.woff2"} {
+		href := "static/fonts/" + font
+		// R-2513-R056
+		link := linkMarkupWithHref(t, head, href)
+		for _, want := range []string{`rel="preload"`, `as="font"`, `type="font/woff2"`, "crossorigin"} {
+			if !strings.Contains(link, want) {
+				t.Fatalf("font preload for %s does not contain %q:\n%s", href, want, link)
+			}
+		}
+		if !strings.Contains(css, "url('fonts/"+font+"')") {
+			t.Fatalf("tokens.css does not contain matching @font-face src for %s:\n%s", href, css)
+		}
+	}
+}
+
 func requestAsset(t *testing.T, h http.Handler, path, contentType string) string {
 	t.Helper()
 
@@ -249,4 +329,31 @@ func requestAsset(t *testing.T, h http.Handler, path, contentType string) string
 		t.Fatalf("%s returned an empty body", path)
 	}
 	return string(body)
+}
+
+func headMarkup(t *testing.T, body string) string {
+	t.Helper()
+
+	start := strings.Index(body, "<head>")
+	end := strings.Index(body, "</head>")
+	if start < 0 || end < 0 || end <= start {
+		t.Fatalf("landing body does not contain a complete head:\n%s", body)
+	}
+	return body[start : end+len("</head>")]
+}
+
+func linkMarkupWithHref(t *testing.T, head, href string) string {
+	t.Helper()
+
+	hrefAttr := `href="` + href + `"`
+	hrefIndex := strings.Index(head, hrefAttr)
+	if hrefIndex < 0 {
+		t.Fatalf("landing head does not contain %s:\n%s", hrefAttr, head)
+	}
+	linkStart := strings.LastIndex(head[:hrefIndex], "<link")
+	linkEnd := strings.Index(head[hrefIndex:], ">")
+	if linkStart < 0 || linkEnd < 0 {
+		t.Fatalf("landing head does not contain a complete link for %s:\n%s", href, head)
+	}
+	return head[linkStart : hrefIndex+linkEnd+1]
 }
