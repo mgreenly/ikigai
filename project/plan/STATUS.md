@@ -25,7 +25,7 @@ Phase 11  ✅  realizes D8                  — adopt crm into the new layout
 Phase 12  ✅  realizes D8                  — adopt ledger into the new layout
 Phase 13  ✅  realizes D8                  — adopt notify into the new layout
 Phase 14  ✅  realizes D8                  — adopt dropbox into the new layout
-Phase 15  ⬜  realizes D8                  — adopt prompts into the new layout (classify sandboxes/, runs/)
+Phase 15  ✅  realizes D8                  — adopt prompts into the new layout (classify sandboxes/, runs/)
 Phase 16  ⬜  realizes D8                  — adopt wiki into the new layout
 Phase 17  ⬜  realizes D8                  — adopt cron into the new layout
 Phase 18  ⬜  realizes D8                  — adopt gmail into the new layout
