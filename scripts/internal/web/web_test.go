@@ -64,7 +64,7 @@ func TestLandingHandlerLinksOnlyAppLocalStaticAssets(t *testing.T) {
 	if !strings.Contains(body, `href="static/tokens.css"`) {
 		t.Fatalf("landing HTML did not link document-relative tokens.css:\n%s", body)
 	}
-	for _, forbidden := range []string{`href="/static/tokens.css"`, "dashboard", "/srv/dashboard", "https://", "http://"} {
+	for _, forbidden := range []string{`href="/static/`, "dashboard", "/srv/dashboard", "https://", "http://"} {
 		if strings.Contains(body, forbidden) {
 			t.Fatalf("landing HTML contains forbidden cross-service asset reference %q:\n%s", forbidden, body)
 		}
@@ -221,7 +221,7 @@ func TestLandingHandlerPreloadsDocumentRelativeDisplayFonts(t *testing.T) {
 			t.Fatalf("tokens.css no longer contains matching @font-face src for %s", font)
 		}
 	}
-	for _, forbidden := range []string{`href="/static/fonts/space-grotesk.woff2"`, `href="/static/fonts/ibm-plex-sans.woff2"`} {
+	for _, forbidden := range []string{`href="/static/fonts/`} {
 		if strings.Contains(body, forbidden) {
 			t.Fatalf("landing HTML contains origin-absolute font preload %q:\n%s", forbidden, body)
 		}
