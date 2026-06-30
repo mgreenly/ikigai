@@ -14,10 +14,11 @@ opaque bytes — never read, printed, or logged.
 **Done when:** `bin/test` exits 0 and:
 - R-TAOX-5LKS — `opsctl backup dashboard` produces a cert object under
   `dashboard/cert/` and its own `cert/latest`, distinct from the state
-  object/pointer (fake store unit + the real-S3 round-trip).
+  object/pointer (fake store unit + real `tar`/filesystem for the cert archive;
+  unprivileged/in-gate — real-`aws` interop is the on-box check).
 - R-TBWT-JDBH — a dashboard restore lays
   `/etc/letsencrypt/{archive,renewal,live}/<domain>` back from `cert/latest`
   matching the backed-up bytes, **without** invoking certbot (the issuance seam is
   never called during restore), resolving the cert pointer independently of the
   chosen state snapshot (real filesystem round-trip + stubbed `System` asserting no
-  issuance call; cert bytes via the real object store).
+  issuance call; cert bytes via the `ObjectStore` seam / `fakeStore`).

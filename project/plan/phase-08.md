@@ -21,13 +21,15 @@ verb is untouched as opsctl's pre-migration snapshot).
   `System` + fake store).
 - R-4HWQ-9ZU0 — backup puts an immutable timestamped object and updates `latest`;
   with N+1 present, retention deletes oldest down to N and never deletes `latest`
-  or `pre-restore/` (fake-store unit **and** an integration id against a real
-  S3-compatible endpoint confirming `aws` accepts the object and `latest` reads
-  back).
+  or `pre-restore/` — opsctl unit test against the `fakeStore` with a real
+  `tar`/filesystem, unprivileged/in-gate (real-`aws` accept/read-back is the
+  on-box check, outside the gate).
 - R-4J4M-NRKP — restore refuses without interactive confirmation (no `--yes`
   exists) and pushes a `pre-restore/` snapshot before replacing `state/`.
 - R-4KCJ-1JBE — full `backup`→`restore` reproduces `state/` byte-for-byte through
-  the **real** object store + real `tar`/filesystem.
+  the `ObjectStore` seam (`fakeStore`) with a **real `tar` and real filesystem**,
+  proving the archive format and Store contract round-trip (real-`aws` wire
+  interop is the on-box check).
 - R-46XM-U25R — a backup archive contains `state/` contents (incl. `<svc>.db`) and
   **no** `cache/` entry and **no** `*.generation` entry.
 - R-49DF-LLN5 — after restore, `state/` (DB bytes + every durable file) matches the

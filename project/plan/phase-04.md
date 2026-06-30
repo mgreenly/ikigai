@@ -13,13 +13,18 @@ skipped re-open fails safe (403 on `www/`), never a leaked DB.
 
 **Done when:** `bin/test` exits 0 and these design Verification ids are each
 covered by a clearly-named test:
-- R-3SAU-8T9F — `setup` creates the tree with `state/` mode `0711` owned
-  `<svc>:<svc>`, the DB at `0640 <svc>:<svc>`, `state/www/{public,private}` at
-  `0750 <svc>:web`, and a writable `cache/` (real filesystem, temp root).
-- R-VB77-BU5O — real uid/gid-dropped reads: a process whose groups are exactly
-  `{web}` can read `state/www/{public,private}` files and is denied reading the DB
-  and denied listing `state/`.
+- R-3SAU-8T9F — `setup` creates the tree with the right **mode bits** on a real
+  temp root (`state/` `0711`, DB `0640`, `state/www/{public,private}` `0750`,
+  writable `cache/`) **and** requests ownership `<svc>:<svc>` for `state/`+DB and
+  `<svc>:web` for `state/www/**` via the stubbed `Owner` seam (asserted on the
+  recorded calls) — runs unprivileged.
+- R-VB77-BU5O — the access-control model is asserted **by construction**: the mode
+  bits plus the `Owner` ownership plan entail, under the Unix permission model,
+  that a `web`-group process reads `state/www/{public,private}` and cannot read the
+  DB or list `state/` — a permission-model assertion over `(mode, uid, gid)`, not a
+  privileged live read.
 - R-VCF3-PLWD — the generated nginx fragment serves `state/www/public` with no
   `auth_request` and `state/www/private` behind the `/srv/<svc>/` introspection
-  `auth_request` (structural assertion on the fragment + a through-nginx
-  integration check that unauth gets `public/`, is refused `private/`).
+  `auth_request` — **structural assertion on the fragment only** (byte/field),
+  matching the suite's existing `nginx_test.go` convention (the through-running-
+  nginx check is on-box, outside the gate).

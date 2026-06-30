@@ -47,11 +47,21 @@ Shared facts every Decision leans on:
   (`OPSCTL_ROOT`, default `/opt`) and a parallel `SysRoot` (default `/`), so the
   whole layout is exercised against a temp dir with no real box. Box-only effects
   sit behind seams the tests stub: `System` (systemd start/stop/is-active),
-  `AppRunner` (subprocess invocation of a service binary's verbs), and — added by
-  this design (D07) — `ObjectStore` (the S3 object operations). A claim that
-  hinges on a **real** external contract (S3 accepting an upload, the event plane
-  rejecting a stale cursor, a real filesystem honoring an atomic rename) is
-  verified by an id that names that real substrate, never only a fake.
+  `AppRunner` (subprocess invocation of a service binary's verbs), `Owner`
+  (filesystem ownership — `chown` of a path to a uid/gid; D01), and — added by
+  this design (D07) — `ObjectStore` (the S3 object operations). **Tests run
+  unprivileged and with no external services, matching the suite's green gate**
+  (`bin/test` → `go test ./...`, which starts nothing external): a claim is
+  verified on the most faithful substrate reachable *in-gate without privilege* —
+  a real filesystem honoring an atomic rename; real mode bits on a real temp tree
+  with ownership asserted through the stubbed `Owner` seam; a real `tar` archive
+  round-tripped through the `ObjectStore` seam; the event plane rejecting a stale
+  cursor through a real in-process `httptest` server. The few contracts that need
+  a privileged or networked substrate the gate cannot provide — `aws` actually
+  transferring bytes to a real S3 bucket, a live `www-data`-gid read through a
+  running nginx — are exercised by an **on-box/manual check outside the green
+  gate**, never as a `t.Skip`-gated test (a skipped requirement test counts as
+  uncovered, so it is never the in-gate proof).
 
 ## Layout
 
