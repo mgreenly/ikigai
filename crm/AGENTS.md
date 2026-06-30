@@ -119,14 +119,12 @@ round-trips `FEED` + the `OUTBOX_RETENTION_*` config) is emitted by `crm manifes
 and regenerated on the box by `opsctl deploy` on every swap. Shipping is the
 shared repo-root `bin/ship crm` (no version arg; version is the committed
 `crm/VERSION`, advanced by `bin/bump crm <field>`) → `opsctl stage` + `opsctl
-deploy`; provisioning is `opsctl setup crm`. The only `bin/*` scripts crm still carries are `start`/`stop`
-(systemd control), plus `backup`/`restore` (operator-side S3 tooling — see
-below). No `plugin/` in this repo. **Backup note:** the binary's `backup`/
+deploy`; provisioning is `opsctl setup crm`. The only `bin/*` scripts crm carries are `start`/`stop`
+(systemd control). No `plugin/` in this repo. **Backup note:** the binary's `backup`/
 `restore` verbs give appkit's default local DB snapshot (used by `opsctl
 deploy`/`rollback`). Event-plane epoch re-mint on restore is now handled by
 appkit's default restore verb (it deletes the `<db>.generation` sidecar at the
-dispatch chokepoint), so `opsctl rollback`/`restore` are safe. What remains
-unfolded is only the operator **S3-bucket** backup/restore packaging, so crm
-**retains its `bin/backup`/`bin/restore` scripts operator-side** (the same
-category as `secrets`) for that S3 path until an `opsctl backup`/`restore` verb
-lands — see `AGENTS.md`.
+dispatch chokepoint), so `opsctl rollback`/`restore` are safe. Operator
+**S3-bucket** backup/restore is owned by **opsctl** (`opsctl backup crm` /
+`opsctl restore crm`, D07) — the former per-service `bin/backup`/`bin/restore`
+S3 scripts are retired and removed.

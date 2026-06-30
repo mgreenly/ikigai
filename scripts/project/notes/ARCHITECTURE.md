@@ -267,19 +267,20 @@ strings (`python_version`, `bash_version`, `network`, `packages`), not probed.
 
 ## 7. Lifecycle scripts (delta from the agent skeleton)
 
-scripts ships **setup / deploy / start / stop / backup / restore / teardown** —
-**no `bin/secrets`** (the service holds no secret).
+scripts ships **setup / deploy / start / stop / teardown** —
+**no `bin/secrets`** (the service holds no secret), and **no
+`bin/backup`/`bin/restore`**: S3 backup/restore is owned uniformly by opsctl
+(`opsctl backup scripts` / `opsctl restore scripts`, D07).
 
 - **`bin/setup`** — adds idempotent Python provisioning: install **`python3.11`**
   (the advertised `>=3.11` floor) on Amazon Linux 2023, plus the app-user /
   `/opt/scripts` tree and the nginx fragment. No persistent package set
   (stdlib-only day-one). bash 5.x is already present on AL2023.
-- **`bin/backup` / `bin/restore`** — durable state is the SQLite DB
-  (`data/scripts.db` — scripts + run history + triggers + cursors) and the run
-  per-run trees (`data/runs/` — each run's materialized inputs, logs, and
-  produced files). `aws s3 sync` of `data/` to the per-account backup bucket,
-  with a consistent DB snapshot (`VACUUM INTO`) synced alongside. There is no
-  ephemeral `data/work/` to exclude.
+- **S3 backup/restore** — owned by **opsctl** (`opsctl backup scripts` /
+  `opsctl restore scripts`, D07), not a per-service `bin/*` script. opsctl
+  snapshots scripts' durable `state/` (the SQLite DB under `state/scripts.db`)
+  via the uniform stop·snapshot·start path; rebuildable run trees in the
+  non-state region are excluded and recreated on boot.
 - **`bin/start` / `bin/stop`** (local dev) — soft `python3.11` preflight warning;
   non-fatal.
 - **`bin/teardown`** — reverse of setup; removes `/opt/scripts` incl. `data/`;

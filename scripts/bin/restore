@@ -1,6 +1,0 @@
-#!/usr/bin/env bash
-# bin/restore is retired: scripts backup/restore is owned by opsctl.
-set -euo pipefail
-
-echo "scripts/bin/restore is retired; use opsctl restore for scripts state." >&2
-exit 1

@@ -354,8 +354,9 @@ text.
   `LEDGER_*`→`DROPBOX_*` rename in the wrapper is surgical: the shared event-plane
   knobs `OUTBOX_RETENTION_DAYS` / `OUTBOX_RETENTION_MAX_ROWS` (read in `main.go`)
   keep their `OUTBOX_` prefix — they are **not** `LEDGER_*` and must not be swept.
-- **No `bin/backup` / `bin/restore`.** Unlike the dashboard (and prompts), dropbox
-  ships neither: the mirror is a download-only replica of Dropbox and the SQLite
+- **No `bin/backup` / `bin/restore`.** No service ships these — S3 backup/restore
+  is opsctl-owned suite-wide (D07). dropbox additionally needs no state snapshot
+  at all: the mirror is a download-only replica of Dropbox and the SQLite
   state (cursor + `files` index) is fully reconstructible by re-bootstrapping —
   **Dropbox is the source of truth.** Recovery on data loss is "delete the DB +
   mirror, restart, re-enumerate" (which re-emits `file.created` for every file,

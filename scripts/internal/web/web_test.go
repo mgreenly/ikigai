@@ -311,22 +311,6 @@ func TestCompositionRootAdoptsNewScriptsLayout(t *testing.T) {
 			t.Fatalf("manifest.env missing exported unit env %q", want)
 		}
 	}
-
-	for _, path := range []string{"../../bin/backup", "../../bin/restore"} {
-		body, err := os.ReadFile(path)
-		if err != nil {
-			t.Fatal(err)
-		}
-		text := string(body)
-		if !strings.Contains(text, "is retired; use opsctl") {
-			t.Fatalf("%s is not retired in favor of opsctl:\n%s", path, text)
-		}
-		for _, forbidden := range []string{"aws s3", "ssh ", "systemctl stop"} {
-			if strings.Contains(text, forbidden) {
-				t.Fatalf("%s still contains service-owned backup/restore mechanism %q:\n%s", path, forbidden, text)
-			}
-		}
-	}
 }
 
 func TestFreshSetupBootsFromNewScriptsLayoutAndPassesHealth(t *testing.T) {
