@@ -43,6 +43,7 @@ func TestNginxFragmentPreservesExistingLocations(t *testing.T) {
 
 	prm := nginxLocationBlock(t, conf, "location = /srv/sites/.well-known/oauth-protected-resource")
 	mcp := nginxLocationBlock(t, conf, "location = /srv/sites/mcp")
+	landing := nginxLocationBlock(t, conf, "location = /srv/sites/")
 	public := nginxLocationBlock(t, conf, "location /srv/sites/public/")
 	private := nginxLocationBlock(t, conf, "location /srv/sites/private/")
 	authn500 := nginxLocationBlock(t, conf, "location @sites_authn_500")
@@ -60,8 +61,27 @@ func TestNginxFragmentPreservesExistingLocations(t *testing.T) {
 	if !strings.Contains(private, "auth_request /_session-authn;") {
 		t.Fatalf("private static tier does not preserve session auth_request:\n%s", private)
 	}
+	if !strings.Contains(landing, "proxy_pass http://127.0.0.1:__PORT__/;") {
+		t.Fatalf("landing root block does not preserve upstream root proxy:\n%s", landing)
+	}
 	if !strings.Contains(authn500, "return 429;") || !strings.Contains(authn500, "return 500;") {
 		t.Fatalf("authn 500 re-emit location does not preserve expected returns:\n%s", authn500)
+	}
+}
+
+func TestNginxFragmentGatesAndProxiesLandingStaticAssets(t *testing.T) {
+	conf := readNginxFragment(t)
+	block := nginxLocationBlock(t, conf, "location /srv/sites/static/")
+
+	// R-675A-R7MX
+	if !strings.Contains(block, "auth_request /_session-authn;") {
+		t.Fatalf("landing static block does not use dashboard session auth:\n%s", block)
+	}
+	if !strings.Contains(block, "proxy_pass http://127.0.0.1:__PORT__/static/;") {
+		t.Fatalf("landing static block does not proxy to the templated static upstream:\n%s", block)
+	}
+	if strings.Contains(block, "alias ") {
+		t.Fatalf("landing static block is disk-backed instead of proxied:\n%s", block)
 	}
 }
 

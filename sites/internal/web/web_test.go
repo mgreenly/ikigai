@@ -77,8 +77,34 @@ func TestStaticHandlerServesTokensCSS(t *testing.T) {
 	if rec.Code != http.StatusOK || !strings.HasPrefix(rec.Header().Get("Content-Type"), "text/css") {
 		t.Fatalf("GET /static/tokens.css returned status %d Content-Type %q", rec.Code, rec.Header().Get("Content-Type"))
 	}
-	if !strings.Contains(body, `url('/static/fonts/space-grotesk.woff2')`) {
-		t.Fatalf("tokens.css does not point at embedded service font path: %q", body)
+
+	// R-629P-84O5
+	if strings.Contains(body, "font-display: swap") {
+		t.Fatalf("tokens.css still uses swap font display: %q", body)
+	}
+	for _, block := range strings.Split(body, "@font-face") {
+		if !strings.Contains(block, "font-family:") {
+			continue
+		}
+		if !strings.Contains(block, "font-display: optional;") {
+			t.Fatalf("@font-face block does not use optional font display: %s", block)
+		}
+	}
+
+	// R-ASST-3H7N
+	// R-63HL-LWEU
+	if strings.Contains(body, `url('/static/fonts/`) {
+		t.Fatalf("tokens.css contains origin-absolute font URLs: %q", body)
+	}
+	for _, want := range []string{
+		`url('fonts/space-grotesk.woff2')`,
+		`url('fonts/ibm-plex-sans.woff2')`,
+		`url('fonts/ibm-plex-mono-400.woff2')`,
+		`url('fonts/ibm-plex-mono-500.woff2')`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("tokens.css missing relative font URL %q in: %q", want, body)
+		}
 	}
 	for _, want := range []string{
 		"--color-bg:",
@@ -99,13 +125,40 @@ func TestLandingHTMLReferencesOwnEmbeddedStaticPath(t *testing.T) {
 	rec := httptest.NewRecorder()
 	LandingHandler("sites", "asset-test").ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
 	body := rec.Body.String()
+	head := htmlHead(t, body)
 
 	// R-ASST-5K9Q
-	if !strings.Contains(body, `/static/tokens.css`) {
-		t.Fatalf("landing HTML does not reference embedded static path: %q", body)
+	// R-64PH-ZO5J
+	if !strings.Contains(head, `href="static/tokens.css"`) {
+		t.Fatalf("landing HTML head does not reference document-relative tokens.css: %q", head)
+	}
+	if strings.Contains(head, `href="/static/tokens.css"`) {
+		t.Fatalf("landing HTML head references origin-absolute tokens.css: %q", head)
 	}
 	if strings.Contains(body, "dashboard") || strings.Contains(body, "://") {
 		t.Fatalf("landing HTML references a cross-service or remote asset URL: %q", body)
+	}
+}
+
+func TestLandingHTMLPreloadsSelfHostedFonts(t *testing.T) {
+	rec := httptest.NewRecorder()
+	LandingHandler("sites", "font-preload-test").ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+	body := rec.Body.String()
+	head := htmlHead(t, body)
+
+	// R-65XE-DFW8
+	for _, font := range []string{
+		"space-grotesk.woff2",
+		"ibm-plex-sans.woff2",
+	} {
+		want := `<link rel="preload" as="font" type="font/woff2" crossorigin
+        href="static/fonts/` + font + `">`
+		if !strings.Contains(head, want) {
+			t.Fatalf("landing HTML head missing document-relative preload for %s in: %q", font, head)
+		}
+		if strings.Contains(head, `href="/static/fonts/`+font+`"`) {
+			t.Fatalf("landing HTML head references origin-absolute preload for %s in: %q", font, head)
+		}
 	}
 }
 
@@ -201,4 +254,15 @@ func readFile(t *testing.T, name string) []byte {
 		t.Fatal(err)
 	}
 	return body
+}
+
+func htmlHead(t *testing.T, body string) string {
+	t.Helper()
+
+	start := strings.Index(body, "<head>")
+	end := strings.Index(body, "</head>")
+	if start == -1 || end == -1 || end < start {
+		t.Fatalf("HTML does not contain a closed head: %q", body)
+	}
+	return body[start : end+len("</head>")]
 }
