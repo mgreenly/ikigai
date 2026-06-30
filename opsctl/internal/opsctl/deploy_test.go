@@ -703,6 +703,93 @@ func TestPromptsSetupDeployBootsHealthWithStateSandboxesAndCacheRuns(t *testing.
 	}
 }
 
+// R-4LKF-FB23
+func TestWikiSetupDeployBootsHealthWithStateAndCachePaths(t *testing.T) {
+	root := t.TempDir()
+	sysRoot := t.TempDir()
+	const app = "wiki"
+	const version = "v0.4.0"
+	l := NewLayoutSys(root, sysRoot, app)
+	if err := os.MkdirAll(l.LocationsDir(), 0o755); err != nil {
+		t.Fatalf("create locations dir: %v", err)
+	}
+
+	sys := &wikiBootSystem{
+		stubSystem: &stubSystem{},
+		t:          t,
+		layout:     l,
+		port:       freePort(t),
+	}
+	o := &Opsctl{
+		Root:    root,
+		SysRoot: sysRoot,
+		Keep:    3,
+		System:  sys,
+		Runner:  RealRunner{},
+		Out:     io.Discard,
+		Err:     io.Discard,
+	}
+
+	fragment := "location /srv/wiki/ {\n    proxy_pass http://127.0.0.1:__PORT__;\n}\n"
+	if err := o.Setup(context.Background(), SetupOptions{App: app, Port: 3006, Fragment: fragment}); err != nil {
+		t.Fatalf("setup wiki: %v", err)
+	}
+
+	artifact := buildWikiArtifact(t, version)
+	if err := o.Stage(context.Background(), app, version, artifact, false); err != nil {
+		t.Fatalf("stage wiki: %v", err)
+	}
+	if err := o.Deploy(context.Background(), app, version); err != nil {
+		t.Fatalf("deploy wiki: %v", err)
+	}
+
+	if _, err := os.Stat(l.DBPath()); err != nil {
+		t.Fatalf("wiki DB was not created under state/: %v", err)
+	}
+	if got := filepath.Dir(l.GenerationPath()); got != l.CacheDir() {
+		t.Fatalf("generation sidecar parent = %q, want cache dir %q", got, l.CacheDir())
+	}
+	if _, err := os.Stat(l.LibexecBinary(version)); err != nil {
+		t.Fatalf("wiki binary missing under libexec/: %v", err)
+	}
+	target, err := os.Readlink(l.RunLink())
+	if err != nil {
+		t.Fatalf("bin/run is not a symlink: %v", err)
+	}
+	if want := l.runTarget(version); target != want {
+		t.Fatalf("bin/run -> %q, want %q", target, want)
+	}
+	for _, forbidden := range []string{
+		filepath.Join(l.StateDir(), "index"),
+		filepath.Join(l.StateDir(), "rag"),
+		filepath.Join(l.StateDir(), "vectors"),
+		filepath.Join(l.StateDir(), "wiki.db.generation"),
+	} {
+		if _, err := os.Stat(forbidden); err == nil {
+			t.Fatalf("wiki rebuildable artifact unexpectedly created under durable state: %s", forbidden)
+		} else if !os.IsNotExist(err) {
+			t.Fatalf("stat forbidden wiki state path %s: %v", forbidden, err)
+		}
+	}
+
+	manifest, err := os.ReadFile(l.ManifestPath())
+	if err != nil {
+		t.Fatalf("read manifest: %v", err)
+	}
+	for _, want := range []string{
+		"APP=wiki",
+		"WIKI_DB_PATH=" + l.DBPath(),
+		"WIKI_GENERATION_PATH=" + l.GenerationPath(),
+	} {
+		if !strings.Contains(string(manifest), want) {
+			t.Fatalf("manifest missing %q\n--- manifest ---\n%s", want, manifest)
+		}
+	}
+	if !strings.Contains(sys.healthBody, `"status":"ok"`) || !strings.Contains(sys.healthBody, `"service":"wiki"`) {
+		t.Fatalf("health response = %s, want wiki ok envelope", sys.healthBody)
+	}
+}
+
 type notifyBootSystem struct {
 	*stubSystem
 	t          *testing.T
@@ -940,6 +1027,80 @@ func (s *promptsBootSystem) IsActive(ctx context.Context, app string) error {
 	}
 }
 
+type wikiBootSystem struct {
+	*stubSystem
+	t          *testing.T
+	layout     Layout
+	port       int
+	healthBody string
+	started    bool
+}
+
+func (s *wikiBootSystem) IsActive(ctx context.Context, app string) error {
+	if s.started {
+		return nil
+	}
+	runCtx, cancel := context.WithCancel(context.Background())
+	var stdout, stderr bytes.Buffer
+	cmd := exec.CommandContext(runCtx, s.layout.RunLink(), "serve")
+	cmd.Env = append(os.Environ(), manifestEnv(s.layout.ManifestPath())...)
+	cmd.Env = append(cmd.Env,
+		fmt.Sprintf("WIKI_PORT=%d", s.port),
+		"WIKI_IP=127.0.0.1",
+		"ANTHROPIC_API_KEY=sk-test",
+		"OPENAI_API_KEY=sk-test",
+	)
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	if err := cmd.Start(); err != nil {
+		cancel()
+		return fmt.Errorf("start wiki serve: %w", err)
+	}
+	done := make(chan error, 1)
+	go func() { done <- cmd.Wait() }()
+	s.started = true
+	s.t.Cleanup(func() {
+		cancel()
+		select {
+		case <-done:
+		case <-time.After(5 * time.Second):
+			if cmd.Process != nil {
+				_ = cmd.Process.Kill()
+			}
+			<-done
+		}
+	})
+
+	waitURL := fmt.Sprintf("http://127.0.0.1:%d/health", s.port)
+	deadline := time.After(10 * time.Second)
+	tick := time.NewTicker(10 * time.Millisecond)
+	defer tick.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			cancel()
+			return ctx.Err()
+		case err := <-done:
+			cancel()
+			return fmt.Errorf("wiki serve exited before health: %w\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+		case <-deadline:
+			cancel()
+			return fmt.Errorf("wiki did not reach /health\nstdout:\n%s\nstderr:\n%s", stdout.String(), stderr.String())
+		case <-tick.C:
+			resp, err := http.Get(waitURL)
+			if err != nil {
+				continue
+			}
+			body, readErr := io.ReadAll(resp.Body)
+			resp.Body.Close()
+			if readErr == nil && resp.StatusCode == http.StatusOK {
+				s.healthBody = string(body)
+				return nil
+			}
+		}
+	}
+}
+
 func buildNotifyArtifact(t *testing.T, version string) string {
 	t.Helper()
 	out := filepath.Join(t.TempDir(), "notify")
@@ -952,6 +1113,22 @@ func buildNotifyArtifact(t *testing.T, version string) string {
 	cmd.Env = append(os.Environ(), "CGO_ENABLED=0", "GOOS=linux", "GOARCH=amd64", "GOFLAGS=-buildvcs=false")
 	if b, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("build notify artifact: %v\n%s", err, b)
+	}
+	return out
+}
+
+func buildWikiArtifact(t *testing.T, version string) string {
+	t.Helper()
+	out := filepath.Join(t.TempDir(), "wiki")
+	wikiDir, err := filepath.Abs(filepath.Join("..", "..", "..", "wiki"))
+	if err != nil {
+		t.Fatalf("resolve wiki dir: %v", err)
+	}
+	cmd := exec.Command("go", "build", "-trimpath", "-ldflags", "-X appkit.version="+version+" -X appkit.commit=abcdef0", "-o", out, "./cmd/wiki")
+	cmd.Dir = wikiDir
+	cmd.Env = append(os.Environ(), "CGO_ENABLED=0", "GOOS=linux", "GOARCH=amd64", "GOFLAGS=-buildvcs=false")
+	if b, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("build wiki artifact: %v\n%s", err, b)
 	}
 	return out
 }

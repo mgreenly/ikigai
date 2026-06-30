@@ -232,6 +232,7 @@ func TestMergeMintsForwardRoutingAliasForLoserName(t *testing.T) {
 }
 
 func TestLoadVectorCacheEntriesLoadsStoredPageEmbeddings(t *testing.T) {
+	// R-4LKF-FB23
 	ctx := context.Background()
 	conn := migratedDB(t, ctx)
 	defer conn.Close()
