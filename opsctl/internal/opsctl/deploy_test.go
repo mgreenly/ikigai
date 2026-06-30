@@ -917,6 +917,13 @@ func TestGmailSetupDeployBootsHealthWithStateAndCachePaths(t *testing.T) {
 	if got := filepath.Dir(l.GenerationPath()); got != l.CacheDir() {
 		t.Fatalf("generation sidecar parent = %q, want cache dir %q", got, l.CacheDir())
 	}
+	generation, err := os.ReadFile(l.GenerationPath())
+	if err != nil {
+		t.Fatalf("gmail generation sidecar missing under cache/: %v", err)
+	}
+	if strings.TrimSpace(string(generation)) == "" {
+		t.Fatalf("gmail generation sidecar is empty")
+	}
 	if _, err := os.Stat(l.LibexecBinary(version)); err != nil {
 		t.Fatalf("gmail binary missing under libexec/: %v", err)
 	}
