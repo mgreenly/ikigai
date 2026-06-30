@@ -663,6 +663,16 @@ func TestPromptsSetupDeployBootsHealthWithStateSandboxesAndCacheRuns(t *testing.
 	if want := l.runTarget(version); target != want {
 		t.Fatalf("bin/run -> %q, want %q", target, want)
 	}
+	for _, retired := range []string{
+		filepath.Join(l.BinDir(), "backup"),
+		filepath.Join(l.BinDir(), "restore"),
+	} {
+		if _, err := os.Stat(retired); err == nil {
+			t.Fatalf("retired per-service script still exists: %s", retired)
+		} else if !os.IsNotExist(err) {
+			t.Fatalf("stat retired per-service script %s: %v", retired, err)
+		}
+	}
 
 	if fi, err := os.Stat(staleRunsDir); err != nil || !fi.IsDir() {
 		t.Fatalf("prompts runs dir was not recreated under cache/: %v", err)

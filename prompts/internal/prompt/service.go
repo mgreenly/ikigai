@@ -364,8 +364,8 @@ func (s *Service) materializeInput(run Run, p Prompt, payload []byte) error {
 // startRun is the shared run-start path for Run (manual) and RunByEvent (event).
 // It builds the run row (denormalizing owner_email / prompt_name and the
 // trigger context), materializes input/ from the prompt's CURRENT definition,
-// inserts the row, creates the run-scoped sandbox, and hands off to the runner
-// — which executes from disk, never from p.
+// inserts the row, creates the durable run-scoped sandbox, and hands off to the
+// runner — which executes from disk, never from p.
 type eventEnvelope struct {
 	Source  string          `json:"source"`
 	Type    string          `json:"type"`
@@ -394,7 +394,8 @@ func (s *Service) startRun(ctx context.Context, p Prompt, source, evType, eventI
 	if err := s.store.InsertRun(ctx, run); err != nil {
 		return Run{}, err
 	}
-	// Create the run-scoped sandbox (runs/<run_id>/sandbox) before spawn.
+	// Create the durable run-scoped sandbox (state/sandboxes/<run_id>/sandbox)
+	// before spawn.
 	if err := s.sandbox.Create(runID); err != nil {
 		return Run{}, fmt.Errorf("prompt: create run sandbox: %w", err)
 	}
@@ -524,8 +525,8 @@ func (s *Service) RunCancel(ctx context.Context, ownerEmail, runID string) error
 	return nil
 }
 
-// RunFsList lists the entries under path in a run's sandbox (runs/<run_id>/
-// sandbox). Owner-scoped via the run's owner_email; survives a tombstoned prompt.
+// RunFsList lists the entries under path in a run's durable sandbox. Owner-
+// scoped via the run's owner_email; survives a tombstoned prompt.
 func (s *Service) RunFsList(ctx context.Context, ownerEmail, runID, path string) ([]sandbox.Entry, error) {
 	r, err := s.runForOwner(ctx, ownerEmail, runID)
 	if err != nil {
