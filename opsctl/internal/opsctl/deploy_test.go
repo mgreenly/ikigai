@@ -790,6 +790,84 @@ func TestWikiSetupDeployBootsHealthWithStateAndCachePaths(t *testing.T) {
 	}
 }
 
+// R-4LKF-FB23
+func TestCronSetupDeployBootsHealthWithStateAndCachePaths(t *testing.T) {
+	root := t.TempDir()
+	sysRoot := t.TempDir()
+	const app = "cron"
+	const version = "v0.5.1"
+	l := NewLayoutSys(root, sysRoot, app)
+	if err := os.MkdirAll(l.LocationsDir(), 0o755); err != nil {
+		t.Fatalf("create locations dir: %v", err)
+	}
+
+	sys := &cronBootSystem{
+		stubSystem: &stubSystem{},
+		t:          t,
+		layout:     l,
+		port:       freePort(t),
+	}
+	o := &Opsctl{
+		Root:    root,
+		SysRoot: sysRoot,
+		Keep:    3,
+		System:  sys,
+		Runner:  RealRunner{},
+		Out:     io.Discard,
+		Err:     io.Discard,
+	}
+
+	fragment := "location /srv/cron/ {\n    proxy_pass http://127.0.0.1:__PORT__;\n}\n"
+	if err := o.Setup(context.Background(), SetupOptions{App: app, Port: 3007, Fragment: fragment}); err != nil {
+		t.Fatalf("setup cron: %v", err)
+	}
+
+	artifact := buildCronArtifact(t, version)
+	if err := o.Stage(context.Background(), app, version, artifact, false); err != nil {
+		t.Fatalf("stage cron: %v", err)
+	}
+	if err := o.Deploy(context.Background(), app, version); err != nil {
+		t.Fatalf("deploy cron: %v", err)
+	}
+
+	if _, err := os.Stat(l.DBPath()); err != nil {
+		t.Fatalf("cron DB was not created under state/: %v", err)
+	}
+	if got := filepath.Dir(l.DBPath()); got != l.StateDir() {
+		t.Fatalf("DB parent = %q, want state dir %q", got, l.StateDir())
+	}
+	if got := filepath.Dir(l.GenerationPath()); got != l.CacheDir() {
+		t.Fatalf("generation sidecar parent = %q, want cache dir %q", got, l.CacheDir())
+	}
+	if _, err := os.Stat(l.LibexecBinary(version)); err != nil {
+		t.Fatalf("cron binary missing under libexec/: %v", err)
+	}
+	target, err := os.Readlink(l.RunLink())
+	if err != nil {
+		t.Fatalf("bin/run is not a symlink: %v", err)
+	}
+	if want := l.runTarget(version); target != want {
+		t.Fatalf("bin/run -> %q, want %q", target, want)
+	}
+
+	manifest, err := os.ReadFile(l.ManifestPath())
+	if err != nil {
+		t.Fatalf("read manifest: %v", err)
+	}
+	for _, want := range []string{
+		"APP=cron",
+		"CRON_DB_PATH=" + l.DBPath(),
+		"CRON_GENERATION_PATH=" + l.GenerationPath(),
+	} {
+		if !strings.Contains(string(manifest), want) {
+			t.Fatalf("manifest missing %q\n--- manifest ---\n%s", want, manifest)
+		}
+	}
+	if !strings.Contains(sys.healthBody, `"status":"ok"`) || !strings.Contains(sys.healthBody, `"service":"cron"`) {
+		t.Fatalf("health response = %s, want cron ok envelope", sys.healthBody)
+	}
+}
+
 type notifyBootSystem struct {
 	*stubSystem
 	t          *testing.T
@@ -1101,6 +1179,78 @@ func (s *wikiBootSystem) IsActive(ctx context.Context, app string) error {
 	}
 }
 
+type cronBootSystem struct {
+	*stubSystem
+	t          *testing.T
+	layout     Layout
+	port       int
+	healthBody string
+	started    bool
+}
+
+func (s *cronBootSystem) IsActive(ctx context.Context, app string) error {
+	if s.started {
+		return nil
+	}
+	runCtx, cancel := context.WithCancel(context.Background())
+	var stdout, stderr bytes.Buffer
+	cmd := exec.CommandContext(runCtx, s.layout.RunLink(), "serve")
+	cmd.Env = append(os.Environ(), manifestEnv(s.layout.ManifestPath())...)
+	cmd.Env = append(cmd.Env,
+		fmt.Sprintf("CRON_PORT=%d", s.port),
+		"CRON_IP=127.0.0.1",
+	)
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	if err := cmd.Start(); err != nil {
+		cancel()
+		return fmt.Errorf("start cron serve: %w", err)
+	}
+	done := make(chan error, 1)
+	go func() { done <- cmd.Wait() }()
+	s.started = true
+	s.t.Cleanup(func() {
+		cancel()
+		select {
+		case <-done:
+		case <-time.After(5 * time.Second):
+			if cmd.Process != nil {
+				_ = cmd.Process.Kill()
+			}
+			<-done
+		}
+	})
+
+	waitURL := fmt.Sprintf("http://127.0.0.1:%d/health", s.port)
+	deadline := time.After(10 * time.Second)
+	tick := time.NewTicker(10 * time.Millisecond)
+	defer tick.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			cancel()
+			return ctx.Err()
+		case err := <-done:
+			cancel()
+			return fmt.Errorf("cron serve exited before health: %w\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+		case <-deadline:
+			cancel()
+			return fmt.Errorf("cron did not reach /health\nstdout:\n%s\nstderr:\n%s", stdout.String(), stderr.String())
+		case <-tick.C:
+			resp, err := http.Get(waitURL)
+			if err != nil {
+				continue
+			}
+			body, readErr := io.ReadAll(resp.Body)
+			resp.Body.Close()
+			if readErr == nil && resp.StatusCode == http.StatusOK {
+				s.healthBody = string(body)
+				return nil
+			}
+		}
+	}
+}
+
 func buildNotifyArtifact(t *testing.T, version string) string {
 	t.Helper()
 	out := filepath.Join(t.TempDir(), "notify")
@@ -1161,6 +1311,22 @@ func buildDropboxArtifact(t *testing.T, version string) string {
 	cmd.Env = append(os.Environ(), "CGO_ENABLED=0", "GOOS=linux", "GOARCH=amd64", "GOFLAGS=-buildvcs=false")
 	if b, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("build dropbox artifact: %v\n%s", err, b)
+	}
+	return out
+}
+
+func buildCronArtifact(t *testing.T, version string) string {
+	t.Helper()
+	out := filepath.Join(t.TempDir(), "cron")
+	cronDir, err := filepath.Abs(filepath.Join("..", "..", "..", "cron"))
+	if err != nil {
+		t.Fatalf("resolve cron dir: %v", err)
+	}
+	cmd := exec.Command("go", "build", "-trimpath", "-ldflags", "-X appkit.version="+version+" -X appkit.commit=abcdef0", "-o", out, "./cmd/cron")
+	cmd.Dir = cronDir
+	cmd.Env = append(os.Environ(), "CGO_ENABLED=0", "GOOS=linux", "GOARCH=amd64", "GOFLAGS=-buildvcs=false")
+	if b, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("build cron artifact: %v\n%s", err, b)
 	}
 	return out
 }

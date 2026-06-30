@@ -113,6 +113,7 @@ launch_dropbox() {
 launch_cron() {
 	# cron holds no secret and needs no extra config.
 	export CRON_DB_PATH="$RUN_DIR/cron.db"
+	export CRON_GENERATION_PATH="$RUN_DIR/cron.db.generation"
 	exec "$RUN_DIR/bin/cron" serve --port 3007
 }
 
