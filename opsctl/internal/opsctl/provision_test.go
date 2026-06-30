@@ -347,6 +347,7 @@ func TestSetup_PathRoutedService(t *testing.T) {
 // (the stock data/ is 0750 and untraversable). The WWWDirs are derived per-app
 // via WWWDirsFor, so `opsctl setup sites` provisions them with no operator flag.
 func TestSetup_WWWTree(t *testing.T) {
+	// R-4LKF-FB23
 	root := t.TempDir()
 	sysRoot := t.TempDir()
 	sys := &stubSystem{}
@@ -433,6 +434,7 @@ func TestSetup_InstallsPackages(t *testing.T) {
 // www dir (no regression). Pairs with the ledger setup test, which never sees a
 // www dir or a chown op.
 func TestWWWDirsFor_OnlySites(t *testing.T) {
+	// R-4LKF-FB23
 	if got := WWWDirsFor("/opt", "ledger"); got != nil {
 		t.Errorf("WWWDirsFor(ledger) = %v, want nil (non-sites apps get no www tree)", got)
 	}
@@ -446,6 +448,52 @@ func TestWWWDirsFor_OnlySites(t *testing.T) {
 	if strings.Join(got, "|") != strings.Join(want, "|") {
 		t.Fatalf("WWWDirsFor(sites) = %v, want %v", got, want)
 	}
+}
+
+// R-4LKF-FB23
+func TestStateWWWFragmentServesPublicAndSessionGatesPrivate(t *testing.T) {
+	l := NewLayout("/opt", "sites")
+	frag := stateWWWFragment(l, 3010)
+	public := nginxLocationBlockForOpsctlTest(t, frag, "location /srv/sites/public/")
+	private := nginxLocationBlockForOpsctlTest(t, frag, "location /srv/sites/private/")
+
+	if !strings.Contains(public, "alias /opt/sites/state/www/public/;") {
+		t.Fatalf("public generated fragment does not alias state/www/public:\n%s", public)
+	}
+	if strings.Contains(public, "auth_request") {
+		t.Fatalf("public generated fragment unexpectedly requires auth:\n%s", public)
+	}
+	if !strings.Contains(private, "auth_request /_session-authn;") {
+		t.Fatalf("private generated fragment does not use dashboard session auth:\n%s", private)
+	}
+	if !strings.Contains(private, "alias /opt/sites/state/www/private/;") {
+		t.Fatalf("private generated fragment does not alias state/www/private:\n%s", private)
+	}
+	if strings.Contains(frag, "/opt/sites/www/served/") || strings.Contains(frag, "/srv/sites/introspect") {
+		t.Fatalf("generated fragment keeps legacy served or service-local introspection path:\n%s", frag)
+	}
+}
+
+func nginxLocationBlockForOpsctlTest(t *testing.T, conf, prefix string) string {
+	t.Helper()
+	start := strings.Index(conf, prefix+" {")
+	if start == -1 {
+		t.Fatalf("fragment is missing %q", prefix)
+	}
+	depth := 0
+	for i := start; i < len(conf); i++ {
+		switch conf[i] {
+		case '{':
+			depth++
+		case '}':
+			depth--
+			if depth == 0 {
+				return conf[start : i+1]
+			}
+		}
+	}
+	t.Fatalf("fragment location %q is not closed", prefix)
+	return ""
 }
 
 // TestSetup_NoWWWTreeForOtherApps proves the non-sites path is unchanged: with no

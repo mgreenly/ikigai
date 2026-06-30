@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -163,10 +164,10 @@ func TestLayout(t *testing.T) {
 	if got := l.WorkingDir("a"); got != "/srv/x/working/a" {
 		t.Fatalf("WorkingDir: %q", got)
 	}
-	if got := l.ServedDir(PublicSeg, "a"); got != "/srv/x/served/public/a" {
+	if got := l.ServedDir(PublicSeg, "a"); got != "/srv/x/public/a" {
 		t.Fatalf("ServedDir public: %q", got)
 	}
-	if got := l.ServedDir(PrivateSeg, "a"); got != "/srv/x/served/private/a" {
+	if got := l.ServedDir(PrivateSeg, "a"); got != "/srv/x/private/a" {
 		t.Fatalf("ServedDir private: %q", got)
 	}
 	// Empty root falls back to DefaultRoot.
@@ -176,7 +177,37 @@ func TestLayout(t *testing.T) {
 	}
 	// Zero-value Layout tolerates the missing root.
 	var z Layout
-	if got := z.ServedBase(); got != DefaultRoot+"/served" {
+	if got := z.ServedBase(); got != DefaultRoot {
 		t.Fatalf("zero ServedBase: %q", got)
+	}
+}
+
+// R-4LKF-FB23
+func TestLayoutDefaultsToStateWWWWithoutLegacyServedTree(t *testing.T) {
+	l := NewLayout("")
+	wantRoot := "/opt/sites/state/www"
+	if l.Root != wantRoot {
+		t.Fatalf("default root = %q, want %q", l.Root, wantRoot)
+	}
+	for name, got := range map[string]string{
+		"working":      l.WorkingDir("demo"),
+		"served-base":  l.ServedBase(),
+		"public-tier":  l.ServedTierBase(PublicSeg),
+		"private-tier": l.ServedTierBase(PrivateSeg),
+		"public-site":  l.ServedDir(PublicSeg, "demo"),
+		"private-site": l.ServedDir(PrivateSeg, "demo"),
+	} {
+		if strings.Contains(got, "/opt/sites/www/") || strings.Contains(got, "/served") {
+			t.Fatalf("%s path keeps legacy served layout: %q", name, got)
+		}
+	}
+	if got := l.WorkingDir("demo"); got != "/opt/sites/state/www/working/demo" {
+		t.Fatalf("working path = %q", got)
+	}
+	if got := l.ServedDir(PublicSeg, "demo"); got != "/opt/sites/state/www/public/demo" {
+		t.Fatalf("public path = %q", got)
+	}
+	if got := l.ServedDir(PrivateSeg, "demo"); got != "/opt/sites/state/www/private/demo" {
+		t.Fatalf("private path = %q", got)
 	}
 }

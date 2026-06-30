@@ -11,16 +11,16 @@ import (
 var ErrInvalidTier = errors.New("sites: invalid tier")
 
 // symlinkTarget builds the relative symlink target a served link points at:
-// served/<tier>/<name> -> ../../working/<name>. The target is ALWAYS this
+// <tier>/<name> -> ../working/<name>. The target is ALWAYS this
 // literal relative string (never an absolute path) — nginx serves through the
-// served tree and the relative form keeps the link valid regardless of where
+// public/private tree and the relative form keeps the link valid regardless of where
 // SITES_ROOT is mounted.
 func symlinkTarget(name string) string {
-	return "../../" + WorkingSeg + "/" + name
+	return "../" + WorkingSeg + "/" + name
 }
 
 // Publish makes a site reachable through the served front-door tree by creating
-// a relative symlink served/<tier>/<name> -> ../../working/<name> and flipping
+// a relative symlink <tier>/<name> -> ../working/<name> and flipping
 // the row to published. Re-publishing to a different tier first drops the old
 // tier's link so a site is never reachable under both tiers at once.
 // Re-publishing to the same tier is idempotent.

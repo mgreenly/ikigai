@@ -65,6 +65,29 @@ func TestNginxFragmentPreservesExistingLocations(t *testing.T) {
 	}
 }
 
+// R-4LKF-FB23
+func TestNginxFragmentServesStateWWWPublicAndSessionGatesPrivate(t *testing.T) {
+	conf := readNginxFragment(t)
+	public := nginxLocationBlock(t, conf, "location /srv/sites/public/")
+	private := nginxLocationBlock(t, conf, "location /srv/sites/private/")
+
+	if !strings.Contains(public, "alias /opt/sites/state/www/public/;") {
+		t.Fatalf("public tier is not served from state/www/public:\n%s", public)
+	}
+	if strings.Contains(public, "auth_request") {
+		t.Fatalf("public tier unexpectedly requires auth:\n%s", public)
+	}
+	if !strings.Contains(private, "auth_request /_session-authn;") {
+		t.Fatalf("private tier does not use dashboard session auth:\n%s", private)
+	}
+	if !strings.Contains(private, "alias /opt/sites/state/www/private/;") {
+		t.Fatalf("private tier is not served from state/www/private:\n%s", private)
+	}
+	if strings.Contains(conf, "/opt/sites/www/served/") {
+		t.Fatalf("nginx fragment still references legacy /opt/sites/www/served path:\n%s", conf)
+	}
+}
+
 func readNginxFragment(t *testing.T) string {
 	t.Helper()
 

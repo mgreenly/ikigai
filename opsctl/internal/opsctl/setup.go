@@ -21,10 +21,10 @@ type SetupOptions struct {
 
 	// WWWDirs are extra directories (absolute paths) to create at mode 0755 and
 	// hand to the app user via `chown -R <app>:<app>` on the www ROOT. They back
-	// the sites service's SEPARATE world-readable www/ tree (working/, served/,
-	// served/public/, served/private/): the stock per-app data/ is 0750 <app>:<app>
-	// so nginx (www-data) cannot traverse it, so sites serves from this 0755 tree
-	// instead. Apps that need no static tree (every app but sites) pass none — and
+	// the sites service's SEPARATE world-readable state/www tree (working/,
+	// public/, private/): the stock per-app data/ is 0750 <app>:<app> so nginx
+	// (www-data) cannot traverse it, so sites serves from this 0755 tree instead.
+	// Apps that need no static tree (every app but sites) pass none — and
 	// then setup creates no www dir at all, leaving their behavior unchanged. The
 	// command layer derives this list per-app (see wwwDirsFor); it is not an
 	// operator flag, so `opsctl setup sites …` provisions the tree automatically.
@@ -267,15 +267,10 @@ func stateWWWFragment(l Layout, port int) string {
 }
 
 location /srv/%[1]s/private/ {
-    auth_request /srv/%[1]s/introspect;
+    auth_request /_session-authn;
     alias %[3]s/;
 }
-
-location = /srv/%[1]s/introspect {
-    internal;
-    proxy_pass http://127.0.0.1:%[4]d/srv/%[1]s/introspect;
-}
-`, l.App, l.WWWPublicDir(), l.WWWPrivateDir(), port)
+`, l.App, l.WWWPublicDir(), l.WWWPrivateDir())
 }
 
 // LoadFragmentFile reads a fragment source file (the committed etc/nginx.conf) for

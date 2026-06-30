@@ -8,6 +8,7 @@ import (
 )
 
 // R-VCF3-PLWD
+// R-4LKF-FB23
 func TestSetupNginxFragmentServesPublicDirectlyAndPrivateBehindAuth(t *testing.T) {
 	const app = "svc"
 	o, _, l := newSetupTestOpsctl(t, app)
@@ -36,15 +37,11 @@ func TestSetupNginxFragmentServesPublicDirectlyAndPrivateBehindAuth(t *testing.T
 	if !strings.Contains(private, "alias "+l.WWWPrivateDir()+"/;") {
 		t.Fatalf("private block does not serve %s:\n%s", l.WWWPrivateDir(), private)
 	}
-	if !strings.Contains(private, "auth_request /srv/"+app+"/introspect;") {
-		t.Fatalf("private block is not behind the service introspection auth_request:\n%s", private)
+	if !strings.Contains(private, "auth_request /_session-authn;") {
+		t.Fatalf("private block is not behind the dashboard session auth_request:\n%s", private)
 	}
-	introspect := locationBlock(t, fragment, "= /srv/"+app+"/introspect")
-	if !strings.Contains(introspect, "internal;") {
-		t.Fatalf("introspection auth_request target is not internal:\n%s", introspect)
-	}
-	if !strings.Contains(introspect, "proxy_pass http://127.0.0.1:3104/srv/"+app+"/introspect;") {
-		t.Fatalf("introspection target does not proxy to the service port:\n%s", introspect)
+	if strings.Contains(fragment, "/srv/"+app+"/introspect") {
+		t.Fatalf("fragment still contains service-local introspection path:\n%s", fragment)
 	}
 }
 

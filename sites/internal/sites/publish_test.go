@@ -74,7 +74,7 @@ func TestPublishCreatesResolvingSymlink(t *testing.T) {
 	if err != nil {
 		t.Fatalf("readlink: %v", err)
 	}
-	if want := "../../working/demo"; tgt != want {
+	if want := "../working/demo"; tgt != want {
 		t.Fatalf("symlink target = %q, want %q", tgt, want)
 	}
 
@@ -159,8 +159,63 @@ func TestRepublishSameTierIdempotent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("readlink: %v", err)
 	}
-	if tgt != "../../working/demo" {
+	if tgt != "../working/demo" {
 		t.Fatalf("target = %q", tgt)
+	}
+}
+
+// R-4LKF-FB23
+func TestPublishUsesStateWWWPublicPrivateTrees(t *testing.T) {
+	s, l := newTestPublisher(t)
+	ctx := context.Background()
+	makeWorking(t, l, "demo")
+	if _, err := s.Create(ctx, "demo"); err != nil {
+		t.Fatalf("create: %v", err)
+	}
+
+	if err := s.Publish(ctx, "demo", PublicSeg); err != nil {
+		t.Fatalf("publish public: %v", err)
+	}
+
+	publicLink := l.ServedDir(PublicSeg, "demo")
+	if got, want := publicLink, filepath.Join(l.root(), "public", "demo"); got != want {
+		t.Fatalf("public served path = %q, want %q", got, want)
+	}
+	target, err := os.Readlink(publicLink)
+	if err != nil {
+		t.Fatalf("read public link: %v", err)
+	}
+	if target != "../working/demo" {
+		t.Fatalf("public link target = %q, want ../working/demo", target)
+	}
+	body, err := os.ReadFile(filepath.Join(publicLink, "index.html"))
+	if err != nil {
+		t.Fatalf("read public content through symlink: %v", err)
+	}
+	if string(body) != "hello" {
+		t.Fatalf("public content = %q", body)
+	}
+
+	if err := s.Publish(ctx, "demo", PrivateSeg); err != nil {
+		t.Fatalf("publish private: %v", err)
+	}
+	privateLink := l.ServedDir(PrivateSeg, "demo")
+	if got, want := privateLink, filepath.Join(l.root(), "private", "demo"); got != want {
+		t.Fatalf("private served path = %q, want %q", got, want)
+	}
+	if _, err := os.Lstat(publicLink); !os.IsNotExist(err) {
+		t.Fatalf("public link still exists after private publish: %v", err)
+	}
+	body, err = os.ReadFile(filepath.Join(privateLink, "index.html"))
+	if err != nil {
+		t.Fatalf("read private content through symlink: %v", err)
+	}
+	if string(body) != "hello" {
+		t.Fatalf("private content = %q", body)
+	}
+	legacy := filepath.Join(l.root(), "served")
+	if _, err := os.Stat(legacy); !os.IsNotExist(err) {
+		t.Fatalf("legacy served dir exists at %s: %v", legacy, err)
 	}
 }
 
