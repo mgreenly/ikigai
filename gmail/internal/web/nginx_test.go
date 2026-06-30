@@ -80,6 +80,38 @@ func TestNginxLandingLocationCoexistsWithExistingFragment(t *testing.T) {
 	}
 }
 
+func TestNginxStaticLocationUsesSessionAuthAndStaticProxy(t *testing.T) {
+	// R-41ZW-HBBA
+	conf := readNginxFragment(t)
+	block := nginxLocationBlock(t, conf, `location /srv/gmail/static/ {`)
+
+	for _, want := range []string{
+		"auth_request /_session-authn;",
+		"proxy_pass http://127.0.0.1:__PORT__/static/;",
+		"proxy_set_header Host $host;",
+		"proxy_set_header X-Forwarded-Proto $scheme;",
+		"proxy_http_version 1.1;",
+	} {
+		if !strings.Contains(block, want) {
+			t.Fatalf("static location missing %q:\n%s", want, block)
+		}
+	}
+
+	for _, want := range []string{
+		"location = /srv/gmail/ {",
+		"location /srv/gmail/ {",
+		"location = /srv/gmail/feed { return 404; }",
+		"location = /srv/gmail/.well-known/oauth-protected-resource",
+	} {
+		if !strings.Contains(conf, want) {
+			t.Fatalf("nginx fragment no longer contained required location %q", want)
+		}
+	}
+	if strings.Count(conf, "location /srv/gmail/static/ {") != 1 {
+		t.Fatalf("nginx fragment should contain exactly one static location:\n%s", conf)
+	}
+}
+
 func readNginxFragment(t *testing.T) string {
 	t.Helper()
 
