@@ -1,12 +1,21 @@
 package web
 
 import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestLandingHandlerRendersHTMLWithServiceAndVersion(t *testing.T) {
@@ -316,6 +325,179 @@ func TestCompositionRootAdoptsNewScriptsLayout(t *testing.T) {
 			if strings.Contains(text, forbidden) {
 				t.Fatalf("%s still contains service-owned backup/restore mechanism %q:\n%s", path, forbidden, text)
 			}
+		}
+	}
+}
+
+func TestFreshSetupBootsFromNewScriptsLayoutAndPassesHealth(t *testing.T) {
+	// R-4LKF-FB23
+	tmp := t.TempDir()
+	root := filepath.Join(tmp, "opt", "scripts")
+	stateDir := filepath.Join(root, "state")
+	cacheDir := filepath.Join(root, "cache")
+	runsDir := filepath.Join(root, "runs")
+	libexecDir := filepath.Join(root, "libexec")
+	binDir := filepath.Join(root, "bin")
+	for _, dir := range []string{stateDir, cacheDir, libexecDir, binDir} {
+		if err := os.MkdirAll(dir, 0o750); err != nil {
+			t.Fatalf("mkdir %s: %v", dir, err)
+		}
+	}
+	if _, err := os.Stat(runsDir); !os.IsNotExist(err) {
+		t.Fatalf("runs dir exists before boot (stat err=%v)", err)
+	}
+
+	version := "v1.2.3"
+	bin := filepath.Join(libexecDir, "scripts-"+version)
+	build := exec.Command("go", "build", "-o", bin, "../../cmd/scripts")
+	build.Stdout = os.Stdout
+	build.Stderr = os.Stderr
+	if err := build.Run(); err != nil {
+		t.Fatalf("build scripts binary: %v", err)
+	}
+	runLink := filepath.Join(binDir, "run")
+	if err := os.Symlink(filepath.Join("..", "libexec", filepath.Base(bin)), runLink); err != nil {
+		t.Fatalf("create bin/run symlink: %v", err)
+	}
+	if target, err := os.Readlink(runLink); err != nil || target != filepath.Join("..", "libexec", "scripts-"+version) {
+		t.Fatalf("bin/run symlink = (%q, %v), want ../libexec/scripts-%s", target, err, version)
+	}
+
+	port := freeLoopbackPort(t)
+	addr := net.JoinHostPort("127.0.0.1", strconv.Itoa(port))
+	dbPath := filepath.Join(stateDir, "scripts.db")
+	genPath := filepath.Join(cacheDir, "scripts.db.generation")
+	stdout, stderr := startScriptsBinaryAndReachHealth(t, root, runLink, addr, map[string]string{
+		"IKIGENBA_DOMAIN":           "example.test",
+		"SCRIPTS_PORT":              strconv.Itoa(port),
+		"SCRIPTS_DB_PATH":           filepath.Join("state", "scripts.db"),
+		"SCRIPTS_GENERATION_PATH":   filepath.Join("cache", "scripts.db.generation"),
+		"SCRIPTS_CRON_FEED_URL":     "http://" + addr + "/feed",
+		"SCRIPTS_CRM_FEED_URL":      "http://" + addr + "/feed",
+		"SCRIPTS_LEDGER_FEED_URL":   "http://" + addr + "/feed",
+		"SCRIPTS_DROPBOX_FEED_URL":  "http://" + addr + "/feed",
+		"SCRIPTS_PROMPTS_FEED_URL":  "http://" + addr + "/feed",
+		"SCRIPTS_CRON_FROM":         "tail",
+		"SCRIPTS_CRM_FROM":          "tail",
+		"SCRIPTS_LEDGER_FROM":       "tail",
+		"SCRIPTS_DROPBOX_FROM":      "tail",
+		"SCRIPTS_PROMPTS_FROM":      "tail",
+		"OUTBOX_RETENTION_DAYS":     "7",
+		"OUTBOX_RETENTION_MAX_ROWS": "1000000",
+	})
+	if info, err := os.Stat(dbPath); err != nil || info.IsDir() {
+		t.Fatalf("db file after boot = (%v, %v), want file\nstdout:\n%s\nstderr:\n%s", info, err, stdout, stderr)
+	}
+	if generation, err := os.ReadFile(genPath); err != nil || strings.TrimSpace(string(generation)) == "" {
+		t.Fatalf("generation sidecar after boot = %q, %v; want non-empty file\nstdout:\n%s\nstderr:\n%s", generation, err, stdout, stderr)
+	}
+	if info, err := os.Stat(runsDir); err != nil || !info.IsDir() {
+		t.Fatalf("runs dir after boot = (%v, %v), want recreated directory\nstdout:\n%s\nstderr:\n%s", info, err, stdout, stderr)
+	}
+	if _, err := os.Stat(filepath.Join(stateDir, "runs")); !os.IsNotExist(err) {
+		t.Fatalf("state/runs should not exist; runs are rebuildable outside state (stat err=%v)", err)
+	}
+	if _, err := os.Stat(filepath.Join(root, "backup")); !os.IsNotExist(err) {
+		t.Fatalf("service-owned backup path should not exist; backup/restore is opsctl-owned (stat err=%v)", err)
+	}
+}
+
+func startScriptsBinaryAndReachHealth(t *testing.T, root, bin, addr string, env map[string]string) (string, string) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, bin, "serve", "--port", portFromAddr(t, addr))
+	cmd.Dir = root
+	cmd.Env = append(os.Environ(), "HOME="+root)
+	for k, v := range env {
+		cmd.Env = append(cmd.Env, k+"="+v)
+	}
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	if err := cmd.Start(); err != nil {
+		t.Fatalf("start scripts binary: %v", err)
+	}
+
+	waitErr := waitForScriptsHealth(ctx, addr)
+	if waitErr == nil {
+		if err := cmd.Process.Signal(os.Interrupt); err != nil {
+			t.Fatalf("interrupt scripts binary: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+		}
+	} else if cmd.Process != nil {
+		_ = cmd.Process.Kill()
+	}
+
+	done := make(chan error, 1)
+	go func() { done <- cmd.Wait() }()
+	var err error
+	select {
+	case err = <-done:
+	case <-time.After(5 * time.Second):
+		_ = cmd.Process.Kill()
+		err = fmt.Errorf("timed out waiting for scripts binary to exit")
+	}
+	if waitErr != nil {
+		t.Fatalf("scripts binary did not reach /health: %v\nwait: %v\nstdout:\n%s\nstderr:\n%s", waitErr, err, stdout.String(), stderr.String())
+	}
+	if err != nil {
+		t.Fatalf("scripts binary exited after health with %v, want graceful SIGINT shutdown\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+	}
+	return stdout.String(), stderr.String()
+}
+
+func freeLoopbackPort(t *testing.T) int {
+	t.Helper()
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("allocate loopback port: %v", err)
+	}
+	defer ln.Close()
+	return ln.Addr().(*net.TCPAddr).Port
+}
+
+func portFromAddr(t *testing.T, addr string) string {
+	t.Helper()
+	_, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		t.Fatalf("split addr %q: %v", addr, err)
+	}
+	return port
+}
+
+func waitForScriptsHealth(ctx context.Context, addr string) error {
+	client := &http.Client{Timeout: 200 * time.Millisecond}
+	tick := time.NewTicker(25 * time.Millisecond)
+	defer tick.Stop()
+	var lastErr error
+	for {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://"+addr+"/health", nil)
+		if err != nil {
+			return err
+		}
+		resp, err := client.Do(req)
+		if err == nil {
+			var body map[string]any
+			decodeErr := json.NewDecoder(resp.Body).Decode(&body)
+			closeErr := resp.Body.Close()
+			if resp.StatusCode == http.StatusOK && decodeErr == nil && closeErr == nil &&
+				body["status"] == "ok" && body["service"] == "scripts" {
+				return nil
+			}
+			lastErr = fmt.Errorf("health response status=%d body=%v decode=%v close=%v", resp.StatusCode, body, decodeErr, closeErr)
+		} else {
+			lastErr = err
+		}
+
+		select {
+		case <-ctx.Done():
+			if lastErr != nil {
+				return lastErr
+			}
+			return ctx.Err()
+		case <-tick.C:
 		}
 	}
 }
