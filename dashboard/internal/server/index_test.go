@@ -140,6 +140,19 @@ func TestIndexLoggedInOmitsNameOriginColophon(t *testing.T) {
 	if strings.Contains(body, `class="name-origin"`) {
 		t.Errorf("logged-in index includes logged-out name-origin colophon:\n%s", body)
 	}
+	if strings.Contains(body, `<main class="signin-wall">`) {
+		t.Errorf("logged-in index rendered the logged-out sign-in wall:\n%s", body)
+	}
+	for _, want := range []string{
+		`<main class="page">`,
+		`<h2>Connect your agent</h2>`,
+		`/install/claude`,
+		`/install/codex`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("logged-in index missing dashboard landing fragment %q:\n%s", want, body)
+		}
+	}
 	if !strings.Contains(body, googleidp.StubIdentity.Email) {
 		t.Errorf("logged-in index missing owner email %q:\n%s", googleidp.StubIdentity.Email, body)
 	}
