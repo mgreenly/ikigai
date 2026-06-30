@@ -367,8 +367,8 @@ func TestFullFlow(t *testing.T) {
 	if !intro.Active {
 		t.Fatal("freshly issued token introspects as inactive")
 	}
-	if intro.Username != "owner@metaspot.org" {
-		t.Errorf("introspect username = %q, want owner@metaspot.org", intro.Username)
+	if intro.Username != "owner@int.ikigenba.com" {
+		t.Errorf("introspect username = %q, want owner@int.ikigenba.com", intro.Username)
 	}
 	if intro.Resource != testResource {
 		t.Errorf("introspect resource = %q, want %q", intro.Resource, testResource)
@@ -462,7 +462,7 @@ func TestTokenPKCEMismatch(t *testing.T) {
 	ctx := context.Background()
 	plaintext, _, err := d.codes.Issue(ctx, oauth.IssueParams{
 		ClientID:            "client-x",
-		OwnerEmail:          "owner@metaspot.org",
+		OwnerEmail:          "owner@int.ikigenba.com",
 		CodeChallenge:       pkceChallenge(),
 		CodeChallengeMethod: "S256",
 		RedirectURI:         clientRedirectURI,
@@ -498,7 +498,7 @@ func TestTokenExpiredCode(t *testing.T) {
 	expired := oauth.NewAuthCodeStore(d.db, -time.Minute)
 	plaintext, _, err := expired.Issue(ctx, oauth.IssueParams{
 		ClientID:            "client-x",
-		OwnerEmail:          "owner@metaspot.org",
+		OwnerEmail:          "owner@int.ikigenba.com",
 		CodeChallenge:       pkceChallenge(),
 		CodeChallengeMethod: "S256",
 		RedirectURI:         clientRedirectURI,

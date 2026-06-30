@@ -231,12 +231,6 @@ it is persisted with the run afterward.
 
 ## Sources (read before coding)
 
-**Platform (sibling `metaspot` repo — authoritative; on conflict it wins):**
-- `../../metaspot/AGENTS.md` — platform spec (Service layer, launcher, SSM
-  app-config secrets, `bin/*` lifecycle).
-- `../../metaspot/docs/path-routing-architecture.md` — the nginx `auth_request`
-  contract every service lives under.
-
 **Suite (this repo):**
 - `../README.md` — suite overview (two planes, event model).
 - `../docs/event-protocol.md` — **normative** event-plane wire contract.

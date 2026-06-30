@@ -40,7 +40,7 @@ func backdate(t *testing.T, s *SessionStore, id, col string, when time.Time) {
 // while the value persisted is its SHA-256 hash — never the plaintext.
 func TestCreateStoresHashNotCookie(t *testing.T) {
 	store := testStore(t)
-	issued, err := store.Create(context.Background(), "owner@metaspot.org")
+	issued, err := store.Create(context.Background(), "owner@int.ikigenba.com")
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
@@ -57,8 +57,8 @@ func TestCreateStoresHashNotCookie(t *testing.T) {
 	).Scan(&ownerEmail, &storedHash); err != nil {
 		t.Fatalf("read row: %v", err)
 	}
-	if ownerEmail != "owner@metaspot.org" {
-		t.Errorf("owner_email = %q, want owner@metaspot.org", ownerEmail)
+	if ownerEmail != "owner@int.ikigenba.com" {
+		t.Errorf("owner_email = %q, want owner@int.ikigenba.com", ownerEmail)
 	}
 	if storedHash != wantHash {
 		t.Errorf("stored hash = %q, want sha256(cookie) %q", storedHash, wantHash)
@@ -72,7 +72,7 @@ func TestCreateStoresHashNotCookie(t *testing.T) {
 func TestCreateSetsAbsoluteExpiry(t *testing.T) {
 	store := testStore(t)
 	before := time.Now().UTC()
-	issued, err := store.Create(context.Background(), "owner@metaspot.org")
+	issued, err := store.Create(context.Background(), "owner@int.ikigenba.com")
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
@@ -84,11 +84,11 @@ func TestCreateSetsAbsoluteExpiry(t *testing.T) {
 // TestCreateMintsUniqueValues guards against a botched RNG handing out repeats.
 func TestCreateMintsUniqueValues(t *testing.T) {
 	store := testStore(t)
-	a, err := store.Create(context.Background(), "a@metaspot.org")
+	a, err := store.Create(context.Background(), "a@int.ikigenba.com")
 	if err != nil {
 		t.Fatalf("Create a: %v", err)
 	}
-	b, err := store.Create(context.Background(), "b@metaspot.org")
+	b, err := store.Create(context.Background(), "b@int.ikigenba.com")
 	if err != nil {
 		t.Fatalf("Create b: %v", err)
 	}
@@ -104,7 +104,7 @@ func TestCreateMintsUniqueValues(t *testing.T) {
 // found and returned with its owner.
 func TestLookupReturnsLiveSession(t *testing.T) {
 	store := testStore(t)
-	issued, err := store.Create(context.Background(), "owner@metaspot.org")
+	issued, err := store.Create(context.Background(), "owner@int.ikigenba.com")
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
@@ -115,8 +115,8 @@ func TestLookupReturnsLiveSession(t *testing.T) {
 	if sess.ID != issued.ID {
 		t.Errorf("Lookup id = %q, want %q", sess.ID, issued.ID)
 	}
-	if sess.OwnerEmail != "owner@metaspot.org" {
-		t.Errorf("Lookup owner = %q, want owner@metaspot.org", sess.OwnerEmail)
+	if sess.OwnerEmail != "owner@int.ikigenba.com" {
+		t.Errorf("Lookup owner = %q, want owner@int.ikigenba.com", sess.OwnerEmail)
 	}
 }
 
@@ -124,7 +124,7 @@ func TestLookupReturnsLiveSession(t *testing.T) {
 // (still within the idle window) is bumped to ~now on a successful lookup.
 func TestLookupTouchesLastSeen(t *testing.T) {
 	store := testStore(t)
-	issued, err := store.Create(context.Background(), "owner@metaspot.org")
+	issued, err := store.Create(context.Background(), "owner@int.ikigenba.com")
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
@@ -162,7 +162,7 @@ func TestLookupUnknownCookie(t *testing.T) {
 // even though it was just touched (last_seen_at is current).
 func TestLookupAbsoluteExpired(t *testing.T) {
 	store := testStore(t)
-	issued, err := store.Create(context.Background(), "owner@metaspot.org")
+	issued, err := store.Create(context.Background(), "owner@int.ikigenba.com")
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
@@ -178,7 +178,7 @@ func TestLookupAbsoluteExpired(t *testing.T) {
 // ceiling is still in the future.
 func TestLookupIdleExpired(t *testing.T) {
 	store := testStore(t)
-	issued, err := store.Create(context.Background(), "owner@metaspot.org")
+	issued, err := store.Create(context.Background(), "owner@int.ikigenba.com")
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
@@ -194,7 +194,7 @@ func TestLookupIdleExpired(t *testing.T) {
 // no longer redeems a session.
 func TestRevokeRejectsCookie(t *testing.T) {
 	store := testStore(t)
-	issued, err := store.Create(context.Background(), "owner@metaspot.org")
+	issued, err := store.Create(context.Background(), "owner@int.ikigenba.com")
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
@@ -210,7 +210,7 @@ func TestRevokeRejectsCookie(t *testing.T) {
 // TestRevokeIsIdempotent: a second logout is a no-op and never errors.
 func TestRevokeIsIdempotent(t *testing.T) {
 	store := testStore(t)
-	issued, err := store.Create(context.Background(), "owner@metaspot.org")
+	issued, err := store.Create(context.Background(), "owner@int.ikigenba.com")
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}

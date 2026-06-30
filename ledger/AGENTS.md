@@ -18,18 +18,12 @@ same production-grade crm chassis, renamed.
 
 **Read the decisions first — do not re-derive them:**
 
-- `../metaspot/AGENTS.md` — platform spec (Service layer = path routing).
-- `../metaspot/docs/path-routing-architecture.md` — server-side topology + the
-  auth contract you live under.
-- `../metaspot/docs/connector-and-install.md` — the suite plugin + install layer.
-  Note: a service's connector **skills live in the `dashboard` repo's `plugin/`**,
-  not here.
 - `project/notes/PLAN.md` — the ledger design (the 8-verb rationale, the immutable-journal /
   emergent-typed-account model, the transaction contract, the events).
 - `../crm` — the sibling service that shares this chassis and is the reference
   event-plane **producer** (`internal/contacts` → `/feed` outbox).
 
-If anything here conflicts with those docs, the docs win — and flag the conflict.
+A service's connector **skills live in the `dashboard` repo's `plugin/`**, not here.
 
 ## What this app is
 
@@ -116,8 +110,8 @@ loopback-only — the perimeter is nginx). Second-wave payloads (`transaction.re
 ## nginx fragment (not a vhost)
 
 `opsctl setup ledger` writes only `/etc/nginx/conf.d/locations/ledger.conf` (its
-`location /srv/ledger/` + the PRM well-known location, per
-`path-routing-architecture.md`) and reloads nginx. It does **not** install a
+`location /srv/ledger/` + the PRM well-known location, per the suite's path-routing
+model in the root `AGENTS.md`) and reloads nginx. It does **not** install a
 server block and does **not** issue a TLS cert — the dashboard owns both (the
 box-global apex/cert pieces are `opsctl init-box`). A dev mirror of this fragment
 lives at `../nginx/locations/ledger.conf`.

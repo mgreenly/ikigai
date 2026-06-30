@@ -6,15 +6,8 @@ per-box "apex" app, deployed at `<account>.ikigenba.com/` (e.g.
 
 This is a greenfield repo. **Read the decisions first — do not re-derive them:**
 
-- `../metaspot/AGENTS.md` — platform spec (Service layer = path routing).
-- `../metaspot/docs/path-routing-architecture.md` — server-side topology + the
-  auth contract you implement.
-- `../metaspot/docs/connector-and-install.md` — the suite plugin + install layer
-  (this repo hosts the plugin; see below).
 - `../crm.bak/` — the prior fused crm+dashboard codebase. **Reference only**, do
   not depend on it. It is ~80% dashboard already; port from it.
-
-If anything here conflicts with those docs, the docs win — and flag the conflict.
 
 ## Scope — bounded breadth, production depth (read this before every decision)
 
@@ -111,8 +104,8 @@ Build new:
   service on the box + the `connect`/doctor skill). This repo is its
   marketplace (`.claude-plugin/marketplace.json`, `source: "./plugin"`). Internal
   only — git-repo source during dev, dashboard-served in prod. NOT the public
-  Claude catalog. See `connector-and-install.md` for the skill set (incl. the CRM
-  skills, which live here, not in the crm repo).
+  Claude catalog. The skill set — including the CRM skills — lives here, not in
+  the crm repo.
 
 ## What it owns on the box (nginx + TLS)
 

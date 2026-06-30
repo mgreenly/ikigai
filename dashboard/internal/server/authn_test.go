@@ -67,7 +67,7 @@ const wantPRM = "https://int.ikigenba.com/srv/crm/.well-known/oauth-protected-re
 func TestAuthnValidToken(t *testing.T) {
 	d := newServerDeps(t)
 	h := authnServer(t, d, nil)
-	tok := mintAccessToken(t, d, "owner@metaspot.org", testResource)
+	tok := mintAccessToken(t, d, "owner@int.ikigenba.com", testResource)
 
 	rec := doAuthn(h, map[string]string{
 		"Authorization":  "Bearer " + tok,
@@ -76,8 +76,8 @@ func TestAuthnValidToken(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200; WWW-Authenticate=%q", rec.Code, rec.Header().Get("WWW-Authenticate"))
 	}
-	if got := rec.Header().Get("X-Owner-Email"); got != "owner@metaspot.org" {
-		t.Errorf("X-Owner-Email = %q, want owner@metaspot.org", got)
+	if got := rec.Header().Get("X-Owner-Email"); got != "owner@int.ikigenba.com" {
+		t.Errorf("X-Owner-Email = %q, want owner@int.ikigenba.com", got)
 	}
 	if got := rec.Header().Get("X-Client-Id"); got != "client-abc" {
 		t.Errorf("X-Client-Id = %q, want client-abc", got)
@@ -87,7 +87,7 @@ func TestAuthnValidToken(t *testing.T) {
 func TestAuthnAcceptsQueryStringOnOriginalURI(t *testing.T) {
 	d := newServerDeps(t)
 	h := authnServer(t, d, nil)
-	tok := mintAccessToken(t, d, "owner@metaspot.org", testResource)
+	tok := mintAccessToken(t, d, "owner@int.ikigenba.com", testResource)
 
 	rec := doAuthn(h, map[string]string{
 		"Authorization":  "Bearer " + tok,
@@ -158,7 +158,7 @@ func TestAuthnMalformedAuthorizationHeader(t *testing.T) {
 func TestAuthnResourceBindingMismatchUnknownService(t *testing.T) {
 	d := newServerDeps(t)
 	h := authnServer(t, d, nil)
-	tok := mintAccessToken(t, d, "owner@metaspot.org", testResource)
+	tok := mintAccessToken(t, d, "owner@int.ikigenba.com", testResource)
 
 	// X-Original-URI addresses a service that has no configured resource.
 	rec := doAuthn(h, map[string]string{
@@ -177,7 +177,7 @@ func TestAuthnResourceBindingMismatchUnknownService(t *testing.T) {
 func TestAuthnMissingOriginalURI(t *testing.T) {
 	d := newServerDeps(t)
 	h := authnServer(t, d, nil)
-	tok := mintAccessToken(t, d, "owner@metaspot.org", testResource)
+	tok := mintAccessToken(t, d, "owner@int.ikigenba.com", testResource)
 
 	rec := doAuthn(h, map[string]string{"Authorization": "Bearer " + tok})
 	if rec.Code != http.StatusUnauthorized {
@@ -199,7 +199,7 @@ func TestAuthnTokenBoundToDifferentResource(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
-	tok := mintAccessToken(t, d, "owner@metaspot.org", other)
+	tok := mintAccessToken(t, d, "owner@int.ikigenba.com", other)
 
 	rec := doAuthn(srv.Handler, map[string]string{
 		"Authorization":  "Bearer " + tok,
@@ -221,7 +221,7 @@ func TestAuthnTokenBoundToDifferentResource(t *testing.T) {
 func TestAuthnOwnerOutsideWorkspace(t *testing.T) {
 	d := newServerDeps(t)
 	h := authnServer(t, d, nil)
-	// Owner email's domain is outside testWorkspaceDomain ("metaspot.org").
+	// Owner email's domain is outside testWorkspaceDomain ("int.ikigenba.com").
 	tok := mintAccessToken(t, d, "owner@evil.example", testResource)
 
 	rec := doAuthn(h, map[string]string{
@@ -240,7 +240,7 @@ func TestAuthnRateLimited(t *testing.T) {
 	d := newServerDeps(t)
 	// A limit of 1 per minute: the first request passes, the second is over.
 	h := authnServer(t, d, ratelimit.New(1, time.Minute))
-	tok := mintAccessToken(t, d, "owner@metaspot.org", testResource)
+	tok := mintAccessToken(t, d, "owner@int.ikigenba.com", testResource)
 	headers := map[string]string{
 		"Authorization":  "Bearer " + tok,
 		"X-Original-URI": "/srv/crm/mcp",
@@ -297,7 +297,7 @@ func mintPAT(t *testing.T, d serverDeps, ownerEmail string) (plaintext string, p
 func TestAuthnPATValidCrossService(t *testing.T) {
 	d := newServerDeps(t)
 	h := twoResourceServer(t, d, nil)
-	tok, p := mintPAT(t, d, "owner@metaspot.org")
+	tok, p := mintPAT(t, d, "owner@int.ikigenba.com")
 
 	for _, uri := range []string{"/srv/crm/mcp", "/srv/notes/mcp"} {
 		rec := doAuthn(h, map[string]string{
@@ -307,8 +307,8 @@ func TestAuthnPATValidCrossService(t *testing.T) {
 		if rec.Code != http.StatusOK {
 			t.Fatalf("uri %s: status = %d, want 200; WWW-Authenticate=%q", uri, rec.Code, rec.Header().Get("WWW-Authenticate"))
 		}
-		if got := rec.Header().Get("X-Owner-Email"); got != "owner@metaspot.org" {
-			t.Errorf("uri %s: X-Owner-Email = %q, want owner@metaspot.org", uri, got)
+		if got := rec.Header().Get("X-Owner-Email"); got != "owner@int.ikigenba.com" {
+			t.Errorf("uri %s: X-Owner-Email = %q, want owner@int.ikigenba.com", uri, got)
 		}
 		if got, want := rec.Header().Get("X-Client-Id"), "pat:"+p.PublicID; got != want {
 			t.Errorf("uri %s: X-Client-Id = %q, want %q", uri, got, want)
@@ -328,7 +328,7 @@ func TestAuthnPATValidCrossService(t *testing.T) {
 func TestAuthnPATRevoked(t *testing.T) {
 	d := newServerDeps(t)
 	h := twoResourceServer(t, d, nil)
-	tok, p := mintPAT(t, d, "owner@metaspot.org")
+	tok, p := mintPAT(t, d, "owner@int.ikigenba.com")
 	if err := d.pats.Revoke(context.Background(), p.ID); err != nil {
 		t.Fatalf("Revoke: %v", err)
 	}
@@ -377,7 +377,7 @@ func TestAuthnPATOwnerOutsideWorkspace(t *testing.T) {
 func TestAuthnPATRateLimited(t *testing.T) {
 	d := newServerDeps(t)
 	h := twoResourceServer(t, d, ratelimit.New(1, time.Minute))
-	tok, _ := mintPAT(t, d, "owner@metaspot.org")
+	tok, _ := mintPAT(t, d, "owner@int.ikigenba.com")
 	headers := map[string]string{
 		"Authorization":  "Bearer " + tok,
 		"X-Original-URI": "/srv/crm/mcp",
@@ -398,7 +398,7 @@ func TestAuthnPATRateLimited(t *testing.T) {
 func TestAuthnRejectsNonLoopback(t *testing.T) {
 	d := newServerDeps(t)
 	h := authnServer(t, d, nil)
-	tok := mintAccessToken(t, d, "owner@metaspot.org", testResource)
+	tok := mintAccessToken(t, d, "owner@int.ikigenba.com", testResource)
 
 	req := httptest.NewRequest("POST", "http://127.0.0.1/internal/authn", nil)
 	req.RemoteAddr = "203.0.113.7:40000" // non-loopback

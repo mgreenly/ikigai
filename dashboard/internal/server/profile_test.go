@@ -62,7 +62,7 @@ func TestProfileUsesLiveSessionOwner(t *testing.T) {
 
 func TestProfileOwnsPATManagementAndIndexOmitsIt(t *testing.T) {
 	srv, deps := patTestServer(t)
-	const owner = "owner@metaspot.org"
+	const owner = "owner@int.ikigenba.com"
 	cookie := mintSession(t, deps, owner)
 	publicID := mintPATWithLabel(t, deps, owner, "Codex on laptop")
 	headers := map[string]string{"Cookie": cookie.Name + "=" + cookie.Value}

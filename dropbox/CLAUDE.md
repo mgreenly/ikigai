@@ -18,20 +18,12 @@ transport, db + migration runner, `eventplane/outbox`, logging, ids — renamed)
 
 **Read the decisions first — do not re-derive them:**
 
-- `../../metaspot/AGENTS.md` — platform spec (Service layer = path routing).
-  *(From a service dir the path is `../../metaspot`; the root `CLAUDE.md`'s
-  `../metaspot` is relative to the ikigai root, not here.)*
-- `../../metaspot/docs/path-routing-architecture.md` — server-side topology + the
-  auth contract you live under.
-- `../../metaspot/docs/connector-and-install.md` — the suite plugin + install
-  layer. A service's connector skills live in the `dashboard`'s `plugin/`, not
-  here.
 - `project/notes/PLAN.md` — the full dropbox design (the sync engine, crash/replay ordering,
   case-folding, the content endpoint, the events, the no-backup decision).
 - `../crm` / `../ledger` — the sibling producers that share this chassis
   (`internal/<domain>` → `/feed` outbox).
 
-If anything here conflicts with those docs, the docs win — and flag the conflict.
+A service's connector skills live in the `dashboard`'s `plugin/`, not here.
 
 ## What this app is
 

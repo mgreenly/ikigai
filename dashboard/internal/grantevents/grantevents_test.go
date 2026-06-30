@@ -9,10 +9,10 @@ import (
 // called for its owner.
 func TestSubscribeReceivesOnPublish(t *testing.T) {
 	b := New()
-	ch, cancel := b.Subscribe("owner@metaspot.org")
+	ch, cancel := b.Subscribe("owner@int.ikigenba.com")
 	defer cancel()
 
-	b.Publish("owner@metaspot.org")
+	b.Publish("owner@int.ikigenba.com")
 	select {
 	case <-ch:
 	case <-time.After(time.Second):
@@ -24,11 +24,11 @@ func TestSubscribeReceivesOnPublish(t *testing.T) {
 // receive does not block and does not enqueue a second notify (buffer is 1).
 func TestPublishNonBlockingWhenBufferFull(t *testing.T) {
 	b := New()
-	ch, cancel := b.Subscribe("owner@metaspot.org")
+	ch, cancel := b.Subscribe("owner@int.ikigenba.com")
 	defer cancel()
 
-	b.Publish("owner@metaspot.org")
-	b.Publish("owner@metaspot.org") // must not block, must coalesce
+	b.Publish("owner@int.ikigenba.com")
+	b.Publish("owner@int.ikigenba.com") // must not block, must coalesce
 
 	// First receive succeeds.
 	select {
@@ -48,10 +48,10 @@ func TestPublishNonBlockingWhenBufferFull(t *testing.T) {
 // wake this subscriber.
 func TestPublishOtherOwnerNotDelivered(t *testing.T) {
 	b := New()
-	ch, cancel := b.Subscribe("a@metaspot.org")
+	ch, cancel := b.Subscribe("a@int.ikigenba.com")
 	defer cancel()
 
-	b.Publish("b@metaspot.org")
+	b.Publish("b@int.ikigenba.com")
 	select {
 	case <-ch:
 		t.Fatal("notify delivered to the wrong owner")
@@ -62,10 +62,10 @@ func TestPublishOtherOwnerNotDelivered(t *testing.T) {
 // TestCancelUnregisters: after cancel, Publish neither panics nor delivers.
 func TestCancelUnregisters(t *testing.T) {
 	b := New()
-	ch, cancel := b.Subscribe("owner@metaspot.org")
+	ch, cancel := b.Subscribe("owner@int.ikigenba.com")
 	cancel()
 
-	b.Publish("owner@metaspot.org") // must not panic; subscriber is gone
+	b.Publish("owner@int.ikigenba.com") // must not panic; subscriber is gone
 	select {
 	case <-ch:
 		t.Fatal("notify delivered after cancel")
@@ -92,5 +92,5 @@ func TestPublishEmptyOwnerNoop(t *testing.T) {
 // TestNilBusPublishNoop: a nil Bus Publish is a safe no-op.
 func TestNilBusPublishNoop(t *testing.T) {
 	var b *Bus
-	b.Publish("owner@metaspot.org")
+	b.Publish("owner@int.ikigenba.com")
 }

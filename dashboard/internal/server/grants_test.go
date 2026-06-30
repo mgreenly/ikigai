@@ -86,7 +86,7 @@ func issueChain(t *testing.T, deps serverDeps, owner, clientName string) (public
 // grant (the client name appears).
 func TestGrantsFragmentListsOwnGrant(t *testing.T) {
 	srv, deps := grantsTestServer(t)
-	const owner = "owner@metaspot.org"
+	const owner = "owner@int.ikigenba.com"
 	cookie := mintSession(t, deps, owner)
 	_, clientName := issueChain(t, deps, owner, "Claude Code")
 
@@ -124,7 +124,7 @@ func TestGrantsFragmentRequiresSession(t *testing.T) {
 // no longer lists it.
 func TestGrantRevoke(t *testing.T) {
 	srv, deps := grantsTestServer(t)
-	const owner = "owner@metaspot.org"
+	const owner = "owner@int.ikigenba.com"
 	cookie := mintSession(t, deps, owner)
 	publicID, clientName := issueChain(t, deps, owner, "Claude Code")
 
@@ -151,7 +151,7 @@ func TestGrantRevoke(t *testing.T) {
 // rejected as cross-origin (403) and the grant survives.
 func TestGrantRevokeCrossOrigin(t *testing.T) {
 	srv, deps := grantsTestServer(t)
-	const owner = "owner@metaspot.org"
+	const owner = "owner@int.ikigenba.com"
 	cookie := mintSession(t, deps, owner)
 	publicID, clientName := issueChain(t, deps, owner, "Claude Code")
 
@@ -174,8 +174,8 @@ func TestGrantRevokeCrossOrigin(t *testing.T) {
 // indistinguishable from not-found (404) and does not revoke it.
 func TestGrantRevokeOtherOwner(t *testing.T) {
 	srv, deps := grantsTestServer(t)
-	cookie := mintSession(t, deps, "attacker@metaspot.org")
-	publicID, clientName := issueChain(t, deps, "victim@metaspot.org", "Victim Client")
+	cookie := mintSession(t, deps, "attacker@int.ikigenba.com")
+	publicID, clientName := issueChain(t, deps, "victim@int.ikigenba.com", "Victim Client")
 
 	rec := do(t, srv, "POST", "https://int.ikigenba.com/grants/"+publicID+"/revoke",
 		map[string]string{
@@ -186,7 +186,7 @@ func TestGrantRevokeOtherOwner(t *testing.T) {
 		t.Fatalf("foreign-chain revoke status = %d, want 404", rec.Code)
 	}
 	// Victim's grant still present.
-	victimCookie := mintSession(t, deps, "victim@metaspot.org")
+	victimCookie := mintSession(t, deps, "victim@int.ikigenba.com")
 	frag := do(t, srv, "GET", "https://int.ikigenba.com/grants/fragment",
 		map[string]string{"Cookie": victimCookie.Name + "=" + victimCookie.Value})
 	if !strings.Contains(frag.Body.String(), clientName) {
@@ -199,7 +199,7 @@ func TestGrantRevokeOtherOwner(t *testing.T) {
 // request context is cancelled to end the stream.
 func TestGrantsStreamEmitsChainsEvent(t *testing.T) {
 	srv, deps := grantsTestServer(t)
-	const owner = "owner@metaspot.org"
+	const owner = "owner@int.ikigenba.com"
 	cookie := mintSession(t, deps, owner)
 
 	ctx, cancel := context.WithCancel(context.Background())

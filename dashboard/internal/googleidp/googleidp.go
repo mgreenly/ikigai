@@ -117,8 +117,8 @@ func (stub) AuthorizeURL(state, redirectURI string) string {
 // the configured Workspace domain cannot silently drift apart.
 var StubIdentity = Identity{
 	Sub:           "stub-sub-1",
-	Email:         "owner@metaspot.org",
-	HostedDomain:  "metaspot.org",
+	Email:         "owner@int.ikigenba.com",
+	HostedDomain:  "int.ikigenba.com",
 	EmailVerified: true,
 }
 

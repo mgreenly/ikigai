@@ -22,11 +22,10 @@ verb set (`serve`/`version`/`manifest`/`migrate`/`backup`/`restore`); deploys
 land in versioned release directories with an atomic swap and one-command
 rollback. Services don't call each other as private API chains — they publish
 facts to an append-only outbox and consume each other's `/feed` over SSE (the
-event plane). The **infrastructure** half (Terraform: AWS accounts, DNS, the
-box itself) lives in the sibling repo `../metaspot`, whose specs are
-authoritative — on any conflict, read `../metaspot/AGENTS.md` and
-`../metaspot/docs/` and let them win. This file is the introduction; the
-specifics live in the folders below and in `docs/`.
+event plane). The **infrastructure** (Terraform for the `int.ikigenba.com` box —
+AWS accounts, DNS, the box itself) is managed separately in `~/projects/metaspot`
+and is not part of this repo. This file is the introduction; the specifics live
+in the folders below and in `docs/`.
 
 ## Top-level layout
 

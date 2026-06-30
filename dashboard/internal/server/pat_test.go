@@ -41,7 +41,7 @@ func patTestServer(t *testing.T) (*http.Server, serverDeps) {
 // stored token is the hash (the plaintext is not in the database list view).
 func TestPATCreateShowsSecretOnce(t *testing.T) {
 	srv, deps := patTestServer(t)
-	const owner = "owner@metaspot.org"
+	const owner = "owner@int.ikigenba.com"
 	cookie := mintSession(t, deps, owner)
 
 	rec := doForm(t, srv, "https://int.ikigenba.com/pat",
@@ -84,7 +84,7 @@ func TestPATCreateShowsSecretOnce(t *testing.T) {
 // PAT is minted.
 func TestPATCreateEmptyLabel(t *testing.T) {
 	srv, deps := patTestServer(t)
-	const owner = "owner@metaspot.org"
+	const owner = "owner@int.ikigenba.com"
 	cookie := mintSession(t, deps, owner)
 
 	rec := doForm(t, srv, "https://int.ikigenba.com/pat",
@@ -105,7 +105,7 @@ func TestPATCreateEmptyLabel(t *testing.T) {
 // TestPATCreateOverLongLabel: a label over 48 characters is rejected 400.
 func TestPATCreateOverLongLabel(t *testing.T) {
 	srv, deps := patTestServer(t)
-	const owner = "owner@metaspot.org"
+	const owner = "owner@int.ikigenba.com"
 	cookie := mintSession(t, deps, owner)
 
 	rec := doForm(t, srv, "https://int.ikigenba.com/pat",
@@ -123,7 +123,7 @@ func TestPATCreateOverLongLabel(t *testing.T) {
 // no PAT is minted.
 func TestPATCreateCrossOrigin(t *testing.T) {
 	srv, deps := patTestServer(t)
-	const owner = "owner@metaspot.org"
+	const owner = "owner@int.ikigenba.com"
 	cookie := mintSession(t, deps, owner)
 
 	rec := doForm(t, srv, "https://int.ikigenba.com/pat",
@@ -168,7 +168,7 @@ func mintPATWithLabel(t *testing.T, deps serverDeps, owner, label string) string
 // profile page, and removes it from the owner's active list.
 func TestPATRevoke(t *testing.T) {
 	srv, deps := patTestServer(t)
-	const owner = "owner@metaspot.org"
+	const owner = "owner@int.ikigenba.com"
 	cookie := mintSession(t, deps, owner)
 	publicID := mintPATWithLabel(t, deps, owner, "Codex on laptop")
 
@@ -194,8 +194,8 @@ func TestPATRevoke(t *testing.T) {
 // indistinguishable from not-found (404) and does not revoke it.
 func TestPATRevokeOtherOwner(t *testing.T) {
 	srv, deps := patTestServer(t)
-	cookie := mintSession(t, deps, "attacker@metaspot.org")
-	publicID := mintPATWithLabel(t, deps, "victim@metaspot.org", "Victim PAT")
+	cookie := mintSession(t, deps, "attacker@int.ikigenba.com")
+	publicID := mintPATWithLabel(t, deps, "victim@int.ikigenba.com", "Victim PAT")
 
 	rec := do(t, srv, "POST", "https://int.ikigenba.com/pat/"+publicID+"/revoke",
 		map[string]string{
@@ -205,7 +205,7 @@ func TestPATRevokeOtherOwner(t *testing.T) {
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("foreign-PAT revoke status = %d, want 404", rec.Code)
 	}
-	pats, _ := deps.pats.ListByOwner(context.Background(), "victim@metaspot.org")
+	pats, _ := deps.pats.ListByOwner(context.Background(), "victim@int.ikigenba.com")
 	if len(pats) != 1 {
 		t.Errorf("victim's PAT was revoked by another owner")
 	}
@@ -215,7 +215,7 @@ func TestPATRevokeOtherOwner(t *testing.T) {
 // (indistinguishable from not-found).
 func TestPATRevokeAlreadyRevoked(t *testing.T) {
 	srv, deps := patTestServer(t)
-	const owner = "owner@metaspot.org"
+	const owner = "owner@int.ikigenba.com"
 	cookie := mintSession(t, deps, owner)
 	publicID := mintPATWithLabel(t, deps, owner, "Codex")
 
@@ -243,7 +243,7 @@ func TestPATRevokeAlreadyRevoked(t *testing.T) {
 // management, even when the owner has an active token.
 func TestIndexOmitsPATManagement(t *testing.T) {
 	srv, deps := patTestServer(t)
-	const owner = "owner@metaspot.org"
+	const owner = "owner@int.ikigenba.com"
 	cookie := mintSession(t, deps, owner)
 	mintPATWithLabel(t, deps, owner, "Codex on laptop")
 

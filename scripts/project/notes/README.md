@@ -329,8 +329,5 @@ Payload:
 - `../crm/` — the static **producer** (outbox wiring).
 - `../eventplane/` — the producer/consumer library.
 - `../docs/event-protocol.md` — the normative event wire contract.
-
-**Platform (sibling `metaspot` repo — authoritative; on conflict it wins):**
-- `../../metaspot/AGENTS.md`, `../../metaspot/docs/path-routing-architecture.md`.
 </content>
 </invoke>

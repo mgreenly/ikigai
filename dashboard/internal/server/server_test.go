@@ -24,7 +24,7 @@ import (
 
 // testWorkspaceDomain is the Workspace federation gate value used across server
 // tests — any non-empty domain satisfies New's required-domain guard.
-const testWorkspaceDomain = "metaspot.org"
+const testWorkspaceDomain = "int.ikigenba.com"
 
 // testResource is a configured resource identifier the authorize/token endpoints
 // accept; it is the sole member of Options.Resources in tests.

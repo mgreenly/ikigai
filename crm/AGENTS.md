@@ -8,16 +8,10 @@ token logic**. First demo account: **int**.
 
 This is a greenfield repo. **Read the decisions first — do not re-derive them:**
 
-- `../metaspot/AGENTS.md` — platform spec (Service layer = path routing).
-- `../metaspot/docs/path-routing-architecture.md` — server-side topology + the
-  auth contract you live under.
-- `../metaspot/docs/connector-and-install.md` — the suite plugin + install layer.
-  Note: the CRM's connector **skills live in the `dashboard` repo's `plugin/`**,
-  not here.
 - `../crm.bak/` — the prior fused crm+dashboard codebase. **Reference only**, do
   not depend on it. Port the CRM domain from it; leave the auth/UI behind.
 
-If anything here conflicts with those docs, the docs win — and flag the conflict.
+The CRM's connector **skills live in the `dashboard` repo's `plugin/`**, not here.
 
 ## What this app is
 
@@ -104,8 +98,8 @@ of `ui/`. No login, no token store, no OAuth endpoints.
 ## nginx fragment (not a vhost)
 
 `opsctl setup crm` writes only `/etc/nginx/conf.d/locations/crm.conf` (its
-`location /srv/crm/` + the PRM well-known location, per
-`path-routing-architecture.md`) and reloads nginx. It does **not** install a
+`location /srv/crm/` + the PRM well-known location, per the suite's path-routing
+model in the root `AGENTS.md`) and reloads nginx. It does **not** install a
 server block and does **not** issue a TLS cert — the dashboard owns both (the
 box-global apex/cert pieces are `opsctl init-box`).
 

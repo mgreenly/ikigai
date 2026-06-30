@@ -8,7 +8,7 @@ import (
 
 func TestProfileRendersGrantManagementBlock(t *testing.T) {
 	srv, deps := grantsTestServer(t)
-	const owner = "owner@metaspot.org"
+	const owner = "owner@int.ikigenba.com"
 	cookie := mintSession(t, deps, owner)
 	publicID, clientName := issueChain(t, deps, owner, "Acme Desktop")
 
@@ -32,7 +32,7 @@ func TestProfileRendersGrantManagementBlock(t *testing.T) {
 
 func TestGrantRevokeRedirectsBackToProfile(t *testing.T) {
 	srv, deps := grantsTestServer(t)
-	const owner = "owner@metaspot.org"
+	const owner = "owner@int.ikigenba.com"
 	cookie := mintSession(t, deps, owner)
 	publicID, clientName := issueChain(t, deps, owner, "Acme Desktop")
 	headers := map[string]string{
@@ -58,7 +58,7 @@ func TestGrantRevokeRedirectsBackToProfile(t *testing.T) {
 
 func TestSignedInIndexOmitsGrantManagement(t *testing.T) {
 	srv, deps := grantsTestServer(t)
-	const owner = "owner@metaspot.org"
+	const owner = "owner@int.ikigenba.com"
 	cookie := mintSession(t, deps, owner)
 	publicID, clientName := issueChain(t, deps, owner, "Acme Desktop")
 

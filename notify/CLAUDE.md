@@ -24,9 +24,6 @@ notify's event-graph edges.
 - `../../docs/event-protocol.md` — the **normative** event-plane wire contract.
   On any conflict it wins over this file. notify is a *consumer* under §10.
 - `../../docs/event-plane-decisions.md` — the design rationale for this consumer.
-- `../../metaspot/AGENTS.md` — platform spec (Service layer = path routing).
-- `../../metaspot/docs/path-routing-architecture.md` — server-side topology + the
-  auth contract you live under.
 - `../crm` — the producer this consumer reacts to (owns the `contact.created`
   payload shape, §8.6); `../ledger` — the chassis skeleton this was cloned from;
   `../eventplane` — the shared library whose `consumer` package is the engine.

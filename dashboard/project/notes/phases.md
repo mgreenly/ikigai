@@ -184,8 +184,8 @@ bar in its own right.
 - **Service mount prefix** — services live under the reserved `/srv/<svc>/`
   namespace (e.g. `int.ikigenba.com/srv/crm/mcp`, PRM at
   `/srv/crm/.well-known/oauth-protected-resource`), so the DEFAULT=true apex's
-  many top-level routes never collide with a service. (See
-  `ikigenba/docs/path-routing-architecture.md`.)
+  many top-level routes never collide with a service. (See the path-routing model
+  in the root `AGENTS.md`.)
 - **Build order** — dashboard first, then the real crm. 2b/2c are tested against
   a throwaway stub service (serves its static PRM well-known doc + echoes the
   injected `X-Owner-Email`), **not** the real crm.

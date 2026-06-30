@@ -35,14 +35,14 @@ func liveSessionCookie(t *testing.T, d serverDeps, ownerEmail string) string {
 func TestSessionAuthnValidCookie(t *testing.T) {
 	d := newServerDeps(t)
 	h := authnServer(t, d, nil)
-	cookie := liveSessionCookie(t, d, "owner@metaspot.org")
+	cookie := liveSessionCookie(t, d, "owner@int.ikigenba.com")
 
 	rec := doSessionAuthn(h, cookie)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200", rec.Code)
 	}
-	if got := rec.Header().Get("X-Owner-Email"); got != "owner@metaspot.org" {
-		t.Errorf("X-Owner-Email = %q, want owner@metaspot.org", got)
+	if got := rec.Header().Get("X-Owner-Email"); got != "owner@int.ikigenba.com" {
+		t.Errorf("X-Owner-Email = %q, want owner@int.ikigenba.com", got)
 	}
 }
 
@@ -72,7 +72,7 @@ func TestSessionAuthnInvalidCookie(t *testing.T) {
 func TestSessionAuthnRejectsNonLoopback(t *testing.T) {
 	d := newServerDeps(t)
 	h := authnServer(t, d, nil)
-	cookie := liveSessionCookie(t, d, "owner@metaspot.org")
+	cookie := liveSessionCookie(t, d, "owner@int.ikigenba.com")
 
 	req := httptest.NewRequest("GET", "http://127.0.0.1/internal/session-authn", nil)
 	req.RemoteAddr = "203.0.113.7:40000" // non-loopback

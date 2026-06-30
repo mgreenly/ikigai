@@ -6,8 +6,8 @@
 > the mode-owned `research.md`.
 >
 > Date: 2026-06-30. Authored from a 6-way parallel investigation (opsctl
-> mechanics, appkit feasibility, off-box tooling, dashboard apex, metaspot
-> authoritative specs, external prior art).
+> mechanics, appkit feasibility, off-box tooling, dashboard apex, the
+> path-routing architecture, external prior art).
 
 ## The question
 
@@ -65,9 +65,9 @@ no `--port`/`--fragment`, so it drops no `/srv/` fragment. Any deploy-time desig
 **must not** funnel the dashboard through the `/srv/<svc>` path; it needs an
 apex-aware branch (or stays in `init-box`).
 
-## Authoritative constraints (metaspot — wins on conflict)
+## Authoritative constraints (the path-routing architecture — wins on conflict)
 
-From `/mnt/projects/metaspot/docs/path-routing-architecture.md` + `AGENTS.md`:
+From the suite's path-routing architecture (root `AGENTS.md` + `docs/`):
 
 - **nginx is the sole trust boundary.** The fragment *is* the auth enforcement
   point: `auth_request /_authn`, the authoritative `X-Owner-Email`/`X-Client-Id`
@@ -86,7 +86,7 @@ From `/mnt/projects/metaspot/docs/path-routing-architecture.md` + `AGENTS.md`:
   preserved.)
 - Services own **only** their `<svc>.conf` location file — never the apex block,
   cert, or `/_authn`. At most one `DEFAULT=true` app (the dashboard) per box.
-- Minor drift to flag: metaspot describes fragment placeholders as
+- Minor drift to flag: the architecture describes fragment placeholders as
   `__APP__/__MOUNT__/__PORT__`, but opsctl's `renderFragment` substitutes only
   `__PORT__` (apex adds `__DOMAIN__`). Not load-bearing here, but worth a cleanup
   note.
@@ -170,8 +170,8 @@ HOST/SSH_KEY). `opsctl stage`/`deploy` pick it up and feed it to the existing
 render/validate/reload path.
 
 - **Pros:** low ship-side cost; no Go restructure; fragment stays a plain file at
-  its committed path; matches metaspot's "fragment is a separate file" framing
-  most literally.
+  its committed path; matches the architecture's "fragment is a separate file"
+  framing most literally.
 - **Cons:** the fragment becomes a **second artifact that can desync** from the
   binary (version-binding is by convention, not construction — weaker than (a)).
   `stage`'s contract is strictly one `--artifact` executable and it **deletes
@@ -244,7 +244,7 @@ check).
    step too, or retire it?
 4. **Worker/consumer services** with no fragment — explicit no-op vs a guarded
    skip.
-5. **Placeholder cleanup** — reconcile metaspot's `__APP__/__MOUNT__/__PORT__`
+5. **Placeholder cleanup** — reconcile the architecture's `__APP__/__MOUNT__/__PORT__`
    description with opsctl's `__PORT__`-only `renderFragment` while we're here.
 6. **Rollback** — a `bin/run` rollback to an older binary should also restore that
    binary's fragment. Under (a) this is automatic (emit from the rolled-back
@@ -258,5 +258,4 @@ check).
   embed precedent `Spec.Migrations` (`appkit.go:127`).
 - off-box: `bin/ship`, `bin/bump`, repo-root `deploy.md`.
 - fragments: `<svc>/etc/nginx.conf` (all services); apex `dashboard/etc/nginx.conf`.
-- authoritative infra: `/mnt/projects/metaspot/docs/path-routing-architecture.md`,
-  `/mnt/projects/metaspot/AGENTS.md`.
+- path-routing architecture: root `AGENTS.md` + `docs/`.
