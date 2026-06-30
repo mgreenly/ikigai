@@ -56,7 +56,15 @@ func TestIndexLoggedOutShowsNameOriginColophon(t *testing.T) {
 		t.Fatalf("status = %d, want 200", rec.Code)
 	}
 	body := rec.Body.String()
+	wall := signinWallMain(t, body)
 	aside := nameOriginAside(t, body)
+	signInLink := `<a href="/login" class="btn btn-primary btn-lg btn-accent-link">Sign in with Google</a>`
+	if strings.Index(wall, `<aside class="name-origin"`) <= strings.Index(wall, signInLink) {
+		t.Errorf("name-origin colophon is not after the sign-in CTA:\n%s", wall)
+	}
+	if !strings.Contains(wall, "</aside>\n  </main>") {
+		t.Errorf("name-origin colophon is not last inside the sign-in wall:\n%s", wall)
+	}
 	for _, want := range []string{
 		`<aside class="name-origin" aria-label="What ikigenba means">`,
 		`<p class="name-origin-lede"><b>ikigenba</b> — where your livelihood actually gets done. A portmanteau of two Japanese words:</p>`,
@@ -73,6 +81,9 @@ func TestIndexLoggedOutShowsNameOriginColophon(t *testing.T) {
 	}
 	if got := strings.Count(aside, `<p class="name-origin-lede">`); got != 1 {
 		t.Errorf("name-origin lede count = %d, want 1:\n%s", got, aside)
+	}
+	if got := strings.Count(aside, "<p"); got != 1 {
+		t.Errorf("name-origin paragraph count = %d, want only the lede:\n%s", got, aside)
 	}
 	if got := strings.Count(aside, `<dl class="name-origin-parts">`); got != 1 {
 		t.Errorf("name-origin parts list count = %d, want 1:\n%s", got, aside)
@@ -146,6 +157,20 @@ func nameOriginAside(t *testing.T, body string) string {
 		t.Fatalf("name-origin aside is not closed:\n%s", body[start:])
 	}
 	return body[start : start+end+len(`</aside>`)]
+}
+
+func signinWallMain(t *testing.T, body string) string {
+	t.Helper()
+
+	start := strings.Index(body, `<main class="signin-wall">`)
+	if start < 0 {
+		t.Fatalf("body missing sign-in wall:\n%s", body)
+	}
+	end := strings.Index(body[start:], `</main>`)
+	if end < 0 {
+		t.Fatalf("sign-in wall is not closed:\n%s", body[start:])
+	}
+	return body[start : start+end+len(`</main>`)]
 }
 
 func TestIndexLoggedOutKeepsLandingOnly(t *testing.T) {
