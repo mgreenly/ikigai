@@ -96,6 +96,7 @@ var groups = []group{
 	{"Provisioning", []verb{
 		{"setup", "opsctl setup <app> [--port <n>] [--fragment <path>] [--defer-nginx] [--packages <p1,p2>]"},
 		{"teardown", "opsctl teardown <app> --force [--keep-user]"},
+		{"convert", "opsctl convert <app>"},
 		// One flag per line; line 1 is the verb + first flag, continuation lines
 		// align under --domain (16 cols = len("opsctl init-box "); the renderer
 		// prepends the 4-col group indent → column 20).
@@ -131,6 +132,7 @@ var runners = map[string]runner{
 	"tail":     runTail,
 	"setup":    runSetup,
 	"teardown": runTeardown,
+	"convert":  runConvert,
 	"init-box": runInitBox,
 }
 
@@ -476,6 +478,18 @@ func runTeardown(ctx context.Context, root, name string, args []string) error {
 		Force:    *force,
 		KeepUser: *keepUser,
 	})
+}
+
+func runConvert(ctx context.Context, root, name string, args []string) error {
+	fs := newFlagSet(name)
+	if err := fs.Parse(args); err != nil {
+		return helpErr(err)
+	}
+	pos := fs.Args()
+	if len(pos) != 1 {
+		return fmt.Errorf("usage: opsctl convert <app>")
+	}
+	return opsctl.New(root).ConvertOldLayout(ctx, pos[0])
 }
 
 // splitList parses a comma-separated flag value into a trimmed, empty-dropped
