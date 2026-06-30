@@ -12,4 +12,4 @@ Phase 01 ✅ realizes D1, D2, D3 — landing handler + embedded Carbon template/
 Phase 02 ✅ realizes D4 — nginx fragment: add the exact-match session-gated `= /srv/cron/` location, validated by a content-assertion test
 Phase 03 ✅ realizes D5 — state the landing-page truth in `cron/cmd/cron/main.go`'s package-doc header (structural; docs-only)
 Phase 04 ✅ realizes D6 — add the top-left Home link to the dashboard landing page; covers R-HOME-2K4P
-Phase 05 ⬜ realizes D7 — self-serve the landing fonts and eliminate the FOUT: relativize the `tokens.css` link, `font-display: swap`→`optional` + self-served `src` in tokens.css, preload display+body fonts with `crossorigin`, and add the session-gated nginx `location /srv/cron/static/`; covers R-21DE-LOX3, R-22LA-ZGNS, R-23T7-D8EH, R-2513-R056, R-2690-4RVV
+Phase 05 ✅ realizes D7 — self-serve the landing fonts and eliminate the FOUT: relativize the `tokens.css` link, `font-display: swap`→`optional` + self-served `src` in tokens.css, preload display+body fonts with `crossorigin`, and add the session-gated nginx `location /srv/cron/static/`; covers R-21DE-LOX3, R-22LA-ZGNS, R-23T7-D8EH, R-2513-R056, R-2690-4RVV
