@@ -21,7 +21,7 @@ left untouched while that phase is in flight. You never delete it; `verify` does
 1. **Find the next phase.** Run:
 
    ```
-   grep -nE '^Phase .* ⬜' project/plan/STATUS.md | head -1
+   grep -nE '^- Phase .* ⬜' project/plan/STATUS.md | head -1
    ```
 
    - **No match** (zero `⬜` phases remain) → the whole job is complete. Write
