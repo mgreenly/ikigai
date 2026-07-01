@@ -37,3 +37,34 @@ func TestLayoutPathsUseAppRootScheme(t *testing.T) {
 		})
 	}
 }
+
+func TestLayoutPerVersionAndActiveAccessors(t *testing.T) {
+	const version = "v1.2.3"
+
+	l := NewLayout("/opt", "crm")
+
+	tests := []struct {
+		name string
+		got  string
+		want string
+	}{
+		{"EtcVersionDir", l.EtcVersionDir(version), "/opt/crm/etc/v1.2.3"},
+		{"NginxConfFile", l.NginxConfFile(version), "/opt/crm/etc/v1.2.3/nginx.conf"},
+		{"ManifestFile", l.ManifestFile(version), "/opt/crm/etc/v1.2.3/manifest.env"},
+		{"ShareVersionDir", l.ShareVersionDir(version), "/opt/crm/share/v1.2.3"},
+		{"RunLink", l.RunLink(), "/opt/crm/bin/run"},
+		{"EtcCurrentLink", l.EtcCurrentLink(), "/opt/crm/etc/current"},
+		{"ActiveNginxConf", l.ActiveNginxConf(), "/opt/crm/etc/current/nginx.conf"},
+		{"ActiveManifest", l.ActiveManifest(), "/opt/crm/etc/current/manifest.env"},
+		{"ShareCurrentLink", l.ShareCurrentLink(), "/opt/crm/share/current"},
+		{"LibexecBinary", l.LibexecBinary(version), "/opt/crm/libexec/crm-v1.2.3"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.got != tt.want {
+				t.Fatalf("%s = %q, want %q", tt.name, tt.got, tt.want)
+			}
+		})
+	}
+}
