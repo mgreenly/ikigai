@@ -37,7 +37,7 @@ lines, so the anchored grep matches only phase lines.
 - Phase 24  ✅  realizes —         — opsctl Layout: etc/<v>·share/<v>·three-symlink accessors (structural)
 - Phase 25  ✅  realizes D1        — opsctl setup materializes the new install tree
 - Phase 26  ✅  realizes D10, D2   — opsctl stage: unpack the versioned bundle (SHA guard)
-- Phase 27  ⬜  realizes D7        — opsctl backup/restore deltas (version-embedding key, no pre-restore)
+- Phase 27  ✅  realizes D7        — opsctl backup/restore deltas (version-embedding key, no pre-restore)
 - Phase 28  ⬜  realizes D2        — opsctl prune: delete each old version as a complete set
 - Phase 29  ⬜  realizes D10, D2   — opsctl deploy: three-symlink swap, unconditional backup, no manifest regen
 - Phase 30  ⬜  realizes D10, D2   — opsctl rollback: recover by S3 backup recency (-N)
