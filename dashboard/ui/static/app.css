@@ -281,47 +281,64 @@ a:hover { text-decoration: underline; }
 }
 
 .name-origin {
-  width: 100%;
   max-width: 420px;
+  margin-top: var(--space-2);
   padding-top: var(--space-6);
   border-top: var(--border-width) solid var(--color-border);
   text-align: left;
 }
 .name-origin .name-origin-lede {
-  margin: 0;
   max-width: none;
-  color: var(--color-text);
-  font-size: var(--text-body-size);
-  line-height: var(--text-body-lh);
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-small-size);
+  line-height: var(--text-small-lh);
+  color: var(--color-text-muted);
 }
 .name-origin .name-origin-lede b {
   color: var(--color-text);
   font-weight: 600;
 }
 .name-origin-parts {
-  display: grid;
-  gap: var(--space-4);
-  margin: var(--space-4) 0 0;
+  margin: 0;
   padding-left: var(--space-4);
   border-left: var(--border-width) solid var(--color-border);
+  display: grid;
+  gap: var(--space-3);
 }
 .name-origin-parts dt {
-  font-weight: 600;
-  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: var(--text-label-size);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--color-text-subtle);
 }
 .name-origin-parts dt .seam {
   color: var(--color-text);
   font-weight: 600;
 }
 .name-origin-parts dt span[lang="ja"] {
+  text-transform: none;
+  letter-spacing: 0;
   color: var(--color-text-muted);
-  font-weight: 400;
+  margin-left: var(--space-2);
 }
 .name-origin-parts dd {
   margin: var(--space-1) 0 0;
-  color: var(--color-text-muted);
   font-size: var(--text-small-size);
   line-height: var(--text-small-lh);
+  color: var(--color-text-muted);
+}
+.name-origin .name-origin-say {
+  max-width: none;
+  margin: var(--space-3) 0 0;
+  font-size: var(--text-small-size);
+  line-height: var(--text-small-lh);
+  color: var(--color-text-subtle);
+}
+.name-origin .name-origin-say b {
+  color: var(--color-text-muted);
+  font-weight: 600;
+  letter-spacing: .04em;
 }
 
 /* ---- Show-once token page ---------------------------------------------- */

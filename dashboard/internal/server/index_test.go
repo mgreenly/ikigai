@@ -67,12 +67,12 @@ func TestIndexLoggedOutShowsNameOriginColophon(t *testing.T) {
 	}
 	for _, want := range []string{
 		`<aside class="name-origin" aria-label="What ikigenba means">`,
-		`<p class="name-origin-lede"><b>ikigenba</b> — where your livelihood actually gets done. A portmanteau of two Japanese words:</p>`,
+		`<p class="name-origin-lede"><b>ikigenba</b> — A portmanteau of two Japanese words:</p>`,
 		`<dl class="name-origin-parts">`,
 		`<dt><b class="seam">iki</b>gai <span lang="ja">生き甲斐</span></dt>`,
-		`<dd>&ldquo;reason for being&rdquo; — the work worth doing; your business.</dd>`,
+		`<dd>&ldquo;reason for being&rdquo;; work worth doing.</dd>`,
 		`<dt><b class="seam">genba</b> <span lang="ja">現場</span></dt>`,
-		`<dd>&ldquo;the actual place&rdquo; — the floor where the work really happens.</dd>`,
+		`<dd>the actual place; where the work happens.</dd>`,
 	} {
 		// R-DB17-ORIG
 		if !strings.Contains(body, want) {
@@ -82,8 +82,8 @@ func TestIndexLoggedOutShowsNameOriginColophon(t *testing.T) {
 	if got := strings.Count(aside, `<p class="name-origin-lede">`); got != 1 {
 		t.Errorf("name-origin lede count = %d, want 1:\n%s", got, aside)
 	}
-	if got := strings.Count(aside, "<p"); got != 1 {
-		t.Errorf("name-origin paragraph count = %d, want only the lede:\n%s", got, aside)
+	if got := strings.Count(aside, "<p"); got != 2 {
+		t.Errorf("name-origin paragraph count = %d, want lede and pronunciation foot:\n%s", got, aside)
 	}
 	if got := strings.Count(aside, `<dl class="name-origin-parts">`); got != 1 {
 		t.Errorf("name-origin parts list count = %d, want 1:\n%s", got, aside)
@@ -102,6 +102,45 @@ func TestIndexLoggedOutShowsNameOriginColophon(t *testing.T) {
 	}
 	if strings.Contains(aside, "name-origin-roots") {
 		t.Errorf("name-origin uses stale roots class instead of parts:\n%s", aside)
+	}
+}
+
+func TestIndexLoggedOutShowsNameOriginPronunciationFoot(t *testing.T) {
+	srv := testServer(t)
+	rec := do(t, srv, "GET", "https://int.ikigenba.com/", nil)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rec.Code)
+	}
+	body := rec.Body.String()
+	aside := nameOriginAside(t, body)
+	parts := `<dl class="name-origin-parts">`
+	say := `<p class="name-origin-say">pronounced <b>EE-kee-GEN-buh</b></p>`
+
+	// R-O7K1-XEN7
+	if got := strings.Count(aside, `<p class="name-origin-say">`); got != 1 {
+		t.Fatalf("name-origin pronunciation count = %d, want 1:\n%s", got, aside)
+	}
+	if !strings.Contains(aside, say) {
+		t.Errorf("name-origin pronunciation foot missing phonetic string:\n%s", aside)
+	}
+	if got := strings.Count(aside, "<p"); got != 2 {
+		t.Errorf("name-origin paragraph count = %d, want lede and pronunciation foot:\n%s", got, aside)
+	}
+	if strings.Index(aside, say) <= strings.Index(aside, parts) {
+		t.Errorf("name-origin pronunciation foot is not after the parts list:\n%s", aside)
+	}
+	if !strings.HasSuffix(aside, say+"\n    </aside>") {
+		t.Errorf("name-origin pronunciation foot is not last inside the aside:\n%s", aside)
+	}
+
+	sess := liveSession(t, srv)
+	rec = do(t, srv, "GET", "https://int.ikigenba.com/", map[string]string{"Cookie": sess.Name + "=" + sess.Value})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("signed-in status = %d, want 200", rec.Code)
+	}
+	if strings.Contains(rec.Body.String(), `name-origin-say`) || strings.Contains(rec.Body.String(), `EE-kee-GEN-buh`) {
+		t.Errorf("signed-in index includes logged-out pronunciation guide:\n%s", rec.Body.String())
 	}
 }
 
