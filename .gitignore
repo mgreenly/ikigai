@@ -29,6 +29,10 @@
 
 # --- Local-dev stack state (bin/start): binaries, logs, pidfiles, dev SQLite ---
 /tmp/
+# Dev data tiers written relative to the repo root when a service runs without
+# IKIGENBA_ROOT set (e.g. scripts' SCRIPTS_GENERATION_PATH=cache/…).
+/cache/
+*.db.generation
 
 # --- wiki-eval harness output cache (P13): pure memoization, content-addressed ---
 .wiki-eval-cache/
