@@ -1,138 +1,169 @@
 # Deploying — bump → ship → stage → deploy
 
-> ⚠️ **`int.ikigenba.com` is the live account.** Do **not** run any of the steps
-> below — or otherwise `ssh int` / invoke `opsctl` against the box, even
-> read-only — unless you've been **explicitly told to deploy**. The default
-> workflow is local-only (`bin/start`); deploying is a separate, explicit
-> request.
+> ⚠️ **`int.ikigenba.com` is the live account.** Do not run any step below, or
+> otherwise `ssh int` / invoke `opsctl` against the box, unless you have been
+> explicitly told to deploy. The default workflow is local-only (`bin/start`);
+> deploying is a separate operator action.
 
 We deploy to **`int.ikigenba.com`** (the first and only account, `int`). Your
-`~/.ssh/config` already has a `Host int.ikigenba.com` (alias `int`) entry pinning
-the right key, so `ssh int` and the deploy scripts connect with the correct
-identity automatically — no `-i` flag needed.
+`~/.ssh/config` should already have a `Host int.ikigenba.com` entry, usually with
+alias `int`, that pins the right key. The commands below assume that alias.
 
-Deploy ships one static binary into a versioned `libexec/` slot — **not** `git push`
-and **not** an in-place overwrite. Run **both `bin/bump` and `bin/ship` from the
-standing `main` worktree** (`git worktree list` shows it — do not hard-code the
-path; the repo has been renamed before). `bin/ship` builds that worktree's HEAD,
-so invoking it from a feature worktree would build a possibly-stale tree;
-`bin/ship` refuses to run off `main` and exits with an error.
+The live box model is:
 
-## Pre-flight
+- `bin/bump` updates the committed service `VERSION` file.
+- `bin/ship` builds current `main` and copies a versioned **tar.gz bundle** to
+  the box `/tmp`.
+- `opsctl stage` unpacks that bundle into versioned on-box slots.
+- `opsctl deploy` takes an **unconditional** S3 pre-deploy backup, migrates,
+  performs the **three-symlink swap**, reloads nginx through `etc/current`,
+  restarts the unit, and prunes old retained versions.
+
+There is no `manifest`-verb / on-box manifest-generation step in the operator
+flow. The bundle already carries the authored `manifest.env` and `nginx.conf`
+from the source tree.
+
+## One-Time Box Prerequisite
+
+The suite's on-box paths come from `IKIGENBA_ROOT`. For the integration account,
+the Terraform-seeded `/etc/ikigenba/env` must set:
+
+```sh
+IKIGENBA_ROOT=/opt
+```
+
+That file is managed out of repo in `~/projects/metaspot`, so setting it is a
+manual operator prerequisite, not something this repo's green gate can verify.
+
+## Pre-Flight
 
 Before starting, confirm the two channels a deploy needs are live:
 
-- **SSO** (workstation → SSM, needed for the secrets step):
-  `aws sts get-caller-identity --profile int`. If it fails, the operator runs
+- **SSO** (workstation → AWS, needed by secret and object-store access):
+  `aws sts get-caller-identity --profile int`. If it fails, run
   `aws sso login --profile int` interactively.
 - **Box reachable:** `ssh int true`.
 
-## 0. Determine what actually needs deploying
+Run `git status --short` and make sure you are in the standing `main` worktree.
+`bin/ship` refuses to run from another branch because it builds the current
+`main` checkout.
 
-A bump-the-version-and-ship loop only makes sense for apps whose **code** changed
-since what's live. Two facts make this checkable:
+## 0. Determine What Needs Deploying
 
-- **`opsctl status` prints the git commit each live binary was built from** (the
-  `SHA` column). So `git diff <box-sha> HEAD -- <app>/` shows exactly what
-  changed for that app since it was deployed.
-- **Matching VERSION ≠ matching code.** Code routinely advances on `main`
-  without a version bump (the build loops don't bump). So an app can be "v0.5.0"
-  on the box and "v0.5.0" on `main` yet have a different binary.
+A bump-and-ship loop only makes sense for apps whose code changed since what is
+live. Use:
 
-> ⚠️ **If the code changed but the VERSION did not, you MUST `bin/bump` before
-> staging.** Releases are immutable: `opsctl stage` will refuse to overwrite an
-> existing `libexec/<app>-<ver>` with a different binary (the SHA-collision guard).
-> Bump first, then ship the new version.
+```sh
+ssh int sudo opsctl status
+git diff <box-sha> HEAD -- <app>/
+```
 
-Skip apps whose only diff is docs (`project/`, `*.md`) or a transitive-only
-`go.mod`/`go.sum` change — those produce a functionally identical binary and
-deploying them is churn.
+`opsctl status` prints the live version and git SHA. Matching versions do not
+prove matching code, because `main` can advance without a version bump. If code
+changed and the service `VERSION` did not, bump first; staged releases are
+immutable and `opsctl stage` rejects a conflicting already-present version.
 
-## 1. Seed secrets (only if an app's secrets are new / changed / unseeded)
+Skip apps whose only changes are docs or other files that do not alter the
+service binary or shipped bundle.
+
+## 1. Seed Secrets When Needed
 
 Secret-bearing apps read their keys from the shared SSM SecureString
-`/ikigenba/<account>/app-config` (one blob; each app owns key `.["<app>"]`).
-**`ikigenba-launch` hard-fails to boot an app whose key is missing**, and an app
-that gained a new required key will fail at runtime without it — so seed *before*
-deploying that app. Run the app's own script and type `yes`:
+`/ikigenba/<account>/app-config` under the app's own object key. Seed before
+deploying an app whose secrets are new, changed, or missing:
 
-```
-<svc>/bin/secrets        # e.g. prompts/bin/secrets, wiki/bin/secrets, gmail/bin/secrets
+```sh
+<svc>/bin/secrets
 ```
 
-It does a non-destructive read-modify-write of only that app's key (sibling apps'
-keys are preserved by a clobber-guard) and never prints secret values — only
-masked summaries. Values resolve from `~/.secrets/<NAME>` (or an env override).
-Apps with no `bin/secrets` (crm, ledger, cron, scripts, sites) need no seeding.
+The script does a non-destructive read-modify-write for that app only and prints
+masked summaries. Apps with no `bin/secrets` do not need this step.
 
-## 2–5. bump → ship → stage → deploy (per app)
+## 2. bump → ship → stage → deploy
 
-1. **`bin/bump <app> <major|minor|patch>`** — advance the committed bare-SemVer
-   `<app>/VERSION` on `main` (the single source of truth) and push it. Skip if
-   the version is already where you want it (e.g. you bumped it by hand earlier).
-2. **`bin/ship <app>`** — the off-box half. Builds current `main` (HEAD) as a
-   static `linux/amd64` binary in a throwaway git worktree, `scp`s the artifact
-   to the box `/tmp`, then **prints the two box commands and stops** — it makes
-   no other change on the box.
-3. **`ssh int sudo opsctl stage <app> v<ver> --artifact /tmp/<app>-v<ver>`** —
-   preflight + SHA-collision guard, place the binary into `libexec/<app>-<ver>`, and
-   delete the `/tmp` artifact on success. Stages a release without making it live.
-4. **`ssh int sudo opsctl deploy <app> v<ver>`** — regenerate `etc/manifest.env`
-   from the new binary, back up the DB if the schema advances, `migrate`, atomic
-   swap `bin/run`, restart the unit, and prune old releases.
+Run this sequence per app:
 
-**Order across apps:** deploy the **services first and the dashboard last**. The
-dashboard re-derives its authorization-server resources from *every* service
-manifest on restart, so deploying it last makes its own restart pick up all the
-new manifests (versions, new MCP tools) — no separate dashboard restart needed.
-A brand-new service needs `opsctl setup <app>` first (and `opsctl init-box` once
-per box); these are one-time.
+1. **`bin/bump <app> <major|minor|patch>`** — advances and commits the
+   v-prefixed SemVer in `<app>/VERSION`, then pushes it. Skip only if the
+   committed version is already the one you intend to deploy.
+2. **`bin/ship <app>`** — builds current `main` as a static linux/amd64 binary,
+   bundles the executable with `nginx.conf`, `manifest.env`, and optional
+   `share/`, copies `/tmp/<app>-v<ver>+<sha>.tar.gz` to the box, prints the two
+   box commands below, and stops.
+3. **`ssh int sudo opsctl stage <app> v<ver>+<sha> --artifact /tmp/<app>-v<ver>+<sha>.tar.gz`** —
+   unpacks the shipped bundle and stages the versioned binary/config/static
+   assets without changing what is live.
+4. **`ssh int sudo opsctl deploy <app> v<ver>+<sha>`** — backs up the current
+   state to S3 unconditionally, runs migrations against `state/<svc>.db`, swaps
+   `bin/run`, `etc/current`, and `share/current` atomically, reloads the nginx fragment through `etc/current`,
+   restarts the unit, and prunes retained versions.
 
-## 6. Verify
+Deploy services first and the dashboard last. The dashboard derives its
+authorization-server resources from every service manifest when it starts, so
+making it last lets its restart observe all newly deployed service manifests.
 
-Don't stop at "deployed." Confirm each app you touched:
+A brand-new service needs `opsctl setup <app>` first. A brand-new box needs
+`opsctl init-box` once before any service setup.
 
-- **Unit up:** `ssh int 'sudo systemctl is-active <app>'` → `active`.
-- **Live version:** `ssh int 'sudo opsctl status'` → the new `v<ver>` and the
-  HEAD `SHA`.
-- **Loopback health:** `ssh int 'curl -s -m5 -o /dev/null -w "%{http_code}" http://127.0.0.1:<port>/health'`
-  → `200`.
-- **Public chain through nginx** (proves the trust boundary, not just the
-  loopback): `https://int.ikigenba.com/` → `200`; `/srv/<svc>/mcp` → **`401`**
-  (auth required — a `502`/`503` means the loopback service is down).
-- **Event plane:** for producers/consumers, the logs should show feeds
-  reconnecting — `ssh int 'sudo journalctl -u <app> -n 30 --no-pager'`.
+## 3. Verify
 
-## Rollback & inspection
+For each app you touched:
 
-- **Roll back:** `ssh int sudo opsctl rollback <app> [ver]` (restores the
-  pre-migration DB backup if the rolled-back release advanced the schema).
-- **Inspect:** `opsctl status` / `opsctl releases <app>`.
-- **Logs:** use `sudo journalctl -u <app> -n N --no-pager` for a **bounded**
-  read. `opsctl tail <app>` *follows* the stream and never exits — fine
-  interactively, but it will hang a scripted/automated command.
-
-## Special case — migrations won't apply cleanly to the existing DB
-
-When a service's migration lineage was reset (e.g. a rebuild) the new migrations
-won't apply onto the old `schema_migrations`, and you've decided the live data
-need not be preserved. opsctl supports a fresh start: if no DB file exists at
-deploy time it logs *"schema advances but no DB yet — no backup"* and migrates
-from empty. Procedure:
-
-```
-ssh int sudo opsctl stage <app> v<ver> --artifact /tmp/<app>-v<ver>
-ssh int 'sudo systemctl stop <app> && sudo mv /opt/<app>/data/<app>.db /opt/<app>/data/<app>.db.OLD'
-ssh int sudo opsctl deploy <app> v<ver>     # migrates a fresh DB, restarts
+```sh
+ssh int 'sudo systemctl is-active <app>'
+ssh int 'sudo opsctl status'
+ssh int 'curl -s -m5 -o /dev/null -w "%{http_code}" http://127.0.0.1:<port>/health'
 ```
 
-> ⚠️ This **discards the data** and is **not reversible** — `rollback` cannot
-> recover a DB you moved aside. Only do it when told the DB need not be
-> preserved. Stopping the unit first lets SQLite checkpoint and drop the
-> `-wal`/`-shm` sidecars, so only `<app>.db` remains to move.
+Expected results:
 
-## References
+- systemd reports `active`.
+- `opsctl status` shows the new version and SHA.
+- loopback health returns `200`.
+- public nginx checks return `200` for public routes and `401` for protected MCP
+  routes; a `502` or `503` means the loopback service is not healthy through the
+  proxy.
+- producer/consumer services show reconnect or delivery activity in a bounded
+  journal read:
 
-The full deploy model is `docs/archive/adr-deployment-redesign.md`; versioning is
-`docs/archive/versioning.md`; per-service details live under each service's own
-directory and `CLAUDE.md`.
+```sh
+ssh int 'sudo journalctl -u <app> -n 30 --no-pager'
+```
+
+## Rollback
+
+Rollback is S3-snapshot based and selected by recency:
+
+```sh
+ssh int sudo opsctl rollback <app>
+ssh int sudo opsctl rollback <app> -N
+```
+
+With no offset, rollback restores the latest S3 snapshot for the app. With
+`-N`, rollback restores the Nth most recent snapshot, where `-0` is the latest,
+`-1` is the previous snapshot, and so on. The snapshot key records the release
+version, so rollback restores that state archive, checks schema compatibility,
+then repoints the same three live symlinks.
+
+Explicit target-version rollback is no longer the recovery model. Use S3
+snapshot recency instead.
+
+## Inspection And Logs
+
+- **Status:** `ssh int sudo opsctl status`
+- **Retained releases:** `ssh int sudo opsctl releases <app>`
+- **Bounded logs:** `ssh int 'sudo journalctl -u <app> -n N --no-pager'`
+
+`opsctl tail <app>` follows the stream and does not exit on its own, so reserve it
+for interactive sessions.
+
+## Fresh-State Recovery
+
+If an operator intentionally discards a service's live SQLite state before
+deploying, the next deploy migrates from an empty DB at `state/<svc>.db`. Stop
+the unit first, move the DB and SQLite sidecars out of the service `state/`
+directory, then deploy the already-staged version.
+
+This discards data and rollback can only restore snapshots that were already
+uploaded to S3. Do it only when explicitly instructed that the live state is not
+needed.
