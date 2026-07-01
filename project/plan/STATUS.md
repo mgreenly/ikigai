@@ -34,7 +34,7 @@ lines, so the anchored grep matches only phase lines.
 - Phase 21  ✅  realizes D8        — adopt webhooks into the new layout
 - Phase 22  ✅  realizes D8        — live-box one-time converter (idempotent, non-destructive)
 - Phase 23  ✅  realizes D11, D5   — appkit composeDataPaths + IKIGENBA_ROOT guard (additive)
-- Phase 24  ⬜  realizes —         — opsctl Layout: etc/<v>·share/<v>·three-symlink accessors (structural)
+- Phase 24  ✅  realizes —         — opsctl Layout: etc/<v>·share/<v>·three-symlink accessors (structural)
 - Phase 25  ⬜  realizes D1        — opsctl setup materializes the new install tree
 - Phase 26  ⬜  realizes D10, D2   — opsctl stage: unpack the versioned bundle (SHA guard)
 - Phase 27  ⬜  realizes D7        — opsctl backup/restore deltas (version-embedding key, no pre-restore)
