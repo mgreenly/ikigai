@@ -13,7 +13,49 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"appkit/manifest"
 )
+
+// R-8DF1-W89F
+func TestCommittedManifestIsPortable(t *testing.T) {
+	committed, err := os.ReadFile(filepath.Join("..", "..", "etc", "manifest.env"))
+	if err != nil {
+		t.Fatalf("read committed manifest.env: %v", err)
+	}
+	if bytes.Contains(committed, []byte("/opt/")) {
+		t.Fatalf("committed manifest.env contains on-box /opt/ path:\n%s", committed)
+	}
+	for _, line := range bytes.Split(committed, []byte("\n")) {
+		if bytes.HasPrefix(line, []byte("CRM_DB_PATH=")) || bytes.HasPrefix(line, []byte("CRM_GENERATION_PATH=")) {
+			t.Fatalf("committed manifest.env contains runtime path line %q", line)
+		}
+	}
+}
+
+// R-8IAN-FB87
+func TestManifestLibraryByteEqualsCommittedFile(t *testing.T) {
+	got := manifest.Emit(manifest.Fields{
+		App:     "crm",
+		Mount:   "/srv/crm/",
+		Default: false,
+		Port:    3001,
+		MCP:     true,
+		Feed:    "/feed",
+		Extras: []manifest.KV{
+			{Key: "OUTBOX_RETENTION_DAYS", Value: "7"},
+			{Key: "OUTBOX_RETENTION_MAX_ROWS", Value: "1000000"},
+		},
+	})
+	committed, err := os.ReadFile(filepath.Join("..", "..", "etc", "manifest.env"))
+	if err != nil {
+		t.Fatalf("read committed manifest.env: %v", err)
+	}
+
+	if got != string(committed) {
+		t.Fatalf("manifest.Emit output != committed etc/manifest.env\n--- emit ---\n%s\n--- committed ---\n%s", got, committed)
+	}
+}
 
 // R-4LKF-FB23
 func TestCRMBootsFromOpsctlLayoutAndServesHealth(t *testing.T) {
