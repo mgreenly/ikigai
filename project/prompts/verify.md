@@ -1,3 +1,7 @@
+---
+harness: claude
+model: claude-opus-4-8
+---
 # verify — the independent gate (the only marker-flipper)
 
 You are one turn of an **unattended build loop**, invoked in a **fresh, isolated

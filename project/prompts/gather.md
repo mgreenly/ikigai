@@ -1,3 +1,7 @@
+---
+harness: zai
+model: glm-5.2
+---
 # gather — author the phase brief (the only big-doc reader)
 
 You are one turn of an **unattended build loop**, invoked in a **fresh, isolated

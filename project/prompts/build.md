@@ -1,3 +1,7 @@
+---
+harness: codex
+model: gpt-5.5
+---
 # build — one bounded turn of the brief (brief is the only input)
 
 You are one turn of an **unattended build loop**, invoked in a **fresh, isolated
