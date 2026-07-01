@@ -46,7 +46,7 @@ lines, so the anchored grep matches only phase lines.
 - Phase 33  ✅  realizes D8, D11   — adopt dashboard into the new layout
 - Phase 34  ✅  realizes D8, D11   — adopt crm into the new layout
 - Phase 35  ✅  realizes D8, D11   — adopt ledger into the new layout
-- Phase 36  ⬜  realizes D8, D11   — adopt notify into the new layout
+- Phase 36  ✅  realizes D8, D11   — adopt notify into the new layout
 - Phase 37  ⬜  realizes D8, D11   — adopt dropbox into the new layout
 - Phase 38  ⬜  realizes D8, D11   — adopt prompts into the new layout (classify sandboxes/, runs/)
 - Phase 39  ⬜  realizes D8, D11   — adopt wiki into the new layout
