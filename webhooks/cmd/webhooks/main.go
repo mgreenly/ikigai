@@ -37,7 +37,37 @@ func main() {
 	// after Handlers when webhooks is a producer (Spec.Feed != "").
 	var svc *webhooks.Service
 
-	appkit.Main(appkit.Spec{
+	spec := webhooksSpec()
+	// Handlers builds the domain Service over the chassis's shared single-writer
+	// DB handle and mounts both surfaces: the ikigenba_webhooks_* MCP tools gated
+	// behind nginx-injected identity, and the public ingress reached bare.
+	spec.Handlers = func(rt *appkit.Router) error {
+		conn := rt.DB()
+		if conn == nil {
+			return fmt.Errorf("webhooks: no DB handle on router")
+		}
+		svc = webhooks.NewService(conn, webhooks.RealClock{})
+		rt.Handle("POST /mcp", rt.RequireIdentity(
+			mcp.NewHandler(svc, rt.Version(), rt.Service(), rt.ResourceID(),
+				rt.Health(), rt.Events())))
+		rt.Handle("/in/", webhooks.NewIngressHandler(svc, rt.Logger()))
+		return nil
+	}
+	// Producer fires after Handlers: inject the outbox so every committed inbound
+	// webhook emits its webhook.received event on the same tx.
+	spec.Producer = func(ob *outbox.Outbox) error {
+		if svc == nil {
+			return fmt.Errorf("webhooks: Producer called before Handlers built the Service")
+		}
+		svc.Outbox = ob
+		return nil
+	}
+
+	appkit.Main(spec)
+}
+
+func webhooksSpec() appkit.Spec {
+	return appkit.Spec{
 		App:        "webhooks",
 		Mount:      "/srv/webhooks/",
 		Port:       3011,
@@ -49,32 +79,5 @@ func main() {
 			{Key: "OUTBOX_RETENTION_DAYS", Value: "7"},
 			{Key: "OUTBOX_RETENTION_MAX_ROWS", Value: "1000000"},
 		},
-		// Handlers builds the domain Service over the chassis's shared single-writer
-		// DB handle and mounts both surfaces: the ikigenba_webhooks_* MCP tools gated
-		// behind nginx-injected identity, and the public ingress reached bare (it
-		// self-guards on the per-webhook secret). The same Service is reused by the
-		// producer hook below.
-		Handlers: func(rt *appkit.Router) error {
-			conn := rt.DB()
-			if conn == nil {
-				return fmt.Errorf("webhooks: no DB handle on router")
-			}
-			svc = webhooks.NewService(conn, webhooks.RealClock{})
-			rt.Handle("POST /mcp", rt.RequireIdentity(
-				mcp.NewHandler(svc, rt.Version(), rt.Service(), rt.ResourceID(),
-					rt.Health(), rt.Events())))
-			rt.Handle("/in/", webhooks.NewIngressHandler(svc, rt.Logger()))
-			return nil
-		},
-		// Producer fires after Handlers: inject the outbox so every committed inbound
-		// webhook emits its webhook.received event on the same tx (the payload
-		// builders stay app-side in internal/webhooks/events.go).
-		Producer: func(ob *outbox.Outbox) error {
-			if svc == nil {
-				return fmt.Errorf("webhooks: Producer called before Handlers built the Service")
-			}
-			svc.Outbox = ob
-			return nil
-		},
-	})
+	}
 }

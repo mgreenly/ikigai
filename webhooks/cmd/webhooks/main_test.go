@@ -17,6 +17,7 @@ import (
 	"testing"
 	"time"
 
+	"appkit"
 	"appkit/manifest"
 )
 
@@ -51,17 +52,16 @@ func TestCommittedManifestIsPortable(t *testing.T) {
 
 // R-8IAN-FB87
 func TestManifestLibraryByteEqualsCommittedFile(t *testing.T) {
+	spec := webhooksSpec()
 	got := manifest.Emit(manifest.Fields{
-		App:     "webhooks",
-		Mount:   "/srv/webhooks/",
-		Default: false,
-		Port:    3011,
-		MCP:     true,
-		Feed:    "/feed",
-		Extras: []manifest.KV{
-			{Key: "OUTBOX_RETENTION_DAYS", Value: "7"},
-			{Key: "OUTBOX_RETENTION_MAX_ROWS", Value: "1000000"},
-		},
+		App:      spec.App,
+		Mount:    spec.Mount,
+		Default:  spec.Default,
+		Port:     spec.Port,
+		MCP:      spec.MCP,
+		Feed:     spec.Feed,
+		Consumes: spec.Consumes,
+		Extras:   manifestExtras(spec.ManifestExtras),
 	})
 	committed, err := os.ReadFile(filepath.Join("..", "..", "etc", "manifest.env"))
 	if err != nil {
@@ -71,6 +71,14 @@ func TestManifestLibraryByteEqualsCommittedFile(t *testing.T) {
 	if got != string(committed) {
 		t.Fatalf("manifest.Emit output != committed etc/manifest.env\n--- emit ---\n%s\n--- committed ---\n%s", got, committed)
 	}
+}
+
+func manifestExtras(in []appkit.ManifestKV) []manifest.KV {
+	out := make([]manifest.KV, 0, len(in))
+	for _, kv := range in {
+		out = append(out, manifest.KV{Key: kv.Key, Value: kv.Value})
+	}
+	return out
 }
 
 // R-ID90-TC99 — `serve` against a clean empty temp-file SQLite applies all
