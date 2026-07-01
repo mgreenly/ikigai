@@ -103,6 +103,46 @@ func TestPrune_RemovesOldLibexecBinaries(t *testing.T) {
 	}
 }
 
+func TestPrune_RemovesCompleteOlderVersionSets(t *testing.T) {
+	// R-1CN2-AZHH
+	root := t.TempDir()
+	app := "ledger"
+	l := NewLayout(root, app)
+	sys := &stubSystem{}
+
+	versions := []string{"v1.0.0", "v1.1.0", "v1.2.0", "v1.3.0", "v1.4.0"}
+	o := installSeq(t, root, app, sys, len(versions)+1, versions)
+	for _, v := range versions {
+		assertReleaseSetExists(t, l, v)
+	}
+
+	o.Keep = 1
+	if err := o.Prune(context.Background(), app); err != nil {
+		t.Fatalf("prune: %v", err)
+	}
+
+	got := releaseDirs(t, l)
+	want := []string{"v1.3.0", "v1.4.0"}
+	if len(got) != len(want) {
+		t.Fatalf("after prune kept %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("after prune kept %v, want %v", got, want)
+		}
+	}
+
+	for _, v := range []string{"v1.0.0", "v1.1.0", "v1.2.0"} {
+		assertReleaseSetRemoved(t, l, v)
+	}
+	for _, v := range []string{"v1.3.0", "v1.4.0"} {
+		assertReleaseSetExists(t, l, v)
+	}
+	if got := readRunVersion(t, l); got != "v1.4.0" {
+		t.Fatalf("live version = %q, want v1.4.0", got)
+	}
+}
+
 func TestPrune_NewestSetUsesSemanticNumericOrdering(t *testing.T) {
 	// R-3X6F-RW87
 	root := t.TempDir()
@@ -127,6 +167,33 @@ func TestPrune_NewestSetUsesSemanticNumericOrdering(t *testing.T) {
 	want := []string{"v0.7.10"}
 	if len(got) != len(want) || got[0] != want[0] {
 		t.Fatalf("after prune kept %v, want %v", got, want)
+	}
+}
+
+func assertReleaseSetExists(t *testing.T, l Layout, version string) {
+	t.Helper()
+	for name, path := range map[string]string{
+		"libexec binary": l.LibexecBinary(version),
+		"nginx config":   l.NginxConfFile(version),
+		"manifest":       l.ManifestFile(version),
+		"share dir":      l.ShareVersionDir(version),
+	} {
+		if _, err := os.Stat(path); err != nil {
+			t.Fatalf("%s for %s missing: %v", name, version, err)
+		}
+	}
+}
+
+func assertReleaseSetRemoved(t *testing.T, l Layout, version string) {
+	t.Helper()
+	for name, path := range map[string]string{
+		"libexec binary": l.LibexecBinary(version),
+		"etc dir":        l.EtcVersionDir(version),
+		"share dir":      l.ShareVersionDir(version),
+	} {
+		if _, err := os.Stat(path); !os.IsNotExist(err) {
+			t.Fatalf("%s for pruned %s still exists (err=%v)", name, version, err)
+		}
 	}
 }
 

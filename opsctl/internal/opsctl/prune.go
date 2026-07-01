@@ -9,9 +9,10 @@ import (
 // Prune bounds the on-box release history: keep the N most recent versions
 // (Opsctl.Keep, default DefaultKeep) plus, unconditionally, bin/run's target and
 // the immediate predecessor rollback would target — then delete older
-// libexec/<app>-<version> binaries. It NEVER deletes the live target or its predecessor, even if
-// N would otherwise drop them (PLAN §C2, ADR prune). Runs at the tail of install
-// and is invocable standalone.
+// libexec/<app>-<version> binaries plus their per-version etc/share trees. It
+// NEVER deletes the live target or its predecessor, even if N would otherwise
+// drop them (PLAN §C2, ADR prune). Runs at the tail of install and is invocable
+// standalone.
 //
 // The matching pre-migration backup of a pruned release is removed too, so the
 // backups dir does not grow unbounded — but a backup for a still-kept release (in
@@ -44,6 +45,12 @@ func (o *Opsctl) Prune(ctx context.Context, app string) error {
 		o.logf("prune release %s", v)
 		if err := os.Remove(l.LibexecBinary(v)); err != nil && !os.IsNotExist(err) {
 			return fmt.Errorf("prune: remove release %s: %w", v, err)
+		}
+		if err := os.RemoveAll(l.EtcVersionDir(v)); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("prune: remove etc for %s: %w", v, err)
+		}
+		if err := os.RemoveAll(l.ShareVersionDir(v)); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("prune: remove share for %s: %w", v, err)
 		}
 		// Drop the matching pre-migration backup for the pruned release.
 		if err := os.Remove(l.PreMigrationBackup(v)); err != nil && !os.IsNotExist(err) {
