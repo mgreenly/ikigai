@@ -263,9 +263,9 @@ func TestCursorRoundTrip(t *testing.T) {
 func TestLoadOrMintGenerationMintsNewEpochWhenSidecarAbsentAfterRestore(t *testing.T) {
 	genPath := filepath.Join(t.TempDir(), "outbox.generation")
 
-	before, err := loadOrMintGeneration(genPath)
+	before, err := EnsureGeneration(genPath)
 	if err != nil {
-		t.Fatalf("initial loadOrMintGeneration: %v", err)
+		t.Fatalf("initial EnsureGeneration: %v", err)
 	}
 	if before == "" {
 		t.Fatal("initial generation is empty")
@@ -274,9 +274,9 @@ func TestLoadOrMintGenerationMintsNewEpochWhenSidecarAbsentAfterRestore(t *testi
 		t.Fatalf("remove generation sidecar to simulate restore: %v", err)
 	}
 
-	after, err := loadOrMintGeneration(genPath)
+	after, err := EnsureGeneration(genPath)
 	if err != nil {
-		t.Fatalf("post-restore loadOrMintGeneration: %v", err)
+		t.Fatalf("post-restore EnsureGeneration: %v", err)
 	}
 	if after == "" {
 		t.Fatal("post-restore generation is empty")

@@ -175,6 +175,9 @@ func runServe(spec Spec, args []string, getenv func(string) string, stdout, stde
 	if err := db.Migrate(ctx, conn, migs); err != nil {
 		return fmt.Errorf("migrate: %w", err)
 	}
+	if _, err := outbox.EnsureGeneration(cfg.GenerationPath); err != nil {
+		return fmt.Errorf("generation sidecar: %w", err)
+	}
 
 	// Producer: construct the outbox + mount the unauthenticated feed handler. The
 	// outbox is built here (its FeedHandler must be ready for server.New to mount),
