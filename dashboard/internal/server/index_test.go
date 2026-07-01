@@ -116,7 +116,7 @@ func TestIndexLoggedOutKeepsSigninCopy(t *testing.T) {
 	for _, want := range []string{
 		`<p class="wordmark" style="font-family: var(--font-display); font-size: var(--text-h3-size); font-weight: var(--text-h3-weight); margin: 0;">ikigenba</p>`,
 		`<h1>Your account's control plane</h1>`,
-		`<p>Sign in to manage access tokens, connected agents, and the box's MCP services.</p>`,
+		`<p>Sign in to access your services.</p>`,
 		`<a href="/login" class="btn btn-primary btn-lg btn-accent-link">Sign in with Google</a>`,
 	} {
 		// R-DB18-KEEP
