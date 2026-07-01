@@ -67,7 +67,8 @@ func itoa(n int) string {
 // exercise both verbs exactly as an operator would.
 func stageAndDeploy(t *testing.T, o *Opsctl, app, version, artifact string) error {
 	t.Helper()
-	if err := o.Stage(context.Background(), app, version, artifact, false); err != nil {
+	bundle := bundleArtifactFromBinary(t, app, version, filepath.Base(artifact), artifact)
+	if err := o.Stage(context.Background(), app, version, bundle, false); err != nil {
 		return err
 	}
 	return o.Deploy(context.Background(), app, version)
@@ -259,7 +260,7 @@ func TestPreflight_Rejections(t *testing.T) {
 
 	// Version mismatch: artifact self-reports v9.9.9 but we stage it as v1.0.0.
 	o := newOpsctl(t, root, app, sys, fakeEnv(app, "v9.9.9", 1, ""))
-	mismatch := stageArtifact(t, "mismatch")
+	mismatch := stageBundleArtifact(t, app, "v1.0.0", "mismatch")
 	err := o.Stage(context.Background(), app, "v1.0.0", mismatch, false)
 	if err == nil || !strings.Contains(err.Error(), "self-reports version") {
 		t.Fatalf("version-mismatch stage err = %v, want a version-mismatch refusal", err)
@@ -272,13 +273,14 @@ func TestPreflight_Rejections(t *testing.T) {
 		t.Errorf("preflight refusal removed the /tmp artifact, want it kept: %v", err)
 	}
 
-	// Not a static ELF: a text file as the artifact.
+	// Not a static ELF: a text file as the bundled libexec binary.
 	bad := filepath.Join(t.TempDir(), "not-elf")
 	if err := os.WriteFile(bad, []byte("#!/bin/sh\necho hi\n"), 0o755); err != nil {
 		t.Fatal(err)
 	}
+	badBundle := bundleArtifactFromBinary(t, app, "v1.0.0", "not-elf", bad)
 	o2 := newOpsctl(t, root, app, sys, fakeEnv(app, "v1.0.0", 1, ""))
-	if err := o2.Stage(context.Background(), app, "v1.0.0", bad, false); err == nil || !strings.Contains(err.Error(), "ELF") {
+	if err := o2.Stage(context.Background(), app, "v1.0.0", badBundle, false); err == nil || !strings.Contains(err.Error(), "ELF") {
 		t.Fatalf("non-ELF stage err = %v, want an ELF refusal", err)
 	}
 }
@@ -1604,7 +1606,7 @@ func buildNotifyArtifact(t *testing.T, version string) string {
 	if b, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("build notify artifact: %v\n%s", err, b)
 	}
-	return out
+	return bundleArtifactFromBinary(t, "notify", version, "notify-"+version, out)
 }
 
 func buildWikiArtifact(t *testing.T, version string) string {
@@ -1620,7 +1622,7 @@ func buildWikiArtifact(t *testing.T, version string) string {
 	if b, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("build wiki artifact: %v\n%s", err, b)
 	}
-	return out
+	return bundleArtifactFromBinary(t, "wiki", version, "wiki-"+version, out)
 }
 
 func buildPromptsArtifact(t *testing.T, version string) string {
@@ -1636,7 +1638,7 @@ func buildPromptsArtifact(t *testing.T, version string) string {
 	if b, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("build prompts artifact: %v\n%s", err, b)
 	}
-	return out
+	return bundleArtifactFromBinary(t, "prompts", version, "prompts-"+version, out)
 }
 
 func buildDropboxArtifact(t *testing.T, version string) string {
@@ -1652,7 +1654,7 @@ func buildDropboxArtifact(t *testing.T, version string) string {
 	if b, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("build dropbox artifact: %v\n%s", err, b)
 	}
-	return out
+	return bundleArtifactFromBinary(t, "dropbox", version, "dropbox-"+version, out)
 }
 
 func buildGmailArtifact(t *testing.T, version string) string {
@@ -1668,7 +1670,7 @@ func buildGmailArtifact(t *testing.T, version string) string {
 	if b, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("build gmail artifact: %v\n%s", err, b)
 	}
-	return out
+	return bundleArtifactFromBinary(t, "gmail", version, "gmail-"+version, out)
 }
 
 func buildCronArtifact(t *testing.T, version string) string {
@@ -1684,7 +1686,7 @@ func buildCronArtifact(t *testing.T, version string) string {
 	if b, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("build cron artifact: %v\n%s", err, b)
 	}
-	return out
+	return bundleArtifactFromBinary(t, "cron", version, "cron-"+version, out)
 }
 
 func buildSitesArtifact(t *testing.T, version string) string {
@@ -1700,7 +1702,7 @@ func buildSitesArtifact(t *testing.T, version string) string {
 	if b, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("build sites artifact: %v\n%s", err, b)
 	}
-	return out
+	return bundleArtifactFromBinary(t, "sites", version, "sites-"+version, out)
 }
 
 func manifestEnv(path string) []string {

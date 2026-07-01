@@ -399,5 +399,5 @@ func buildWebhooksArtifact(t *testing.T, version string) string {
 	if b, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("build webhooks artifact: %v\n%s", err, b)
 	}
-	return out
+	return bundleArtifactFromBinary(t, "webhooks", version, "webhooks-"+version, out)
 }

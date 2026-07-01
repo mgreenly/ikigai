@@ -1,7 +1,10 @@
 package opsctl
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"context"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -253,6 +256,81 @@ func stageArtifact(t *testing.T, name string) string {
 	}
 	if err := os.WriteFile(dst, b, 0o755); err != nil {
 		t.Fatalf("stage artifact: %v", err)
+	}
+	return dst
+}
+
+func stageBundleArtifact(t *testing.T, app, version, name string) string {
+	t.Helper()
+	return bundleArtifactFromBinary(t, app, version, name, stageArtifact(t, name+"-bin"))
+}
+
+func bundleArtifactFromBinary(t *testing.T, app, version, name, bin string) string {
+	t.Helper()
+	dst := filepath.Join(t.TempDir(), name+".tar.gz")
+	f, err := os.Create(dst)
+	if err != nil {
+		t.Fatalf("create bundle: %v", err)
+	}
+	gz := gzip.NewWriter(f)
+	tw := tar.NewWriter(gz)
+	addDir := func(name string) {
+		t.Helper()
+		if err := tw.WriteHeader(&tar.Header{Name: name, Typeflag: tar.TypeDir, Mode: 0o755}); err != nil {
+			t.Fatalf("add bundle dir %s: %v", name, err)
+		}
+	}
+	addFile := func(name, src string, mode int64) {
+		t.Helper()
+		info, err := os.Stat(src)
+		if err != nil {
+			t.Fatalf("stat bundle src %s: %v", src, err)
+		}
+		hdr := &tar.Header{Name: name, Typeflag: tar.TypeReg, Mode: mode, Size: info.Size()}
+		if err := tw.WriteHeader(hdr); err != nil {
+			t.Fatalf("add bundle file %s: %v", name, err)
+		}
+		r, err := os.Open(src)
+		if err != nil {
+			t.Fatalf("open bundle src %s: %v", src, err)
+		}
+		if _, err := io.Copy(tw, r); err != nil {
+			r.Close()
+			t.Fatalf("copy bundle src %s: %v", src, err)
+		}
+		if err := r.Close(); err != nil {
+			t.Fatalf("close bundle src %s: %v", src, err)
+		}
+	}
+	addBytes := func(name string, body []byte, mode int64) {
+		t.Helper()
+		if err := tw.WriteHeader(&tar.Header{Name: name, Typeflag: tar.TypeReg, Mode: mode, Size: int64(len(body))}); err != nil {
+			t.Fatalf("add bundle file %s: %v", name, err)
+		}
+		if _, err := tw.Write(body); err != nil {
+			t.Fatalf("write bundle file %s: %v", name, err)
+		}
+	}
+
+	addDir("libexec")
+	addDir("etc")
+	addDir("etc/" + version)
+	addDir("share")
+	addDir("share/" + version)
+	addDir("share/" + version + "/assets")
+	addFile("libexec/"+app+"-"+version, bin, 0o755)
+	addBytes("etc/"+version+"/nginx.conf", []byte("location /srv/"+app+"/ {\n    proxy_pass http://127.0.0.1:3000;\n}\n"), 0o644)
+	addBytes("etc/"+version+"/manifest.env", []byte("APP="+app+"\n"), 0o644)
+	addBytes("share/"+version+"/assets/resource.txt", []byte(app+" "+version+"\n"), 0o644)
+
+	if err := tw.Close(); err != nil {
+		t.Fatalf("close bundle tar: %v", err)
+	}
+	if err := gz.Close(); err != nil {
+		t.Fatalf("close bundle gzip: %v", err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatalf("close bundle file: %v", err)
 	}
 	return dst
 }

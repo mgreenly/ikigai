@@ -1,6 +1,8 @@
 package opsctl
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"context"
 	"fmt"
 	"io"
@@ -9,12 +11,12 @@ import (
 	"strings"
 )
 
-// Stage places a new version into libexec/<app>-<version> WITHOUT making it live.
+// Stage places a new version's bundle tiers WITHOUT making it live.
 // It is the first half of the old monolithic install (ADR install steps 1–2):
 //
-//  1. preflight (static? amd64? version matches? manifest parses?) — refuse early.
+//  1. unpack the tar.gz bundle into a temp tree and preflight its libexec binary.
 //  2. SHA collision guard against any already-placed libexec/<app>-<version>.
-//  3. place the artifact into libexec/<app>-<version>.
+//  3. place libexec/<app>-<version>, etc/<version>, and share/<version>.
 //
 // The stable etc/manifest.env and the live `bin/run` symlink are NEVER touched by
 // stage — those change only at Deploy (the cutover), so a staged-but-not-deployed
@@ -35,9 +37,25 @@ func (o *Opsctl) Stage(ctx context.Context, app, version, artifact string, force
 	}
 	l := o.layout(app)
 
-	// 1. Preflight — refuse a bad artifact before touching the release dir.
+	tmp, err := os.MkdirTemp("", "opsctl-stage-*")
+	if err != nil {
+		return fmt.Errorf("stage: create temp dir: %w", err)
+	}
+	defer os.RemoveAll(tmp)
+
+	if err := unpackBundle(artifact, tmp); err != nil {
+		return err
+	}
+	tmpBin := filepath.Join(tmp, "libexec", app+"-"+version)
+	tmpEtc := filepath.Join(tmp, "etc", version)
+	tmpShare := filepath.Join(tmp, "share", version)
+	if err := requireBundlePaths(tmpBin, tmpEtc, tmpShare); err != nil {
+		return err
+	}
+
+	// 1. Preflight — refuse a bad bundled binary before touching the release dir.
 	o.logf("preflight %s %s", app, version)
-	if err := o.preflight(ctx, artifact, app, version); err != nil {
+	if err := o.preflight(ctx, tmpBin, app, version); err != nil {
 		return err
 	}
 
@@ -56,7 +74,7 @@ func (o *Opsctl) Stage(ctx context.Context, app, version, artifact string, force
 			}
 			o.logf("existing release %s will not exec — --force overrides, replacing", relBin)
 		default:
-			incoming, err := o.Runner.Run(ctx, artifact, "version", nil, nil)
+			incoming, err := o.Runner.Run(ctx, tmpBin, "version", nil, nil)
 			if err != nil {
 				return fmt.Errorf("stage: artifact %q version: %w", app, err)
 			}
@@ -78,13 +96,25 @@ func (o *Opsctl) Stage(ctx context.Context, app, version, artifact string, force
 		}
 	}
 
-	// 3. Place the artifact into libexec/<app>-<version>.
-	o.logf("place artifact -> %s", relBin)
+	// 3. Place the bundled tiers.
+	o.logf("place bundle tiers -> %s", l.AppDir())
 	if err := os.MkdirAll(l.LibexecDir(), 0o755); err != nil {
 		return fmt.Errorf("stage: mkdir libexec dir: %w", err)
 	}
-	if err := copyExecutable(artifact, relBin); err != nil {
-		return fmt.Errorf("stage: place artifact: %w", err)
+	if err := os.MkdirAll(l.EtcDir(), 0o755); err != nil {
+		return fmt.Errorf("stage: mkdir etc dir: %w", err)
+	}
+	if err := os.MkdirAll(l.shareDir(), 0o755); err != nil {
+		return fmt.Errorf("stage: mkdir share dir: %w", err)
+	}
+	if err := replacePath(tmpBin, relBin); err != nil {
+		return fmt.Errorf("stage: place libexec binary: %w", err)
+	}
+	if err := replacePath(tmpEtc, l.EtcVersionDir(version)); err != nil {
+		return fmt.Errorf("stage: place etc version dir: %w", err)
+	}
+	if err := replacePath(tmpShare, l.ShareVersionDir(version)); err != nil {
+		return fmt.Errorf("stage: place share version dir: %w", err)
 	}
 
 	// On success: delete the /tmp artifact (decision 2). Leave it only on the
@@ -95,6 +125,99 @@ func (o *Opsctl) Stage(ctx context.Context, app, version, artifact string, force
 
 	o.logf("staged %s %s", app, version)
 	return nil
+}
+
+func unpackBundle(artifact, dst string) error {
+	f, err := os.Open(artifact)
+	if err != nil {
+		return fmt.Errorf("stage: open bundle: %w", err)
+	}
+	defer f.Close()
+	gz, err := gzip.NewReader(f)
+	if err != nil {
+		return fmt.Errorf("stage: artifact is not a valid tar.gz bundle: %w", err)
+	}
+	defer gz.Close()
+
+	tr := tar.NewReader(gz)
+	for {
+		hdr, err := tr.Next()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return fmt.Errorf("stage: read bundle: %w", err)
+		}
+		name := filepath.Clean(filepath.FromSlash(hdr.Name))
+		if name == "." || filepath.IsAbs(name) || strings.HasPrefix(name, ".."+string(filepath.Separator)) || name == ".." {
+			return fmt.Errorf("stage: unsafe bundle path %q", hdr.Name)
+		}
+		target := filepath.Join(dst, name)
+		switch hdr.Typeflag {
+		case tar.TypeDir:
+			if err := os.MkdirAll(target, fileMode(hdr.FileInfo().Mode(), 0o755)); err != nil {
+				return fmt.Errorf("stage: create bundle dir %s: %w", hdr.Name, err)
+			}
+		case tar.TypeReg, tar.TypeRegA:
+			if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
+				return fmt.Errorf("stage: create parent for %s: %w", hdr.Name, err)
+			}
+			mode := fileMode(hdr.FileInfo().Mode(), 0o644)
+			w, err := os.OpenFile(target, os.O_CREATE|os.O_EXCL|os.O_WRONLY, mode)
+			if err != nil {
+				return fmt.Errorf("stage: create bundle file %s: %w", hdr.Name, err)
+			}
+			_, copyErr := io.Copy(w, tr)
+			closeErr := w.Close()
+			if copyErr != nil {
+				return fmt.Errorf("stage: extract bundle file %s: %w", hdr.Name, copyErr)
+			}
+			if closeErr != nil {
+				return fmt.Errorf("stage: close bundle file %s: %w", hdr.Name, closeErr)
+			}
+			if err := os.Chmod(target, mode); err != nil {
+				return fmt.Errorf("stage: chmod bundle file %s: %w", hdr.Name, err)
+			}
+		default:
+			return fmt.Errorf("stage: unsupported bundle entry %s type %c", hdr.Name, hdr.Typeflag)
+		}
+	}
+}
+
+func requireBundlePaths(bin, etc, share string) error {
+	if fi, err := os.Stat(bin); err != nil {
+		return fmt.Errorf("stage: bundle missing libexec binary %s: %w", bin, err)
+	} else if fi.IsDir() {
+		return fmt.Errorf("stage: bundle libexec binary %s is a directory", bin)
+	}
+	for _, path := range []string{
+		filepath.Join(etc, "nginx.conf"),
+		filepath.Join(etc, "manifest.env"),
+		share,
+	} {
+		if _, err := os.Stat(path); err != nil {
+			return fmt.Errorf("stage: bundle missing %s: %w", path, err)
+		}
+	}
+	return nil
+}
+
+func replacePath(src, dst string) error {
+	if err := os.RemoveAll(dst); err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
+		return err
+	}
+	return os.Rename(src, dst)
+}
+
+func fileMode(mode, fallback os.FileMode) os.FileMode {
+	perm := mode.Perm()
+	if perm == 0 {
+		return fallback
+	}
+	return perm
 }
 
 // Deploy makes an already-staged release live, following the second half of the
