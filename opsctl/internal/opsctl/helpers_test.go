@@ -33,6 +33,13 @@ type stubSystem struct {
 	// through the seam is recorded here (and never executed), so a test can assert
 	// the box ops were REQUESTED, in order, without root.
 	ops []string
+
+	// Optional shared chronological recorder for deploy/backup tests that need to
+	// assert ordering across System, AppRunner, and ObjectStore seams.
+	events        *[]string
+	onNginxReload func()
+	onRestart     func()
+	onIsActive    func()
 }
 
 func (s *stubSystem) record(op string) {
@@ -86,6 +93,12 @@ func (s *stubSystem) NginxTest(ctx context.Context) error {
 }
 
 func (s *stubSystem) NginxReload(ctx context.Context) error {
+	if s.events != nil {
+		*s.events = append(*s.events, "nginx-reload")
+	}
+	if s.onNginxReload != nil {
+		s.onNginxReload()
+	}
 	s.record("nginx-reload")
 	return nil
 }
@@ -117,6 +130,12 @@ func (s *stubSystem) Restart(ctx context.Context, app string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.restarts++
+	if s.events != nil {
+		*s.events = append(*s.events, "restart:"+app)
+	}
+	if s.onRestart != nil {
+		s.onRestart()
+	}
 	// Observe what current points at right now — the launcher would exec
 	// current/<app> here, so it must resolve to a complete release.
 	if s.currentLink != "" {
@@ -136,6 +155,12 @@ func (s *stubSystem) Restart(ctx context.Context, app string) error {
 func (s *stubSystem) IsActive(ctx context.Context, app string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.events != nil {
+		*s.events = append(*s.events, "is-active:"+app)
+	}
+	if s.onIsActive != nil {
+		s.onIsActive()
+	}
 	if s.failIsActive {
 		return &exec.ExitError{}
 	}
@@ -152,6 +177,9 @@ func (s *stubSystem) IsActiveState(ctx context.Context, app string) (string, err
 }
 
 func (s *stubSystem) Systemctl(ctx context.Context, args ...string) error {
+	if s.events != nil && len(args) >= 2 && (args[0] == "stop" || args[0] == "start") {
+		*s.events = append(*s.events, args[0]+":"+args[1])
+	}
 	s.record("systemctl:" + strings.Join(args, " "))
 	return nil
 }
@@ -167,6 +195,7 @@ func (s *stubSystem) Journalctl(ctx context.Context, args ...string) error {
 // set the binary's self-reported version, embedded schema, and manifest body.
 type fakeRunner struct {
 	baseEnv []string // FAKE_VERSION=…, FAKE_EMBEDDED=…, FAKE_MANIFEST=…, FAKE_APP=…
+	events  *[]string
 	// commitByPath overrides FAKE_COMMIT per binary path, so the stage collision
 	// guard can be exercised: a real binary self-reports its OWN ldflag-stamped
 	// commit regardless of env, so the already-placed release and the incoming
@@ -177,6 +206,9 @@ type fakeRunner struct {
 }
 
 func (r fakeRunner) Run(ctx context.Context, binary, verb string, args []string, env []string) (string, error) {
+	if r.events != nil {
+		*r.events = append(*r.events, "run:"+verb)
+	}
 	full := append([]string{verb}, args...)
 	cmd := exec.CommandContext(ctx, binary, full...)
 	cmd.Env = append(append(os.Environ(), r.baseEnv...), env...)

@@ -211,14 +211,12 @@ func TestWebhooksSetupDeployBootsHealthWithStateCacheAndLibexecPaths(t *testing.
 		t.Fatalf("bin/run resolves to %q, want %q", resolved, l.LibexecBinary(version))
 	}
 
-	manifest, err := os.ReadFile(l.ManifestPath())
+	manifest, err := os.ReadFile(l.ActiveManifest())
 	if err != nil {
 		t.Fatalf("read manifest: %v", err)
 	}
 	for _, want := range []string{
 		"APP=webhooks",
-		"WEBHOOKS_DB_PATH=" + l.DBPath(),
-		"WEBHOOKS_GENERATION_PATH=" + l.GenerationPath(),
 	} {
 		if !strings.Contains(string(manifest), want) {
 			t.Fatalf("manifest missing %q\n--- manifest ---\n%s", want, manifest)
@@ -328,7 +326,8 @@ func (s *webhooksBootSystem) IsActive(ctx context.Context, app string) error {
 	runCtx, cancel := context.WithCancel(context.Background())
 	var stdout, stderr bytes.Buffer
 	cmd := exec.CommandContext(runCtx, s.layout.RunLink(), "serve")
-	cmd.Env = append(os.Environ(), manifestEnv(s.layout.ManifestPath())...)
+	cmd.Env = append(os.Environ(), manifestEnv(s.layout.ActiveManifest())...)
+	cmd.Env = append(cmd.Env, dbEnvForLayout(s.layout)...)
 	cmd.Env = append(cmd.Env,
 		fmt.Sprintf("WEBHOOKS_PORT=%d", s.port),
 		"WEBHOOKS_IP=127.0.0.1",

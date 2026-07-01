@@ -18,9 +18,9 @@ import (
 //  2. SHA collision guard against any already-placed libexec/<app>-<version>.
 //  3. place libexec/<app>-<version>, etc/<version>, and share/<version>.
 //
-// The stable etc/manifest.env and the live `bin/run` symlink are NEVER touched by
-// stage — those change only at Deploy (the cutover), so a staged-but-not-deployed
-// release is invisible to the running unit and the dashboard's manifest derivation.
+// The live symlinks are NEVER touched by stage — those change only at Deploy
+// (the cutover), so a staged-but-not-deployed release is invisible to the
+// running unit and the dashboard's manifest derivation.
 //
 // On success — whether the artifact was freshly placed OR the same-SHA build was
 // already present (an idempotent no-op) — stage deletes the /tmp artifact (decision
@@ -220,22 +220,19 @@ func fileMode(mode, fallback os.FileMode) os.FileMode {
 	return perm
 }
 
-// Deploy makes an already-staged release live, following the second half of the
-// old monolithic install (ADR install steps 3–8):
+// Deploy makes an already-staged release live:
 //
-//  3. regenerate etc/manifest.env via `<new binary> manifest` (the STABLE path the
-//     dashboard derivation + bin/registry read).
-//  4. back up state/<app>.db IF the schema will advance (applied < embedded), keyed
-//     by <version> so the matching rollback can restore it.
-//  5. migrate (forward-only).
-//  6. chown the state tree back to the <app> service user.
-//  7. atomic swap bin/run → libexec/<app>-<version>.
-//  8. restart the unit + is-active, then prune old releases.
+//  1. back up the current live release's state before any mutation.
+//  2. migrate (forward-only).
+//  3. chown the state tree back to the <app> service user.
+//  4. atomically swap bin/run, etc/current, and share/current to the new version.
+//  5. reload nginx, then restart the unit + is-active.
+//  6. prune old releases.
 //
 // It refuses early if the release was never staged (libexec/<app>-<version> is
-// absent) so the manifest/schema/migrate execs never fail opaquely. state/<app>.db
-// is NEVER overwritten — only read/migrated/snapshotted (PLAN §2.7). bin/run and
-// etc/manifest.env stay valid throughout (PLAN §2.6).
+// absent) so the migrate exec never fails opaquely. state/<app>.db is NEVER
+// overwritten — only read/migrated/snapshotted (PLAN §2.7). The live-facing
+// symlinks stay valid throughout (PLAN §2.6).
 func (o *Opsctl) Deploy(ctx context.Context, app, version string) error {
 	if app == "" || version == "" {
 		return fmt.Errorf("deploy: app and version are both required")
@@ -252,56 +249,25 @@ func (o *Opsctl) Deploy(ctx context.Context, app, version string) error {
 		return fmt.Errorf("deploy: release %s is not staged (run: opsctl stage %s %s --artifact …): %w", version, app, version, err)
 	}
 
-	// 3. Regenerate the stable manifest from the binary that will serve it. Written
-	//    via temp+rename so the stable path never holds a partial file mid-write.
-	//    The binary emits a PORTABLE manifest (no box paths baked in — appkit's
-	//    config defaults the DB to a relative ./tmp/<app>.db suited to local dev).
-	//    ikigenba-launch sources this manifest and exports every KEY into the
-	//    serving process's env (AGENTS.md "Service layer"), but it never sets the
-	//    on-box <APP>_DB_PATH/<APP>_GENERATION_PATH — so the serving binary would
-	//    otherwise fall back to the relative dev default and miss the real DB at
-	//    state/<app>.db. opsctl is the on-box authority that owns the absolute /opt
-	//    paths (it already injects them for its own migrate/schema/backup verbs via
-	//    dbEnv), so it stamps them into the stable manifest here. Idempotent: the
-	//    keys are only appended if the binary's own manifest did not already carry
-	//    them. This is the FIRST live-facing change, bound to the cutover below.
-	o.logf("regenerate %s", l.ManifestPath())
-	manOut, err := o.Runner.Run(ctx, relBin, "manifest", nil, nil)
-	if err != nil {
-		return fmt.Errorf("deploy: manifest: %w", err)
-	}
-	manOut = stampDataPaths(manOut, l)
-	if err := writeFileAtomic(l.ManifestPath(), []byte(manOut), 0o644); err != nil {
-		return fmt.Errorf("deploy: write manifest: %w", err)
-	}
-
-	// 4. Back up the DB IF the schema advances. The new binary reports applied (the
-	//    live DB) vs embedded (what it carries); embedded > applied ⇒ this deploy
-	//    advances the schema, so snapshot first to make the matching rollback safe.
-	advances, err := o.schemaAdvances(ctx, l, relBin)
-	if err != nil {
-		return err
-	}
-	if advances {
-		if _, err := os.Stat(l.DBPath()); err == nil {
-			backup := l.PreMigrationBackup(version)
-			o.logf("schema advances — backup %s -> %s", l.DBPath(), backup)
-			if err := os.MkdirAll(l.BackupsDir(), 0o755); err != nil {
-				return fmt.Errorf("deploy: mkdir backups: %w", err)
+	current := ""
+	if fi, err := os.Lstat(l.RunLink()); err == nil {
+		if fi.Mode()&os.ModeSymlink != 0 {
+			current, err = o.currentVersion(l)
+			if err != nil {
+				return fmt.Errorf("deploy: read current: %w", err)
 			}
-			if _, err := o.Runner.Run(ctx, relBin, "backup",
-				[]string{"--out", backup}, o.dbEnv(l)); err != nil {
-				return fmt.Errorf("deploy: pre-migration backup: %w", err)
-			}
-		} else {
-			// No DB yet (first deploy of a brand-new app): nothing to back up, the
-			// migrate below creates it. The schema-advance flag is still true, but the
-			// rollback target for a first release does not exist, so no backup needed.
-			o.logf("schema advances but no DB yet (first deploy) — no backup")
+		}
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("deploy: read current: %w", err)
+	}
+	if current != "" {
+		o.logf("backup %s before deploy", app)
+		if err := o.Backup(ctx, app); err != nil {
+			return fmt.Errorf("deploy: backup: %w", err)
 		}
 	}
 
-	// 5. Migrate (forward-only). Idempotent: applies only unapplied higher versions.
+	// 2. Migrate (forward-only). Idempotent: applies only unapplied higher versions.
 	//    Ensure state/ exists so the app can create state/<app>.db on first migrate
 	//    (setup creates this tree on the box; deploy self-heals it). Creating the
 	//    directory never touches an existing DB file (PLAN §2.7).
@@ -328,14 +294,30 @@ func (o *Opsctl) Deploy(ctx context.Context, app, version string) error {
 		return fmt.Errorf("deploy: chown state dir: %w", err)
 	}
 
-	// 6. Atomic swap: bin/run -> libexec/<app>-<version>. The symlink only ever
-	//    points at a complete executable (relative target so it survives a path move).
+	// 4. Atomic swap: all live-facing symlinks repoint to the same staged version.
+	//    Each symlink only ever points at a complete target: the temp symlink is
+	//    fully formed before rename(2) moves it into place.
 	o.logf("atomic swap bin/run -> libexec/%s-%s", app, version)
 	if err := atomicSwap(l.RunLink(), l.runTarget(version)); err != nil {
-		return fmt.Errorf("deploy: %w", err)
+		return fmt.Errorf("deploy: swap bin/run: %w", err)
+	}
+	o.logf("atomic swap etc/current -> %s", version)
+	if err := atomicSwap(l.EtcCurrentLink(), version); err != nil {
+		return fmt.Errorf("deploy: swap etc/current: %w", err)
+	}
+	o.logf("atomic swap share/current -> %s", version)
+	if err := atomicSwap(l.ShareCurrentLink(), version); err != nil {
+		return fmt.Errorf("deploy: swap share/current: %w", err)
 	}
 
-	// 7. Restart + is-active. On failure the operator's recovery is `rollback`
+	// 5. Reload nginx after the config symlink has moved and before the service
+	//    restart makes the new binary live.
+	o.logf("reload nginx")
+	if err := o.System.NginxReload(ctx); err != nil {
+		return fmt.Errorf("deploy: nginx reload: %w", err)
+	}
+
+	// Restart + is-active. On failure the operator's recovery is `rollback`
 	//    (the prior release dir + pre-migration backup are intact).
 	o.logf("restart %s", app)
 	if err := o.System.Restart(ctx, app); err != nil {
@@ -345,61 +327,13 @@ func (o *Opsctl) Deploy(ctx context.Context, app, version string) error {
 		return fmt.Errorf("deploy: %s did not come up (recover with: opsctl rollback %s): %w", app, app, err)
 	}
 
-	// 8. Prune old releases (never current's target / its predecessor).
+	// 6. Prune old releases (never current's target / its predecessor).
 	if err := o.Prune(ctx, app); err != nil {
 		return fmt.Errorf("deploy: prune: %w", err)
 	}
 
 	o.logf("deployed %s %s", app, version)
 	return nil
-}
-
-// stampDataPaths ensures the regenerated manifest carries the absolute on-box
-// state paths the SERVING process needs (<APP>_DB_PATH, <APP>_GENERATION_PATH).
-// ikigenba-launch exports every manifest key into the app's env, so stamping
-// them here is what points `<app> serve` at state/<app>.db instead of appkit's
-// relative dev default. A key already present in the binary's own manifest output
-// is left untouched (the binary wins); missing keys are appended. The result
-// always ends with exactly one trailing newline.
-func stampDataPaths(manifest string, l Layout) string {
-	up := strings.ToUpper(l.App)
-	want := []struct{ key, val string }{
-		{up + "_DB_PATH", l.DBPath()},
-		{up + "_GENERATION_PATH", l.GenerationPath()},
-	}
-	body := strings.TrimRight(manifest, "\n")
-	for _, kv := range want {
-		if manifestHasKey(body, kv.key) {
-			continue
-		}
-		body += "\n" + kv.key + "=" + kv.val
-	}
-	return body + "\n"
-}
-
-// manifestHasKey reports whether the flat KEY=value manifest already assigns key
-// (ignoring leading whitespace; comment lines never match a bare KEY= prefix).
-func manifestHasKey(manifest, key string) bool {
-	for _, line := range strings.Split(manifest, "\n") {
-		if strings.HasPrefix(strings.TrimSpace(line), key+"=") {
-			return true
-		}
-	}
-	return false
-}
-
-// schemaAdvances asks the binary (via the `schema` verb) whether this deploy
-// advances the DB schema: applied (live DB) < embedded (binary's max migration).
-func (o *Opsctl) schemaAdvances(ctx context.Context, l Layout, binary string) (bool, error) {
-	out, err := o.Runner.Run(ctx, binary, "schema", nil, o.dbEnv(l))
-	if err != nil {
-		return false, fmt.Errorf("deploy: schema check: %w", err)
-	}
-	applied, embedded, err := schemaVersions(out)
-	if err != nil {
-		return false, fmt.Errorf("deploy: %w", err)
-	}
-	return embedded > applied, nil
 }
 
 // copyExecutable copies src to dst (0755) via temp+rename so the destination is

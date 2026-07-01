@@ -25,6 +25,23 @@ func newOpsctl(t *testing.T, root, app string, sys *stubSystem, base []string) *
 		Keep:   3,
 		System: sys,
 		Runner: fakeRunner{baseEnv: base},
+		Store:  newFakeStore(),
+		Out:    &strings.Builder{},
+		Err:    &strings.Builder{},
+	}
+}
+
+func newOpsctlWithEvents(t *testing.T, root, app string, sys *stubSystem, store *fakeStore, events *[]string, base []string) *Opsctl {
+	t.Helper()
+	sys.app = app
+	sys.events = events
+	store.events = events
+	return &Opsctl{
+		Root:   root,
+		Keep:   3,
+		System: sys,
+		Runner: fakeRunner{baseEnv: base, events: events},
+		Store:  store,
 		Out:    &strings.Builder{},
 		Err:    &strings.Builder{},
 	}
@@ -74,6 +91,67 @@ func stageAndDeploy(t *testing.T, o *Opsctl, app, version, artifact string) erro
 	return o.Deploy(context.Background(), app, version)
 }
 
+func stageOnly(t *testing.T, o *Opsctl, app, version, artifact string) {
+	t.Helper()
+	bundle := bundleArtifactFromBinary(t, app, version, filepath.Base(artifact), artifact)
+	if err := o.Stage(context.Background(), app, version, bundle, false); err != nil {
+		t.Fatalf("stage %s: %v", version, err)
+	}
+}
+
+type deployRecordingRunner struct {
+	fakeRunner
+	onMigrate func()
+}
+
+func (r deployRecordingRunner) Run(ctx context.Context, binary, verb string, args []string, env []string) (string, error) {
+	if verb == "migrate" && r.onMigrate != nil {
+		r.onMigrate()
+	}
+	return r.fakeRunner.Run(ctx, binary, verb, args, env)
+}
+
+func eventIndex(events []string, want string) int {
+	for i, got := range events {
+		if got == want {
+			return i
+		}
+	}
+	return -1
+}
+
+func countEvents(events []string, want string) int {
+	n := 0
+	for _, got := range events {
+		if got == want {
+			n++
+		}
+	}
+	return n
+}
+
+func assertSymlinkText(t *testing.T, link, want string) {
+	t.Helper()
+	got, err := os.Readlink(link)
+	if err != nil {
+		t.Fatalf("readlink %s: %v", link, err)
+	}
+	if got != want {
+		t.Fatalf("%s -> %q, want %q", link, got, want)
+	}
+}
+
+func assertSymlinkResolves(t *testing.T, link, want string) {
+	t.Helper()
+	got, err := filepath.EvalSymlinks(link)
+	if err != nil {
+		t.Fatalf("%s does not resolve: %v", link, err)
+	}
+	if got != want {
+		t.Fatalf("%s resolves to %q, want %q", link, got, want)
+	}
+}
+
 // readRunVersion resolves bin/run → its deployed version.
 func readRunVersion(t *testing.T, l Layout) string {
 	t.Helper()
@@ -99,9 +177,9 @@ func dbApplied(t *testing.T, l Layout) (int, bool) {
 }
 
 // resolveThroughStablePaths asserts the launcher-facing stable paths are valid:
-// bin/run resolves to an existing binary, and etc/manifest.env
-// exists and names the app. This must hold after every install/rollback (PLAN
-// §2.6 — load-bearing at all times, including mid-swap).
+// bin/run resolves to an existing binary, and etc/current/manifest.env exists
+// and names the app. This must hold after every install/rollback (PLAN §2.6 —
+// load-bearing at all times, including mid-swap).
 func resolveThroughStablePaths(t *testing.T, l Layout) {
 	t.Helper()
 	// bin/run -> ../libexec/<app>-<version>; resolving it must reach a real file.
@@ -112,7 +190,7 @@ func resolveThroughStablePaths(t *testing.T, l Layout) {
 	if fi, err := os.Stat(runResolved); err != nil || fi.IsDir() {
 		t.Fatalf("bin/run target %s is not a runnable file: %v", runResolved, err)
 	}
-	man, err := os.ReadFile(l.ManifestPath())
+	man, err := os.ReadFile(l.ActiveManifest())
 	if err != nil {
 		t.Fatalf("manifest.env missing: %v", err)
 	}
@@ -149,7 +227,8 @@ func TestInstallInstallRollback_NoSchemaChange(t *testing.T) {
 	dbInfo1, _ := os.Stat(l.DBPath())
 
 	// Second install: v1.1.0, SAME embedded schema 2 → no schema advance → the DB
-	// must NOT be modified and NO backup taken.
+	// must NOT be modified. Deploy still takes the unconditional object-store
+	// backup before migrating.
 	o2 := newOpsctl(t, root, app, sys, fakeEnv(app, "v1.1.0", 2, ""))
 	art2 := stageArtifact(t, "ledger-v1.1.0")
 	if err := stageAndDeploy(t, o2, app, "v1.1.0", art2); err != nil {
@@ -166,7 +245,7 @@ func TestInstallInstallRollback_NoSchemaChange(t *testing.T) {
 		t.Errorf("no-schema-change install modified the DB mtime: %v -> %v", dbInfo1.ModTime(), dbInfo2.ModTime())
 	}
 	if _, err := os.Stat(l.PreMigrationBackup("v1.1.0")); err == nil {
-		t.Errorf("no-schema-change install took a pre-migration backup, want none")
+		t.Errorf("deploy wrote legacy pre-migration backup %s", l.PreMigrationBackup("v1.1.0"))
 	}
 
 	// Rollback to the prior release (v1.0.0). No schema advance ⇒ no DB restore.
@@ -183,13 +262,10 @@ func TestInstallInstallRollback_NoSchemaChange(t *testing.T) {
 	}
 }
 
-// TestSchemaAdvance_BackupAndRollbackRestores proves the schema-aware path: a
-// schema-advancing install takes a pre-migration backup and migrates the DB
-// forward; a subsequent rollback restores the backup so the older binary's
-// downgrade guard would accept the DB. It also proves the rollback re-mints the
-// event-plane epoch: driving restore through the target binary removes the
-// <db>.generation sidecar end to end.
-func TestSchemaAdvance_BackupAndRollbackRestores(t *testing.T) {
+// TestDeploySchemaAdvanceUsesOnlyObjectStoreBackup proves deploy no longer has a
+// schema-aware local backup path: a schema-advancing release still migrates the DB
+// forward, but it does not write a legacy backups/pre-<version>.db file.
+func TestDeploySchemaAdvanceUsesOnlyObjectStoreBackup(t *testing.T) {
 	root := t.TempDir()
 	app := "ledger"
 	l := NewLayout(root, app)
@@ -204,49 +280,18 @@ func TestSchemaAdvance_BackupAndRollbackRestores(t *testing.T) {
 		t.Fatalf("applied after v1.0.0 = %d, want 2", applied)
 	}
 
-	// v2.0.0 — embedded schema 5 → schema ADVANCES (2 → 5). Install must back up the
-	// DB (named pre-v2.0.0.db) BEFORE migrating it forward to 5.
+	// v2.0.0 — embedded schema 5 → schema advances (2 → 5). Deploy must back up
+	// through the ObjectStore seam, not the removed local pre-migration path.
 	o2 := newOpsctl(t, root, app, sys, fakeEnv(app, "v2.0.0", 5, ""))
 	if err := stageAndDeploy(t, o2, app, "v2.0.0", stageArtifact(t, "v2")); err != nil {
 		t.Fatalf("deploy v2.0.0: %v", err)
 	}
-	backup := l.PreMigrationBackup("v2.0.0")
-	if _, err := os.Stat(backup); err != nil {
-		t.Fatalf("schema-advancing install took NO pre-migration backup: %v", err)
-	}
-	// The backup must capture the PRE-migration state (applied=2), not the migrated 5.
-	bb, _ := os.ReadFile(backup)
-	if strings.TrimSpace(string(bb)) != "2" {
-		t.Fatalf("pre-migration backup holds applied=%q, want 2 (the pre-migrate state)", strings.TrimSpace(string(bb)))
+	if _, err := os.Stat(l.PreMigrationBackup("v2.0.0")); err == nil {
+		t.Fatalf("deploy wrote removed local pre-migration backup %s", l.PreMigrationBackup("v2.0.0"))
 	}
 	// The live DB advanced to 5.
 	if applied, _ := dbApplied(t, l); applied != 5 {
 		t.Fatalf("applied after v2.0.0 = %d, want 5 (migrated forward)", applied)
-	}
-
-	// A live producer carries an event-plane generation sidecar next to the DB.
-	// Rolling back rewinds the DB, so the sidecar must be re-minted (removed) by
-	// driving restore through the target binary — prove the opsctl→binary→restore
-	// wiring does this end to end.
-	gen := l.GenerationPath()
-	if err := os.WriteFile(gen, []byte("epoch-before-rollback\n"), 0o644); err != nil {
-		t.Fatalf("seed generation sidecar: %v", err)
-	}
-
-	// Rollback to v1.0.0 — because v2.0.0 advanced the schema (its pre-migration
-	// backup exists), rollback must RESTORE the DB to applied=2 first, then swap.
-	if err := o2.Rollback(context.Background(), app, ""); err != nil {
-		t.Fatalf("rollback: %v", err)
-	}
-	if got := readRunVersion(t, l); got != "v1.0.0" {
-		t.Fatalf("after rollback live version = %q, want v1.0.0", got)
-	}
-	if applied, _ := dbApplied(t, l); applied != 2 {
-		t.Fatalf("after rollback applied = %d, want 2 (DB restored from pre-migration backup)", applied)
-	}
-	// The sidecar must be gone: the restore re-minted the epoch.
-	if _, err := os.Stat(gen); !os.IsNotExist(err) {
-		t.Fatalf("generation sidecar still present after rollback (stat err = %v); epoch not re-minted", err)
 	}
 	resolveThroughStablePaths(t, l)
 }
@@ -351,40 +396,193 @@ func TestDeploy_SwapsBinRunToVersionedLibexecBinary(t *testing.T) {
 	if _, err := os.Stat(l.LibexecBinary("v1.0.0")); err != nil {
 		t.Fatalf("previous libexec binary missing after deploy: %v", err)
 	}
-}
-
-// TestStampDataPaths asserts the regenerated manifest gains the absolute on-box
-// state paths the serving process needs (the D2 box prototype hit the serving
-// binary falling back to appkit's relative ./tmp/<app>.db default because nothing
-// injected <APP>_DB_PATH into ikigenba-launch's exported env).
-func TestStampDataPaths(t *testing.T) {
-	l := NewLayout("/opt", "ledger")
-	portable := "APP=ledger\nMOUNT=/srv/ledger/\nPORT=3002\nMCP=true\n"
-	got := stampDataPaths(portable, l)
-
-	for _, want := range []string{
-		"LEDGER_DB_PATH=/opt/ledger/state/ledger.db",
-		"LEDGER_GENERATION_PATH=/opt/ledger/cache/ledger.db.generation",
-		"APP=ledger", "PORT=3002",
+	for _, forbidden := range []string{
+		filepath.Join(l.AppDir(), "releases"),
+		filepath.Join(l.AppDir(), "current"),
 	} {
-		if !strings.Contains(got, want) {
-			t.Errorf("stamped manifest missing %q\n--- got ---\n%s", want, got)
+		if _, err := os.Lstat(forbidden); err == nil {
+			t.Fatalf("legacy path exists after deploy: %s", forbidden)
+		} else if !os.IsNotExist(err) {
+			t.Fatalf("stat legacy path %s: %v", forbidden, err)
 		}
 	}
-	if !strings.HasSuffix(got, "\n") || strings.HasSuffix(got, "\n\n") {
-		t.Errorf("stamped manifest must end with exactly one newline, got %q", got)
+}
+
+func TestDeployNoSchemaAdvanceBacksUpBeforeMigrateAndSwap(t *testing.T) {
+	// R-863N-LLT9
+	root := t.TempDir()
+	app := "ledger"
+	l := NewLayout(root, app)
+	sys := &stubSystem{}
+
+	o1 := newOpsctl(t, root, app, sys, fakeEnv(app, "v1.0.0", 2, ""))
+	if err := stageAndDeploy(t, o1, app, "v1.0.0", stageArtifact(t, "ledger-v1.0.0")); err != nil {
+		t.Fatalf("deploy v1.0.0: %v", err)
 	}
 
-	// Idempotent + binary-wins: a manifest that already assigns the key keeps its
-	// value and gains no duplicate.
-	withKey := "APP=ledger\nLEDGER_DB_PATH=/custom/path.db\n"
-	got2 := stampDataPaths(withKey, l)
-	if strings.Count(got2, "LEDGER_DB_PATH=") != 1 {
-		t.Errorf("expected exactly one LEDGER_DB_PATH assignment, got:\n%s", got2)
+	var events []string
+	store := newFakeStore()
+	sys2 := &stubSystem{}
+	o2 := newOpsctlWithEvents(t, root, app, sys2, store, &events, fakeEnv(app, "v1.1.0", 2, ""))
+	o2.Runner = deployRecordingRunner{
+		fakeRunner: fakeRunner{baseEnv: fakeEnv(app, "v1.1.0", 2, ""), events: &events},
+		onMigrate: func() {
+			assertSymlinkText(t, l.RunLink(), l.runTarget("v1.0.0"))
+			assertSymlinkText(t, l.EtcCurrentLink(), "v1.0.0")
+			assertSymlinkText(t, l.ShareCurrentLink(), "v1.0.0")
+		},
 	}
-	if !strings.Contains(got2, "LEDGER_DB_PATH=/custom/path.db") {
-		t.Errorf("binary's own LEDGER_DB_PATH should win, got:\n%s", got2)
+
+	stageOnly(t, o2, app, "v1.1.0", stageArtifact(t, "ledger-v1.1.0"))
+	events = nil
+	if err := o2.Deploy(context.Background(), app, "v1.1.0"); err != nil {
+		t.Fatalf("deploy v1.1.0: %v", err)
 	}
+
+	if got := countEvents(events, "put:ledger:snapshot"); got != 1 {
+		t.Fatalf("snapshot backup Put count = %d, want 1; events=%v", got, events)
+	}
+	put := eventIndex(events, "put:ledger:snapshot")
+	migrate := eventIndex(events, "run:migrate")
+	if put == -1 || migrate == -1 || put > migrate {
+		t.Fatalf("backup/migrate order wrong: events=%v", events)
+	}
+	assertSymlinkText(t, l.RunLink(), l.runTarget("v1.1.0"))
+	assertSymlinkText(t, l.EtcCurrentLink(), "v1.1.0")
+	assertSymlinkText(t, l.ShareCurrentLink(), "v1.1.0")
+}
+
+func TestDeploySequenceSwapsReloadsRestartsAndPrunesWithoutManifestVerb(t *testing.T) {
+	// R-87BJ-ZDJY
+	root := t.TempDir()
+	app := "ledger"
+	l := NewLayout(root, app)
+	sys := &stubSystem{}
+
+	o1 := newOpsctl(t, root, app, sys, fakeEnv(app, "v1.0.0", 1, ""))
+	o1.Keep = 1
+	if err := stageAndDeploy(t, o1, app, "v1.0.0", stageArtifact(t, "ledger-v1.0.0")); err != nil {
+		t.Fatalf("deploy v1.0.0: %v", err)
+	}
+	o2 := newOpsctl(t, root, app, sys, fakeEnv(app, "v1.1.0", 1, ""))
+	o2.Keep = 1
+	if err := stageAndDeploy(t, o2, app, "v1.1.0", stageArtifact(t, "ledger-v1.1.0")); err != nil {
+		t.Fatalf("deploy v1.1.0: %v", err)
+	}
+
+	var events []string
+	store := newFakeStore()
+	sys3 := &stubSystem{}
+	sys3.onNginxReload = func() {
+		assertSymlinkText(t, l.RunLink(), l.runTarget("v1.2.0"))
+		assertSymlinkText(t, l.EtcCurrentLink(), "v1.2.0")
+		assertSymlinkText(t, l.ShareCurrentLink(), "v1.2.0")
+	}
+	sys3.onIsActive = func() {
+		if _, err := os.Stat(l.LibexecBinary("v1.0.0")); err != nil {
+			t.Fatalf("prune ran before is-active; v1.0.0 stat: %v", err)
+		}
+	}
+	o3 := newOpsctlWithEvents(t, root, app, sys3, store, &events, fakeEnv(app, "v1.2.0", 1, ""))
+	o3.Keep = 1
+
+	stageOnly(t, o3, app, "v1.2.0", stageArtifact(t, "ledger-v1.2.0"))
+	events = nil
+	if err := os.WriteFile(l.ManifestPath(), []byte("legacy-stable-manifest\n"), 0o644); err != nil {
+		t.Fatalf("seed stable manifest: %v", err)
+	}
+	if err := o3.Deploy(context.Background(), app, "v1.2.0"); err != nil {
+		t.Fatalf("deploy v1.2.0: %v", err)
+	}
+
+	for _, forbidden := range []string{"run:manifest", "run:schema"} {
+		if eventIndex(events, forbidden) != -1 {
+			t.Fatalf("deploy ran removed verb %s: events=%v", forbidden, events)
+		}
+	}
+	wantOrder := []string{"put:ledger:snapshot", "run:migrate", "nginx-reload", "restart:ledger", "is-active:ledger"}
+	last := -1
+	for _, want := range wantOrder {
+		idx := eventIndex(events, want)
+		if idx == -1 {
+			t.Fatalf("missing %s in events %v", want, events)
+		}
+		if idx <= last {
+			t.Fatalf("event %s out of order in %v", want, events)
+		}
+		last = idx
+	}
+	if b, err := os.ReadFile(l.ManifestPath()); err != nil {
+		t.Fatalf("read seeded stable manifest: %v", err)
+	} else if string(b) != "legacy-stable-manifest\n" {
+		t.Fatalf("stable manifest changed to %q", string(b))
+	}
+	if _, err := os.Stat(l.LibexecBinary("v1.0.0")); err == nil {
+		t.Fatalf("v1.0.0 still exists after prune")
+	} else if !os.IsNotExist(err) {
+		t.Fatalf("stat v1.0.0 after prune: %v", err)
+	}
+}
+
+func TestDeploySwapsRunEtcAndShareToSameVersion(t *testing.T) {
+	// R-1A79-JG03
+	root := t.TempDir()
+	app := "ledger"
+	l := NewLayout(root, app)
+	sys := &stubSystem{}
+
+	o1 := newOpsctl(t, root, app, sys, fakeEnv(app, "v1.0.0", 1, ""))
+	if err := stageAndDeploy(t, o1, app, "v1.0.0", stageArtifact(t, "ledger-v1.0.0")); err != nil {
+		t.Fatalf("deploy v1.0.0: %v", err)
+	}
+	o2 := newOpsctl(t, root, app, sys, fakeEnv(app, "v1.1.0", 1, ""))
+	if err := stageAndDeploy(t, o2, app, "v1.1.0", stageArtifact(t, "ledger-v1.1.0")); err != nil {
+		t.Fatalf("deploy v1.1.0: %v", err)
+	}
+
+	assertSymlinkText(t, l.RunLink(), l.runTarget("v1.1.0"))
+	assertSymlinkText(t, l.EtcCurrentLink(), "v1.1.0")
+	assertSymlinkText(t, l.ShareCurrentLink(), "v1.1.0")
+	assertSymlinkResolves(t, l.RunLink(), l.LibexecBinary("v1.1.0"))
+	assertSymlinkResolves(t, l.ActiveNginxConf(), l.NginxConfFile("v1.1.0"))
+	assertSymlinkResolves(t, l.ActiveManifest(), l.ManifestFile("v1.1.0"))
+	assertSymlinkResolves(t, filepath.Join(l.ShareCurrentLink(), "assets", "resource.txt"), filepath.Join(l.ShareVersionDir("v1.1.0"), "assets", "resource.txt"))
+}
+
+func TestDeploySymlinksResolveBeforeAndAfterAtomicRepoint(t *testing.T) {
+	// R-3VYJ-E4HI
+	root := t.TempDir()
+	app := "ledger"
+	l := NewLayout(root, app)
+	sys := &stubSystem{}
+
+	o1 := newOpsctl(t, root, app, sys, fakeEnv(app, "v1.0.0", 1, ""))
+	if err := stageAndDeploy(t, o1, app, "v1.0.0", stageArtifact(t, "ledger-v1.0.0")); err != nil {
+		t.Fatalf("deploy v1.0.0: %v", err)
+	}
+	o2 := newOpsctl(t, root, app, sys, fakeEnv(app, "v1.1.0", 1, ""))
+	stageOnly(t, o2, app, "v1.1.0", stageArtifact(t, "ledger-v1.1.0"))
+
+	assertSymlinkResolves(t, l.RunLink(), l.LibexecBinary("v1.0.0"))
+	assertSymlinkResolves(t, l.EtcCurrentLink(), l.EtcVersionDir("v1.0.0"))
+	assertSymlinkResolves(t, l.ShareCurrentLink(), l.ShareVersionDir("v1.0.0"))
+	if _, err := os.Stat(l.LibexecBinary("v1.1.0")); err != nil {
+		t.Fatalf("new run target missing before deploy: %v", err)
+	}
+	if _, err := os.Stat(l.EtcVersionDir("v1.1.0")); err != nil {
+		t.Fatalf("new etc target missing before deploy: %v", err)
+	}
+	if _, err := os.Stat(l.ShareVersionDir("v1.1.0")); err != nil {
+		t.Fatalf("new share target missing before deploy: %v", err)
+	}
+
+	if err := o2.Deploy(context.Background(), app, "v1.1.0"); err != nil {
+		t.Fatalf("deploy v1.1.0: %v", err)
+	}
+
+	assertSymlinkResolves(t, l.RunLink(), l.LibexecBinary("v1.1.0"))
+	assertSymlinkResolves(t, l.EtcCurrentLink(), l.EtcVersionDir("v1.1.0"))
+	assertSymlinkResolves(t, l.ShareCurrentLink(), l.ShareVersionDir("v1.1.0"))
 }
 
 // TestInstall_ChownsStateDirToAppUser asserts install hands the state tree back to
@@ -488,14 +686,12 @@ func TestNotifySetupDeployBootsHealthWithStateAndCachePaths(t *testing.T) {
 		t.Fatalf("bin/run -> %q, want %q", target, want)
 	}
 
-	manifest, err := os.ReadFile(l.ManifestPath())
+	manifest, err := os.ReadFile(l.ActiveManifest())
 	if err != nil {
 		t.Fatalf("read manifest: %v", err)
 	}
 	for _, want := range []string{
 		"APP=notify",
-		"NOTIFY_DB_PATH=" + l.DBPath(),
-		"NOTIFY_GENERATION_PATH=" + l.GenerationPath(),
 	} {
 		if !strings.Contains(string(manifest), want) {
 			t.Fatalf("manifest missing %q\n--- manifest ---\n%s", want, manifest)
@@ -579,14 +775,12 @@ func TestDropboxSetupDeployBootsHealthWithStateCacheAndMirrorPaths(t *testing.T)
 		}
 	}
 
-	manifest, err := os.ReadFile(l.ManifestPath())
+	manifest, err := os.ReadFile(l.ActiveManifest())
 	if err != nil {
 		t.Fatalf("read manifest: %v", err)
 	}
 	for _, want := range []string{
 		"APP=dropbox",
-		"DROPBOX_DB_PATH=" + l.DBPath(),
-		"DROPBOX_GENERATION_PATH=" + l.GenerationPath(),
 	} {
 		if !strings.Contains(string(manifest), want) {
 			t.Fatalf("manifest missing %q\n--- manifest ---\n%s", want, manifest)
@@ -687,14 +881,12 @@ func TestPromptsSetupDeployBootsHealthWithStateSandboxesAndCacheRuns(t *testing.
 		t.Fatalf("prompts runs unexpectedly created under durable state: %v", err)
 	}
 
-	manifest, err := os.ReadFile(l.ManifestPath())
+	manifest, err := os.ReadFile(l.ActiveManifest())
 	if err != nil {
 		t.Fatalf("read manifest: %v", err)
 	}
 	for _, want := range []string{
 		"APP=prompts",
-		"PROMPTS_DB_PATH=" + l.DBPath(),
-		"PROMPTS_GENERATION_PATH=" + l.GenerationPath(),
 	} {
 		if !strings.Contains(string(manifest), want) {
 			t.Fatalf("manifest missing %q\n--- manifest ---\n%s", want, manifest)
@@ -774,14 +966,12 @@ func TestWikiSetupDeployBootsHealthWithStateAndCachePaths(t *testing.T) {
 		}
 	}
 
-	manifest, err := os.ReadFile(l.ManifestPath())
+	manifest, err := os.ReadFile(l.ActiveManifest())
 	if err != nil {
 		t.Fatalf("read manifest: %v", err)
 	}
 	for _, want := range []string{
 		"APP=wiki",
-		"WIKI_DB_PATH=" + l.DBPath(),
-		"WIKI_GENERATION_PATH=" + l.GenerationPath(),
 	} {
 		if !strings.Contains(string(manifest), want) {
 			t.Fatalf("manifest missing %q\n--- manifest ---\n%s", want, manifest)
@@ -852,14 +1042,12 @@ func TestCronSetupDeployBootsHealthWithStateAndCachePaths(t *testing.T) {
 		t.Fatalf("bin/run -> %q, want %q", target, want)
 	}
 
-	manifest, err := os.ReadFile(l.ManifestPath())
+	manifest, err := os.ReadFile(l.ActiveManifest())
 	if err != nil {
 		t.Fatalf("read manifest: %v", err)
 	}
 	for _, want := range []string{
 		"APP=cron",
-		"CRON_DB_PATH=" + l.DBPath(),
-		"CRON_GENERATION_PATH=" + l.GenerationPath(),
 	} {
 		if !strings.Contains(string(manifest), want) {
 			t.Fatalf("manifest missing %q\n--- manifest ---\n%s", want, manifest)
@@ -937,14 +1125,12 @@ func TestGmailSetupDeployBootsHealthWithStateAndCachePaths(t *testing.T) {
 		t.Fatalf("bin/run -> %q, want %q", target, want)
 	}
 
-	manifest, err := os.ReadFile(l.ManifestPath())
+	manifest, err := os.ReadFile(l.ActiveManifest())
 	if err != nil {
 		t.Fatalf("read manifest: %v", err)
 	}
 	for _, want := range []string{
 		"APP=gmail",
-		"GMAIL_DB_PATH=" + l.DBPath(),
-		"GMAIL_GENERATION_PATH=" + l.GenerationPath(),
 	} {
 		if !strings.Contains(string(manifest), want) {
 			t.Fatalf("manifest missing %q\n--- manifest ---\n%s", want, manifest)
@@ -1041,14 +1227,12 @@ func TestSitesSetupDeployBootsHealthWithStateWWWPaths(t *testing.T) {
 		t.Fatalf("bin/run resolves to %q, want %q", resolved, l.LibexecBinary(version))
 	}
 
-	manifest, err := os.ReadFile(l.ManifestPath())
+	manifest, err := os.ReadFile(l.ActiveManifest())
 	if err != nil {
 		t.Fatalf("read manifest: %v", err)
 	}
 	for _, want := range []string{
 		"APP=sites",
-		"SITES_DB_PATH=" + l.DBPath(),
-		"SITES_GENERATION_PATH=" + l.GenerationPath(),
 	} {
 		if !strings.Contains(string(manifest), want) {
 			t.Fatalf("manifest missing %q\n--- manifest ---\n%s", want, manifest)
@@ -1075,7 +1259,8 @@ func (s *notifyBootSystem) IsActive(ctx context.Context, app string) error {
 	runCtx, cancel := context.WithCancel(context.Background())
 	var stdout, stderr bytes.Buffer
 	cmd := exec.CommandContext(runCtx, s.layout.RunLink(), "serve")
-	cmd.Env = append(os.Environ(), manifestEnv(s.layout.ManifestPath())...)
+	cmd.Env = append(os.Environ(), manifestEnv(s.layout.ActiveManifest())...)
+	cmd.Env = append(cmd.Env, dbEnvForLayout(s.layout)...)
 	cmd.Env = append(cmd.Env,
 		fmt.Sprintf("NOTIFY_PORT=%d", s.port),
 		"NOTIFY_IP=127.0.0.1",
@@ -1152,7 +1337,8 @@ func (s *dropboxBootSystem) IsActive(ctx context.Context, app string) error {
 	runCtx, cancel := context.WithCancel(context.Background())
 	var stdout, stderr bytes.Buffer
 	cmd := exec.CommandContext(runCtx, s.layout.RunLink(), "serve")
-	cmd.Env = append(os.Environ(), manifestEnv(s.layout.ManifestPath())...)
+	cmd.Env = append(os.Environ(), manifestEnv(s.layout.ActiveManifest())...)
+	cmd.Env = append(cmd.Env, dbEnvForLayout(s.layout)...)
 	cmd.Env = append(cmd.Env,
 		fmt.Sprintf("DROPBOX_PORT=%d", s.port),
 		"DROPBOX_IP=127.0.0.1",
@@ -1230,7 +1416,8 @@ func (s *promptsBootSystem) IsActive(ctx context.Context, app string) error {
 	runCtx, cancel := context.WithCancel(context.Background())
 	var stdout, stderr bytes.Buffer
 	cmd := exec.CommandContext(runCtx, s.layout.RunLink(), "serve")
-	cmd.Env = append(os.Environ(), manifestEnv(s.layout.ManifestPath())...)
+	cmd.Env = append(os.Environ(), manifestEnv(s.layout.ActiveManifest())...)
+	cmd.Env = append(cmd.Env, dbEnvForLayout(s.layout)...)
 	cmd.Env = append(cmd.Env,
 		fmt.Sprintf("PROMPTS_PORT=%d", s.port),
 		"PROMPTS_IP=127.0.0.1",
@@ -1312,7 +1499,8 @@ func (s *wikiBootSystem) IsActive(ctx context.Context, app string) error {
 	runCtx, cancel := context.WithCancel(context.Background())
 	var stdout, stderr bytes.Buffer
 	cmd := exec.CommandContext(runCtx, s.layout.RunLink(), "serve")
-	cmd.Env = append(os.Environ(), manifestEnv(s.layout.ManifestPath())...)
+	cmd.Env = append(os.Environ(), manifestEnv(s.layout.ActiveManifest())...)
+	cmd.Env = append(cmd.Env, dbEnvForLayout(s.layout)...)
 	cmd.Env = append(cmd.Env,
 		fmt.Sprintf("WIKI_PORT=%d", s.port),
 		"WIKI_IP=127.0.0.1",
@@ -1386,7 +1574,8 @@ func (s *cronBootSystem) IsActive(ctx context.Context, app string) error {
 	runCtx, cancel := context.WithCancel(context.Background())
 	var stdout, stderr bytes.Buffer
 	cmd := exec.CommandContext(runCtx, s.layout.RunLink(), "serve")
-	cmd.Env = append(os.Environ(), manifestEnv(s.layout.ManifestPath())...)
+	cmd.Env = append(os.Environ(), manifestEnv(s.layout.ActiveManifest())...)
+	cmd.Env = append(cmd.Env, dbEnvForLayout(s.layout)...)
 	cmd.Env = append(cmd.Env,
 		fmt.Sprintf("CRON_PORT=%d", s.port),
 		"CRON_IP=127.0.0.1",
@@ -1458,7 +1647,8 @@ func (s *gmailBootSystem) IsActive(ctx context.Context, app string) error {
 	runCtx, cancel := context.WithCancel(context.Background())
 	var stdout, stderr bytes.Buffer
 	cmd := exec.CommandContext(runCtx, s.layout.RunLink(), "serve")
-	cmd.Env = append(os.Environ(), manifestEnv(s.layout.ManifestPath())...)
+	cmd.Env = append(os.Environ(), manifestEnv(s.layout.ActiveManifest())...)
+	cmd.Env = append(cmd.Env, dbEnvForLayout(s.layout)...)
 	cmd.Env = append(cmd.Env,
 		fmt.Sprintf("GMAIL_PORT=%d", s.port),
 		"GMAIL_IP=127.0.0.1",
@@ -1536,7 +1726,8 @@ func (s *sitesBootSystem) IsActive(ctx context.Context, app string) error {
 	runCtx, cancel := context.WithCancel(context.Background())
 	var stdout, stderr bytes.Buffer
 	cmd := exec.CommandContext(runCtx, s.layout.RunLink(), "serve")
-	cmd.Env = append(os.Environ(), manifestEnv(s.layout.ManifestPath())...)
+	cmd.Env = append(os.Environ(), manifestEnv(s.layout.ActiveManifest())...)
+	cmd.Env = append(cmd.Env, dbEnvForLayout(s.layout)...)
 	cmd.Env = append(cmd.Env,
 		fmt.Sprintf("SITES_PORT=%d", s.port),
 		"SITES_IP=127.0.0.1",
@@ -1719,6 +1910,14 @@ func manifestEnv(path string) []string {
 		env = append(env, line)
 	}
 	return env
+}
+
+func dbEnvForLayout(l Layout) []string {
+	up := strings.ToUpper(l.App)
+	return []string{
+		up + "_DB_PATH=" + l.DBPath(),
+		up + "_GENERATION_PATH=" + l.GenerationPath(),
+	}
 }
 
 func freePort(t *testing.T) int {
