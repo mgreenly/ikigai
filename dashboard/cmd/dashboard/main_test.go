@@ -14,6 +14,8 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	"appkit/manifest"
 )
 
 // noEnv is a getenv that reports every variable as unset.
@@ -38,6 +40,40 @@ func writeManifest(t *testing.T, root, svc, contents string) {
 	}
 	if err := os.WriteFile(filepath.Join(dir, "manifest.env"), []byte(contents), 0o644); err != nil {
 		t.Fatalf("write manifest: %v", err)
+	}
+}
+
+// R-8DF1-W89F
+func TestCommittedManifestIsPortable(t *testing.T) {
+	committed, err := os.ReadFile(filepath.Join("..", "..", "etc", "manifest.env"))
+	if err != nil {
+		t.Fatalf("read committed manifest.env: %v", err)
+	}
+	if bytes.Contains(committed, []byte("/opt/")) {
+		t.Fatalf("committed manifest.env contains on-box /opt/ path:\n%s", committed)
+	}
+	for _, line := range bytes.Split(committed, []byte("\n")) {
+		if bytes.HasPrefix(line, []byte("DASHBOARD_DB_PATH=")) || bytes.HasPrefix(line, []byte("DASHBOARD_GENERATION_PATH=")) {
+			t.Fatalf("committed manifest.env contains runtime path line %q", line)
+		}
+	}
+}
+
+// R-8IAN-FB87
+func TestManifestLibraryByteEqualsCommittedFile(t *testing.T) {
+	got := manifest.Emit(manifest.Fields{
+		App:     "dashboard",
+		Mount:   "/",
+		Default: true,
+		Port:    3000,
+	})
+	committed, err := os.ReadFile(filepath.Join("..", "..", "etc", "manifest.env"))
+	if err != nil {
+		t.Fatalf("read committed manifest.env: %v", err)
+	}
+
+	if got != string(committed) {
+		t.Fatalf("manifest.Emit output != committed etc/manifest.env\n--- emit ---\n%s\n--- committed ---\n%s", got, committed)
 	}
 }
 
