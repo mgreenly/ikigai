@@ -39,8 +39,11 @@ type Config struct {
 // still override. This is the in-binary move of the run-wrapper's composition.
 func Resolve(app, mount string, defaultPort int, getenv func(string) string) (Config, error) {
 	up := strings.ToUpper(app)
+	dbPathKey := up + "_DB_PATH"
+	genPathKey := up + "_GENERATION_PATH"
 
-	if strings.TrimSpace(getenv("IKIGENBA_DOMAIN")) != "" && strings.TrimSpace(getenv("IKIGENBA_ROOT")) == "" {
+	hasExplicitDataPaths := strings.TrimSpace(getenv(dbPathKey)) != "" && strings.TrimSpace(getenv(genPathKey)) != ""
+	if strings.TrimSpace(getenv("IKIGENBA_DOMAIN")) != "" && strings.TrimSpace(getenv("IKIGENBA_ROOT")) == "" && !hasExplicitDataPaths {
 		return Config{}, fmt.Errorf("IKIGENBA_ROOT is required when IKIGENBA_DOMAIN is set")
 	}
 
@@ -51,8 +54,6 @@ func Resolve(app, mount string, defaultPort int, getenv func(string) string) (Co
 
 	resourceID, authServer := composeURLs(getenv, up, mount)
 
-	dbPathKey := up + "_DB_PATH"
-	genPathKey := up + "_GENERATION_PATH"
 	dbPath, genPath := composeDataPaths(getenv, up, app)
 	if getenv(dbPathKey) != "" {
 		if err := ensureParentDir(dbPath, 0o750); err != nil {

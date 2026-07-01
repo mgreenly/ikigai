@@ -164,6 +164,25 @@ func TestResolve_DomainWithoutRootFailsLoudly(t *testing.T) {
 	}
 }
 
+func TestResolve_DomainWithoutRootAllowsExplicitDataPaths(t *testing.T) {
+	dbPath := filepath.Join("state", "ledger.db")
+	genPath := filepath.Join("cache", "ledger.db.generation")
+	cfg, err := Resolve("ledger", "/srv/ledger/", 3002, envFunc(map[string]string{
+		"IKIGENBA_DOMAIN":        "int.ikigenba.com",
+		"LEDGER_DB_PATH":         dbPath,
+		"LEDGER_GENERATION_PATH": genPath,
+	}))
+	if err != nil {
+		t.Fatalf("Resolve: %v", err)
+	}
+	if cfg.DBPath != dbPath {
+		t.Fatalf("DBPath = %q, want %q", cfg.DBPath, dbPath)
+	}
+	if cfg.GenerationPath != genPath {
+		t.Fatalf("GenerationPath = %q, want %q", cfg.GenerationPath, genPath)
+	}
+}
+
 func TestResolve_ApexMount(t *testing.T) {
 	cfg, err := Resolve("dashboard", "/", 3000, envFunc(map[string]string{
 		"IKIGENBA_DOMAIN": "int.ikigenba.com",
