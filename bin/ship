@@ -5,11 +5,11 @@
 #   bin/ship <app>
 #
 # It is deliberately thin: it owns the OFF-BOX BUILD HALF only, and its ONLY box
-# write is the scp of the single static artifact into the box's /tmp. It does NOT
-# stage, deploy, migrate, or swap anything — no install logic runs over ssh from
-# the laptop. The box owns every state change. After the scp, ship PRINTS the two
-# box commands the operator runs next (`opsctl stage …` then `opsctl deploy …`)
-# and STOPS.
+# write is the scp of the versioned release bundle into the box's /tmp. It does
+# NOT stage, deploy, migrate, or swap anything — no install logic runs over ssh
+# from the laptop. The box owns every state change. After the scp, ship PRINTS
+# the two box commands the operator runs next (`opsctl stage …` then
+# `opsctl deploy …`) and STOPS.
 #
 # The version core is the committed file <app>/VERSION (vX.Y.Z) — git tags are
 # NO LONGER the version mechanism. ship always builds CURRENT main (HEAD);
@@ -35,10 +35,13 @@
 #      ldflags stamping appkit.version to the full v<core>+<sha>. The committed
 #      `replace appkit/eventplane/agentkit => ../...` directives resolve against
 #      the worktree's sibling lib trees (no network).
-#   5. scp the single artifact to the box /tmp/<app>-v<ver>+<sha>, then STOP — printing
-#      the two box commands (`sudo opsctl stage …`, then `sudo opsctl deploy …`).
+#   5. Bundle the binary as <app> with nginx.conf, manifest.env, and optional
+#      share/.
+#   6. scp the bundle to the box /tmp/<app>-v<ver>+<sha>.tar.gz, then STOP —
+#      printing the two box commands (`sudo opsctl stage …`, then
+#      `sudo opsctl deploy …`).
 #
-# --dry-run (or DRY_RUN=1) does the FULL build (producing the artifact) but PRINTS
+# --dry-run (or DRY_RUN=1) does the FULL build (producing the bundle) but PRINTS
 # the existence check / scp commands instead of running them, so the build half is
 # fully exercisable off-box while the box half stays gated.
 #
@@ -51,7 +54,7 @@ set -euo pipefail
 
 usage() {
   cat <<'USAGE'
-bin/ship — build the current main of a suite service off-box and ship the artifact to the box /tmp.
+bin/ship — build the current main of a suite service off-box and ship the release bundle to the box /tmp.
 
 Usage:
   bin/ship <app>
@@ -64,16 +67,16 @@ There is no version argument. ship builds CURRENT main (HEAD); the release
 version core is read from the committed file <app>/VERSION (vX.Y.Z) and shipped
 as v<X.Y.Z>+<sha>. Bump the file first with `bin/bump <app> <field>`.
 
-ship's ONLY box write is the scp of the artifact to /tmp. It does NOT stage,
+ship's ONLY box write is the scp of the release bundle to /tmp. It does NOT stage,
 deploy, or migrate — the box owns every state change. After the scp it prints the
 two box commands the operator runs next (opsctl stage, then opsctl deploy) and
 stops.
 
 Flags:
   -h, --help   show this help.
-  --force      ship even if /opt/<app>/libexec/<app>-v<ver> already exists on the box
+  --force      ship even if /opt/<app>/libexec/<app>-v<ver>+<sha> already exists on the box
                (otherwise ship refuses, so a forgotten bin/bump fails early).
-  --dry-run    do the full off-box build (produce the artifact) but PRINT the
+  --dry-run    do the full off-box build (produce the bundle) but PRINT the
                existence-check / scp commands instead of running them.
                Equivalent to DRY_RUN=1.
 
@@ -87,9 +90,10 @@ What it does:
   -> build CURRENT main (HEAD) in the worktree
      (CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GOWORK=off -trimpath -buildvcs=false,
       ldflags -X appkit.version=v<X.Y.Z>+<sha>)
-  -> scp the single static artifact to the box /tmp/<app>-v<X.Y.Z>+<sha>
+  -> bundle the built binary, nginx.conf, manifest.env, and optional share/
+  -> scp the bundle to the box /tmp/<app>-v<X.Y.Z>+<sha>.tar.gz
   -> STOP, printing the box commands:
-       sudo opsctl stage  <app> v<X.Y.Z>+<sha> --artifact /tmp/<app>-v<X.Y.Z>+<sha>
+       sudo opsctl stage  <app> v<X.Y.Z>+<sha> --artifact /tmp/<app>-v<X.Y.Z>+<sha>.tar.gz
        sudo opsctl deploy <app> v<X.Y.Z>+<sha>
 
 There is NO install logic locally and NO ssh stage/deploy/install run from the
@@ -191,6 +195,8 @@ FULL_VERSION="${VER}+${COMMIT_STAMP}"
 LIBEXEC_DIR="${ARTIFACT_DIR}/libexec"
 mkdir -p "$LIBEXEC_DIR"
 ARTIFACT="${LIBEXEC_DIR}/${APP}-${FULL_VERSION}"
+BUNDLE_ROOT="${ARTIFACT_DIR}/bundle-root"
+BUNDLE="${ARTIFACT_DIR}/${APP}-${FULL_VERSION}.tar.gz"
 
 echo ">> ${APP}: release ${FULL_VERSION}"
 
@@ -235,11 +241,35 @@ echo ">> build ${APP} -> ${ARTIFACT}"
 [ -x "$ARTIFACT" ] || { echo "!! build did not produce ${ARTIFACT}" >&2; exit 1; }
 echo ">> built $(basename "$ARTIFACT") ($(du -h "$ARTIFACT" | cut -f1))"
 
-# --- ship the artifact to the box /tmp (the ONLY box write) ----------------
+# --- build the release bundle ---------------------------------------------
+for required in nginx.conf manifest.env; do
+  [ -f "${WORKTREE}/${APP}/etc/${required}" ] || {
+    echo "!! missing ${APP}/etc/${required} in the build worktree" >&2
+    exit 1
+  }
+done
+
+mkdir -p "$BUNDLE_ROOT"
+cp "$ARTIFACT" "${BUNDLE_ROOT}/${APP}"
+chmod 0755 "${BUNDLE_ROOT}/${APP}"
+cp "${WORKTREE}/${APP}/etc/nginx.conf" "${BUNDLE_ROOT}/nginx.conf"
+cp "${WORKTREE}/${APP}/etc/manifest.env" "${BUNDLE_ROOT}/manifest.env"
+
+TAR_ENTRIES=("$APP" "nginx.conf" "manifest.env")
+if [ -d "${WORKTREE}/${APP}/share" ]; then
+  cp -a "${WORKTREE}/${APP}/share" "${BUNDLE_ROOT}/share"
+  TAR_ENTRIES+=("share")
+fi
+
+tar -C "$BUNDLE_ROOT" -czf "$BUNDLE" "${TAR_ENTRIES[@]}"
+[ -f "$BUNDLE" ] || { echo "!! bundle did not produce ${BUNDLE}" >&2; exit 1; }
+echo ">> bundled $(basename "$BUNDLE") ($(du -h "$BUNDLE" | cut -f1))"
+
+# --- ship the bundle to the box /tmp (the ONLY box write) ------------------
 # ship's box footprint stops here: scp into /tmp, then print the box commands.
 # No stage/deploy/install runs over ssh — the box owns every state change.
-REMOTE_ARTIFACT="/tmp/${APP}-${FULL_VERSION}"
-SCP_CMD=(scp -i "$SSH_KEY" "$ARTIFACT" "${SSH_USER}@${HOST}:${REMOTE_ARTIFACT}")
+REMOTE_ARTIFACT="/tmp/${APP}-${FULL_VERSION}.tar.gz"
+SCP_CMD=(scp -i "$SSH_KEY" "$BUNDLE" "${SSH_USER}@${HOST}:${REMOTE_ARTIFACT}")
 
 # The two box commands the operator runs next (printed after the scp, or in
 # dry-run). These exactly match opsctl's stage/deploy synopsis.
@@ -252,7 +282,7 @@ if [ "$DRY_RUN" = "1" ]; then
   echo ">> then, ON THE BOX (${HOST}), the operator would run:"
   echo "   ${STAGE_CMD}"
   echo "   ${DEPLOY_CMD}"
-  echo ">> dry-run complete. Artifact: ${ARTIFACT}"
+  echo ">> dry-run complete. Artifact: ${BUNDLE}"
   exit 0
 fi
 
