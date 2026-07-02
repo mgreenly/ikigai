@@ -51,6 +51,8 @@ func NewLayoutSys(root, sysRoot, app string) Layout {
 // AppDir is /opt/<app> — the per-app install root.
 func (l Layout) AppDir() string { return filepath.Join(l.Root, l.App) }
 
+func (l Layout) stageScratchParent() string { return l.Root }
+
 // ReleaseLibexecFile is kept as the compareVersion tie-breaker path for existing
 // callers; under the current layout it is the shipped libexec binary itself.
 func (l Layout) ReleaseLibexecFile(version string) string {

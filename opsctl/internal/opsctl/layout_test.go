@@ -1,6 +1,8 @@
 package opsctl
 
 import (
+	"context"
+	"os"
 	"path/filepath"
 	"testing"
 )
@@ -66,5 +68,53 @@ func TestLayoutPerVersionAndActiveAccessors(t *testing.T) {
 				t.Fatalf("%s = %q, want %q", tt.name, tt.got, tt.want)
 			}
 		})
+	}
+}
+
+type stagePathRecordingRunner struct {
+	fakeRunner
+	binaries *[]string
+}
+
+func (r stagePathRecordingRunner) Run(ctx context.Context, binary, verb string, args []string, env []string) (string, error) {
+	if verb == "version" || verb == "manifest" {
+		*r.binaries = append(*r.binaries, binary)
+	}
+	return r.fakeRunner.Run(ctx, binary, verb, args, env)
+}
+
+func TestStageStagingParentUsesLayoutRoot(t *testing.T) {
+	// R-65MT-7QEK
+	root := t.TempDir()
+	app := "ledger"
+	version := "v1.2.3"
+	l := NewLayout(root, app)
+	artifact := stageBundleArtifact(t, app, version, "ledger-v1.2.3")
+	var binaries []string
+
+	o := newOpsctl(t, root, app, &stubSystem{}, fakeEnv(app, version, 1, ""))
+	o.Runner = stagePathRecordingRunner{
+		fakeRunner: fakeRunner{baseEnv: fakeEnv(app, version, 1, "")},
+		binaries:   &binaries,
+	}
+
+	if err := o.Stage(context.Background(), app, version, artifact, false); err != nil {
+		t.Fatalf("stage: %v", err)
+	}
+	if len(binaries) == 0 {
+		t.Fatalf("stage did not preflight any bundle binary")
+	}
+
+	scratchDir := filepath.Dir(filepath.Dir(binaries[0]))
+	parent := filepath.Clean(filepath.Dir(scratchDir))
+	want := filepath.Clean(l.stageScratchParent())
+	if parent == "" {
+		t.Fatalf("stage scratch parent is empty")
+	}
+	if parent == filepath.Clean(os.TempDir()) {
+		t.Fatalf("stage scratch parent = %q, want layout root %q", parent, want)
+	}
+	if parent != want {
+		t.Fatalf("stage scratch parent = %q, want layout root %q", parent, want)
 	}
 }

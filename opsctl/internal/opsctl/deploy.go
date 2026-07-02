@@ -37,7 +37,10 @@ func (o *Opsctl) Stage(ctx context.Context, app, version, artifact string, force
 	}
 	l := o.layout(app)
 
-	tmp, err := os.MkdirTemp("", "opsctl-stage-*")
+	if err := os.MkdirAll(l.stageScratchParent(), 0o755); err != nil {
+		return fmt.Errorf("stage: create temp parent: %w", err)
+	}
+	tmp, err := os.MkdirTemp(l.stageScratchParent(), "opsctl-stage-*")
 	if err != nil {
 		return fmt.Errorf("stage: create temp dir: %w", err)
 	}
