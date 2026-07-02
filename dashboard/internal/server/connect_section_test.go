@@ -8,8 +8,8 @@ import (
 
 // TestIndexConnectSection: the logged-in index carries the "Connect your coding
 // agent" block with the per-agent curl one-pasters and, at the bottom, the LIST
-// table whose rows are the box's MCP services (local name + resource URL). All
-// three are gated on a real session.
+// whose rows are the box's MCP services (local name + resource URL). All three
+// are gated on a real session.
 func TestIndexConnectSection(t *testing.T) {
 	root := t.TempDir()
 	writeManifest(t, root, "dashboard", "APP=dashboard\nMOUNT=/\nDEFAULT=true\n")
@@ -45,8 +45,8 @@ func TestIndexConnectSection(t *testing.T) {
 	}
 }
 
-// TestIndexConnectSectionLoggedOut: both the connect block and the LIST table
-// are logged-in only — a visitor with no session sees neither.
+// TestIndexConnectSectionLoggedOut: both the connect block and the LIST are
+// logged-in only — a visitor with no session sees neither.
 func TestIndexConnectSectionLoggedOut(t *testing.T) {
 	root := t.TempDir()
 	writeManifest(t, root, "crm", "APP=crm\nMOUNT=/srv/crm/\nMCP=true\n")
@@ -63,7 +63,7 @@ func TestIndexConnectSectionLoggedOut(t *testing.T) {
 	if strings.Contains(body, "Connect your coding agent") {
 		t.Errorf("connect block shown to logged-out visitor:\n%s", body)
 	}
-	if strings.Contains(body, "services-table") || strings.Contains(body, "ikigenba_crm") {
-		t.Errorf("services table shown to logged-out visitor:\n%s", body)
+	if strings.Contains(body, "services-list") || strings.Contains(body, "ikigenba_crm") {
+		t.Errorf("services list shown to logged-out visitor:\n%s", body)
 	}
 }

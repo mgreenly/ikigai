@@ -261,26 +261,15 @@ a:hover { text-decoration: underline; }
 .copy-btn.is-copied { color: var(--color-accent); }
 .copy-btn .icon { width: var(--icon-sm); height: var(--icon-sm); }
 
-/* ---- Services table ---------------------------------------------------- */
-.services-table {
-  width: 100%; border-collapse: collapse;
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  font-size: var(--text-body-size);
+/* ---- Services list ----------------------------------------------------- */
+.service-url { min-width: 0; overflow-x: auto; white-space: nowrap; }
+.service-row .copy-btn {
+  border-left: none;
+  background: transparent;
+  border-radius: var(--radius);
+  padding: var(--space-1) var(--space-2);
 }
-.services-table th, .services-table td {
-  text-align: left; padding: var(--space-3) var(--space-4);
-  border-bottom: var(--border-width) solid var(--color-border);
-}
-.services-table tbody tr:last-child td { border-bottom: none; }
-.services-table th {
-  font-family: var(--font-mono); font-size: var(--text-label-size); font-weight: 500;
-  text-transform: uppercase; letter-spacing: .08em; color: var(--color-text-subtle);
-  background: var(--color-surface);
-}
-.services-table td { font-family: var(--font-mono); font-size: var(--text-small-size); }
-.services-table tbody tr:hover { background: var(--color-surface-2); }
+.service-row .copy-btn:hover { background: var(--color-surface-2); }
 
 /* ---- Sign-in wall (logged out) ----------------------------------------- */
 .signin-wall {

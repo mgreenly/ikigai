@@ -42,11 +42,49 @@ func TestLandingServiceNameLinksToMount(t *testing.T) {
 	body := signedInLanding(t, landingServerWithCRM(t))
 
 	// R-DB12-LINK
-	if !strings.Contains(body, `<a href="/srv/crm/">ikigenba_crm</a>`) {
+	if !strings.Contains(body, `<a href="/srv/crm/" class="name">ikigenba_crm</a>`) {
 		t.Errorf("service name is not linked to the service mount:\n%s", body)
 	}
 	if !strings.Contains(body, `https://int.ikigenba.com/srv/crm/mcp`) {
 		t.Errorf("service row no longer shows raw MCP URL:\n%s", body)
+	}
+}
+
+func TestLandingServiceListChrome(t *testing.T) {
+	body := signedInLanding(t, landingServerWithCRM(t))
+
+	// R-OF1Q-VEDC
+	for _, want := range []string{
+		`<ul class="list services-list">`,
+		`<li class="row service-row">`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("service list missing shared list chrome %q:\n%s", want, body)
+		}
+	}
+	for _, stale := range []string{
+		`services-table`,
+		`<thead`,
+		`<th>`,
+	} {
+		if strings.Contains(body, stale) {
+			t.Errorf("service list still contains table chrome %q:\n%s", stale, body)
+		}
+	}
+
+	// R-OG9N-9641
+	for _, want := range []string{
+		`<code class="meta service-url">https://int.ikigenba.com/srv/crm/mcp</code>`,
+		`aria-label="Copy ikigenba_crm MCP URL"`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("service row missing copyable MCP URL affordance %q:\n%s", want, body)
+		}
+	}
+
+	// R-OHHJ-MXUQ
+	if strings.Contains(body, `class="section-intro"`) {
+		t.Errorf("landing page still renders section intro copy:\n%s", body)
 	}
 }
 

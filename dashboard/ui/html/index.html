@@ -28,7 +28,6 @@
         <h2>Connect your agent</h2>
         <span class="rule"></span>
       </div>
-      <p class="section-intro">Paste the line for your agent into its terminal to wire this box's MCP services into your install.</p>
       <div class="connect-choice">
         <h3>Claude Code</h3>
         <div class="snippet">
@@ -61,17 +60,20 @@
         <h2>All MCP services</h2>
         <span class="rule"></span>
       </div>
-      <p class="section-intro">The raw resource URLs, for wiring any other MCP client by hand.</p>
-      <table class="services-table">
-        <thead>
-          <tr><th>name</th><th>url</th></tr>
-        </thead>
-        <tbody>
-          {{range .Services}}
-          <tr><td><a href="{{.Href}}">{{.Name}}</a></td><td>{{.URL}}</td></tr>
-          {{end}}
-        </tbody>
-      </table>
+      <ul class="list services-list">
+        {{range .Services}}
+        <li class="row service-row">
+          <a href="{{.Href}}" class="name">{{.Name}}</a>
+          <code class="meta service-url">{{.URL}}</code>
+          <button type="button" class="copy-btn" aria-label="Copy {{.Name}} MCP URL">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+            <span class="copy-label">Copy</span>
+          </button>
+        </li>
+        {{end}}
+      </ul>
     </section>
     {{end}}
   </main>

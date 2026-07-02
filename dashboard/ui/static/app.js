@@ -36,10 +36,10 @@
 })();
 
 // --- 2. Copy-to-clipboard ------------------------------------------------
-// Every .copy-btn lives inside a .snippet next to a <code>. Clicking it copies
-// that code's text and briefly confirms. Falls back to a hidden-textarea +
-// execCommand when the async Clipboard API is unavailable (e.g. plain-http
-// localhost without a secure context).
+// Every .copy-btn lives next to a <code>. Clicking it copies that code's text
+// and briefly confirms. Falls back to a hidden-textarea + execCommand when the
+// async Clipboard API is unavailable (e.g. plain-http localhost without a
+// secure context).
 (() => {
   const copyText = async (text) => {
     if (navigator.clipboard && window.isSecureContext) {
@@ -58,8 +58,8 @@
   };
 
   document.querySelectorAll(".copy-btn").forEach((btn) => {
-    const snippet = btn.closest(".snippet");
-    const code = snippet && snippet.querySelector("code");
+    const scope = btn.closest(".snippet, .service-row");
+    const code = scope && scope.querySelector("code");
     const label = btn.querySelector(".copy-label");
     if (!code) return;
 
