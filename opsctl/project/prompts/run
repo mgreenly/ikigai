@@ -1,0 +1,3 @@
+#!/bin/bash
+
+exec ralph project/prompts/gather.md project/prompts/build.md project/prompts/verify.md
