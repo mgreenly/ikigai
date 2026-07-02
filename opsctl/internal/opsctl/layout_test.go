@@ -107,7 +107,10 @@ func TestStageStagingParentUsesLayoutRoot(t *testing.T) {
 
 	scratchDir := filepath.Dir(filepath.Dir(binaries[0]))
 	parent := filepath.Clean(filepath.Dir(scratchDir))
-	want := filepath.Clean(l.stageScratchParent())
+	want := filepath.Clean(l.Root)
+	if want != filepath.Clean(root) {
+		t.Fatalf("layout root = %q, want test root %q", want, filepath.Clean(root))
+	}
 	if parent == "" {
 		t.Fatalf("stage scratch parent is empty")
 	}
