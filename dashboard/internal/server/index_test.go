@@ -67,12 +67,12 @@ func TestIndexLoggedOutShowsNameOriginColophon(t *testing.T) {
 	}
 	for _, want := range []string{
 		`<aside class="name-origin" aria-label="What ikigenba means">`,
-		`<p class="name-origin-lede"><b>ikigenba</b> — A portmanteau of two Japanese words:</p>`,
+		`<p class="name-origin-lede"><b>ikigenba</b> — A portmanteau of two words:</p>`,
 		`<dl class="name-origin-parts">`,
 		`<dt><b class="seam">iki</b>gai <span lang="ja">生き甲斐</span></dt>`,
-		`<dd>&ldquo;reason for being&rdquo;; work worth doing.</dd>`,
+		`<dd>&ldquo;reason for being&rdquo; — work worth doing.</dd>`,
 		`<dt><b class="seam">genba</b> <span lang="ja">現場</span></dt>`,
-		`<dd>the actual place; where the work happens.</dd>`,
+		`<dd>&ldquo;the actual place&rdquo; — where the work happens.</dd>`,
 	} {
 		// R-DB17-ORIG
 		if !strings.Contains(body, want) {
@@ -141,6 +141,16 @@ func TestIndexLoggedOutShowsNameOriginPronunciationFoot(t *testing.T) {
 	}
 	if strings.Contains(rec.Body.String(), `name-origin-say`) || strings.Contains(rec.Body.String(), `EE-kee-GEN-buh`) {
 		t.Errorf("signed-in index includes logged-out pronunciation guide:\n%s", rec.Body.String())
+	}
+
+	cssRec := do(t, srv, "GET", "https://int.ikigenba.com/static/app.css", nil)
+	if cssRec.Code != http.StatusOK {
+		t.Fatalf("stylesheet status = %d, want 200", cssRec.Code)
+	}
+	rule := cssRule(t, cssRec.Body.String(), `.name-origin .name-origin-say`)
+	// R-O7K1-XEN7
+	if !strings.Contains(rule, `text-align: center;`) {
+		t.Errorf("name-origin pronunciation rule is not centered:\n%s", rule)
 	}
 }
 

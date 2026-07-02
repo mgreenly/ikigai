@@ -344,6 +344,7 @@ a:hover { text-decoration: underline; }
   font-size: var(--text-small-size);
   line-height: var(--text-small-lh);
   color: var(--color-text-subtle);
+  text-align: center;
 }
 .name-origin .name-origin-say b {
   color: var(--color-text-muted);
