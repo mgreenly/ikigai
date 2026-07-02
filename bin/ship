@@ -249,16 +249,23 @@ for required in nginx.conf manifest.env; do
   }
 done
 
-mkdir -p "$BUNDLE_ROOT"
-cp "$ARTIFACT" "${BUNDLE_ROOT}/${APP}"
-chmod 0755 "${BUNDLE_ROOT}/${APP}"
-cp "${WORKTREE}/${APP}/etc/nginx.conf" "${BUNDLE_ROOT}/nginx.conf"
-cp "${WORKTREE}/${APP}/etc/manifest.env" "${BUNDLE_ROOT}/manifest.env"
+mkdir -p \
+  "${BUNDLE_ROOT}/libexec" \
+  "${BUNDLE_ROOT}/etc/${FULL_VERSION}" \
+  "${BUNDLE_ROOT}/share/${FULL_VERSION}"
+cp "$ARTIFACT" "${BUNDLE_ROOT}/libexec/${APP}-${FULL_VERSION}"
+chmod 0755 "${BUNDLE_ROOT}/libexec/${APP}-${FULL_VERSION}"
+cp "${WORKTREE}/${APP}/etc/nginx.conf" "${BUNDLE_ROOT}/etc/${FULL_VERSION}/nginx.conf"
+cp "${WORKTREE}/${APP}/etc/manifest.env" "${BUNDLE_ROOT}/etc/${FULL_VERSION}/manifest.env"
 
-TAR_ENTRIES=("$APP" "nginx.conf" "manifest.env")
+TAR_ENTRIES=(
+  "libexec/${APP}-${FULL_VERSION}"
+  "etc/${FULL_VERSION}/nginx.conf"
+  "etc/${FULL_VERSION}/manifest.env"
+  "share/${FULL_VERSION}"
+)
 if [ -d "${WORKTREE}/${APP}/share" ]; then
-  cp -a "${WORKTREE}/${APP}/share" "${BUNDLE_ROOT}/share"
-  TAR_ENTRIES+=("share")
+  cp -a "${WORKTREE}/${APP}/share/." "${BUNDLE_ROOT}/share/${FULL_VERSION}/"
 fi
 
 tar -C "$BUNDLE_ROOT" -czf "$BUNDLE" "${TAR_ENTRIES[@]}"
