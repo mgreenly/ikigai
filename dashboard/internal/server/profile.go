@@ -9,11 +9,12 @@ import (
 )
 
 type profileData struct {
-	Host   string
-	Scheme string
-	Owner  string
-	Grants []grantRow
-	PATs   []patRow
+	Host         string
+	Scheme       string
+	Owner        string
+	OwnerInitial string
+	Grants       []grantRow
+	PATs         []patRow
 }
 
 // handleProfile renders the signed-in user's account controls. Unlike the
@@ -33,9 +34,10 @@ func (a *app) handleProfile() http.HandlerFunc {
 		}
 
 		data := profileData{
-			Host:   r.Host,
-			Scheme: requestScheme(r),
-			Owner:  owner,
+			Host:         r.Host,
+			Scheme:       requestScheme(r),
+			Owner:        owner,
+			OwnerInitial: ownerInitial(owner),
 		}
 
 		if chains, err := a.oauthTokens.ListChainsByOwner(r.Context(), owner); err != nil {

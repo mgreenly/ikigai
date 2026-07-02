@@ -41,11 +41,13 @@ a:hover { text-decoration: underline; }
 }
 
 .banner .wordmark {
+  color: var(--color-text);
   font-family: var(--font-display);
   font-size: var(--text-h3-size);
   font-weight: var(--text-h3-weight);
   letter-spacing: 0;
   margin: 0;
+  text-decoration: none;
 }
 
 .identity {
@@ -70,6 +72,11 @@ a:hover { text-decoration: underline; }
   font-weight: 600;
   text-decoration: none;
   flex-shrink: 0;
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+
+.identity .avatar:hover {
+  background: var(--accent-700);
 }
 
 .identity .avatar:focus-visible {

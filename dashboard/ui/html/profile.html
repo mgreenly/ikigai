@@ -12,13 +12,12 @@
 </head>
 <body>
   <header class="banner">
-    <p class="wordmark">ikigenba</p>
+    <a href="/" class="wordmark">ikigenba</a>
     <nav class="identity">
-      <a href="/" class="btn btn-secondary btn-sm">Home</a>
-      <span class="owner">{{.Owner}}</span>
       <form method="POST" action="/logout">
         <button type="submit" class="btn btn-danger-ghost btn-sm">Sign out</button>
       </form>
+      <a href="/profile" class="avatar" aria-label="Profile — {{.Owner}}" title="{{.Owner}}">{{.OwnerInitial}}</a>
     </nav>
   </header>
 
