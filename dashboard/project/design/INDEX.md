@@ -11,7 +11,7 @@ Verification ids change.
 - D2 → `project/design/D02.md` — The profile route is session-gated in-process (redirect when signed out) — owns R-DB04-GATE, R-DB05-SESS
 - D3 → `project/design/D03.md` — Personal-access-token management moves to the profile page — owns R-DB06-PATM, R-DB07-PATR, R-DB08-PATX
 - D4 → `project/design/D04.md` — OAuth grant management moves to the profile page — owns R-DB09-GRNT, R-DB10-GRVK, R-DB11-GRNX
-- D5 → `project/design/D05.md` — Landing composition: service-name links, profile-avatar nav, sign-out — owns R-DB12-LINK, R-DB14-SOUT, R-DB15-INST, R-XO4W-LKAI
+- D5 → `project/design/D05.md` — Landing composition: service-name links, profile-avatar nav, sign-out, shared list-chrome service list with copyable URLs — owns R-DB12-LINK, R-DB14-SOUT, R-DB15-INST, R-XO4W-LKAI, R-OF1Q-VEDC, R-OG9N-9641, R-OHHJ-MXUQ
 - D6 → `project/design/D06.md` — Purge the stale "single hybrid page / don't split" doc rule — owns R-DB16-DOCS
 - D7 → `project/design/D07.md` — Login composition: the sign-in line ("Sign in to access your services.") is the `<h1>` (the "Your account's control plane" line removed); name-origin colophon below the CTA that explains the portmanteau as a name + its two subcomponents + a pronunciation guide at its foot — owns R-DB17-ORIG, R-DB18-KEEP, R-DB19-LAND, R-O7K1-XEN7
 - D8 → `project/design/D08.md` — Eliminate the web-font FOUT (font-display: optional + font preload; apex src already origin-correct) — owns R-P97M-GIJ1, R-PAFI-UA9Q, R-PBNF-820F
@@ -40,6 +40,9 @@ Verification ids change.
 - R-DB19-LAND → D7 → `project/design/D07.md`
 - R-EFJZ-FRQ1 → D9 → `project/design/D09.md`
 - R-O7K1-XEN7 → D7 → `project/design/D07.md`
+- R-OF1Q-VEDC → D5 → `project/design/D05.md`
+- R-OG9N-9641 → D5 → `project/design/D05.md`
+- R-OHHJ-MXUQ → D5 → `project/design/D05.md`
 - R-P97M-GIJ1 → D8 → `project/design/D08.md`
 - R-PAFI-UA9Q → D8 → `project/design/D08.md`
 - R-PBNF-820F → D8 → `project/design/D08.md`
