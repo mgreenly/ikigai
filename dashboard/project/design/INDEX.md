@@ -16,6 +16,7 @@ Verification ids change.
 - D7 → `project/design/D07.md` — Login composition: the sign-in line ("Sign in to access your services.") is the `<h1>` (the "Your account's control plane" line removed); name-origin colophon below the CTA that explains the portmanteau as a name + its two subcomponents + a pronunciation guide at its foot — owns R-DB17-ORIG, R-DB18-KEEP, R-DB19-LAND, R-O7K1-XEN7
 - D8 → `project/design/D08.md` — Eliminate the web-font FOUT (font-display: optional + font preload; apex src already origin-correct) — owns R-P97M-GIJ1, R-PAFI-UA9Q, R-PBNF-820F
 - D9 → `project/design/D09.md` — No site footer: remove the `.site-footer` element from every page (index login + landing, profile, pat_created) and delete its CSS — owns R-EFJZ-FRQ1
+- D10 → `project/design/D10.md` — The banner is shared app-shell chrome: wordmark links home, monogram avatar (with hover affordance) + sign-out on both landing and profile, email no longer shown as banner text — owns R-VTIE-IUFA, R-VUQA-WM5Z, R-VVY7-ADWO
 
 ## Verification ids → Decision
 
@@ -42,4 +43,7 @@ Verification ids change.
 - R-P97M-GIJ1 → D8 → `project/design/D08.md`
 - R-PAFI-UA9Q → D8 → `project/design/D08.md`
 - R-PBNF-820F → D8 → `project/design/D08.md`
+- R-VTIE-IUFA → D10 → `project/design/D10.md`
+- R-VUQA-WM5Z → D10 → `project/design/D10.md`
+- R-VVY7-ADWO → D10 → `project/design/D10.md`
 - R-XO4W-LKAI → D5 → `project/design/D05.md`
