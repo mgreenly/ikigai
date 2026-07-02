@@ -249,19 +249,22 @@ for required in nginx.conf manifest.env; do
   }
 done
 
-mkdir -p "$BUNDLE_ROOT"
-cp "$ARTIFACT" "${BUNDLE_ROOT}/${APP}"
-chmod 0755 "${BUNDLE_ROOT}/${APP}"
-cp "${WORKTREE}/${APP}/etc/nginx.conf" "${BUNDLE_ROOT}/nginx.conf"
-cp "${WORKTREE}/${APP}/etc/manifest.env" "${BUNDLE_ROOT}/manifest.env"
+# opsctl stages the bundle into versioned on-box slots, so the bundle carries
+# the same versioned-tier layout opsctl reads:
+#   libexec/<app>-<full-version>
+#   etc/<full-version>/{nginx.conf,manifest.env}
+#   share/<full-version>/           (always present, empty when there are no assets)
+mkdir -p "${BUNDLE_ROOT}/libexec" "${BUNDLE_ROOT}/etc/${FULL_VERSION}" "${BUNDLE_ROOT}/share/${FULL_VERSION}"
+cp "$ARTIFACT" "${BUNDLE_ROOT}/libexec/${APP}-${FULL_VERSION}"
+chmod 0755 "${BUNDLE_ROOT}/libexec/${APP}-${FULL_VERSION}"
+cp "${WORKTREE}/${APP}/etc/nginx.conf" "${BUNDLE_ROOT}/etc/${FULL_VERSION}/nginx.conf"
+cp "${WORKTREE}/${APP}/etc/manifest.env" "${BUNDLE_ROOT}/etc/${FULL_VERSION}/manifest.env"
 
-TAR_ENTRIES=("$APP" "nginx.conf" "manifest.env")
 if [ -d "${WORKTREE}/${APP}/share" ]; then
-  cp -a "${WORKTREE}/${APP}/share" "${BUNDLE_ROOT}/share"
-  TAR_ENTRIES+=("share")
+  cp -a "${WORKTREE}/${APP}/share/." "${BUNDLE_ROOT}/share/${FULL_VERSION}/"
 fi
 
-tar -C "$BUNDLE_ROOT" -czf "$BUNDLE" "${TAR_ENTRIES[@]}"
+tar -C "$BUNDLE_ROOT" -czf "$BUNDLE" libexec etc share
 [ -f "$BUNDLE" ] || { echo "!! bundle did not produce ${BUNDLE}" >&2; exit 1; }
 echo ">> bundled $(basename "$BUNDLE") ($(du -h "$BUNDLE" | cut -f1))"
 

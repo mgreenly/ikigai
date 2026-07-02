@@ -123,31 +123,35 @@ run_ship() {
 
 verify_bundle_contract() {
 	local svc="$1" bundle="$2" expect_share="$3"
-	local extract listing
+	local extract listing ver base
 	extract="$(mktemp -d "$ROOT/extract-${svc}.XXXXXX")"
 	listing="$(tar -tzf "$bundle")"
 
-	assert_contains "${svc} bundle contains bare executable" "$svc" "$listing"
-	assert_contains "${svc} bundle contains nginx.conf" "nginx.conf" "$listing"
-	assert_contains "${svc} bundle contains manifest.env" "manifest.env" "$listing"
+	# Bundle name is <app>-<full-version>.tar.gz; recover the versioned tier prefix.
+	base="$(basename "$bundle")"
+	base="${base%.tar.gz}"
+	ver="${base#${svc}-}"
+
+	assert_contains "${svc} bundle contains versioned libexec binary" "libexec/${svc}-${ver}" "$listing"
+	assert_contains "${svc} bundle contains versioned nginx.conf" "etc/${ver}/nginx.conf" "$listing"
+	assert_contains "${svc} bundle contains versioned manifest.env" "etc/${ver}/manifest.env" "$listing"
+	assert_contains "${svc} bundle contains versioned share dir" "share/${ver}/" "$listing"
 	tar -xzf "$bundle" -C "$extract"
 
-	if [ -x "$extract/$svc" ]; then
+	if [ -x "$extract/libexec/${svc}-${ver}" ]; then
 		echo "ok   - ${svc} bundle executable bit preserved"
 	else
-		echo "FAIL - ${svc} bundle missing executable [$svc]"
+		echo "FAIL - ${svc} bundle missing executable [libexec/${svc}-${ver}]"
 		fails=$((fails + 1))
 	fi
-	assert_file_eq "${svc} nginx.conf copied byte-for-byte" "$ROOT/${svc}/etc/nginx.conf" "$extract/nginx.conf"
-	assert_file_eq "${svc} manifest.env copied byte-for-byte" "$ROOT/${svc}/etc/manifest.env" "$extract/manifest.env"
+	assert_file_eq "${svc} nginx.conf copied byte-for-byte" "$ROOT/${svc}/etc/nginx.conf" "$extract/etc/${ver}/nginx.conf"
+	assert_file_eq "${svc} manifest.env copied byte-for-byte" "$ROOT/${svc}/etc/manifest.env" "$extract/etc/${ver}/manifest.env"
 
 	if [ "$expect_share" = "yes" ]; then
-		assert_contains "${svc} bundle contains share/public.txt" "share/public.txt" "$listing"
-		assert_contains "${svc} bundle contains share/nested/info.txt" "share/nested/info.txt" "$listing"
-		assert_file_eq "${svc} share/public.txt copied byte-for-byte" "$ROOT/${svc}/share/public.txt" "$extract/share/public.txt"
-		assert_file_eq "${svc} share/nested/info.txt copied byte-for-byte" "$ROOT/${svc}/share/nested/info.txt" "$extract/share/nested/info.txt"
-	else
-		assert_not_matching "${svc} bundle omits share entries" '(^|/)share(/|$)' "$listing"
+		assert_contains "${svc} bundle contains share/public.txt" "share/${ver}/public.txt" "$listing"
+		assert_contains "${svc} bundle contains share/nested/info.txt" "share/${ver}/nested/info.txt" "$listing"
+		assert_file_eq "${svc} share/public.txt copied byte-for-byte" "$ROOT/${svc}/share/public.txt" "$extract/share/${ver}/public.txt"
+		assert_file_eq "${svc} share/nested/info.txt copied byte-for-byte" "$ROOT/${svc}/share/nested/info.txt" "$extract/share/${ver}/nested/info.txt"
 	fi
 }
 
@@ -201,10 +205,10 @@ fi
 assert_eq "bundle filename uses full SemVer" "ledger-${FULL}.tar.gz" "$(basename "$LEDGER_BUNDLE")"
 if [ -f "$LEDGER_BUNDLE" ]; then
 	LEDGER_EXTRACT="$(mktemp -d "$ROOT/r45-ledger.XXXXXX")"
-	tar -xzf "$LEDGER_BUNDLE" -C "$LEDGER_EXTRACT" ledger
-	if [ -x "$LEDGER_EXTRACT/ledger" ]; then
+	tar -xzf "$LEDGER_BUNDLE" -C "$LEDGER_EXTRACT" "libexec/ledger-${FULL}"
+	if [ -x "$LEDGER_EXTRACT/libexec/ledger-${FULL}" ]; then
 		echo "ok   - extracted bundle binary is executable"
-		assert_eq "bundle binary version output equals full SemVer" "$FULL" "$("$LEDGER_EXTRACT/ledger" version)"
+		assert_eq "bundle binary version output equals full SemVer" "$FULL" "$("$LEDGER_EXTRACT/libexec/ledger-${FULL}" version)"
 	else
 		echo "FAIL - extracted bundle binary is not executable"
 		fails=$((fails + 1))
