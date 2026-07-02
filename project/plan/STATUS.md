@@ -57,4 +57,4 @@ lines, so the anchored grep matches only phase lines.
 - Phase 44  ✅  realizes D8, D11   — adopt webhooks into the new layout
 - Phase 45  ✅  realizes D8        — live-box one-time converter delta
 - Phase 46  ✅  realizes —         — rewrite deploy.md for the new model (docs)
-- Phase 47  ⬜  realizes D4        — ship emits the versioned-tier bundle opsctl stage expects
+- Phase 47  ✅  realizes D4        — ship emits the versioned-tier bundle opsctl stage expects
