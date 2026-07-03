@@ -60,13 +60,30 @@ func TestManifestLibraryByteEqualsCommittedFile(t *testing.T) {
 	}
 }
 
+func TestScriptsRuntimeRootUsesGenerationParentCacheDir(t *testing.T) {
+	// R-RUNS-CDIR
+	root := t.TempDir()
+	generationPath := filepath.Join(root, "scripts", "cache", "scripts.db.generation")
+
+	got := scriptsRuntimeRoot(generationPath)
+	want := filepath.Join(root, "scripts", "cache")
+	if got != want {
+		t.Fatalf("scriptsRuntimeRoot(%q) = %q, want %q", generationPath, got, want)
+	}
+	if got == filepath.Join(root, "scripts") {
+		t.Fatalf("scriptsRuntimeRoot returned app root %q; runs must live under cache", got)
+	}
+}
+
 // R-4LKF-FB23
 func TestScriptsBootsFromOpsctlLayoutAndServesHealth(t *testing.T) {
+	// R-RUNS-BOOT
 	root := t.TempDir()
 	appRoot := filepath.Join(root, "scripts")
 	stateDir := filepath.Join(appRoot, "state")
 	cacheDir := filepath.Join(appRoot, "cache")
-	runsDir := filepath.Join(appRoot, "runs")
+	runsDir := filepath.Join(cacheDir, "runs")
+	appRootRunsDir := filepath.Join(appRoot, "runs")
 	libexecDir := filepath.Join(appRoot, "libexec")
 	binDir := filepath.Join(appRoot, "bin")
 	etcDir := filepath.Join(appRoot, "etc")
@@ -77,7 +94,10 @@ func TestScriptsBootsFromOpsctlLayoutAndServesHealth(t *testing.T) {
 		}
 	}
 	if _, err := os.Stat(runsDir); !os.IsNotExist(err) {
-		t.Fatalf("runs dir exists before boot (stat err=%v)", err)
+		t.Fatalf("cache/runs dir exists before boot (stat err=%v)", err)
+	}
+	if _, err := os.Stat(appRootRunsDir); !os.IsNotExist(err) {
+		t.Fatalf("app-root runs dir exists before boot (stat err=%v)", err)
 	}
 
 	versionBytes, err := os.ReadFile(filepath.Join("..", "..", "VERSION"))
@@ -197,6 +217,9 @@ func TestScriptsBootsFromOpsctlLayoutAndServesHealth(t *testing.T) {
 		t.Fatalf("scripts did not recreate runs scratch dir: %v", err)
 	} else if len(entries) != 0 {
 		t.Fatalf("runs scratch dir is not empty after boot: %v", entries)
+	}
+	if _, err := os.Stat(appRootRunsDir); !os.IsNotExist(err) {
+		t.Fatalf("app-root runs should not exist; runs are under cache (stat err=%v)", err)
 	}
 	if _, err := os.Stat(filepath.Join(stateDir, "runs")); !os.IsNotExist(err) {
 		t.Fatalf("state/runs should not exist; runs are rebuildable outside state (stat err=%v)", err)

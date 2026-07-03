@@ -324,7 +324,7 @@ func TestCompositionRootAdoptsNewScriptsLayout(t *testing.T) {
 
 	for _, want := range []string{
 		`cfg, err := config.Resolve("scripts", "/srv/scripts/", 3009, os.Getenv)`,
-		`rootDir := scriptsRuntimeRoot(cfg.DBPath, cfg.GenerationPath, os.Getenv)`,
+		`rootDir := scriptsRuntimeRoot(cfg.GenerationPath)`,
 		`runsDir := filepath.Join(rootDir, "runs")`,
 		`recreateRunsDir(runsDir)`,
 		`run := runner.New(store, rootDir, runTTL)`,
@@ -354,11 +354,13 @@ func TestCompositionRootAdoptsNewScriptsLayout(t *testing.T) {
 
 func TestFreshSetupBootsFromNewScriptsLayoutAndPassesHealth(t *testing.T) {
 	// R-4LKF-FB23
+	// R-RUNS-BOOT
 	tmp := t.TempDir()
 	root := filepath.Join(tmp, "opt", "scripts")
 	stateDir := filepath.Join(root, "state")
 	cacheDir := filepath.Join(root, "cache")
-	runsDir := filepath.Join(root, "runs")
+	runsDir := filepath.Join(cacheDir, "runs")
+	appRootRunsDir := filepath.Join(root, "runs")
 	libexecDir := filepath.Join(root, "libexec")
 	binDir := filepath.Join(root, "bin")
 	for _, dir := range []string{stateDir, cacheDir, libexecDir, binDir} {
@@ -367,7 +369,10 @@ func TestFreshSetupBootsFromNewScriptsLayoutAndPassesHealth(t *testing.T) {
 		}
 	}
 	if _, err := os.Stat(runsDir); !os.IsNotExist(err) {
-		t.Fatalf("runs dir exists before boot (stat err=%v)", err)
+		t.Fatalf("cache/runs dir exists before boot (stat err=%v)", err)
+	}
+	if _, err := os.Stat(appRootRunsDir); !os.IsNotExist(err) {
+		t.Fatalf("app-root runs dir exists before boot (stat err=%v)", err)
 	}
 
 	version := "v1.2.3"
@@ -416,6 +421,14 @@ func TestFreshSetupBootsFromNewScriptsLayoutAndPassesHealth(t *testing.T) {
 	}
 	if info, err := os.Stat(runsDir); err != nil || !info.IsDir() {
 		t.Fatalf("runs dir after boot = (%v, %v), want recreated directory\nstdout:\n%s\nstderr:\n%s", info, err, stdout, stderr)
+	}
+	if entries, err := os.ReadDir(runsDir); err != nil {
+		t.Fatalf("read runs dir after boot: %v\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
+	} else if len(entries) != 0 {
+		t.Fatalf("runs dir after boot has entries %v, want empty\nstdout:\n%s\nstderr:\n%s", entries, stdout, stderr)
+	}
+	if _, err := os.Stat(appRootRunsDir); !os.IsNotExist(err) {
+		t.Fatalf("app-root runs should not exist; runs are under cache (stat err=%v)", err)
 	}
 	if _, err := os.Stat(filepath.Join(stateDir, "runs")); !os.IsNotExist(err) {
 		t.Fatalf("state/runs should not exist; runs are rebuildable outside state (stat err=%v)", err)

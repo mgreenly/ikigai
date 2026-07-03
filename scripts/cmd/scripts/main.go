@@ -190,12 +190,12 @@ func registerRoutes(rt *appkit.Router) error {
 
 	// State is durable; runs are rebuildable execution trees. appkit has already
 	// resolved the DB and generation paths; re-resolve the same env contract here
-	// so IKIGENBA_ROOT places runs at <root>/scripts/runs without path stamping.
+	// so runs can live under the service-owned cache directory.
 	cfg, err := config.Resolve("scripts", "/srv/scripts/", 3009, os.Getenv)
 	if err != nil {
 		return err
 	}
-	rootDir := scriptsRuntimeRoot(cfg.DBPath, cfg.GenerationPath, os.Getenv)
+	rootDir := scriptsRuntimeRoot(cfg.GenerationPath)
 	runsDir := filepath.Join(rootDir, "runs")
 	if err := recreateRunsDir(runsDir); err != nil {
 		return err
@@ -230,14 +230,7 @@ func registerRoutes(rt *appkit.Router) error {
 	return nil
 }
 
-func scriptsRuntimeRoot(dbPath, generationPath string, getenv func(string) string) string {
-	if strings.TrimSpace(getenv("IKIGENBA_ROOT")) != "" || strings.TrimSpace(getenv("SCRIPTS_DB_PATH")) != "" {
-		rootDir := filepath.Dir(filepath.Dir(dbPath))
-		if rootDir == "" {
-			return "."
-		}
-		return rootDir
-	}
+func scriptsRuntimeRoot(generationPath string) string {
 	cacheDir := filepath.Dir(generationPath)
 	if cacheDir == "" {
 		return "."
