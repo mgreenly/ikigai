@@ -63,3 +63,53 @@ func TestDashboardPinnedToDefaultPort(t *testing.T) {
 	}
 	t.Fatal("dashboard is missing from Services")
 }
+
+func TestPortKnownReturnsRegisteredPort(t *testing.T) {
+	// R-B642-6EO8
+	tests := map[string]int{
+		"crm":       3100,
+		"dashboard": 3000,
+	}
+
+	for name, wantPort := range tests {
+		port, ok := Port(name)
+		if !ok {
+			t.Fatalf("Port(%q) ok = false, want true", name)
+		}
+		if port != wantPort {
+			t.Fatalf("Port(%q) port = %d, want %d", name, port, wantPort)
+		}
+	}
+}
+
+func TestPortUnknownReturnsFalse(t *testing.T) {
+	// R-B7BY-K6EX
+	port, ok := Port("missing")
+	if ok {
+		t.Fatal(`Port("missing") ok = true, want false`)
+	}
+	if port != 0 {
+		t.Fatalf(`Port("missing") port = %d, want 0`, port)
+	}
+}
+
+func TestMustPortReturnsKnownAndPanicsUnknown(t *testing.T) {
+	// R-B8JU-XY5M
+	if port := MustPort("crm"); port != 3100 {
+		t.Fatalf(`MustPort("crm") = %d, want 3100`, port)
+	}
+
+	defer func() {
+		if recovered := recover(); recovered == nil {
+			t.Fatal(`MustPort("missing") did not panic`)
+		}
+	}()
+	MustPort("missing")
+}
+
+func TestBaseURLComposesLoopbackOrigin(t *testing.T) {
+	// R-B9RR-BPWB
+	if got, want := BaseURL("crm"), "http://127.0.0.1:3100"; got != want {
+		t.Fatalf(`BaseURL("crm") = %q, want %q`, got, want)
+	}
+}

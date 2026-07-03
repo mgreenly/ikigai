@@ -1,5 +1,7 @@
 package registry
 
+import "strconv"
+
 // Block groups services by type; the port number carries a hint of the kind.
 type Block int
 
@@ -38,6 +40,39 @@ var Services = []Service{
 	{"notify", 3201, Connectors},
 	{"gmail", 3202, Connectors},
 	{"github", 3203, Connectors},
+}
+
+const loopbackHost = "127.0.0.1"
+
+var servicePorts = func() map[string]int {
+	ports := make(map[string]int, len(Services))
+	for _, service := range Services {
+		ports[service.Name] = service.Port
+	}
+	return ports
+}()
+
+// Port returns the loopback port for a known service name.
+func Port(name string) (port int, ok bool) {
+	port, ok = servicePorts[name]
+	if !ok {
+		return 0, false
+	}
+	return port, true
+}
+
+// MustPort returns the port for name, or panics if name is unknown.
+func MustPort(name string) int {
+	port, ok := Port(name)
+	if !ok {
+		panic("registry: unknown service " + strconv.Quote(name))
+	}
+	return port
+}
+
+// BaseURL returns the loopback HTTP origin for a known service name.
+func BaseURL(name string) string {
+	return "http://" + loopbackHost + ":" + strconv.Itoa(MustPort(name))
 }
 
 // Range returns the inclusive port range a Block owns.
