@@ -12,6 +12,7 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - D6 → `project/design/D06.md` — Conform the landing page to the cron canonical template — none (structural; markup-only)
 - D7 → `project/design/D07.md` — A top-left Home link to the dashboard landing page — owns R-HOME-8R2V
 - D8 → `project/design/D08.md` — Self-serve the landing page's fonts and eliminate the FOUT (relative stylesheet link + `font-display: optional` + self-served `src` + `<head>` preload + session-gated nginx `/srv/scripts/static/`) — owns R-M59W-5CAW, R-M6HS-J41L, R-M8XL-ANIZ, R-MA5H-OF9O, R-MBDE-270D
+- D9 → `project/design/D09.md` — Runs live under the service-owned `cache/` dir, not the root-owned AppDir (`scriptsRuntimeRoot` returns `filepath.Dir(cfg.GenerationPath)` in every layout; fixes the on-box boot crash-loop) — owns R-RUNS-CDIR, R-RUNS-BOOT
 
 ## Verification ids → Decision
 
@@ -35,3 +36,5 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - R-ROUT-3W6L → D2 → `project/design/D02.md`
 - R-ROUT-8U2J → D2 → `project/design/D02.md`
 - R-HOME-8R2V → D7 → `project/design/D07.md`
+- R-RUNS-CDIR → D9 → `project/design/D09.md`
+- R-RUNS-BOOT → D9 → `project/design/D09.md`
