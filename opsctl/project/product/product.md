@@ -59,6 +59,13 @@ producer's job, not opsctl's.
 - **Failures are loud and specific.** When a verb cannot proceed, it stops with a
   message naming what was missing, rather than silently skipping a step or
   leaving the box half-changed.
+- **Deploying the apex app brings its front-door routing live with it.** When the
+  operator deploys the apex/`DEFAULT` app, opsctl installs that app's current
+  front-door routing as part of the same deploy and puts it into effect only
+  after it validates — so the live routing never lags the deployed binary. If the
+  routing cannot be made valid, or a value it needs (such as the box's apex
+  domain) is absent, the deploy stops loudly with the previous routing left in
+  effect, rather than cutting over to broken routing.
 
 ## Success criteria (outcomes)
 
@@ -72,3 +79,8 @@ producer's job, not opsctl's.
 - When the box environment genuinely is absent, the affected verb fails with a
   message that names the missing value, rather than proceeding as if it were
   present.
+- Deploying the apex/`DEFAULT` app updates the box's front-door routing to match
+  the deployed version and puts it into effect only after it validates; a routing
+  that would not validate — or a deploy missing a value that routing needs, like
+  the apex domain — aborts with the running routing untouched and a message
+  naming the problem.
