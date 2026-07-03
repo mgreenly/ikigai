@@ -8,10 +8,11 @@ import (
 	"testing"
 )
 
-// writeManifest creates <root>/<svc>/etc/manifest.env with the given contents.
+// writeManifest creates <root>/<svc>/etc/current/manifest.env with the given
+// contents, matching the on-box layout readers resolve through the current symlink.
 func writeManifest(t *testing.T, root, svc, contents string) {
 	t.Helper()
-	dir := filepath.Join(root, svc, "etc")
+	dir := filepath.Join(root, svc, "etc", "current")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatalf("mkdir %s: %v", dir, err)
 	}
