@@ -15,7 +15,7 @@ of the folders below. Paths are written relative to the **service root**
 | `plan/` | `plan.md` (spine) + `STATUS.md` (the manifest — the only home of each phase's `⬜`/`✅` marker) + `phase-NN.md` (one per phase) | `/plan-mode` (append-only) |
 | `bugs/` | free-form bug diagnoses / write-ups | free-form (not mode-owned) |
 | `requests/` | free-form feature requests | free-form (not mode-owned) |
-| `prompts/` | the `ralph` build-loop prompts: `gather.md`, `build.md`, `verify.md` (+ the ephemeral `brief.md`) | build-loop infrastructure |
+| `loops/` | the `ralph` build-loop prompts: `gather.md`, `build.md`, `verify.md` (+ the ephemeral `brief.md`) | build-loop infrastructure |
 
 The four **spine documents** (`product/product.md`, `research/research.md`,
 `design/design.md`, `plan/plan.md`) are each singular and owned by a `/*-mode`
@@ -32,7 +32,7 @@ handed the full paths to the three prompt files — the names and locations are 
 project's convention (documented here); `ralph` itself assumes nothing about them:
 
 ```
-ralph project/prompts/gather.md project/prompts/build.md project/prompts/verify.md
+ralph project/loops/gather.md project/loops/build.md project/loops/verify.md
 ```
 
 It cycles the prompts in fresh contexts — `gather → build → verify → …` — on a
@@ -45,14 +45,14 @@ either `NEXT` (advance to the next prompt, wrapping `verify → gather`) or `DON
   (`grep -nE '^Phase .* ⬜' project/plan/STATUS.md | head -1`); if there is none it
   returns `DONE` (the sole exit). Otherwise it reads that one `phase-NN.md`,
   resolves its Decision(s) via `INDEX.md`, and writes a tiny, self-contained
-  `prompts/brief.md`, then returns `NEXT`.
-- **build** — reads **only** `prompts/brief.md`; builds the named package +
+  `loops/brief.md`, then returns `NEXT`.
+- **build** — reads **only** `loops/brief.md`; builds the named package +
   id-tagged tests, runs the suite (`go build ./...`, `go vet ./...`,
   `go test ./...` from the service root), commits, leaves the marker untouched.
   Returns `NEXT`.
 - **verify** — the independent gate and only prompt that flips a marker. Pass →
   flip that phase's `⬜→✅` in `STATUS.md` and commit; gap → leave it `⬜`. Either
-  way it deletes `prompts/brief.md`. Returns `NEXT`.
+  way it deletes `loops/brief.md`. Returns `NEXT`.
 
 The loop is human-free and **converges**: `verify` can neither halt nor advance a
 phase on a gap, so an incomplete phase simply stays `⬜` and is re-gathered and
@@ -61,7 +61,7 @@ re-attacked next cycle. The only stops are `gather`'s `DONE` (which requires zer
 
 ### `brief.md` — the ephemeral seam
 
-`prompts/brief.md` is the seam between the prompts that keeps `build`'s context
+`loops/brief.md` is the seam between the prompts that keeps `build`'s context
 tiny: it is the **complete and only** input `build` and `verify` consume, so
 neither opens design or plan. It is created by `gather`, deleted by `verify`,
 single-phase (overwritten fresh each cycle), and **never committed** (it is

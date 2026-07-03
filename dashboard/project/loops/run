@@ -1,0 +1,3 @@
+#!/bin/bash
+
+exec ralph project/loops/gather.md project/loops/build.md project/loops/verify.md

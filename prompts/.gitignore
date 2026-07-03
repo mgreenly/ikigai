@@ -17,7 +17,7 @@
 /tmp/
 
 # Build loop ephemeral brief (created by gather, deleted by verify; never committed)
-/project/prompts/brief.md
+/project/loops/brief.md
 
 # Local environment
 .env

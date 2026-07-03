@@ -7,7 +7,7 @@ root** (`opsctl/`), which is also the directory the `ralph` build loop runs
 from.
 
 > **Status: active.** The `project/` spine is populated and the build-loop
-> prompts under `prompts/` exist, so there is work for `ralph` to run. The spec
+> prompts under `loops/` exist, so there is work for `ralph` to run. The spec
 > is extended the usual way: evolve `product/`, `design/` in place with the
 > `/*-mode` commands, then **append** a plan phase (`plan/phase-NN.md` + a
 > `plan/STATUS.md` line). The prompts are committed and used as-is — appending a
@@ -25,7 +25,7 @@ from.
 | `bugs/` | free-form bug diagnoses / write-ups | free-form (not mode-owned) |
 | `requests/` | free-form feature requests | free-form (not mode-owned) |
 | `notes/` | catch-all for relocated pre-convention planning material and other dev-side strays that don't fit the spine | free-form (not mode-owned) |
-| `prompts/` | the `ralph` build-loop prompts: `gather.md`, `build.md`, `verify.md` (+ the ephemeral `brief.md`) — generated once a design and plan exist | build-loop infrastructure |
+| `loops/` | the `ralph` build-loop prompts: `gather.md`, `build.md`, `verify.md` (+ the ephemeral `brief.md`) — generated once a design and plan exist | build-loop infrastructure |
 
 The four **spine documents** (`product/product.md`, `research/research.md`,
 `design/design.md`, `plan/plan.md`) are each singular and owned by a `/*-mode`
@@ -43,7 +43,7 @@ this project's convention (documented here); `ralph` itself assumes nothing
 about them:
 
 ```
-ralph project/prompts/gather.md project/prompts/build.md project/prompts/verify.md
+ralph project/loops/gather.md project/loops/build.md project/loops/verify.md
 ```
 
 It cycles the prompts in fresh contexts — `gather → build → verify → …` — on a
@@ -54,12 +54,12 @@ either `NEXT` (advance to the next prompt, wrapping `verify → gather`) or `DON
 - **gather** — the only prompt that reads the big docs. Greps `STATUS.md` for
   the first `⬜` phase; if there is none it returns `DONE` (the sole exit).
   Otherwise it resolves that phase's Decision(s) and writes a tiny, self-contained
-  `prompts/brief.md`, then returns `NEXT`.
-- **build** — reads **only** `prompts/brief.md`; builds the package + id-tagged
+  `loops/brief.md`, then returns `NEXT`.
+- **build** — reads **only** `loops/brief.md`; builds the package + id-tagged
   tests, runs the suite, commits, leaves the marker untouched. Returns `NEXT`.
 - **verify** — the independent gate and only prompt that flips a marker. Pass →
   flip that phase's `⬜→✅` in `STATUS.md` and commit; gap → leave it `⬜`. Either
-  way it deletes `prompts/brief.md`. Returns `NEXT`.
+  way it deletes `loops/brief.md`. Returns `NEXT`.
 
 `brief.md` is the ephemeral seam between the prompts — created by `gather`,
 deleted by `verify`, never committed (it is gitignored). The loop is human-free

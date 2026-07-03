@@ -15,7 +15,7 @@ one of the folders below. Paths are written relative to the **service root**
 | `plan/` | `plan.md` (spine) + `STATUS.md` (the manifest — the only home of each phase's `⬜`/`✅` marker) + `phase-NN.md` (one per phase) | `/plan-mode` (append-only) |
 | `bugs/` | free-form bug diagnoses / write-ups | free-form (not mode-owned) |
 | `requests/` | free-form feature requests | free-form (not mode-owned) |
-| `prompts/` | the `ralph` build-loop prompts: `gather.md`, `build.md`, `verify.md` (+ the ephemeral `brief.md`) | build-loop infrastructure |
+| `loops/` | the `ralph` build-loop prompts: `gather.md`, `build.md`, `verify.md` (+ the ephemeral `brief.md`) | build-loop infrastructure |
 
 The four **spine documents** (`product/product.md`, `research/research.md`,
 `design/design.md`, `plan/plan.md`) are each singular and owned by a `/*-mode`
@@ -33,7 +33,7 @@ this project's convention (documented here); `ralph` itself assumes nothing
 about them:
 
 ```
-ralph project/prompts/gather.md project/prompts/build.md project/prompts/verify.md
+ralph project/loops/gather.md project/loops/build.md project/loops/verify.md
 ```
 
 It cycles the prompts in fresh contexts — `gather → build → verify → …` — on a
@@ -44,12 +44,12 @@ either `NEXT` (advance to the next prompt, wrapping `verify → gather`) or `DON
 - **gather** — the only prompt that reads the big docs. Greps `STATUS.md` for
   the first `⬜` phase; if there is none it returns `DONE` (the sole exit).
   Otherwise it resolves that phase's Decision(s) and writes a tiny, self-contained
-  `prompts/brief.md`, then returns `NEXT`.
-- **build** — reads **only** `prompts/brief.md`; builds the package + id-tagged
+  `loops/brief.md`, then returns `NEXT`.
+- **build** — reads **only** `loops/brief.md`; builds the package + id-tagged
   tests, runs the suite, commits, leaves the marker untouched. Returns `NEXT`.
 - **verify** — the independent gate and only prompt that flips a marker. Pass →
   flip that phase's `⬜→✅` in `STATUS.md` and commit; gap → leave it `⬜`. Either
-  way it deletes `prompts/brief.md`. Returns `NEXT`.
+  way it deletes `loops/brief.md`. Returns `NEXT`.
 
 `brief.md` is the ephemeral seam between the prompts — created by `gather`,
 deleted by `verify`, never committed (it is gitignored). The loop is human-free

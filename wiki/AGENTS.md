@@ -49,15 +49,15 @@ that workspace. The convention:
   phase's `⬜`/`✅` marker lives). Extend by appending the next `phase-NN.md` and
   one STATUS line; never rewrite a finished phase except to flip its marker.
 
-**The build loop already exists** — it is `project/prompts/gather.md`,
-`project/prompts/build.md`, `project/prompts/verify.md` (the workspace layout is
+**The build loop already exists** — it is `project/loops/gather.md`,
+`project/loops/build.md`, `project/loops/verify.md` (the workspace layout is
 documented in `project/README.md`). After authoring/extending the design+plan,
 the correct next step is **to run that loop**, not
 `/create-gather-build-verify-prompts` (the loop prompts are written and current).
 `ralph` runs from this service directory and is handed the prompt paths:
 
 ```
-ralph project/prompts/gather.md project/prompts/build.md project/prompts/verify.md
+ralph project/loops/gather.md project/loops/build.md project/loops/verify.md
 ```
 
 `ralph` cycles the three prompts in fresh contexts (`gather → build → verify → …`);

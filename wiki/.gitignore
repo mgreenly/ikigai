@@ -15,7 +15,7 @@
 .env.local
 
 # Ephemeral build-loop brief (gather writes, verify deletes)
-/project/prompts/brief.md
+/project/loops/brief.md
 
 # Editor / OS
 .DS_Store
