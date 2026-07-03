@@ -13,6 +13,7 @@ MANIFEST_ROOT="$RUN_DIR/opt"
 SERVICES=(dashboard crm ledger notify prompts wiki dropbox cron gmail scripts sites webhooks)
 MCP_SERVICES=(crm ledger notify prompts wiki dropbox cron gmail scripts sites webhooks)
 PORTS=(3000 3100 3101 3201 3002 3001 3200 3005 3202 3003 3004 3006 8080)
+SERVICE_PORTS=(dashboard:3000 crm:3100 ledger:3101 notify:3201 prompts:3002 wiki:3001 dropbox:3200 cron:3005 gmail:3202 scripts:3003 sites:3004 webhooks:3006 nginx:8080)
 
 fails=0
 started=0
@@ -28,6 +29,36 @@ port_open() {
 	(exec 3<>"/dev/tcp/127.0.0.1/$1") 2>/dev/null
 }
 
+port_pids() {
+	ss -ltnp "sport = :$1" 2>/dev/null | grep -o 'pid=[0-9][0-9]*' | cut -d= -f2 | sort -u
+}
+
+port_owners() {
+	ss -ltnp "sport = :$1" 2>/dev/null || true
+}
+
+pid_cmdline() {
+	tr '\0' ' ' <"/proc/$1/cmdline" 2>/dev/null || true
+}
+
+pid_from_this_worktree() {
+	local pid="$1" cmd
+	cmd="$(pid_cmdline "$pid")"
+	[[ "$cmd" == "$RUN_DIR/bin/"* ]] || [[ "$cmd" == *" $RUN_DIR/bin/"* ]] || [[ "$cmd" == *"$REPO/nginx"* ]]
+}
+
+worktree_pid_for_port() {
+	local port="$1" pid
+	while read -r pid; do
+		[ -n "$pid" ] || continue
+		if pid_from_this_worktree "$pid"; then
+			echo "$pid"
+			return 0
+		fi
+	done < <(port_pids "$port")
+	return 1
+}
+
 tracked_stack_running() {
 	local pf pid
 	for pf in "$RUN_DIR"/*.pid; do
@@ -36,6 +67,23 @@ tracked_stack_running() {
 		[ -n "$pid" ] && kill -0 "$pid" 2>/dev/null && return 0
 	done
 	return 1
+}
+
+recover_worktree_pidfiles() {
+	local spec name port pid recovered=1
+
+	for spec in "${SERVICE_PORTS[@]}"; do
+		name="${spec%%:*}"
+		port="${spec##*:}"
+		pid="$(worktree_pid_for_port "$port" || true)"
+		[ -n "$pid" ] || continue
+
+		mkdir -p "$RUN_DIR"
+		echo "$pid" >"$RUN_DIR/$name.pid"
+		recovered=0
+	done
+
+	return "$recovered"
 }
 
 assert_ok() {
@@ -59,13 +107,15 @@ assert_contains() {
 	fi
 }
 
+recover_worktree_pidfiles || true
 if tracked_stack_running; then
 	"$HERE/stop" --clean
 fi
 
 for port in "${PORTS[@]}"; do
 	if port_open "$port"; then
-		echo "FAIL - port :$port is already in use; not stopping a suite this test did not start"
+		echo "FAIL - port :$port is already in use by another worktree; not stopping it"
+		port_owners "$port" | sed 's/^/       /'
 		exit 1
 	fi
 done
