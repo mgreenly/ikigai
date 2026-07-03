@@ -35,6 +35,36 @@ IKIGENBA_ROOT=/opt
 That file is managed out of repo in `~/projects/metaspot`, so setting it is a
 manual operator prerequisite, not something this repo's green gate can verify.
 
+## Deploying opsctl Itself
+
+`opsctl` is the on-box CLI, **not** one of the release-versioned apps: it has no
+`VERSION`, no `bin/bump`/`bin/ship` path, and no `stage`/`deploy`. It is a raw
+static `linux/amd64` binary hand-installed to `/usr/local/bin/opsctl`. Deploy the
+box's opsctl **before** any app deploy that relies on new opsctl behavior — e.g.
+a `setup`/`deploy` flag or apex-render the box's current opsctl lacks — since the
+box runs whatever opsctl is installed, not the one in your working tree.
+
+```sh
+# 1. build static linux/amd64 from opsctl/ (same flags as bin/ship, minus the
+#    appkit.version stamp — opsctl carries no version)
+cd opsctl && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GOWORK=off \
+  go build -trimpath -buildvcs=false -o /tmp/opsctl ./cmd/opsctl
+
+# 2. copy to the box
+scp /tmp/opsctl int:/tmp/opsctl
+
+# 3. install over the live binary (atomic replace; inert until next invocation)
+ssh int 'sudo install -m 0755 /tmp/opsctl /usr/local/bin/opsctl'
+
+# 4. verify the expected new surface is present, e.g.
+ssh int 'opsctl setup --help 2>&1 | grep -- --default'
+```
+
+`install` replaces the file atomically and the binary is inert until invoked, so
+there is no downtime. There is no opsctl rollback verb: to revert, rebuild from an
+older commit and reinstall (roll-forward only). Build green first —
+`GOWORK=off go build ./...` and `GOWORK=off go test ./...` from `opsctl/`.
+
 ## Pre-Flight
 
 Before starting, confirm the two channels a deploy needs are live:
