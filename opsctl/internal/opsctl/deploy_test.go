@@ -99,6 +99,17 @@ func stageOnly(t *testing.T, o *Opsctl, app, version, artifact string) {
 	}
 }
 
+func stageReleaseWithConfig(t *testing.T, o *Opsctl, l Layout, app, version, manifest, nginx string) {
+	t.Helper()
+	stageOnly(t, o, app, version, stageArtifact(t, app+"-"+version))
+	if err := os.WriteFile(l.ManifestFile(version), []byte(manifest), 0o644); err != nil {
+		t.Fatalf("write manifest for %s: %v", version, err)
+	}
+	if err := os.WriteFile(l.NginxConfFile(version), []byte(nginx), 0o644); err != nil {
+		t.Fatalf("write nginx config for %s: %v", version, err)
+	}
+}
+
 type deployRecordingRunner struct {
 	fakeRunner
 	onMigrate func()
@@ -128,6 +139,10 @@ func countEvents(events []string, want string) int {
 		}
 	}
 	return n
+}
+
+func containsEvent(events []string, want string) bool {
+	return eventIndex(events, want) >= 0
 }
 
 func assertSymlinkText(t *testing.T, link, want string) {
@@ -521,6 +536,175 @@ func TestDeploySequenceSwapsReloadsRestartsAndPrunesWithoutManifestVerb(t *testi
 		t.Fatalf("v1.0.0 still exists after prune")
 	} else if !os.IsNotExist(err) {
 		t.Fatalf("stat v1.0.0 after prune: %v", err)
+	}
+}
+
+func TestDeployDefaultRendersInstallsAndTestsApexBlock(t *testing.T) {
+	// R-MSOP-5MDA
+	root := t.TempDir()
+	sysRoot := t.TempDir()
+	app := "dashboard"
+	version := "v1.2.3"
+	l := NewLayoutSys(root, sysRoot, app)
+	sys := &stubSystem{}
+	o := newOpsctl(t, root, app, sys, fakeEnv(app, version, 1, "APP="+app+"\nDEFAULT=true\nIKIGENBA_DOMAIN=example.test\nPORT=4310\n"))
+	o.SysRoot = sysRoot
+
+	manifest := "APP=dashboard\nDEFAULT=true\nIKIGENBA_DOMAIN=example.test\nPORT=4310\n"
+	nginxSrc := "server {\n    server_name __DOMAIN__;\n    proxy_pass http://127.0.0.1:__PORT__;\n}\n"
+	stageReleaseWithConfig(t, o, l, app, version, manifest, nginxSrc)
+
+	if err := o.Deploy(context.Background(), app, version); err != nil {
+		t.Fatalf("deploy default app: %v", err)
+	}
+
+	got, err := os.ReadFile(l.ApexBlockPath())
+	if err != nil {
+		t.Fatalf("read apex block: %v", err)
+	}
+	if want := renderApexBlock(nginxSrc, "example.test", 4310); string(got) != want {
+		t.Fatalf("apex block = %q, want %q", got, want)
+	}
+	ops := sys.opSeq()
+	testIdx := eventIndex(ops, "nginx-test")
+	reloadIdx := eventIndex(ops, "nginx-reload")
+	if testIdx == -1 || reloadIdx == -1 || testIdx > reloadIdx {
+		t.Fatalf("nginx test/reload order wrong: %v", ops)
+	}
+	if sys.restarts != 1 {
+		t.Fatalf("restart count = %d, want 1", sys.restarts)
+	}
+}
+
+func TestDeployDefaultRequiresDomainBeforeInstallingOrReloading(t *testing.T) {
+	// R-MTWL-JE3Z
+	root := t.TempDir()
+	sysRoot := t.TempDir()
+	app := "dashboard"
+	version := "v1.2.3"
+	l := NewLayoutSys(root, sysRoot, app)
+	sys := &stubSystem{}
+	o := newOpsctl(t, root, app, sys, fakeEnv(app, version, 1, "APP="+app+"\nDEFAULT=true\nPORT=4310\n"))
+	o.SysRoot = sysRoot
+
+	manifest := "APP=dashboard\nDEFAULT=true\nPORT=4310\n"
+	nginxSrc := "server_name __DOMAIN__; proxy_pass http://127.0.0.1:__PORT__;\n"
+	stageReleaseWithConfig(t, o, l, app, version, manifest, nginxSrc)
+
+	err := o.Deploy(context.Background(), app, version)
+	if err == nil || !strings.Contains(err.Error(), "IKIGENBA_DOMAIN") {
+		t.Fatalf("deploy err = %v, want IKIGENBA_DOMAIN refusal", err)
+	}
+	if _, statErr := os.Stat(l.ApexBlockPath()); !os.IsNotExist(statErr) {
+		t.Fatalf("apex block stat err = %v, want not installed", statErr)
+	}
+	ops := sys.opSeq()
+	for _, forbidden := range []string{"nginx-test", "nginx-reload"} {
+		if containsEvent(ops, forbidden) {
+			t.Fatalf("unexpected %s after missing domain: %v", forbidden, ops)
+		}
+	}
+	if sys.restarts != 0 {
+		t.Fatalf("restart count = %d, want 0", sys.restarts)
+	}
+}
+
+type nginxTestFailSystem struct {
+	*stubSystem
+}
+
+func (s nginxTestFailSystem) NginxTest(ctx context.Context) error {
+	s.record("nginx-test")
+	return fmt.Errorf("nginx config invalid")
+}
+
+func TestDeployDefaultNginxTestFailureStopsBeforeReloadOrRestart(t *testing.T) {
+	// R-MV4H-X5UO
+	root := t.TempDir()
+	sysRoot := t.TempDir()
+	app := "dashboard"
+	version := "v1.2.3"
+	l := NewLayoutSys(root, sysRoot, app)
+	baseSys := &stubSystem{app: app}
+	o := &Opsctl{
+		Root:    root,
+		SysRoot: sysRoot,
+		Keep:    3,
+		System:  nginxTestFailSystem{stubSystem: baseSys},
+		Runner:  fakeRunner{baseEnv: fakeEnv(app, version, 1, "APP="+app+"\nDEFAULT=true\nIKIGENBA_DOMAIN=example.test\nPORT=4310\n")},
+		Store:   newFakeStore(),
+		Out:     &strings.Builder{},
+		Err:     &strings.Builder{},
+	}
+
+	manifest := "APP=dashboard\nDEFAULT=true\nIKIGENBA_DOMAIN=example.test\nPORT=4310\n"
+	nginxSrc := "server_name __DOMAIN__; proxy_pass http://127.0.0.1:__PORT__;\n"
+	stageReleaseWithConfig(t, o, l, app, version, manifest, nginxSrc)
+
+	err := o.Deploy(context.Background(), app, version)
+	if err == nil || !strings.Contains(err.Error(), "nginx -t") {
+		t.Fatalf("deploy err = %v, want nginx -t failure", err)
+	}
+	if _, statErr := os.Stat(l.ApexBlockPath()); statErr != nil {
+		t.Fatalf("apex block should be written before nginx test: %v", statErr)
+	}
+	ops := baseSys.opSeq()
+	if !containsEvent(ops, "nginx-test") {
+		t.Fatalf("nginx test was not called: %v", ops)
+	}
+	for _, forbidden := range []string{"nginx-reload", "restart:" + app} {
+		if containsEvent(ops, forbidden) {
+			t.Fatalf("unexpected %s after nginx test failure: %v", forbidden, ops)
+		}
+	}
+	if baseSys.restarts != 0 {
+		t.Fatalf("restart count = %d, want 0", baseSys.restarts)
+	}
+}
+
+func TestDeployNonDefaultSkipsApexBranchAndPreservesFragmentReload(t *testing.T) {
+	// R-MXKA-OPC2
+	root := t.TempDir()
+	sysRoot := t.TempDir()
+	app := "ledger"
+	version := "v1.2.3"
+	l := NewLayoutSys(root, sysRoot, app)
+	if err := os.MkdirAll(l.LocationsDir(), 0o755); err != nil {
+		t.Fatalf("create locations dir: %v", err)
+	}
+	if err := os.Symlink(l.ActiveNginxConf(), l.FragmentPath()); err != nil {
+		t.Fatalf("seed fragment symlink: %v", err)
+	}
+	sys := &stubSystem{}
+	o := newOpsctl(t, root, app, sys, fakeEnv(app, version, 1, "APP="+app+"\nDEFAULT=false\nPORT=3999\n"))
+	o.SysRoot = sysRoot
+
+	manifest := "APP=ledger\nDEFAULT=false\nPORT=3999\n"
+	nginxSrc := "location /srv/ledger/ { proxy_pass http://127.0.0.1:3999; }\n"
+	stageReleaseWithConfig(t, o, l, app, version, manifest, nginxSrc)
+
+	if err := o.Deploy(context.Background(), app, version); err != nil {
+		t.Fatalf("deploy non-default app: %v", err)
+	}
+	target, err := os.Readlink(l.FragmentPath())
+	if err != nil {
+		t.Fatalf("fragment is not a symlink: %v", err)
+	}
+	if target != l.ActiveNginxConf() {
+		t.Fatalf("fragment target = %q, want %q", target, l.ActiveNginxConf())
+	}
+	if _, statErr := os.Stat(l.ApexBlockPath()); !os.IsNotExist(statErr) {
+		t.Fatalf("apex block stat err = %v, want no apex block", statErr)
+	}
+	ops := sys.opSeq()
+	if containsEvent(ops, "nginx-test") {
+		t.Fatalf("non-default deploy ran nginx-test: %v", ops)
+	}
+	if !containsEvent(ops, "nginx-reload") {
+		t.Fatalf("non-default deploy did not reload nginx: %v", ops)
+	}
+	if sys.restarts != 1 {
+		t.Fatalf("restart count = %d, want 1", sys.restarts)
 	}
 }
 

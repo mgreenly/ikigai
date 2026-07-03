@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -313,6 +314,10 @@ func (o *Opsctl) Deploy(ctx context.Context, app, version string) error {
 		return fmt.Errorf("deploy: swap share/current: %w", err)
 	}
 
+	if err := o.installApexBlockIfDefault(ctx, l); err != nil {
+		return err
+	}
+
 	// 5. Reload nginx after the config symlink has moved and before the service
 	//    restart makes the new binary live.
 	o.logf("reload nginx")
@@ -336,6 +341,42 @@ func (o *Opsctl) Deploy(ctx context.Context, app, version string) error {
 	}
 
 	o.logf("deployed %s %s", app, version)
+	return nil
+}
+
+func (o *Opsctl) installApexBlockIfDefault(ctx context.Context, l Layout) error {
+	body, err := os.ReadFile(l.ActiveManifest())
+	if err != nil {
+		return fmt.Errorf("deploy: read active manifest: %w", err)
+	}
+	manifest, err := parseManifest(string(body))
+	if err != nil {
+		return fmt.Errorf("deploy: parse active manifest: %w", err)
+	}
+	if !strings.EqualFold(manifest["DEFAULT"], "true") {
+		return nil
+	}
+
+	domain := strings.TrimSpace(manifest["IKIGENBA_DOMAIN"])
+	if domain == "" {
+		return fmt.Errorf("deploy: DEFAULT=true requires IKIGENBA_DOMAIN")
+	}
+	port, err := strconv.Atoi(strings.TrimSpace(manifest["PORT"]))
+	if err != nil {
+		return fmt.Errorf("deploy: DEFAULT=true requires numeric PORT: %w", err)
+	}
+	src, err := os.ReadFile(l.ActiveNginxConf())
+	if err != nil {
+		return fmt.Errorf("deploy: read active nginx config: %w", err)
+	}
+	block := renderApexBlock(string(src), domain, port)
+	o.logf("write apex nginx block %s", l.ApexBlockPath())
+	if err := writeFileAtomic(l.ApexBlockPath(), []byte(block), 0o644); err != nil {
+		return fmt.Errorf("deploy: write apex nginx block: %w", err)
+	}
+	if err := o.System.NginxTest(ctx); err != nil {
+		return fmt.Errorf("deploy: nginx -t: %w", err)
+	}
 	return nil
 }
 
