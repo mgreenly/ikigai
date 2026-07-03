@@ -25,12 +25,20 @@ from the source tree.
 
 ## One-Time Box Prerequisite
 
-The suite's on-box paths come from `IKIGENBA_ROOT`. For the integration account,
-the Terraform-seeded `/etc/ikigenba/env` must set:
+The suite's on-box paths come from `IKIGENBA_ROOT`, and the DEFAULT/apex app's
+deploy-time apex render (see step 4) needs the box's apex domain in
+`IKIGENBA_DOMAIN`. For the integration account, the Terraform-seeded
+`/etc/ikigenba/env` must set:
 
 ```sh
 IKIGENBA_ROOT=/opt
+IKIGENBA_DOMAIN=int.ikigenba.com
 ```
+
+opsctl reads `/etc/ikigenba/env` automatically at startup, so plain
+`sudo opsctl <verb> …` sees these — no shell sourcing needed. A DEFAULT-app
+deploy with `IKIGENBA_DOMAIN` missing fails loudly (the apex block needs it for
+`server_name` and the cert path), so set it before deploying the apex app.
 
 That file is managed out of repo in `~/projects/metaspot`, so setting it is a
 manual operator prerequisite, not something this repo's green gate can verify.
@@ -126,13 +134,24 @@ Run this sequence per app:
 4. **`ssh int sudo opsctl deploy <app> v<ver>+<sha>`** — backs up the current
    state to S3 unconditionally, runs migrations against `state/<svc>.db`, swaps
    `bin/run`, `etc/current`, and `share/current` atomically, reloads the nginx fragment through `etc/current`,
-   restarts the unit, and prunes retained versions.
+   restarts the unit, and prunes retained versions. For the **DEFAULT/apex app**
+   (dashboard), deploy also re-renders the apex block from the just-swapped
+   `etc/current/nginx.conf` (substituting `IKIGENBA_DOMAIN` and the manifest
+   `PORT`) into `/etc/nginx/conf.d/<app>.conf` and validates it with `nginx -t`
+   **before** the reload — so apex routing moves atomically with the binary. A
+   normal service has no apex block; its `/srv/<svc>/` fragment re-applies through
+   the `etc/current` symlink alone.
 
 Deploy services first and the dashboard last. The dashboard derives its
 authorization-server resources from every service manifest when it starts, so
 making it last lets its restart observe all newly deployed service manifests.
 
-A brand-new service needs `opsctl setup <app>` first. A brand-new box needs
+A brand-new **service** needs `opsctl setup <app>` first (with `--fragment` for a
+path-routed service, or no fragment for a worker). A brand-new **DEFAULT/apex
+app** (dashboard) uses `opsctl setup <app> --default` instead: it provisions the
+tree, user, and unit but writes **no** `conf.d/locations/<app>.conf` — the apex
+app's route is the apex block (`conf.d/<app>.conf`), owned by `init-box` (first
+render + cert) and re-rendered by every deploy (step 4). A brand-new box needs
 `opsctl init-box` once before any service setup.
 
 ## 3. Verify
