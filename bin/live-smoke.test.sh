@@ -28,6 +28,16 @@ port_open() {
 	(exec 3<>"/dev/tcp/127.0.0.1/$1") 2>/dev/null
 }
 
+tracked_stack_running() {
+	local pf pid
+	for pf in "$RUN_DIR"/*.pid; do
+		[ -e "$pf" ] || continue
+		pid="$(cat "$pf" 2>/dev/null || true)"
+		[ -n "$pid" ] && kill -0 "$pid" 2>/dev/null && return 0
+	done
+	return 1
+}
+
 assert_ok() {
 	local label="$1"
 	shift
@@ -48,6 +58,10 @@ assert_contains() {
 		fails=$((fails + 1))
 	fi
 }
+
+if tracked_stack_running; then
+	"$HERE/stop" --clean
+fi
 
 for port in "${PORTS[@]}"; do
 	if port_open "$port"; then
