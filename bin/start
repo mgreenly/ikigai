@@ -16,7 +16,32 @@ set -euo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo="$(cd "$here/.." && pwd)"
 RUN_DIR="$repo/tmp"
+MANIFEST_ROOT="$RUN_DIR/opt"
+SERVICES=(dashboard crm ledger notify prompts wiki dropbox cron gmail scripts sites webhooks)
 mkdir -p "$RUN_DIR/bin"
+
+# stage_manifest_root — build the local runtime manifest root that matches the
+# production /opt shape: <svc>/etc/<version>/manifest.env plus current -> version.
+stage_manifest_root() {
+	local svc version src dst
+
+	rm -rf "$MANIFEST_ROOT"
+	for svc in "${SERVICES[@]}"; do
+		src="$repo/$svc/etc/manifest.env"
+		[ -f "$src" ] || continue
+
+		version="dev"
+		if [ -s "$repo/$svc/VERSION" ]; then
+			version="$(tr -d '\r\n' <"$repo/$svc/VERSION")"
+			[ -n "$version" ] || version="dev"
+		fi
+
+		dst="$MANIFEST_ROOT/$svc/etc/$version"
+		mkdir -p "$dst"
+		cp "$src" "$dst/manifest.env"
+		ln -s "$version" "$MANIFEST_ROOT/$svc/etc/current"
+	done
+}
 
 # running <name> — true if a tracked, live process exists for <name>.
 running() {
@@ -63,10 +88,12 @@ source_up() { source "$repo/.envrc"; }
 
 launch_dashboard() {
 	# dashboard/.envrc supplies GOOGLE_* secrets, DASHBOARD_PUBLIC_BASE_URL
-	# (http://localhost:8080) and DASHBOARD_MANIFEST_ROOT (the repo root, from
-	# which it derives its AS resource list).
+	# (http://localhost:8080), then bin/start points manifest readers at the
+	# staged runtime root under tmp/opt.
 	source "$repo/dashboard/.envrc"
 	export DASHBOARD_DB_PATH="$RUN_DIR/dashboard.db"
+	export DASHBOARD_MANIFEST_ROOT="$MANIFEST_ROOT"
+	export REGISTRY_ROOT="$MANIFEST_ROOT"
 	exec "$RUN_DIR/bin/dashboard" serve --port 3000
 }
 
@@ -82,9 +109,12 @@ launch_ledger() {
 
 launch_notify() {
 	# notify/.envrc supplies NTFY_* secrets and resolves CRM_FEED_URL by name via
-	# bin/registry against the repo-root manifests.
+	# bin/registry. Re-resolve through the staged runtime root so dev matches the
+	# box's etc/current manifest layout.
 	source "$repo/notify/.envrc"
 	export NOTIFY_DB_PATH="$RUN_DIR/notify.db"
+	export REGISTRY_ROOT="$MANIFEST_ROOT"
+	export CRM_FEED_URL="$("$repo/bin/registry" feed-url crm)"
 	exec "$RUN_DIR/bin/notify" serve --port 3201
 }
 
@@ -150,6 +180,7 @@ launch_webhooks() {
 launch_nginx() {
 	# nginx/run regenerates the dev /srv/<svc>/ fragments (via bin/registry) and
 	# execs nginx with `daemon off`, so the tracked PID is the nginx master.
+	export REGISTRY_ROOT="$MANIFEST_ROOT"
 	exec "$repo/nginx/run"
 }
 
@@ -167,8 +198,11 @@ wait_port() {
 	return 1
 }
 
+echo ">> staging runtime manifests"
+stage_manifest_root
+
 echo ">> building services"
-for svc in dashboard crm ledger notify prompts wiki dropbox cron gmail scripts sites webhooks; do
+for svc in "${SERVICES[@]}"; do
 	build_svc "$svc"
 done
 
