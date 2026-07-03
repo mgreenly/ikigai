@@ -13,3 +13,4 @@ grep matches only phase lines.
 - Phase 03 ✅ realizes R-6AIE-QTDC, R-6BQB-4L41, R-6CY7-ICUQ — opsctl loads the box env file at startup
 - Phase 04 ✅ realizes R-MSOP-5MDA, R-MTWL-JE3Z, R-MV4H-X5UO, R-MXKA-OPC2 — deploy renders + installs the apex block for the DEFAULT app (R-MYS7-2H2R live-box, operator-verified out-of-loop)
 - Phase 05 ✅ realizes R-CIUC-KW66, R-CK28-YNWV, R-CLA5-CFNK, R-CMI1-Q7E9 — setup provisions the DEFAULT app without a locations fragment
+- Phase 06 ⬜ realizes R-CNPY-3Z4Y (re-realizes R-MSOP-5MDA, R-MTWL-JE3Z) — fix: deploy reads the apex domain from the environment, not the manifest
