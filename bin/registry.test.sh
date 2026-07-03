@@ -11,8 +11,16 @@ REGISTRY="$HERE/registry"
 
 fails=0
 
-# write_manifest <root> <name> <contents>
-write_manifest() {
+# write_current_manifest <root> <name> <version> <contents>
+write_current_manifest() {
+	local root="$1" name="$2" version="$3" contents="$4"
+	mkdir -p "$root/$name/etc/$version"
+	printf '%s\n' "$contents" >"$root/$name/etc/$version/manifest.env"
+	ln -s "$version" "$root/$name/etc/current"
+}
+
+# write_sibling_manifest <root> <name> <contents>
+write_sibling_manifest() {
 	local root="$1" name="$2" contents="$3"
 	mkdir -p "$root/$name/etc"
 	printf '%s\n' "$contents" >"$root/$name/etc/manifest.env"
@@ -46,14 +54,17 @@ trap 'rm -rf "$ROOT"' EXIT
 export REGISTRY_ROOT="$ROOT"
 
 # producer with FEED + MCP, quoted value to exercise quote-stripping
-write_manifest "$ROOT" crm $'# crm producer\nAPP=crm\nMOUNT="/srv/crm/"\nPORT=3100\nMCP=true\nFEED=/feed'
+write_current_manifest "$ROOT" crm v1 $'# crm producer\nAPP=crm\nMOUNT="/srv/crm/"\nPORT=3100\nMCP=true\nFEED=/feed'
 # consumer with MCP + CONSUMES, no FEED
-write_manifest "$ROOT" notify $'APP=notify\nMOUNT=/srv/notify/\nPORT=3201\nMCP=true\nCONSUMES=crm'
+write_current_manifest "$ROOT" notify v3 $'APP=notify\nMOUNT=/srv/notify/\nPORT=3201\nMCP=true\nCONSUMES=crm'
 # plain non-MCP service
-write_manifest "$ROOT" dashboard $'APP=dashboard\nMOUNT=/\nDEFAULT=true\nPORT=3000'
+write_current_manifest "$ROOT" dashboard release-20260703 $'APP=dashboard\nMOUNT=/\nDEFAULT=true\nPORT=3000'
 # service missing PORT
-write_manifest "$ROOT" noport $'APP=noport\nMOUNT=/srv/noport/\nMCP=true'
+write_current_manifest "$ROOT" noport v2 $'APP=noport\nMOUNT=/srv/noport/\nMCP=true'
+# sibling manifest only; current-relative registry must ignore it
+write_sibling_manifest "$ROOT" legacy $'APP=legacy\nMOUNT=/srv/legacy/\nPORT=3999\nMCP=true\nFEED=/legacy-feed'
 
+# R-YQFZ-11IM
 assert_eq "port crm" "3100" "$("$REGISTRY" port crm)"
 assert_eq "addr crm" "127.0.0.1:3100" "$("$REGISTRY" addr crm)"
 assert_eq "mount crm (quote-stripped)" "/srv/crm/" "$("$REGISTRY" mount crm)"
@@ -67,6 +78,9 @@ assert_fails "feed-url on non-producer (notify)" "$REGISTRY" feed-url notify
 assert_fails "resource-url on non-MCP (dashboard)" "$REGISTRY" resource-url int.ikigenba.com dashboard
 assert_fails "port on missing service" "$REGISTRY" port nope
 assert_fails "port on service missing PORT" "$REGISTRY" port noport
+assert_fails "addr ignores sibling-manifest-only service" "$REGISTRY" addr legacy
+assert_fails "feed-url ignores sibling-manifest-only service" "$REGISTRY" feed-url legacy
+assert_fails "resource-url ignores sibling-manifest-only service" "$REGISTRY" resource-url int.ikigenba.com legacy
 assert_fails "unknown subcommand" "$REGISTRY" bogus
 assert_fails "no subcommand" "$REGISTRY"
 

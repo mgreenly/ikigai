@@ -2,13 +2,13 @@
 #
 # registry — resolve service names to loopback addresses from deploy manifests.
 #
-# The per-service etc/manifest.env files ARE the registry: this script reads them
+# The per-service etc/current/manifest.env files ARE the registry: this script reads them
 # and answers name->address queries so ports/peer addresses need not be hardcoded.
 # Services always bind the loopback host (127.0.0.1) — that host is a constant
 # here, never stored per-service.
 #
 # Env:
-#   REGISTRY_ROOT  directory containing <name>/etc/manifest.env (default /opt)
+#   REGISTRY_ROOT  directory containing <name>/etc/current/manifest.env (default /opt)
 #
 # Subcommands:
 #   port <name>                   print PORT
@@ -41,7 +41,7 @@ EOF
 }
 
 manifest_path() {
-	echo "${REGISTRY_ROOT}/$1/etc/manifest.env"
+	echo "${REGISTRY_ROOT}/$1/etc/current/manifest.env"
 }
 
 # manifest_get <name> <key> — print the value of <key> from <name>'s manifest, or
@@ -129,9 +129,9 @@ cmd_resource_url() {
 cmd_list_mcp() {
 	[ $# -eq 0 ] || usage
 	local path name mcp
-	for path in "$REGISTRY_ROOT"/*/etc/manifest.env; do
+	for path in "$REGISTRY_ROOT"/*/etc/current/manifest.env; do
 		[ -f "$path" ] || continue
-		name="${path%/etc/manifest.env}"
+		name="${path%/etc/current/manifest.env}"
 		name="${name##*/}"
 		mcp="$(manifest_get "$name" MCP)" || continue
 		[ "$mcp" = "true" ] && printf '%s\n' "$name"
