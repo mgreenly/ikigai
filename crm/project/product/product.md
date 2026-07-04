@@ -1,149 +1,188 @@
-# crm — Product (landing page)
+# crm — Product
 
-**Authority: intent.** This document owns *why* crm serves a web landing page,
-*for whom*, what is in and out of scope, and what we **promise** the viewer — in
-outcome terms only. Mechanism (the handler, the embedded template, the Carbon
-tokens, the nginx fragment, the route pattern) and its checkable proof live in
-`project/design/design.md`. Where the two touch observable behavior, product
-states the *promise* and design states the *exact, checkable form*; that
-boundary keeps product, design, and plan from overlapping.
+**Authority: intent.** This document owns *why* crm serves the surfaces it does,
+*for whom*, what is in and out of scope, and what we **promise** — in outcome
+terms only. Mechanism (handlers, templates, the Carbon tokens, the nginx
+fragment, the MCP transport, the tool descriptors, the guide document) and its
+checkable proof live in `project/design/design.md`. Where the two touch
+observable behavior, product states the *promise* and design states the *exact,
+checkable form*; that boundary keeps product, design, and plan from overlapping.
 
-> **Scope note.** This product doc covers **only** the new web-pages direction
-> for crm — the landing page. crm's existing CRM domain (the five-entity,
-> six-verb MCP surface) is owned by `crm/CLAUDE.md` and the domain notes; it is
-> untouched here. This is the **template** the suite's other simple services
-> copy, so it states the uniform v1 starting point precisely.
+> **Scope note.** This doc covers crm's **ralph-governed** work — the surfaces
+> this `project/` builds. There are two threads:
+>
+> 1. **The web landing page** — the human front door under `/srv/crm/`.
+> 2. **Agent-facing MCP self-discovery** — how a connecting agent learns what
+>    crm is and how to drive its tools, from the crm connection alone.
+>
+> crm's underlying **CRM domain behavior** — the entity model, the verbs'
+> semantics, validation, the migrations, the outbox producer — is owned by
+> `crm/CLAUDE.md` and the domain notes. The discovery thread changes only how
+> that surface is **described** to an agent and adds one **read-only** guide;
+> it changes nothing about what any tool *does*.
 
 ## Problem
 
-Until now every ikigenba service except the dashboard served **only** machine
-surfaces — the RFC 9728 PRM bootstrap, `/health`, the bearer-gated `/mcp`, and
-the loopback `/feed`. A human who opened `<account>.ikigenba.com/srv/crm/` in a
-browser got nothing useful: there is no token in a browser, so the bearer gate
-refuses them, and there was no human-facing page behind that mount at all. The
-services declared "no UI," and that statement is now being deliberately retired.
+**Landing page.** Until recently every ikigenba service except the dashboard
+served **only** machine surfaces — the RFC 9728 PRM bootstrap, `/health`, the
+bearer-gated `/mcp`, and the loopback `/feed`. A human who opened
+`<account>.ikigenba.com/srv/crm/` in a browser got nothing useful: there is no
+token in a browser, so the bearer gate refuses them, and there was no
+human-facing page behind that mount at all. The services declared "no UI," and
+that statement has been deliberately retired: every deployable app now serves its
+own HTML pages, beginning with a single landing page.
 
-The suite is evolving so that **every deployable app serves its own HTML web
-pages**, beginning with a single landing page. Each app's page will later
-diverge to serve that app's specific purpose, so there is **no shared landing
-handler** — each app owns its own page. v1 is the uniform starting point: a
-human who lands on the mount root should see, at minimum, *which service this is*
-and *what version is running*, presented on the suite's design system rather than
-as a raw error or a blank proxy response.
+**Agent discovery.** A human does the actual *work* of crm through an AI agent,
+not the landing page. For that agent to use crm well, it must discover — from
+crm's own MCP connection alone — what crm is for, when to reach for it, and how to
+drive each tool. Today that discovery is uneven. The tool surface is verbose in
+one place (a single tool carries a full per-entity field reference that **every**
+tool listing pays for in context) and silent in others, and agents have leaned on
+an **external, separately-installed skill** to map everyday language ("contacts",
+"companies", "pipeline") to crm and to recall field shapes. An agent that has only
+crm connected, with no such skill, cannot make efficient use of it. The surface
+should describe itself.
 
 ## Purpose
 
-The crm landing page is the **human front door** to the crm service under
-`/srv/crm/`. For v1 it is intentionally minimal: a single Carbon-styled card
-showing the **service name** and the **running version**. It is gated by the
-viewer's **dashboard browser session** (the login cookie), not by a bearer
-token — because a browser cannot present a bearer token, and because a
-name-and-version page warrants only a coarse "are you a logged-in user of this
-box" check, never a per-resource authorization. The page proves the service is
-deployed, reachable, and on-system, and it establishes the seam (handler +
-embedded template + embedded design assets) that every later crm web page grows
-from.
+crm exposes two self-explaining front doors. The **landing page** is the human
+front door under `/srv/crm/`: a minimal Carbon-styled card showing the service
+name and running version, gated by the dashboard browser session. The **MCP
+surface** is the agent front door: it describes itself so a connecting agent
+learns what crm is, when to use it, and how to drive each tool, and can pull a
+single fuller usage guide **on demand** — all from the crm connection itself, with
+**no external skill, plugin, or doc** required for correct use.
 
 ## Users
 
 - **A logged-in dashboard user, in a browser.** Any human authenticated to this
-  box's dashboard who navigates to `/srv/crm/`. They see the service name and
-  version on the Carbon design system. The check is deliberately **coarse**: any
+  box's dashboard who navigates to `/srv/crm/` sees the service name and version
+  on the Carbon design system. The check is deliberately **coarse**: any
   logged-in dashboard user may view any app's landing page — there is no
   per-resource or per-owner authorization on this page.
 - **The operator, confirming a deploy.** Opens the mount root after a deploy or
   rollback to confirm crm is up and which version is live — a browser-visible
   liveness signal that complements the machine `/health` and `version` checks.
+- **A connecting AI agent (and, through it, the account owner).** An agent that
+  has crm's MCP server registered. It routes work to crm, drives the tools, and
+  when it needs field shapes or examples, retrieves crm's usage guide. Its whole
+  understanding of crm comes from crm's own MCP surface.
 
-The page is **not** for agents or MCP clients — those keep using the
-bearer-gated `/mcp` endpoint, which is unchanged.
+The landing page is **not** for agents; agents use the bearer-gated `/mcp`
+endpoint. The discovery surface is **not** for humans in a browser; it is what an
+agent reads over MCP.
 
 ## Scope
 
-The crm landing page does this and only this:
+**Landing page.** crm serves one page at the mount root: a `GET` of the bare
+`/srv/crm/` root returns an HTML page showing the service name (`crm`) and the
+running version, styled with the **Carbon** design system, carrying its **own**
+embedded `tokens.css` and fonts, gated by the dashboard session cookie (an
+unauthenticated browser gets `401`). It does nothing else in v1 — no per-resource
+authorization, no domain data on the page, no interactive control, and it shares
+no handler with any other service.
 
-- **Serve one landing page at the mount root** — a `GET` of the bare `/srv/crm/`
-  root returns an HTML page. Internally (nginx strips the mount prefix) the
-  service answers this at its exact root path `/`.
-- **Show the service name and version** — the page displays the service name
-  (`crm`) and the running version, taken from the values the chassis already
-  exposes. Nothing else is shown in v1.
-- **Look like the suite** — the page is styled with the **Carbon** design system:
-  monochrome neutrals, blue `#2563EB` as the only signal color, the Space
-  Grotesk / IBM Plex Sans / IBM Plex Mono type pairing, the 4px spacing grid. A
-  simple centered card: service name in display type, version as a mono label.
-- **Carry its own design assets** — crm embeds its **own** copy of the Carbon
-  `tokens.css` and the woff2 fonts under its static directory and serves them
-  from its own mount; it does not depend on the dashboard's assets at runtime.
-- **Gate humans by the dashboard session cookie** — the page (and any future crm
-  web page) is reachable only by a viewer whose `dashboard_session` cookie
-  validates against the dashboard's web-session store. An unauthenticated browser
-  gets `401`. This is the same coarse session gate `sites` already uses for its
-  private static tier.
+**Agent self-discovery.** The crm MCP surface describes itself so a connecting
+agent can use it with no external skill:
 
-It deliberately does **nothing else** in v1 — in particular it does not: perform
-any per-resource or per-owner authorization (the session gate is coarse by
-design); expose any CRM domain data, contact, deal, or task on the page; add or
-change any MCP tool; serve any interactive control, form, or write action; alter
-the bearer-gated `/mcp`, the PRM well-known, `/health`, or the loopback `/feed`;
-or share a landing handler with any other service. Later crm-specific web pages
-are **out of scope** for this work — this establishes only the uniform v1 page
-and the seam they will grow from.
+- **Orient from the connection.** A concise service overview names crm's domain
+  in the words users actually use (companies, people, deals/pipeline, tasks,
+  notes) and states the normal working flow, so an agent can tell what crm is for
+  and route to it.
+- **Lean per-tool descriptions.** Each tool tells the agent *when to use it* and
+  *what it returns*, without carrying bulk reference material that every listing
+  must pay for.
+- **A guide on demand.** An agent can retrieve a single crm usage guide covering
+  the field shapes for each entity and **basic and advanced** worked examples —
+  only when it wants it, not in every listing.
+
+It deliberately does **nothing else**: it does **not** change what any crm tool
+*does* (the entity model, the verbs, their semantics, validation, and the event
+surface are unchanged), does **not** require any external skill/plugin/doc for
+correct use, and does **not** alter the landing page or the machine endpoints
+(`/mcp` transport, PRM well-known, `/health`, `/feed`).
 
 ## Contractual constants
 
 Promised values the design must honor verbatim and never re-declare:
 
-- **The landing page lives at the mount root only.** A human reaches it at
+- **The landing page lives at the mount root only** — reachable at
   `<account>.ikigenba.com/srv/crm/`; the service answers it at its exact root
   path `/` and nowhere else. It never shadows `/mcp`, `/health`, `/feed`, or the
   PRM well-known.
-- **The page is gated by the dashboard browser session, not by a bearer token.**
-  The gate is `auth_request /_session-authn` (the dashboard-owned, loopback-only
-  cookie validator) — never `/_authn` (the bearer gate). A failed session check
-  yields `401`.
-- **The gate is coarse.** Any logged-in dashboard user may view the page; there
-  is no per-resource check. This is acceptable precisely because the page reveals
-  only the service name and version.
-- **v1 content is exactly: service name + running version.** No more. The values
-  come from what the chassis already exposes (`rt.Service()` / `rt.Version()`);
-  the page adds no new data source.
-- **Each app owns its own landing page.** There is no shared landing handler;
-  crm's page code, template, and embedded assets live under `crm/`.
-- **The visual system is Carbon.** `design/carbon.md` (rules) + `design/tokens.css`
-  (tokens) + `design/example.html` (reference) are the source of truth; crm
-  embeds its own copy of the tokens and fonts.
+- **The landing page is gated by the dashboard browser session, not a bearer
+  token** — `auth_request /_session-authn`, never `/_authn`; a failed session
+  check yields `401`. The gate is **coarse**: any logged-in dashboard user may
+  view it.
+- **v1 landing content is exactly: service name + running version** — from what
+  the chassis already exposes (`rt.Service()` / `rt.Version()`); no new data
+  source.
+- **Each app owns its own landing page** — no shared landing handler; crm's page
+  code, template, and assets live under `crm/`.
+- **The visual system is Carbon** — the suite tokens/fonts; crm embeds its own
+  copy.
+- **The MCP surface is self-sufficient** — a connecting agent can discover and
+  correctly use crm from the crm MCP connection alone, with **no external skill**.
+- **Discovery describes; it does not change behavior** — the entity model, the
+  verb set, their semantics, validation, and the event surface are unchanged by
+  the discovery work. The guide is **read-only**, and it adds **no per-entity
+  tool** (the tool count stays a function of verbs, not entities).
 
 ## What we promise (user-facing behavior)
 
+**Landing page.**
+
 - **A logged-in human who opens `/srv/crm/` sees a real page** — the crm service
-  name and the running version, on the suite's design system, not a raw proxy
-  error or a blank page.
-- **A browser that is not logged in is refused** — an unauthenticated browser
-  hitting `/srv/crm/` gets `401`, because the page is gated by the dashboard
-  session cookie.
-- **Agents are unaffected** — the bearer-gated `/mcp` endpoint, the PRM
-  well-known, `/health`, and the loopback `/feed` behave exactly as before; the
-  landing page is added beside them, shadowing none of them.
-- **The page looks like the rest of the suite** — same fonts, same neutral
-  palette, same single blue signal color, same spacing grid as the dashboard and
-  the other apps.
-- **The version on the page is the version that is actually running** — it
-  reflects the deployed binary's build version, so the operator can confirm a
-  deploy or rollback in a browser.
+  name and running version, on the suite's design system, not a raw proxy error
+  or blank page.
+- **A browser that is not logged in is refused** — `401`, because the page is
+  gated by the dashboard session cookie.
+- **The page looks like the rest of the suite** — same fonts, palette, single
+  blue signal color, and spacing grid; it loads its **own** embedded assets, not
+  the dashboard's.
+- **The version on the page is the version actually running** — the operator can
+  confirm a deploy or rollback in a browser.
+
+**Agent self-discovery.**
+
+- **An agent with only crm connected can find and use it without any external
+  skill** — it routes work about companies, people, deals/pipeline, tasks, and
+  notes to crm from crm's own overview, and knows the normal flow.
+- **Each tool tells the agent when to use it and what it returns**, concisely,
+  without every listing carrying a full field reference.
+- **An agent can ask crm for a usage guide** and get field shapes per entity plus
+  **basic and advanced** worked examples, on demand.
+- **Nothing an agent could already do changed** — every crm tool behaves exactly
+  as before; only how the surface describes itself changed, plus the added
+  read-only guide.
+
+**Agents are unaffected across both threads** — the bearer-gated `/mcp`
+transport, the PRM well-known, `/health`, and the loopback `/feed` behave exactly
+as before; the landing page shadows none of them.
 
 ## Success criteria (outcomes)
 
-Each is a result the viewer or operator can confirm against the running service:
+Each is a result a viewer, operator, or connecting agent can confirm against the
+running service:
 
 - As a logged-in dashboard user I open `<account>.ikigenba.com/srv/crm/` and see
   a Carbon-styled page showing the service name `crm` and the running version.
 - As a browser with no dashboard session I open `/srv/crm/` and am refused with
   `401`, not shown the page.
 - The version shown on the page matches the version the deployed binary reports.
-- The page's fonts and colors match the suite design system (Carbon), and the
-  page loads its own embedded `tokens.css` and fonts, not the dashboard's.
+- The page loads its own embedded `tokens.css` and fonts, and its fonts and colors
+  match the suite design system.
+- With **only crm connected and no external skill installed**, an agent asked to
+  work with contacts / companies / deals routes to crm and completes a basic
+  create → find → log flow.
+- An agent retrieves crm's usage guide and, using only it, correctly constructs a
+  `save` for each entity type — including the set-valued-field and
+  derived-deal-status gotchas.
+- crm's everyday tool listing is materially leaner than before (the bulk per-type
+  field reference is no longer carried in every listing) while each tool still
+  conveys when to use it.
+- Every existing crm tool call still produces the same result it did before this
+  work — the discovery changes altered no behavior.
 - An MCP client still discovers the AS via the PRM well-known and calls the
-  bearer-gated `/mcp` exactly as before; the landing page changed nothing for it.
-- Opening `/srv/crm/feed` from nginx still returns `404`, and `/health` still
-  responds — the landing page shadowed neither.
+  bearer-gated `/mcp` exactly as before; opening `/srv/crm/feed` from nginx still
+  returns `404` and `/health` still responds.

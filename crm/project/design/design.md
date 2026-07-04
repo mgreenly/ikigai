@@ -1,22 +1,26 @@
-# crm — Design (landing page)
+# crm — Design
 
 **Authority: shape and its proof.** This document and the `project/design/`
-directory it heads own *how* the crm landing page is built and *how each
-behavior is proven*. The product (`project/product/product.md`) owns the *why*,
-*for whom*, and the user-facing promises; design states the **exact, checkable
-form** of those promises and never re-declares the why. Design *uses* the
-product's contractual constants by value (the page lives at the mount root only;
-v1 content is service name + version; the gate is `/_session-authn` and coarse;
-the visual system is Carbon) but does **not** own them. This is the single,
-current statement of the landing-page architecture — it is rewritten in place to
-stay true (stale decisions are removed, not stacked); the history of how it got
-here lives in the plan.
+directory it heads own *how* crm's ralph-governed surfaces are built and *how
+each behavior is proven*. The product (`project/product/product.md`) owns the
+*why*, *for whom*, and the user-facing promises; design states the **exact,
+checkable form** of those promises and never re-declares the why. Design *uses*
+the product's contractual constants by value (the landing page lives at the mount
+root only; v1 content is service name + version; the gate is `/_session-authn`
+and coarse; the visual system is Carbon; the MCP surface is self-sufficient with
+no external skill; discovery describes but does not change behavior and adds no
+per-entity tool) but does **not** own them. This is the single, current statement
+of the architecture — it is rewritten in place to stay true (stale decisions are
+removed, not stacked); the history of how it got here lives in the plan.
 
-> **Scope.** This design covers **only** crm's web landing page and the seam it
-> establishes. The existing crm CRM domain (the five-entity, six-verb MCP
-> surface, the outbox producer, the migrations) is owned elsewhere
-> (`crm/CLAUDE.md`) and is untouched. No schema
-> changes: the landing page adds **no migration**.
+> **Scope.** This design covers two crm surfaces: **(1)** the web landing page and
+> the seam it establishes (D1–D8), and **(2)** the agent-facing **MCP discovery
+> surface** — the service `instructions`, the per-tool descriptions, and the
+> read-only `guide` tool (D9–D11). crm's CRM **domain behavior** — the five
+> entities, the verb semantics, validation, the outbox producer, the migrations —
+> is owned elsewhere (`crm/CLAUDE.md`) and is **unchanged**: the discovery work
+> alters only how that surface is *described* to an agent and adds one read-only
+> tool. No schema changes on either surface: this design adds **no migration**.
 
 ## Requirement ids
 
@@ -104,6 +108,16 @@ approach every Decision's Verification list assumes:
 - **Determinism.** The handler takes its name/version as plain string arguments
   (injected at the composition root from `rt.Service()`/`rt.Version()`), so its
   output is fully determined by its inputs — no clock, no network, no DB.
+- **The MCP discovery surface is tested through the real JSON-RPC seam.** The
+  service `instructions` (D9), the tool descriptors (D10), and the `guide` tool
+  (D11) are proven by driving `mcp.Handler.ServeHTTP` with `initialize`,
+  `tools/list`, and `tools/call` requests — the exact harness `internal/mcp/
+  tools_test.go` already uses (`newTestHandler` + the `rpc` helper over
+  `httptest`). These assertions are pure over the descriptor/instructions strings
+  and the embedded guide document — no DB row is needed to prove them, though the
+  harness supplies a real migrated DB as it does for the verb tests. The guide
+  document itself is embedded bytes (`//go:embed`), asserted as real content the
+  same way the landing page's embedded assets are.
 
 ## Layout
 
@@ -124,6 +138,13 @@ embedded `static/` design assets (`tokens.css` + the woff2 fonts). This keeps th
 web surface in one place, parallel to the existing `internal/crm`, `internal/db`,
 `internal/ids`, `internal/mcp` packages, and is the seam every later crm web page
 grows from.
+
+**No new package for discovery.** The MCP discovery surface (D9–D11) edits the
+**existing** `crm/internal/mcp/` package — the `initialize` `instructions` string
+in `mcp.go`, and the `toolDescriptors()`/`dispatchTool()` seam in `tools.go` — and
+adds one embedded reference document, `crm/internal/mcp/guide.md`
+(`//go:embed`ed), served by the new `guide` tool. It adds no package and no
+migration.
 
 Design is **rewritten in place**, not append-only (history lives in the plan): a
 changed Decision is rewritten in its `DNN.md` and `INDEX.md` is regenerated; a
