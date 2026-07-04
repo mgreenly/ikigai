@@ -24,6 +24,7 @@ import (
 
 	"webhooks/internal/db"
 	"webhooks/internal/mcp"
+	"webhooks/internal/web"
 	"webhooks/internal/webhooks"
 
 	"eventplane/outbox"
@@ -51,6 +52,8 @@ func main() {
 			mcp.NewHandler(svc, rt.Version(), rt.Service(), rt.ResourceID(),
 				rt.Health(), rt.Events())))
 		rt.Handle("/in/", webhooks.NewIngressHandler(svc, rt.Logger()))
+		rt.Handle("GET /{$}", web.LandingHandler(rt.Service(), rt.Version()))
+		rt.Handle("GET /static/", web.StaticHandler())
 		return nil
 	}
 	// Producer fires after Handlers: inject the outbox so every committed inbound
