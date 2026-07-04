@@ -5,9 +5,9 @@ SSE event plane described in `../docs/event-protocol.md` (the normative wire
 contract; on any conflict that doc wins).
 
 This is a **library, not a service**: no port, no nginx fragment, no `bin/run`.
-It is a sixth git repo under `ikigai/`, wired for local dev by `ikigai/go.work` and for
-deterministic builds by a committed `replace eventplane => ../eventplane` in each
-consumer's `go.mod`.
+It is a library module in the suite mono-repo, wired for local dev by the root
+`go.work` and for deterministic builds by a committed `replace eventplane =>
+../eventplane` in each consumer's `go.mod`.
 
 ## What it provides
 
@@ -29,10 +29,10 @@ Two packages — the producer half (`outbox`) and the consumer half (`consumer`)
   `unintelligible-cursor`) from day one.
 - **Generation/epoch token** (§9.3): minted into a sidecar file *outside* the DB
   (so a file-level restore does not roll it back), embedded in every cursor, and
-  used for the connect-time `stale-epoch` rejection. Every appkit restore (the
-  binary `restore` verb / `opsctl rollback`) re-mints by deleting the sidecar at
-  the dispatch chokepoint, so the next boot mints a fresh epoch; the operator S3
-  `bin/restore` does the same for its out-of-band path.
+  used for the connect-time `stale-epoch` rejection. A box-level restore or
+  rollback (`opsctl restore` / `opsctl rollback`, which recovers an S3 snapshot
+  of `state/`) removes the sidecar, so the next boot mints a fresh epoch;
+  restore/rollback are opsctl-owned box operations, not binary verbs.
 - **Retention** (§11.3): `StartRetention(ctx)` trims the outbox on a background
   timer (off the hot path) and reclaims space with `wal_checkpoint(TRUNCATE)` +
   `VACUUM`.
@@ -89,7 +89,7 @@ together cover the wire contract end to end. The first real consumer is the
 
 ## Tests
 
-`go test ./...` (workspace mode via `ikigai/go.work`). The three §5.3 producer
+`go test ./...` (workspace mode via the root `go.work`). The three §5.3 producer
 correctness tests live in `outbox`: the concurrency stress test, the startup
 behavioural probe (two `BEGIN IMMEDIATE`; the second must be refused), and the
 slow-reader backpressure test. The consumer's highest-value tests live in

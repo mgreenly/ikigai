@@ -301,10 +301,9 @@ func (o *Outbox) checkCursor(ctx context.Context, cursor string) (reason string,
 
 // EnsureGeneration reads the generation token from its sidecar file, minting
 // and persisting a fresh one when the file is absent or empty (§9.3). The token
-// lives outside the DB file so a file-level restore cannot roll it back; any
-// appkit restore re-mints (the restore verb removes the sidecar at the dispatch
-// chokepoint), and the operator bin/restore does the same for its out-of-band S3
-// path, so the next boot mints a new epoch.
+// lives outside the DB file so a file-level restore cannot roll it back; instead
+// a box-level restore or rollback (`opsctl restore` / `opsctl rollback`) removes
+// the sidecar, so the next boot mints a new epoch.
 // An empty path yields an ephemeral in-process token (tests only).
 func EnsureGeneration(path string) (string, error) {
 	if path == "" {
