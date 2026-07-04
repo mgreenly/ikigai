@@ -16,6 +16,7 @@ Design's responsibility ends at minting. How coverage is measured, what counts a
 - **Formatting**: `gofmt -l .` emits no output.
 - **Published agentkit**: `github.com/ikigenba/agentkit v0.1.0` — the external dependency that replaces the local `./agentkit` module for `prompts` only.
 - **Local chassis modules**: `appkit` and `eventplane` remain as committed `replace` directives in `prompts/go.mod`; they are out of scope for this migration.
+- **Shared `registry` module**: adopted by D14 as a third committed `replace registry => ../registry` (plus `require registry v0.0.0`) in `prompts/go.mod`, wired exactly like `eventplane`. It is a zero-dependency leaf that turns a service **name** into its loopback port / base URL from one authoritative table. The `registry` module itself and the repo-root `go.work use ./registry` entry are **external preconditions** owned outside `prompts/` and assumed satisfied; no phase here creates or edits them.
 
 ## Web surface (the landing page)
 

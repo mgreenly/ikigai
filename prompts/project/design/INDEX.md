@@ -19,6 +19,7 @@ Each Decision maps to its `DNN.md` file. Every `R-XXXX-XXXX` id maps to its Deci
 | D11 | project/design/D11.md | Conform the landing page to the cron canonical template | none — structural |
 | D12 | project/design/D12.md | A top-left Home link to the dashboard landing page | R-HOME-2T4X |
 | D13 | project/design/D13.md | Self-serve the landing page's fonts and eliminate the FOUT | R-DFKP-IVZU, R-DGSL-WNQJ, R-DI0I-AFH8, R-DJ8E-O77X, R-DKGB-1YYM |
+| D14 | project/design/D14.md | Adopt the shared `registry` for all loopback addressing | R-RG01-PORT, R-RG02-FEED, R-RG03-DBOX, R-RG04-NLIT |
 
 ## Verification ids → Decision
 
@@ -53,3 +54,7 @@ Each Decision maps to its `DNN.md` file. Every `R-XXXX-XXXX` id maps to its Deci
 | R-DI0I-AFH8 | D13 | project/design/D13.md |
 | R-DJ8E-O77X | D13 | project/design/D13.md |
 | R-DKGB-1YYM | D13 | project/design/D13.md |
+| R-RG01-PORT | D14 | project/design/D14.md |
+| R-RG02-FEED | D14 | project/design/D14.md |
+| R-RG03-DBOX | D14 | project/design/D14.md |
+| R-RG04-NLIT | D14 | project/design/D14.md |
