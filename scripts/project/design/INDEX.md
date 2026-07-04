@@ -13,6 +13,7 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - D7 → `project/design/D07.md` — A top-left Home link to the dashboard landing page — owns R-HOME-8R2V
 - D8 → `project/design/D08.md` — Self-serve the landing page's fonts and eliminate the FOUT (relative stylesheet link + `font-display: optional` + self-served `src` + `<head>` preload + session-gated nginx `/srv/scripts/static/`) — owns R-M59W-5CAW, R-M6HS-J41L, R-M8XL-ANIZ, R-MA5H-OF9O, R-MBDE-270D
 - D9 → `project/design/D09.md` — Runs live under the service-owned `cache/` dir, not the root-owned AppDir (`scriptsRuntimeRoot` returns `filepath.Dir(cfg.GenerationPath)` in every layout; fixes the on-box boot crash-loop) — owns R-RUNS-CDIR, R-RUNS-BOOT
+- D10 → `project/design/D10.md` — Adopt `registry`: resolve scripts' own port and peer addresses by name at startup (own port via `MustPort`, peer feeds + dropbox base via `BaseURL`, `go.mod` require/replace, guardrail test that no `30xx` literal remains) — owns R-RGST-SELF, R-RGST-PEER, R-RGST-DBOX, R-RGST-NLIT, R-RGST-GMOD
 
 ## Verification ids → Decision
 
@@ -32,6 +33,11 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - R-NGNX-4B7R → D4 → `project/design/D04.md`
 - R-NGNX-6C9S → D4 → `project/design/D04.md`
 - R-NGNX-8D1T → D4 → `project/design/D04.md`
+- R-RGST-DBOX → D10 → `project/design/D10.md`
+- R-RGST-GMOD → D10 → `project/design/D10.md`
+- R-RGST-NLIT → D10 → `project/design/D10.md`
+- R-RGST-PEER → D10 → `project/design/D10.md`
+- R-RGST-SELF → D10 → `project/design/D10.md`
 - R-ROUT-1V4K → D2 → `project/design/D02.md`
 - R-ROUT-3W6L → D2 → `project/design/D02.md`
 - R-ROUT-8U2J → D2 → `project/design/D02.md`

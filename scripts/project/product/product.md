@@ -16,6 +16,19 @@ boundary keeps product, design, and plan from overlapping.
 > here. This mirrors the **template** the suite's other simple services copy, so
 > it states the uniform v1 starting point precisely.
 
+> **Registry-adoption note (no promise change).** A separate, behavior-preserving
+> internal change adopts the suite's shared `registry` library so scripts resolves
+> its **own** loopback port and its **peer** addresses (the cron/crm/ledger/
+> dropbox/prompts feeds and the dropbox content base) **by name** at startup,
+> instead of from hardcoded `127.0.0.1:30xx` literals. This is a wiring refactor at
+> the composition root, not a user-facing feature: every promise above holds
+> unchanged, the running port is still `3003`, and no viewer, operator, or agent
+> observes any difference. It is recorded here only so a reader knows the port
+> literals moved to the registry table; the *why/shape/proof* of that change lives
+> in design Decision D10, and it is why this product intent does **not** shift.
+> *(Speed-run assumption: treated as behavior-preserving; if adoption ever changed
+> an observable value, this promise set would need revisiting — it does not.)*
+
 ## Problem
 
 Until now every ikigenba service except the dashboard served **only** machine

@@ -18,6 +18,12 @@ here lives in the plan.
 > outbox, the multi-upstream consumer, the migrations) is owned elsewhere
 > (`scripts/project/notes/ARCHITECTURE.md`, `scripts/project/notes/PLAN.md`) and
 > is untouched. No schema changes: the landing page adds **no migration**.
+>
+> Two later Decisions in this directory are **orthogonal to the landing series**
+> and touch the composition root only: **D9** relocates the rebuildable `runs/`
+> tree, and **D10** adopts the shared `registry` library for loopback-port
+> resolution (behavior-preserving). Both are recorded here because they live in
+> scripts's design dir; neither changes the landing-page surface.
 
 ## Requirement ids
 
@@ -51,9 +57,15 @@ Shared facts every Decision leans on:
   replace-siblings (`replace appkit => ../appkit`,
   `replace eventplane => ../eventplane`). The landing page adds **no new
   dependency** — it uses only the standard library (`net/http`, `embed`,
-  `html/template` or `text/template`) and the appkit chassis.
+  `html/template` or `text/template`) and the appkit chassis. **D10** adds a third
+  such replace-sibling, `registry` (`replace registry => ../registry`, a
+  standalone zero-dependency module at the repo root), consumed only at the
+  composition root. The matching repo-root `go.work use ./registry` entry is
+  **external, repo-root-owned wiring** (like the existing `eventplane` entry) and
+  is a precondition, not built here.
 - **The chassis owns the server.** scripts is `appkit.Main(appkit.Spec{…})`:
-  `App:"scripts"`, `Mount:"/srv/scripts/"`, `Port:3003`, `MCP:true`,
+  `App:"scripts"`, `Mount:"/srv/scripts/"`, `Port: registry.MustPort("scripts")`
+  (== `3003`, resolved by name per **D10**; was a `3003` literal), `MCP:true`,
   `Feed:"/feed"` (event-plane **producer** of `scripts.succeeded`/`scripts.failed`),
   `Consumes:[]string{"cron","crm","ledger","dropbox","prompts"}` (multi-upstream
   **consumer**), plus the consumer `Workers` and the `Producer` outbox hook. The
