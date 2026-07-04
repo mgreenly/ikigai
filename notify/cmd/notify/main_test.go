@@ -224,9 +224,6 @@ func TestResolveConsumerCfgDefaultsPromptsFeedURLFromRegistry(t *testing.T) {
 	if cfg.promptsFeedURL != want {
 		t.Fatalf("promptsFeedURL = %q, want %q", cfg.promptsFeedURL, want)
 	}
-	if cfg.promptsFeedURL != "http://127.0.0.1:3002/feed" {
-		t.Fatalf("promptsFeedURL = %q, want registry's stable prompts loopback feed", cfg.promptsFeedURL)
-	}
 }
 
 func TestResolveConsumerCfgFeedURLOverridesWinOverRegistryDefaults(t *testing.T) {

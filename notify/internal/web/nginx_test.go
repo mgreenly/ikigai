@@ -4,6 +4,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"registry"
 )
 
 // fragmentPath is the notify nginx location fragment, relative to
@@ -70,13 +72,15 @@ func TestNginxExactMatchUsesSessionAuthn(t *testing.T) {
 
 func TestNginxExactMatchProxiesToLoopbackRoot(t *testing.T) {
 	// R-NGNX-7Q1Z — the exact-match block proxies to the loopback upstream root
-	// with a trailing slash (the literal loopback port 3201).
+	// with a trailing slash.
+	// R-RGDR-4F6Q
 	block := exactMatchBlock(readFragment(t))
 	if block == "" {
 		t.Fatal("exact-match `location = /srv/notify/ {` block not found")
 	}
-	if !strings.Contains(block, "proxy_pass http://127.0.0.1:3201/;") {
-		t.Errorf("exact-match block missing `proxy_pass http://127.0.0.1:3201/;`:\n%s", block)
+	want := "proxy_pass " + registry.BaseURL("notify") + "/;"
+	if !strings.Contains(block, want) {
+		t.Errorf("exact-match block missing %q:\n%s", want, block)
 	}
 }
 
@@ -102,9 +106,10 @@ func TestNginxSessionGatesStaticAssets(t *testing.T) {
 	if block == "" {
 		t.Fatal("static asset `location /srv/notify/static/ {` block not found")
 	}
+	wantStatic := "proxy_pass " + registry.BaseURL("notify") + "/static/;"
 	for _, want := range []string{
 		"auth_request /_session-authn;",
-		"proxy_pass http://127.0.0.1:3201/static/;",
+		wantStatic,
 		"proxy_set_header Host $host;",
 		"proxy_set_header X-Forwarded-Proto $scheme;",
 		"proxy_http_version 1.1;",
