@@ -62,6 +62,12 @@ type toolResult struct {
 	} `json:"content"`
 }
 
+type toolDescriptor struct {
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+	InputSchema map[string]any `json:"inputSchema"`
+}
+
 const (
 	testOwner    = "owner@example.com"
 	testClientID = "client-123"
@@ -154,6 +160,29 @@ func payloadText(tr toolResult) string {
 	return tr.Content[0].Text
 }
 
+func toolsList(t *testing.T, h *Handler) []toolDescriptor {
+	t.Helper()
+	resp := rpc(t, h, "tools/list", nil)
+	var result struct {
+		Tools []toolDescriptor `json:"tools"`
+	}
+	if err := json.Unmarshal(resp.Result, &result); err != nil {
+		t.Fatalf("decode tools/list: %v", err)
+	}
+	return result.Tools
+}
+
+func requireTool(t *testing.T, tools []toolDescriptor, name string) toolDescriptor {
+	t.Helper()
+	for _, tool := range tools {
+		if tool.Name == name {
+			return tool
+		}
+	}
+	t.Fatalf("missing expected tool %q in %+v", name, tools)
+	return toolDescriptor{}
+}
+
 // id pulls the "id" string off a save summary / get card.
 func id(t *testing.T, m map[string]any) string {
 	t.Helper()
@@ -164,7 +193,7 @@ func id(t *testing.T, m map[string]any) string {
 	return v
 }
 
-// TestToolsList asserts tools/list returns EXACTLY the seven *
+// TestToolsList asserts tools/list returns EXACTLY the eight
 // verbs (count and names), each with the required descriptor keys.
 func TestToolsList(t *testing.T) {
 	h := newTestHandler(t)
@@ -184,8 +213,9 @@ func TestToolsList(t *testing.T) {
 	want := []string{
 		"search", "get", "save",
 		"delete", "log", "health",
-		"reflection",
+		"reflection", "guide",
 	}
+	// R-PGF0-9CS1
 	if len(result.Tools) != len(want) {
 		t.Fatalf("expected exactly %d tools, got %d: %+v", len(want), len(result.Tools), result.Tools)
 	}
@@ -203,6 +233,124 @@ func TestToolsList(t *testing.T) {
 		if !got[name] {
 			t.Errorf("missing expected tool %q", name)
 		}
+	}
+}
+
+func TestInitializeInstructionsDescribeDiscoveryFlow(t *testing.T) {
+	h := newTestHandler(t)
+	resp := rpc(t, h, "initialize", nil)
+
+	var result struct {
+		Instructions string `json:"instructions"`
+	}
+	if err := json.Unmarshal(resp.Result, &result); err != nil {
+		t.Fatalf("decode initialize result: %v", err)
+	}
+
+	// R-PDZ7-HTAN
+	for _, want := range []string{"companies", "people", "guide"} {
+		if !strings.Contains(result.Instructions, want) {
+			t.Fatalf("initialize instructions missing %q: %q", want, result.Instructions)
+		}
+	}
+	if !strings.Contains(result.Instructions, "pipeline") &&
+		!strings.Contains(result.Instructions, "opportunities") {
+		t.Fatalf("initialize instructions missing pipeline/opportunities wording: %q", result.Instructions)
+	}
+}
+
+func TestToolsListSaveDescriptionMovesFieldCatalogToGuide(t *testing.T) {
+	h := newTestHandler(t)
+	tools := toolsList(t, h)
+	save := requireTool(t, tools, "save")
+
+	// R-PF73-VL1C
+	for _, forbidden := range []string{"Fields by type", "given_name", "amount_cents"} {
+		if strings.Contains(save.Description, forbidden) {
+			t.Fatalf("save description still contains field catalog text %q: %q", forbidden, save.Description)
+		}
+	}
+	for _, want := range []string{"force", "emails", "[] to clear", "use log"} {
+		if !strings.Contains(save.Description, want) {
+			t.Fatalf("save description missing %q: %q", want, save.Description)
+		}
+	}
+}
+
+func TestGuideToolReturnsEmbeddedUsageGuide(t *testing.T) {
+	h := newTestHandler(t)
+	tr := call(t, h, "guide", map[string]any{})
+
+	// R-PIUT-0W9F
+	if tr.IsError {
+		t.Fatalf("guide returned an error envelope: %s", payloadText(tr))
+	}
+	if len(tr.Content) != 1 || tr.Content[0].Type != "text" {
+		t.Fatalf("guide expected one text content block, got %+v", tr.Content)
+	}
+	text := tr.Content[0].Text
+	for _, want := range []string{"given_name", "amount_cents", "stage", `"name":"save"`, `"name":"log"`} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("guide text missing %q: %s", want, text)
+		}
+	}
+}
+
+func TestGuideInputSchemaHasNoRequiredFields(t *testing.T) {
+	h := newTestHandler(t)
+	guide := requireTool(t, toolsList(t, h), "guide")
+
+	// R-PK2P-EO04
+	if guide.Description == "" {
+		t.Fatalf("guide description is empty")
+	}
+	if guide.InputSchema["type"] != "object" {
+		t.Fatalf("guide inputSchema is not an object schema: %v", guide.InputSchema)
+	}
+	if required, ok := guide.InputSchema["required"]; ok {
+		t.Fatalf("guide inputSchema should not declare required fields, got %v", required)
+	}
+}
+
+func TestGuideDocumentsAdvancedUsage(t *testing.T) {
+	h := newTestHandler(t)
+	tr := call(t, h, "guide", map[string]any{})
+	if tr.IsError {
+		t.Fatalf("guide returned an error envelope: %s", payloadText(tr))
+	}
+	text := tr.Content[0].Text
+
+	// R-PLAL-SFQT
+	for _, want := range []string{
+		"Dedup and `force`",
+		"Set replacement",
+		"Deal `status`",
+		"Filtered search",
+		"Correcting an interaction",
+		"delete",
+		"log",
+	} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("guide advanced section missing %q: %s", want, text)
+		}
+	}
+}
+
+func TestGuideToolAcceptsOmittedArguments(t *testing.T) {
+	h := newTestHandler(t)
+	resp := rpc(t, h, "tools/call", map[string]any{"name": "guide"})
+
+	var tr toolResult
+	if err := json.Unmarshal(resp.Result, &tr); err != nil {
+		t.Fatalf("decode guide result: %v (result=%s)", err, resp.Result)
+	}
+
+	// R-PMII-67HI
+	if tr.IsError {
+		t.Fatalf("guide with omitted arguments returned an error envelope: %s", payloadText(tr))
+	}
+	if text := payloadText(tr); !strings.Contains(text, "CRM usage guide") {
+		t.Fatalf("guide with omitted arguments returned unexpected text: %s", text)
 	}
 }
 

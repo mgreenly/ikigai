@@ -2,6 +2,7 @@ package mcp
 
 import (
 	"context"
+	_ "embed"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -23,8 +24,8 @@ const toolPrefix = ""
 // toolDescriptors and dispatchTool so the two sites cannot drift.
 func tool(verb string) string { return toolPrefix + verb }
 
-// toolDescriptors returns the fixed six-verb tool surface (PLAN.md
-// §2). Tool count is a function of verbs, not entities: adding an entity type
+// toolDescriptors returns the fixed tool surface. Tool count is a function of
+// capabilities, not entities: adding an entity type
 // later adds fields, never tools.
 //
 // crm_save's inputSchema is intentionally loose (PLAN.md §4) — the per-type field
@@ -74,20 +75,24 @@ func toolDescriptors() []map[string]any {
 			obj(map[string]any{
 				"event_type": descTyp("string", "optional; a published event type to fetch the schema+example detail for"),
 			})),
+		desc(tool("guide"),
+			"Return the CRM usage guide — the entity model, per-type field catalogs, "+
+				"and worked basic and advanced examples. Read once before your first save.",
+			obj(map[string]any{})),
 	}
 }
 
 // saveDescription documents the polymorphic save per-type field shapes (PLAN.md
 // §4). The agent reads this to know what to put in `fields`.
-const saveDescription = `Create (omit id) or update (provide id) any mutable entity. Upsert. On create, a dedup probe runs (contact by primary email, organization by domain or exact name); a match returns a "duplicate" error with existing_id unless force:true. On update, only the fields you provide change; omit a field to leave it untouched. Set-valued fields (emails, phones, tags, deal contacts) are declarative: the array you send is the complete desired set — omit it to leave it untouched, send [] to clear it.
+const saveDescription = "Create (omit id) or update (provide id) an organization, contact, deal, or " +
+	"task. Upsert. Only the fields you send change; set-valued fields (emails, " +
+	"phones, tags, deal contacts) replace the whole set — omit to leave " +
+	"untouched, send [] to clear. On create a dedup probe runs; a match returns a " +
+	"duplicate error with existing_id unless force:true. Interactions are not " +
+	"saved here — use log."
 
-Fields by type:
-- organization: name (required on create), domain (website/email domain; drives dedup).
-- contact: given_name, family_name, display_name (derived if absent), org_id, title, lifecycle (subscriber|lead|opportunity|customer; default lead), emails [{email,label}] (first is primary), phones [{phone,label}] E.164 (first is primary), tags ["..."] (e.g. "newsletter"; the monthly newsletter audience is a tag).
-- deal: name (required on create), org_id, stage (lead|qualified|proposal|negotiation|won|lost; default lead), amount_cents (integer), currency (default USD), close_date (RFC3339 date), contacts [{id,role}] participants. Note: a deal's status (open|won|lost) is derived from stage and is read-only — do not set it.
-- task: title (required on create), status (open|done; default open), due_at, done_at, contact_id, org_id, deal_id (optional subject). Complete a task with fields:{status:"done"}.
-
-Interactions are not saved here — use log.`
+//go:embed guide.md
+var guideDoc string
 
 func desc(name, description string, schema map[string]any) map[string]any {
 	return map[string]any{"name": name, "description": description, "inputSchema": schema}
@@ -148,6 +153,8 @@ func (h *Handler) dispatchTool(ctx context.Context, name string, argsRaw json.Ra
 		return h.toolHealth(ctx, id)
 	case tool("reflection"):
 		return h.toolReflection(argsRaw)
+	case tool("guide"):
+		return h.toolGuide()
 	default:
 		return nil, errors.New("unknown tool: " + name)
 	}
@@ -204,6 +211,10 @@ func (h *Handler) toolReflection(raw json.RawMessage) (map[string]any, error) {
 		"publishes":  h.events.Index(),
 		"subscribes": renderSubscriptions(h.subscriptions),
 	})
+}
+
+func (h *Handler) toolGuide() (map[string]any, error) {
+	return toolResultText(guideDoc), nil
 }
 
 // renderSubscriptions flattens the live subscription provider to the reflection

@@ -1,6 +1,5 @@
 // Package mcp implements a minimal MCP transport for the /mcp endpoint and the
-// fixed six-verb tool surface (PLAN.md §2) that wraps
-// internal/crm.
+// fixed tool surface that wraps internal/crm.
 //
 // The transport speaks JSON-RPC 2.0 over plain HTTP POST (no SSE/streaming),
 // responding with Content-Type: application/json. It carries NO token logic:
@@ -85,9 +84,11 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			"protocolVersion": "2025-03-26",
 			"capabilities":    map[string]any{"tools": map[string]any{}},
 			"serverInfo":      map[string]any{"name": "CRM", "version": "1"},
-			"instructions": "A sales CRM over organizations, contacts, deals, tasks, " +
-				"and interactions. Start with search to find things, then get, save, " +
-				"and log.",
+			"instructions": "Sales CRM over organizations (companies), contacts (people), deals " +
+				"(pipeline/opportunities), tasks (to-dos), and interactions (notes, calls, " +
+				"emails, meetings). Typical flow: search to find things, get for a full " +
+				"record, save to create or update, log to record an interaction. Call guide " +
+				"once for field catalogs and worked examples before your first save.",
 		})
 	case "notifications/initialized":
 		// fire-and-forget notification — no response per JSON-RPC.
