@@ -12,6 +12,8 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - D6 → `project/design/D06.md` — Conform the landing page to the cron canonical template — none (structural; markup-only)
 - D7 → `project/design/D07.md` — A top-left Home link to the dashboard landing page — owns R-HOME-5N7S
 - D8 → `project/design/D08.md` — Self-serve the landing page's fonts and eliminate the FOUT (relative stylesheet link + `font-display: optional` + self-served `src` + `<head>` preload + session-gated nginx `/srv/notify/static/`) — owns R-8JS0-IQDX, R-8KZW-WI4M, R-8M7T-A9VB, R-8NFP-O1M0, R-8ONM-1TCP
+- D9 → `project/design/D09.md` — Adopt `registry`: resolve notify's own and its peers' loopback ports by name at the composition root (own port via `MustPort`, crm/prompts feed defaults via `BaseURL`, env overrides unchanged, go.mod require+replace) — owns R-RGSP-4A1K, R-RGCF-4B2L, R-RGPF-4C3M, R-RGEO-4D4N
+- D10 → `project/design/D10.md` — Prove no loopback-port literal survives (source-scan guard) and guard the deploy artifacts (`etc/manifest.env`, `etc/nginx.conf`) against registry drift via registry-derived test expectations — owns R-RGNL-4E5P, R-RGDR-4F6Q
 
 ## Verification ids → Decision
 
@@ -35,3 +37,9 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - R-8NFP-O1M0 → D8 → `project/design/D08.md`
 - R-8ONM-1TCP → D8 → `project/design/D08.md`
 - R-HOME-5N7S → D7 → `project/design/D07.md`
+- R-RGSP-4A1K → D9 → `project/design/D09.md`
+- R-RGCF-4B2L → D9 → `project/design/D09.md`
+- R-RGPF-4C3M → D9 → `project/design/D09.md`
+- R-RGEO-4D4N → D9 → `project/design/D09.md`
+- R-RGNL-4E5P → D10 → `project/design/D10.md`
+- R-RGDR-4F6Q → D10 → `project/design/D10.md`

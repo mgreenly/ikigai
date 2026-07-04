@@ -15,6 +15,18 @@ boundary keeps product, design, and plan from overlapping.
 > mirrors the **crm landing-page template** the suite's simple services copy, so
 > it states the uniform v1 starting point precisely — retargeted to notify.
 
+> **Second concern in this backlog (no user-facing shift).** notify's design/plan
+> (D9–D10, phases 7–8) also carry a separate, **behavior-preserving** change:
+> notify resolves its own listen port and its crm/prompts feed URLs through the
+> shared `registry` address table **by name**, instead of the hardcoded
+> `127.0.0.1:30xx` literals it carries today. The resolved values are identical to
+> the current literals, so **no promise or outcome in this document changes** — a
+> viewer, an operator, and an MCP client all see exactly what they see now. The
+> only outcome is internal correctness/operability: the port is written down once
+> (in `registry`), so a renumber can no longer drift silently and reach deploy.
+> This is noted here only so the product doc does not appear to contradict a
+> Decision in the same backlog; it adds no user-facing promise of its own.
+
 ## Problem
 
 Until now every ikigenba service except the dashboard served **only** machine

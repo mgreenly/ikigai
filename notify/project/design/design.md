@@ -12,11 +12,15 @@ current statement of the landing-page architecture — it is rewritten in place 
 stay true (stale decisions are removed, not stacked); the history of how it got
 here lives in the plan.
 
-> **Scope.** This design covers **only** notify's web landing page and the seam
-> it establishes. The existing notify domain (the event-plane consumer loops, the
-> `send`/`health`/`reflection` MCP surface, the `internal/push` domain, the
-> migrations) is owned elsewhere (`notify/CLAUDE.md`, the event-protocol docs) and
-> is untouched. No schema changes: the landing page adds **no migration**.
+> **Scope.** This design's Decisions D1–D8 cover **only** notify's web landing
+> page and the seam it establishes. D9–D10 add a separate, behavior-preserving
+> concern: adopting the shared `registry` address table so notify resolves its own
+> and its peers' loopback ports **by name** instead of by hardcoded literal (no
+> user- or peer-observable change). The rest of the existing notify domain (the
+> event-plane consumer *loops*, the `send`/`health`/`reflection` MCP surface, the
+> `internal/push` domain) is owned elsewhere (`notify/CLAUDE.md`, the
+> event-protocol docs) and is untouched. **No schema changes: neither the landing
+> page nor the registry adoption adds a migration.**
 
 ## Requirement ids
 
@@ -50,9 +54,14 @@ Shared facts every Decision leans on:
   replace-siblings (`replace appkit => ../appkit`,
   `replace eventplane => ../eventplane`). The landing page adds **no new
   dependency** — it uses only the standard library (`net/http`, `embed`,
-  `html/template` or `text/template`) and the appkit chassis.
+  `html/template` or `text/template`) and the appkit chassis. **D9 adds a third
+  replace-sibling, `registry` (`replace registry => ../registry`)** — the leaf
+  address table notify resolves its own and its peers' loopback ports through; the
+  repo-root `go.work use ./registry` and the `registry` module itself are external
+  preconditions owned outside `notify/`.
 - **The chassis owns the server.** notify is `appkit.Main(appkit.Spec{…})`:
-  `App:"notify"`, `Mount:"/srv/notify/"`, `Port:3201`, `MCP:true`,
+  `App:"notify"`, `Mount:"/srv/notify/"`, `Port:registry.MustPort("notify")`
+  (== `3201`; see D9 — the literal is retired), `MCP:true`,
   `Consumes:[]string{"crm","prompts"}` (event-plane **consumer** — it subscribes
   to crm's and prompts's feeds and serves **no** `/feed` of its own). The fixed
   verbs (`serve`/`version`/`manifest`/`migrate`/`backup`/`restore`),
