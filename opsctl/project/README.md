@@ -11,8 +11,7 @@ from.
 > is extended the usual way: evolve `product/`, `design/` in place with the
 > `/*-mode` commands, then **append** a plan phase (`plan/phase-NN.md` + a
 > `plan/STATUS.md` line). The prompts are committed and used as-is — appending a
-> phase does **not** regenerate them. End-user documentation for this service
-> lives in `opsctl/docs/`, **not** here — `project/` is the development side.
+> phase does **not** regenerate them.
 
 ## The folders
 
@@ -24,7 +23,7 @@ from.
 | `plan/` | `plan.md` (spine) + `STATUS.md` (the manifest — the only home of each phase's `⬜`/`✅` marker) + `phase-NN.md` (one per phase) | `/plan-mode` (append-only) |
 | `bugs/` | free-form bug diagnoses / write-ups | free-form (not mode-owned) |
 | `requests/` | free-form feature requests | free-form (not mode-owned) |
-| `loops/` | the `ralph` build-loop prompts: `gather.md`, `build.md`, `verify.md` (+ the ephemeral `brief.md`) — generated once a design and plan exist | build-loop infrastructure |
+| `loops/` | the `ralph` build-loop prompts: `gather.md`, `build.md`, `verify.md` (+ the ephemeral `brief.md`) | build-loop infrastructure |
 
 The four **spine documents** (`product/product.md`, `research/research.md`,
 `design/design.md`, `plan/plan.md`) are each singular and owned by a `/*-mode`
@@ -34,7 +33,7 @@ scratch and are *not* owned by any mode command. Don't add ad-hoc documents to
 the spine folders; fold corrections and follow-ons into the existing spine docs
 via the mode commands (and append a plan phase) instead.
 
-## The build loop (once it exists)
+## The build loop
 
 `ralph` is the autonomous executor. It runs **from this service directory** and
 is handed the full paths to the three prompt files — the names and locations are

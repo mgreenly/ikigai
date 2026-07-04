@@ -19,4 +19,4 @@ service-name `registry/` — not stale.
 ## Notes
 - The "binary restore verb" findings (CLAUDE.md:32-35, outbox.go:305-306) are medium-confidence: the epoch-remint-on-restore *behavior* is real and still needed; only the claim that it is triggered by a binary `restore` verb is stale (it's an `opsctl`-owned box-level operation). The prose should be reworded, not the mechanism removed.
 - SKIPPED `project/plan/` per scope (no plan files present anyway — only `.keep`/`README`).
-- `project/README.md` and the `project/` scaffold are placeholder/scaffold status ("no spec and no live build loop yet") — accurate self-description, not stale.
+- `project/README.md` and the `project/` scaffold are placeholder/scaffold status ("no spec and no live build loop yet") — accurate self-description, not stale. ✅ **DONE anyway** (the "Status: scaffold" blockquote was removed here too as part of the suite-wide operator directive to strip scaffold/setup + `docs/` framing from every `project/README.md`; removed as an editorial call, not because it was stale, 2026-07-03).

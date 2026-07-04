@@ -3,7 +3,6 @@
    A monochrome system on neutral grays, signalled by a single blue highlight
    and a red reserved strictly for errors.
 
-   Source of truth: design-bible.html (theme: Carbon).
    Layers:  primitives (ramps + scales)  ->  semantic aliases  ->  component CSS.
    Components should reference the SEMANTIC tokens (--color-*, --space-*, etc.),
    not the raw ramp steps.

@@ -13,7 +13,7 @@ Service names → registry/:
 
 ## Other stale info
 
-- scripts/project/README.md:9-11 — "Status: scaffold … no spec and no live build loop yet — the spine documents below are empty placeholders." Contradicted by the fully-populated spine: project/product/product.md (158 lines), project/design/design.md + D01–D09 + INDEX.md (9 decisions), populated loops/, and shipped code. (contradictory status)
+- scripts/project/README.md:9-11 — "Status: scaffold … no spec and no live build loop yet — the spine documents below are empty placeholders." Contradicted by the fully-populated spine: project/product/product.md (158 lines), project/design/design.md + D01–D09 + INDEX.md (9 decisions), populated loops/, and shipped code. (contradictory status) ✅ **DONE** (scaffold blockquote removed suite-wide; every service README treated as fully built per operator directive, 2026-07-03)
 - ✅ **DONE 2026-07-03** — scripts/project/design/design.md:60 — Lists the fixed verb set as `serve`/`version`/`manifest`/`migrate`/`backup`/`restore`. Superseded: current set is `serve`/`version`/`manifest`/`migrate`/`schema` (CLAUDE.md; cmd/scripts/main.go:6). `backup`/`restore` are box-level opsctl operations, not binary verbs (and this service's own D09.md:76 states exactly that). (superseded verb set)
 - ✅ **DONE 2026-07-03** — scripts/project/design/design.md:19 — Points to `scripts/project/notes/ARCHITECTURE.md` and `scripts/project/notes/PLAN.md` as owning the existing domain. `project/notes/` does not exist. (dead path)
 - scripts/project/product/product.md:15 — Says the existing domain "is owned by `scripts/project/notes/`". `project/notes/` does not exist. (dead path)

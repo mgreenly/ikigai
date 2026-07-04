@@ -10,7 +10,7 @@ surfaced any stale text inside `appkit/`. The design docs correctly treat
 open question).
 
 ## Other stale info
-- appkit/manifest/manifest.go:2 — Package doc says the manifest is "the deploy-time identity file at /opt/<app>/etc/manifest.env." That is exactly the retired **sibling** path: this service's own design D4 (project/design/D04.md:1-16) says `/opt/<app>/etc/manifest.env` is dead and the on-box readable manifest now lives at `/opt/<app>/etc/current/manifest.env`. The comment points a future reader at a path that no longer exists on the box. (stale deploy-layout comment)
+- appkit/manifest/manifest.go:2 — Package doc says the manifest is "the deploy-time identity file at /opt/<app>/etc/manifest.env." That is exactly the retired **sibling** path: this service's own design D4 (project/design/D04.md:1-16) says `/opt/<app>/etc/manifest.env` is dead and the on-box readable manifest now lives at `/opt/<app>/etc/current/manifest.env`. The comment points a future reader at a path that no longer exists on the box. (stale deploy-layout comment) — ✅ **DONE** (on-box path repointed to `/opt/<app>/etc/current/manifest.env`; the other `etc/manifest.env` refs on lines 9/49/63 are the committed source file and were correctly left alone)
 
 ## Notes
 - The design docs (project/design/D01–D04, design.md, INDEX.md) and the build-loop

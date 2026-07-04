@@ -3,9 +3,7 @@
 **Carbon** is a monochrome system built on neutral grays, signalled by a single
 blue highlight and a red reserved strictly for errors. When building any UI in
 this project, follow these rules and consume the tokens from
-[`tokens.css`](./tokens.css). The full living reference is `design-bible.html`
-(switch the theme tab to **Carbon**); Lumen and Ledger also live in that file as
-alternates — ignore them unless explicitly asked.
+[`tokens.css`](./tokens.css).
 
 ## Core rules
 

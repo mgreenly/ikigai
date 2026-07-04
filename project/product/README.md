@@ -113,8 +113,6 @@ Out of scope — nothing else is promised here:
   kind**. Only durable state is preserved, only off-box; everything a service can
   rebuild on boot is intentionally excluded, and nothing on local disk is a backup
   of record.
-- **No designed-but-unbuilt service registry.** The per-service loopback port stays
-  a configured value; collapsing it to a name-only lookup is separate, future work.
 
 ## Contractual constants
 

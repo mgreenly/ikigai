@@ -1,5 +1,5 @@
 // Package manifest emits and parses a suite app's manifest.env — the
-// deploy-time identity file at /opt/<app>/etc/manifest.env. The binary is the
+// deploy-time identity file at /opt/<app>/etc/current/manifest.env. The binary is the
 // source of truth for its own identity (PLAN §1.1): `<app> manifest` writes this
 // file, and the same KEY=value parser the on-box readers use (appkit/inventory +
 // bin/registry) lives here so a self-read and the opsctl preflight share one

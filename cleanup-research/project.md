@@ -1,7 +1,7 @@
 # project — cleanup findings
 
 ## High-priority (named migrations)
-- project/product/README.md:116-117 — Declares "**No designed-but-unbuilt service registry.** The per-service loopback port stays a configured value; collapsing it to a name-only lookup is separate, future work." This is now superseded: the top-level `registry/` module exists and is actively being designed+built (registry/project/ has populated product/design/plan) as exactly the authoritative `name → port` table this note calls out-of-scope/future. A future agent reading this would wrongly conclude no registry exists. (registry migration)
+- project/product/README.md:116-117 — Declares "**No designed-but-unbuilt service registry.** The per-service loopback port stays a configured value; collapsing it to a name-only lookup is separate, future work." This is now superseded: the top-level `registry/` module exists and is actively being designed+built (registry/project/ has populated product/design/plan) as exactly the authoritative `name → port` table this note calls out-of-scope/future. A future agent reading this would wrongly conclude no registry exists. (registry migration) — ✅ **DONE** (non-goal bullet deleted; registry is built/adopted/deployed, so the disclaimer is overtaken by events)
 
 ## Other stale info
 - none

@@ -6,7 +6,7 @@
 
 ## Other stale info
 - ✅ **DONE 2026-07-03** — cron/project/design/design.md:57-58 — Fixed verb set listed as `serve`/`version`/`manifest`/`migrate`/`backup`/`restore`. This is superseded: CLAUDE.md states the fixed verbs are `serve`/`version`/`manifest`/`migrate`/`schema`, and "Backup and restore are NOT binary verbs — they are box-level operations owned by opsctl." Doc omits `schema` and wrongly lists backup/restore. (superseded verb set)
-- cron/project/README.md:9-15 — "**Status: scaffold.** ... cron has **no spec and no live build loop yet** — the spine documents below are empty placeholders." Contradicts reality: product.md/design.md (+ D01–D07) are full spine docs, loops/ prompts exist, and the service is fully implemented under cron/cmd and cron/internal. (contradictory status statement)
+- cron/project/README.md:9-15 — "**Status: scaffold.** ... cron has **no spec and no live build loop yet** — the spine documents below are empty placeholders." Contradicts reality: product.md/design.md (+ D01–D07) are full spine docs, loops/ prompts exist, and the service is fully implemented under cron/cmd and cron/internal. (contradictory status statement) ✅ **DONE** (scaffold blockquote removed suite-wide; every service README treated as fully built per operator directive, 2026-07-03)
 
 ## Notes
 - cron/project/README.md:27 references a `notes/` folder that does not exist on disk (only bugs/, requests/, research/, product/, design/, loops/, plan/). Harmless "catch-all" description, but a dead path. (low confidence / minor)

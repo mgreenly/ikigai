@@ -13,7 +13,7 @@
 - notify/CLAUDE.md:26 — links `../../docs/event-plane-decisions.md`; now `docs/archive/event-plane-decisions.md`. (dead path)
 - notify/CLAUDE.md:42 — cites dev mirror `../nginx/locations/notify.conf`; `nginx/locations/` is empty (only `.gitkeep`), so the mirror no longer exists. (dead path)
 - notify/etc/nginx.conf:3 — "Per docs/path-routing-architecture.md"; no such file exists in `docs/` or `docs/archive/` (closest current doc is `docs/app-layout.md`). (dead path)
-- notify/project/README.md:10-14 — states notify "has **no spec and no live build loop yet** — the spine documents below are empty placeholders." Contradicts reality: `project/product/product.md` (154 lines) and `project/design/design.md` (133 lines) are fully written. Leftover scaffolding template. (contradictory / stale template)
+- notify/project/README.md:10-14 — states notify "has **no spec and no live build loop yet** — the spine documents below are empty placeholders." Contradicts reality: `project/product/product.md` (154 lines) and `project/design/design.md` (133 lines) are fully written. Leftover scaffolding template. (contradictory / stale template) ✅ **DONE** (scaffold blockquote removed suite-wide; every service README treated as fully built per operator directive, 2026-07-03)
 - notify/project/README.md:15 — "End-user documentation for this service lives in `notify/docs/`"; no `notify/docs/` directory exists. (dead path)
 
 ## Notes

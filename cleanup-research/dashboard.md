@@ -20,7 +20,7 @@
 - AGENTS.md:9,84,92 — `../crm.bak/` porting reference; that directory does not exist at repo root. The port is done; the reference is dead. (dead path)
 - AGENTS.md:138-149 — cutover note is multiply stale: says "the live `ai` box" (current account is `int`); "migrations were renumbered name/timestamp-keyed → integer-keyed" contradicts the current timestamp convention (migrations dir now holds legacy `001`-`005` **plus** a timestamp migration `20260609011053_add_personal_tokens.sql`); "fresh DB migrates clean to v5" (there are 6 migrations now); and it cites `docs/runbook-dashboard-box-cutover.md`, which does not exist. (contradictory / dead path)
 - AGENTS.md ~100-108 — describes `plugin/` and `.claude-plugin/marketplace.json` as living in this repo/dashboard; neither exists in `dashboard/`. (described path absent — may be future scope)
-- project/README.md:9-15 — "**Status: scaffold.** … dashboard has **no spec and no live build loop yet** — the spine documents below are empty placeholders." Contradicts populated `product/product.md` (162 lines), `design/design.md` + D01–D10 + INDEX, and the fully built service. (contradictory status)
+- project/README.md:9-15 — "**Status: scaffold.** … dashboard has **no spec and no live build loop yet** — the spine documents below are empty placeholders." Contradicts populated `product/product.md` (162 lines), `design/design.md` + D01–D10 + INDEX, and the fully built service. (contradictory status) ✅ **DONE** (scaffold blockquote removed suite-wide; every service README treated as fully built per operator directive, 2026-07-03)
 - project/README.md:27 — lists a `notes/` folder in the workspace layout; no `notes/` dir exists. (dead ref; same root as AGENTS.md:52,72)
 
 ## Notes
