@@ -45,6 +45,7 @@ func Spec() appkit.Spec {
 			if err != nil {
 				return err
 			}
+			rt.Handle("GET /pr", client.PRHandler())
 			rt.Handle("POST /mcp", rt.RequireIdentity(
 				mcp.NewHandler(client, rt.Version(), rt.Service(), health, rt.Logger())))
 			return nil
