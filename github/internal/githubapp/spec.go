@@ -4,6 +4,7 @@ package githubapp
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 
 	"appkit"
@@ -11,6 +12,7 @@ import (
 	"github/internal/db"
 	gh "github/internal/gh"
 	"github/internal/mcp"
+	"github/internal/web"
 )
 
 // Spec returns the production-shaped appkit service declaration.
@@ -45,6 +47,8 @@ func Spec() appkit.Spec {
 			if err != nil {
 				return err
 			}
+			rt.Handle("GET /{$}", web.LandingHandler(rt.Service(), rt.Version()))
+			rt.Handle("GET /static/", http.StripPrefix("/static/", web.StaticHandler()))
 			rt.Handle("GET /pr", client.PRHandler())
 			rt.Handle("POST /mcp", rt.RequireIdentity(
 				mcp.NewHandler(client, rt.Version(), rt.Service(), health, rt.Logger())))

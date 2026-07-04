@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.Service}}</title>
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="static/fonts/space-grotesk.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="static/fonts/ibm-plex-sans.woff2">
+  <link rel="stylesheet" href="static/tokens.css">
+  <style>
+    body {
+      min-height: 100vh;
+      margin: 0;
+      color: var(--color-text);
+      background: var(--color-bg);
+      font-family: var(--font-sans);
+      display: grid;
+      place-items: center;
+    }
+
+    main {
+      width: min(100% - 48px, 680px);
+    }
+
+    h1 {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: clamp(3rem, 9vw, 6rem);
+      line-height: .9;
+      letter-spacing: 0;
+    }
+
+    dl {
+      margin: 32px 0 0;
+      display: grid;
+      grid-template-columns: max-content 1fr;
+      gap: 10px 20px;
+      font-size: 1rem;
+    }
+
+    dt {
+      color: var(--color-muted);
+    }
+
+    dd {
+      margin: 0;
+      font-family: var(--font-mono);
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>{{.Service}}</h1>
+    <dl>
+      <dt>Service</dt>
+      <dd>{{.Service}}</dd>
+      <dt>Version</dt>
+      <dd>{{.Version}}</dd>
+    </dl>
+  </main>
+</body>
+</html>
