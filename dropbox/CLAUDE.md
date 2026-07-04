@@ -18,7 +18,7 @@ transport, db + migration runner, `eventplane/outbox`, logging, ids — renamed)
 
 **Read the decisions first — do not re-derive them:**
 
-- `project/notes/PLAN.md` — the full dropbox design (the sync engine, crash/replay ordering,
+- `project/design/design.md` — the full dropbox design (the sync engine, crash/replay ordering,
   case-folding, the content endpoint, the events, the no-backup decision).
 - `../crm` / `../ledger` — the sibling producers that share this chassis
   (`internal/<domain>` → `/feed` outbox).

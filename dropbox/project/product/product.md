@@ -12,7 +12,7 @@ boundary keeps product, design, and plan from overlapping.
 > for dropbox — the landing page. dropbox's existing mirror-sync daemon, its
 > four-tool MCP surface (`health`/`reflection`/`list`/`get`), its `/feed`
 > producer, and its loopback `/content`/`/list` byte routes are owned by
-> `dropbox/CLAUDE.md`, `project/notes/PLAN.md`, and the domain notes; they are
+> `dropbox/CLAUDE.md` and the domain notes; they are
 > untouched here. This work mirrors the suite's approved crm landing-page
 > template, retargeted to dropbox.
 

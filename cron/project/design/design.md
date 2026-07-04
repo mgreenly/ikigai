@@ -55,7 +55,7 @@ Shared facts every Decision leans on:
 - **The chassis owns the server.** cron is `appkit.Main(appkit.Spec{…})`:
   `App:"cron"`, `Mount:"/srv/cron/"`, `Port:3005`, `MCP:true`, `Feed:"/feed"`
   (event-plane producer). The fixed verbs (`serve`/`version`/`manifest`/`migrate`
-  /`backup`/`restore`), config-from-env, the loopback HTTP server + PRM +
+  /`schema`), config-from-env, the loopback HTTP server + PRM +
   identity gate, and the `/feed` producer mount are appkit's. main.go declares
   cron's identity (the Spec) and wires its surface through the Spec hooks (the
   crontab `Store`, the `POST /mcp` mount, the LIVE `Publishes` provider, and the

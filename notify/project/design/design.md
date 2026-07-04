@@ -64,7 +64,7 @@ Shared facts every Decision leans on:
   (== `3201`; see D9 — the literal is retired), `MCP:true`,
   `Consumes:[]string{"crm","prompts"}` (event-plane **consumer** — it subscribes
   to crm's and prompts's feeds and serves **no** `/feed` of its own). The fixed
-  verbs (`serve`/`version`/`manifest`/`migrate`/`backup`/`restore`),
+  verbs (`serve`/`version`/`manifest`/`migrate`/`schema`),
   config-from-env, the loopback HTTP server + PRM + identity gate, and the
   background consumer Workers are appkit's. main.go declares notify's identity (the
   Spec) and wires its surface through the Spec hooks. The landing route is wired

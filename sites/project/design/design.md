@@ -60,7 +60,7 @@ Shared facts every Decision leans on:
   resolved by name through the shared `registry` — D9, no longer a literal),
   `MCP:true`, `Migrations:db.FS`. sites is **not** an event-plane producer — the
   `Feed`/`Producer`/`Workers`/`Events` hooks are deliberately omitted (no `/feed`).
-  The fixed verbs (`serve`/`version`/`manifest`/`migrate`/`backup`/`restore`),
+  The fixed verbs (`serve`/`version`/`manifest`/`migrate`/`schema`),
   config-from-env, the loopback HTTP server + PRM + identity gate are appkit's.
   main.go declares sites's identity (the Spec) and wires its surface through the
   Spec hooks. The landing route is wired through the existing **`Spec.Handlers`**

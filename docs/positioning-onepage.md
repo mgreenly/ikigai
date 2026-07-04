@@ -28,8 +28,7 @@ It is one dashboard plus small domain services, deployed as one isolated box per
 customer and exposed primarily through MCP. The dashboard owns login, OAuth,
 grants, service inventory, install guidance, and operations. Each service owns
 one domain, one SQLite database, one loopback server, one MCP surface, and the
-same lifecycle verbs: `serve`, `version`, `manifest`, `migrate`, `backup`, and
-`restore`.
+same lifecycle verbs: `serve`, `version`, `manifest`, `migrate`, and `schema`.
 
 Services publish facts to an outbox and consume each other's `/feed` streams
 over loopback SSE. The result is not a chat app, not a persona, and not a skill

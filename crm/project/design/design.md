@@ -15,7 +15,7 @@ here lives in the plan.
 > **Scope.** This design covers **only** crm's web landing page and the seam it
 > establishes. The existing crm CRM domain (the five-entity, six-verb MCP
 > surface, the outbox producer, the migrations) is owned elsewhere
-> (`crm/CLAUDE.md`, `crm/project/notes/PLAN.md`) and is untouched. No schema
+> (`crm/CLAUDE.md`) and is untouched. No schema
 > changes: the landing page adds **no migration**.
 
 ## Requirement ids

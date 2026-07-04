@@ -55,7 +55,7 @@ Shared facts every Decision leans on:
 - **The chassis owns the server.** gmail is `appkit.Main(appkit.Spec{…})`:
   `App:"gmail"`, `Mount:"/srv/gmail/"`, `Port:3202`, `MCP:true`, `Feed:"/feed"`
   (event-plane producer). The fixed verbs (`serve`/`version`/`manifest`/`migrate`
-  /`backup`/`restore`), config-from-env, the loopback HTTP server + PRM +
+  /`schema`), config-from-env, the loopback HTTP server + PRM +
   identity gate, and the `/feed` mount are appkit's. main.go declares gmail's
   identity (the Spec) and wires its surface through the Spec hooks — `Handlers`
   (the MCP surface), `Producer` (the outbox sink), and `Workers` (the poll

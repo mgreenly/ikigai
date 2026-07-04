@@ -17,7 +17,7 @@ PIDFILE="build/${APP}.pid"
 command -v python3 >/dev/null || echo "warning: python3 not found; agent bash/python tooling will fail" >&2
 
 if [[ ! -x "$BIN" ]]; then
-  bin/build
+  make build
 fi
 
 if [[ -f "$PIDFILE" ]] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then

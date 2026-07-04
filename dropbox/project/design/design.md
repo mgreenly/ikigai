@@ -16,7 +16,7 @@ here lives in the plan.
 > it establishes. The existing dropbox domain (the mirror-sync engine, the
 > four-tool MCP surface, the `/feed` outbox producer, the loopback
 > `/content`/`/list` byte routes, the migrations) is owned elsewhere
-> (`dropbox/CLAUDE.md`, `dropbox/project/notes/PLAN.md`) and is untouched. No
+> (`dropbox/CLAUDE.md`) and is untouched. No
 > schema changes: the landing page adds **no migration**.
 
 ## Requirement ids
@@ -57,7 +57,7 @@ Shared facts every Decision leans on:
   `Feed:"/feed"` (event-plane producer), plus its `Migrations`, `Events`,
   `ManifestExtras`, a `Health` reporter, a `Producer` hook, and a `Workers` hook
   (the background sync engine). The fixed verbs
-  (`serve`/`version`/`manifest`/`migrate`/`backup`/`restore`), config-from-env,
+  (`serve`/`version`/`manifest`/`migrate`/`schema`), config-from-env,
   the loopback HTTP server + PRM + identity gate, and the `/feed` mount are
   appkit's. main.go declares dropbox's identity (the Spec) and wires its surface
   through the Spec hooks. The landing route is wired through the existing

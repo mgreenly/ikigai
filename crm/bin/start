@@ -13,7 +13,7 @@ BIN="build/${APP}.bin"
 PIDFILE="build/${APP}.pid"
 
 if [[ ! -x "$BIN" ]]; then
-  bin/build
+  make build
 fi
 
 if [[ -f "$PIDFILE" ]] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
@@ -21,6 +21,6 @@ if [[ -f "$PIDFILE" ]] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
   exit 1
 fi
 
-CRM_PORT="${CRM_PORT:-${PORT}}" "./$BIN" --port "${CRM_PORT:-${PORT}}" &
+CRM_PORT="${CRM_PORT:-${PORT}}" "./$BIN" serve --port "${CRM_PORT:-${PORT}}" &
 echo $! > "$PIDFILE"
 echo "crm started (pid $(cat "$PIDFILE")) on 127.0.0.1:${CRM_PORT:-${PORT}}"

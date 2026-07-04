@@ -15,7 +15,7 @@ here lives in the plan.
 > **Scope.** This design covers **only** ledger's web landing page and the seam it
 > establishes. The existing ledger bookkeeping domain (the immutable journal, the
 > eight-verb MCP surface, the outbox producer, the migrations) is owned elsewhere
-> (`ledger/CLAUDE.md`, `ledger/project/notes/PLAN.md`) and is untouched. No schema
+> (`ledger/CLAUDE.md`) and is untouched. No schema
 > changes: the landing page adds **no migration**.
 
 ## Requirement ids

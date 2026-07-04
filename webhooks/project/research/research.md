@@ -150,7 +150,7 @@ call; appkit owns the fixed-verb half.** appkit provides: env config
 `AUTH_SERVER` from `IKIGENBA_DOMAIN`+`Mount`), migration runner + downgrade guard,
 loopback HTTP server (PRM, `/health`, gated `POST /mcp`, optional `/feed`),
 producer feed mount, manifest emit/parse, and the verb dispatcher
-(`serve|version|manifest|migrate|schema|backup|restore`, default `serve`).
+(`serve|version|manifest|migrate|schema`, default `serve`).
 
 **Templates:** `gmail/` (newest, producer+workers shape) and `crm/`/`sites/`.
 

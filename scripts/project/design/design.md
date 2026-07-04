@@ -16,8 +16,7 @@ here lives in the plan.
 > it establishes. The existing scripts domain (the deterministic `python3`-exec
 > script runner, the `ikigenba_scripts_*` MCP surface, the event-plane producer
 > outbox, the multi-upstream consumer, the migrations) is owned elsewhere
-> (`scripts/project/notes/ARCHITECTURE.md`, `scripts/project/notes/PLAN.md`) and
-> is untouched. No schema changes: the landing page adds **no migration**.
+> and is untouched. No schema changes: the landing page adds **no migration**.
 >
 > Two later Decisions in this directory are **orthogonal to the landing series**
 > and touch the composition root only: **D9** relocates the rebuildable `runs/`
@@ -69,7 +68,7 @@ Shared facts every Decision leans on:
   `Feed:"/feed"` (event-plane **producer** of `scripts.succeeded`/`scripts.failed`),
   `Consumes:[]string{"cron","crm","ledger","dropbox","prompts"}` (multi-upstream
   **consumer**), plus the consumer `Workers` and the `Producer` outbox hook. The
-  fixed verbs (`serve`/`version`/`manifest`/`migrate`/`backup`/`restore`),
+  fixed verbs (`serve`/`version`/`manifest`/`migrate`/`schema`),
   config-from-env, the loopback HTTP server + PRM + identity gate, and the `/feed`
   mount are appkit's. main.go declares scripts's identity (the Spec) and wires its
   surface through the Spec hooks. The landing route is wired through the existing

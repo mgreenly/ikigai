@@ -1,7 +1,7 @@
 # notify — cleanup findings
 
 ## High-priority (named migrations)
-- notify/etc/nginx.conf:12-13 — Registry migration: parenthetical "(When the service registry lands notify's port becomes 3201; update the literal below then.)" is a superseded future-tense TODO. The service registry has landed (top-level `registry/` folder + `bin/registry`), and the port literal is already 3201, so the note is stale and contradicts registry-as-source-of-truth.
+- ✅ **DONE 2026-07-03** — notify/etc/nginx.conf:12-13 — Registry migration: parenthetical "(When the service registry lands notify's port becomes 3201; update the literal below then.)" is a superseded future-tense TODO. The service registry has landed (top-level `registry/` folder + `bin/registry`), and the port literal is already 3201, so the note is stale and contradicts registry-as-source-of-truth.
 - Deploy format → tar.gz: none. notify's deploy prose (CLAUDE.md "Manifest / deploy", Makefile, bin/*) matches the current `bin/ship` → `opsctl stage`/`deploy` tar.gz + three-symlink model. No flat-bin / single-binary-copy language found.
 
 ## Other stale info

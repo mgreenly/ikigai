@@ -49,19 +49,39 @@ the reference. Remaining stale references to the OLD flat-bin model (e.g. the
 `bin/teardown` flat-`/opt/<app>/{bin,etc,data}` scripts in several services) are
 **still stale** and are part of the not-yet-applied cleanup below.
 
+## Applied so far (2026-07-03)
+
+A first cleanup batch has been applied and the resolved findings are marked
+`✅ **DONE**` inline in the per-folder reports. What landed:
+
+- **All 7 stale registry parentheticals** removed from the `etc/nginx.conf`
+  fragments (crm, cron, dropbox, gmail, notify, prompts, wiki).
+- **`notes/` scrubbed:** the `notes/` row dropped from 13 `project/README.md`
+  tables, and the dead `notes/PLAN.md` / `ARCHITECTURE.md` pointers repointed to
+  `project/design/design.md` (or, in preambles, reduced to the `CLAUDE.md`
+  owner) across crm, ledger, dropbox, scripts, and a dropbox nginx.conf comment.
+- **Superseded verb sets fixed** (`backup`/`restore` → `schema`) in cron, gmail,
+  notify, dropbox, sites, scripts, webhooks, and wiki docs plus
+  `docs/positioning-onepage.md`; the wiki doc's wrong `appkit.go:244-260` cite
+  corrected to `215-224`.
+- **`bin/build` bug fixed** in all five `bin/start` scripts that called the
+  deleted wrapper (crm, notify, dropbox, prompts, scripts → `make build`); crm's
+  invocation also aligned to the canonical `serve --port` form.
+- **`docs/README.md` pointer removed** from root `AGENTS.md`/`CLAUDE.md` (the
+  file stays intentionally absent; the "In short:" convention summary was kept).
+
 ## What is NOT done
 
-- **The cleanup edits themselves have not been applied.** This was a research
-  pass only; no source files were changed based on these findings. The pointers
-  in the per-folder reports (minus the registry reclassification above) are still
-  valid work.
+- **Most per-folder findings are still open** — the batch above covered the two
+  named migrations' loose ends plus the greenlit `notes/` / verb-set / bin
+  fixes. Unmarked bullets (contradictory `Status: scaffold` READMEs, stale
+  `internal/server`/`internal/logging` package layouts, `CLAUDE.md` Consumes
+  drift, stale Makefile "deploy spine" comments, the `bin/teardown` flat-layout
+  scripts, remaining scripts `notes/` refs in `product.md`/`D05.md`/`loops/`/
+  `main.go`, etc.) are still valid work.
 - **registry adoption is only partial.** Only prompts/scripts/notify/sites
   import registry so far. Other services still hardcode their own port literal;
   broader adoption is separate future work, not stale info to scrub.
-- Open non-migration items surfaced by the pass still stand, e.g. the missing
-  `docs/README.md` that root `CLAUDE.md` points at, the widespread superseded
-  `backup`/`restore` binary-verb references, and dead `project/notes/PLAN.md`
-  paths.
 
 ## Scope reminder for whoever applies the cleanup
 

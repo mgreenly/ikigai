@@ -24,13 +24,12 @@ from.
 | `plan/` | `plan.md` (spine) + `STATUS.md` (the manifest — the only home of each phase's `⬜`/`✅` marker) + `phase-NN.md` (one per phase) | `/plan-mode` (append-only) |
 | `bugs/` | free-form bug diagnoses / write-ups | free-form (not mode-owned) |
 | `requests/` | free-form feature requests | free-form (not mode-owned) |
-| `notes/` | catch-all for relocated pre-convention planning material and other dev-side strays that don't fit the spine | free-form (not mode-owned) |
 | `loops/` | the `ralph` build-loop prompts: `gather.md`, `build.md`, `verify.md` (+ the ephemeral `brief.md`) — generated once a design and plan exist | build-loop infrastructure |
 
 The four **spine documents** (`product/product.md`, `research/research.md`,
 `design/design.md`, `plan/plan.md`) are each singular and owned by a `/*-mode`
 command — that command is the sanctioned way to change them. The `bugs/`,
-`requests/`, `notes/`, and extra `research/*-research.md` notes are informal
+`requests/` and extra `research/*-research.md` notes are informal
 scratch and are *not* owned by any mode command. Don't add ad-hoc documents to
 the spine folders; fold corrections and follow-ons into the existing spine docs
 via the mode commands (and append a plan phase) instead.

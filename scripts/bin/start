@@ -17,7 +17,7 @@ PIDFILE="build/${APP}.pid"
 command -v python3 >/dev/null || echo "warning: python3 not found; script runs will fail" >&2
 
 if [[ ! -x "$BIN" ]]; then
-  bin/build
+  make build
 fi
 
 mkdir -p state cache runs

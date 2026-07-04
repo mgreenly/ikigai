@@ -10,8 +10,7 @@ boundary keeps product, design, and plan from overlapping.
 
 > **Scope note.** This product doc covers **only** the new web-pages direction
 > for ledger — the landing page. ledger's existing bookkeeping domain (the
-> immutable-journal, eight-verb MCP surface) is owned by `ledger/CLAUDE.md` and
-> `ledger/project/notes/PLAN.md`; it is untouched here. ledger mirrors the
+> immutable-journal, eight-verb MCP surface) is owned by `ledger/CLAUDE.md`; it is untouched here. ledger mirrors the
 > already-approved **crm** template for this work — the same uniform v1 starting
 > point, stated precisely.
 

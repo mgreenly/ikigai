@@ -145,8 +145,7 @@ and tracked individually in `schema_migrations`. Two hard rules:
 ## Designing and planning work
 
 This is our process for designing and planning a piece of work before we build
-it. The full convention lives in **`docs/README.md`** — read it before starting
-a new feature. In short: each piece of work moves through paired documents in
+it. In short: each piece of work moves through paired documents in
 `docs/` that share one slug — **`<slug>-design.md`** (the how + decisions) then
 **`<slug>-plan.md`** (ordered phases, each sized for one subagent, run
 sequentially), after which a coordinator reads the plan in full and `/finish`es
