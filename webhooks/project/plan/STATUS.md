@@ -20,4 +20,4 @@ Phase 05 ✅ realizes D6 — MCP tool surface (the four owner tools)
 Phase 06 ✅ realizes D1 — Composition root & chassis boot
 Phase 07 ✅ realizes D7, D8 — nginx fragment, dev-harness wiring & e2e/onboarding
 Phase 08 ✅ realizes D9 — human landing page: `internal/web` handler + embedded cron-canonical template/Carbon assets, wired at `GET /{$}` + `GET /static/` (ungated in-process) in `cmd/webhooks/main.go`; web-unit tests
-Phase 09 ⬜ realizes D7 — add the session-gated exact `= /srv/webhooks/` landing tier + `/srv/webhooks/static/` tier to `etc/nginx.conf`, validated by a content-assertion `nginx_test.go`
+Phase 09 ✅ realizes D7 — add the session-gated exact `= /srv/webhooks/` landing tier + `/srv/webhooks/static/` tier to `etc/nginx.conf`, validated by a content-assertion `nginx_test.go`
