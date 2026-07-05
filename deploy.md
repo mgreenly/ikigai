@@ -75,12 +75,25 @@ older commit and reinstall (roll-forward only). Build green first —
 
 ## Pre-Flight
 
-Before starting, confirm the two channels a deploy needs are live:
+> 🚨 **Deploy does NOT require workstation AWS SSO.** The `stage`/`deploy` steps
+> run **on the box**, where `opsctl` authenticates to AWS through the EC2
+> **instance role** — S3 pre-deploy backups and SSM secret reads all happen
+> under that role, never your laptop's credentials. A failing
+> `aws sts get-caller-identity --profile int` is **not** a blocker for bump →
+> ship → stage → deploy. Do **not** stop a deploy to run `aws sso login`.
+>
+> Workstation AWS creds are needed for **exactly one** optional step: seeding
+> secrets from your laptop via `<svc>/bin/secrets` (step 1), which does a
+> workstation-side SSM read-modify-write. That's the only place SSO matters, and
+> only when an app's secrets are new or changed.
 
-- **SSO** (workstation → AWS, needed by secret and object-store access):
-  `aws sts get-caller-identity --profile int`. If it fails, run
-  `aws sso login --profile int` interactively.
-- **Box reachable:** `ssh int true`.
+Before starting, confirm the channels a deploy actually needs are live:
+
+- **Box reachable:** `ssh int true`. (This is the real gate — deploy work
+  happens over SSH, and opsctl does the AWS work on-box.)
+- **SSO (only if seeding secrets in step 1):**
+  `aws sts get-caller-identity --profile int`; if it fails, run
+  `aws sso login --profile int` interactively. Not needed otherwise.
 
 Run `git status --short` and make sure you are in the standing `main` worktree.
 `bin/ship` refuses to run from another branch because it builds the current
