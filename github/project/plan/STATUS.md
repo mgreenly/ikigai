@@ -14,3 +14,4 @@ matches only phase lines.
 - Phase 04 ✅ realizes R-EEWI-J569, R-EHCB-AONN, R-EIK7-OGEC, R-EJS4-2851, R-EL00-FZVQ, R-EM7W-TRMF, R-ENFT-7JD4 — the MCP tool surface (all verbs + health + reflection + provenance)
 - Phase 05 ✅ realizes R-EPVL-Z2UI, R-ER3I-CUL7, R-ETJB-4E2L — the loopback GET /pr twin for scripts
 - Phase 06 ✅ realizes R-EVZ3-VXJZ, R-EX70-9PAO, R-EYEW-NH1D — the landing page and nginx fragment
+- Phase 07 ⬜ realizes R-7NJI-UTHM, R-7ORF-8L8B, R-7PZB-MCZ0 — upgrade the landing page to the canonical suite layout

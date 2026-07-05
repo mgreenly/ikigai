@@ -63,9 +63,10 @@ switches which GitHub account or org is reached.
   `reflection`).
 - **Give `scripts` one proven loopback path** — a loopback-only HTTP route that
   returns a pull request, the deterministic twin of the PR-read tool.
-- **Serve a minimal human landing page** — service name and running version, on
-  the suite design system, gated by the dashboard browser session. Nothing
-  interactive.
+- **Serve the canonical suite landing page** — the same non-interactive landing
+  layout every other service ships (a service eyebrow, a one-line description, and
+  a service / version / API panel), on the suite design system, gated by the
+  dashboard browser session. No GitHub data, nothing interactive.
 
 It deliberately does **nothing else** in v1. In particular it does not: receive
 GitHub webhooks (the `webhooks` service owns inbound ingress); publish or consume
@@ -112,9 +113,10 @@ Promised values the design must honor verbatim and never re-declare:
 - **`health` proves the connector really works** — a successful `health` means the
   app private key, app id, and org installation are all correct and GitHub
   actually authenticated the app, not merely that the process started.
-- **A logged-in human sees a real landing page** — opening `/srv/github/` in a
-  browser shows the service name and running version on the suite design system;
-  a browser with no dashboard session is refused.
+- **A logged-in human sees the canonical landing page** — opening `/srv/github/`
+  in a browser shows the same suite landing layout the other services render (the
+  service name, running version, and API on the suite design system); a browser
+  with no dashboard session is refused.
 
 ## Success criteria (outcomes)
 

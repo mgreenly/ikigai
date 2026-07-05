@@ -12,10 +12,13 @@ Verification ids change.
 - D3 → `project/design/D03.md` — The typed GitHub REST v3 client — owns `R-DVE4-ETB5`, `R-DWM0-SL1U`, `R-DXTX-6CSJ`, `R-DZ1T-K4J8`, `R-E09P-XW9X`, `R-E1HM-BO0M`, `R-E2PI-PFRB`, `R-E3XF-37I0`, `R-E55B-GZ8P`, `R-E6D7-UQZE`, `R-E7L4-8IQ3`, `R-EA0X-027H`, `R-EB8T-DTY6`, `R-ECGP-RLOV`, `R-D0IM-VQ7H`
 - D4 → `project/design/D04.md` — The MCP tool surface — owns `R-EEWI-J569`, `R-EHCB-AONN`, `R-EIK7-OGEC`, `R-EJS4-2851`, `R-EL00-FZVQ`, `R-EM7W-TRMF`, `R-ENFT-7JD4`
 - D5 → `project/design/D05.md` — The loopback `GET /pr` twin for scripts — owns `R-EPVL-Z2UI`, `R-ER3I-CUL7`, `R-ETJB-4E2L`
-- D6 → `project/design/D06.md` — The landing page and nginx fragment — owns `R-EVZ3-VXJZ`, `R-EX70-9PAO`, `R-EYEW-NH1D`
+- D6 → `project/design/D06.md` — The landing page and nginx fragment — owns `R-EVZ3-VXJZ`, `R-EX70-9PAO`, `R-EYEW-NH1D`, `R-7NJI-UTHM`, `R-7ORF-8L8B`, `R-7PZB-MCZ0`
 
 ## Verification ids → Decision
 
+- R-7NJI-UTHM → D6 — `project/design/D06.md`
+- R-7ORF-8L8B → D6 — `project/design/D06.md`
+- R-7PZB-MCZ0 → D6 — `project/design/D06.md`
 - R-D0IM-VQ7H → D3 — `project/design/D03.md`
 - R-DLMX-CNDL → D2 — `project/design/D02.md`
 - R-DMUT-QF4A → D2 — `project/design/D02.md`
