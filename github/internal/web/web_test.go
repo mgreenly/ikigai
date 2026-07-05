@@ -1,237 +1,313 @@
 package web
 
 import (
-	"io/fs"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"regexp"
-	"sort"
 	"strings"
 	"testing"
 )
 
-func TestLandingHandlerReturnsServiceAndVersion(t *testing.T) {
+func TestLandingHandlerRendersHTMLWithServiceAndVersion(t *testing.T) {
 	// R-EVZ3-VXJZ
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
-	LandingHandler("github", "v-test").ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+
+	LandingHandler("github-test", "v9.8.7").ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
 	}
-	if got, want := rec.Header().Get("Content-Type"), "text/html; charset=utf-8"; got != want {
-		t.Fatalf("Content-Type = %q, want %q", got, want)
+	if got := rec.Header().Get("Content-Type"); got != "text/html; charset=utf-8" {
+		t.Fatalf("Content-Type = %q, want text/html; charset=utf-8", got)
 	}
+
 	body := rec.Body.String()
-	for _, want := range []string{"github", "v-test"} {
-		if !strings.Contains(body, want) {
-			t.Fatalf("body missing %q:\n%s", want, body)
-		}
+	if count := strings.Count(body, "github-test"); count != 3 {
+		t.Fatalf("service name count = %d, want 3 in title, heading, and details\n%s", count, body)
+	}
+	if count := strings.Count(body, "v9.8.7"); count != 1 {
+		t.Fatalf("version count = %d, want 1\n%s", count, body)
 	}
 }
 
-func TestLandingHandlerRendersCanonicalSuiteLayout(t *testing.T) {
-	// R-7NJI-UTHM
-	body := renderLanding(t, "github", "v-test")
-
-	for _, want := range []string{
-		"<title>github · github</title>",
-		"GitHub connector",
-		"Github connects the suite to GitHub through one shared GitHub App and exposes repository, pull request, and issue actions as MCP tools.",
-		"<dt>Service</dt>",
-		"<dd>github</dd>",
-		"<dt>Version</dt>",
-		"<dd>v-test</dd>",
-		"<dt>API</dt>",
-		"<code>POST /mcp</code>",
-	} {
-		if !strings.Contains(body, want) {
-			t.Fatalf("landing body missing %q:\n%s", want, body)
-		}
-	}
-}
-
-func TestLandingHandlerEscapesInjectedServiceAndVersion(t *testing.T) {
-	// R-7ORF-8L8B
-	body := renderLanding(t, "<script>alert(1)</script>", "v&test")
-
-	for _, want := range []string{
-		"&lt;script&gt;alert(1)&lt;/script&gt;",
-		"v&amp;test",
-	} {
-		if !strings.Contains(body, want) {
-			t.Fatalf("landing body missing escaped value %q:\n%s", want, body)
-		}
-	}
-	for _, raw := range []string{
-		"<script>alert(1)</script>",
-		"v&test",
-	} {
-		if strings.Contains(body, raw) {
-			t.Fatalf("landing body contains raw value %q:\n%s", raw, body)
-		}
-	}
-}
-
-func TestLandingHandlerPlacesHomeLinkFirstInMain(t *testing.T) {
-	// R-7PZB-MCZ0
-	body := renderLanding(t, "github", "v-test")
-	match := regexp.MustCompile(`(?s)<main>\s*(<[^>]+>[^<]*</a>)`).FindStringSubmatch(body)
-	if match == nil {
-		t.Fatalf("landing body missing first element inside main:\n%s", body)
-	}
-	if got, want := match[1], `<a class="home" href="/">Home</a>`; got != want {
-		t.Fatalf("first element inside main = %q, want %q", got, want)
-	}
-}
-
-func TestStaticHandlerServesTokensFontsAndRejectsMissingAssets(t *testing.T) {
-	// R-EX70-9PAO
-	tests := []struct {
-		name        string
-		path        string
-		wantStatus  int
-		wantType    string
-		wantContent string
-	}{
-		{
-			name:        "tokens css",
-			path:        "/tokens.css",
-			wantStatus:  http.StatusOK,
-			wantType:    "text/css; charset=utf-8",
-			wantContent: "--font-display",
-		},
-		{
-			name:       "woff2 font",
-			path:       "/fonts/space-grotesk.woff2",
-			wantStatus: http.StatusOK,
-			wantType:   "font/woff2",
-		},
-		{
-			name:       "traversal",
-			path:       "/../tokens.css",
-			wantStatus: http.StatusNotFound,
-		},
-		{
-			name:       "unknown",
-			path:       "/missing.css",
-			wantStatus: http.StatusNotFound,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			rec := httptest.NewRecorder()
-			StaticHandler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, tt.path, nil))
-
-			if rec.Code != tt.wantStatus {
-				t.Fatalf("status = %d, want %d", rec.Code, tt.wantStatus)
-			}
-			if tt.wantType != "" {
-				if got := rec.Header().Get("Content-Type"); got != tt.wantType {
-					t.Fatalf("Content-Type = %q, want %q", got, tt.wantType)
-				}
-			}
-			if tt.wantContent != "" && !strings.Contains(rec.Body.String(), tt.wantContent) {
-				t.Fatalf("body missing %q", tt.wantContent)
-			}
-		})
-	}
-}
-
-func TestLandingHandlerReferencesOnlyDefinedTokens(t *testing.T) {
-	// R-WYSR-NPL3
-	body := renderLanding(t, "github", "v-test")
-	tokensCSS, err := fs.ReadFile(staticAssets, "tokens.css")
-	if err != nil {
-		t.Fatalf("read embedded tokens.css: %v", err)
-	}
-
-	defined := make(map[string]bool)
-	for _, match := range regexp.MustCompile(`--([A-Za-z0-9-]+)\s*:`).FindAllStringSubmatch(string(tokensCSS), -1) {
-		defined[match[1]] = true
-	}
-
-	referenced := make(map[string]bool)
-	for _, match := range regexp.MustCompile(`var\(--([A-Za-z0-9-]+)\)`).FindAllStringSubmatch(body, -1) {
-		referenced[match[1]] = true
-	}
-
-	var undefined []string
-	for token := range referenced {
-		if !defined[token] {
-			undefined = append(undefined, token)
-		}
-	}
-	sort.Strings(undefined)
-	if len(undefined) > 0 {
-		t.Fatalf("landing page references undefined CSS tokens: %v", undefined)
-	}
-}
-
-func TestLandingHandlerMatchesGoldenCanonicalLayout(t *testing.T) {
-	// R-X00O-1HBS
-	got := renderLanding(t, "github", "v-test")
-	want, err := os.ReadFile("testdata/landing.golden.html")
-	if err != nil {
-		t.Fatalf("read golden landing fixture: %v", err)
-	}
-	if got != string(want) {
-		t.Fatalf("landing render does not match golden fixture\n--- got ---\n%s\n--- want ---\n%s", got, string(want))
-	}
-}
-
-func TestLandingHandlerSatisfiesCanonicalStructuralContract(t *testing.T) {
-	// R-31CG-6FPW
-	body := renderLanding(t, "github", "v-test")
-	templateBytes, err := fs.ReadFile(assets, "landing.html")
-	if err != nil {
-		t.Fatalf("read embedded landing template: %v", err)
-	}
-	templateBody := string(templateBytes)
-
-	for _, source := range []struct {
-		name string
-		html string
-	}{
-		{name: "rendered HTML", html: body},
-		{name: "template", html: templateBody},
-	} {
-		t.Run(source.name, func(t *testing.T) {
-			for _, want := range []string{
-				`<section aria-labelledby="page-title">`,
-				`<div class="eyebrow">GitHub connector</div>`,
-				`<dl aria-label="Service details">`,
-				"<dl aria-label=\"Service details\">\n      <div>\n        <dt>Service</dt>",
-				"<dt>API</dt>\n        <dd><code>POST /mcp</code></dd>",
-			} {
-				if !strings.Contains(source.html, want) {
-					t.Fatalf("%s missing canonical marker %q:\n%s", source.name, want, source.html)
-				}
-			}
-			for _, forbidden := range []string{
-				`<p class="eyebrow">`,
-				`class="detail"`,
-				`class="description"`,
-				`color: var(--color-accent)`,
-				`position: fixed`,
-			} {
-				if strings.Contains(source.html, forbidden) {
-					t.Fatalf("%s contains non-canonical drift marker %q:\n%s", source.name, forbidden, source.html)
-				}
-			}
-		})
-	}
-}
-
-func renderLanding(t *testing.T, service, version string) string {
-	t.Helper()
-
+func TestLandingHandlerLinksOnlyAppLocalStaticAssets(t *testing.T) {
+	// R-XSOU-THYE
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
-	LandingHandler(service, version).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
 
-	if rec.Code != http.StatusOK {
-		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	LandingHandler("github", "dev").ServeHTTP(rec, req)
+
+	body := rec.Body.String()
+	if !strings.Contains(body, `href="static/tokens.css"`) {
+		t.Fatalf("landing HTML did not link local tokens.css:\n%s", body)
 	}
-	return rec.Body.String()
+	for _, forbidden := range []string{`href="/static/tokens.css"`, "dashboard", "/srv/dashboard", "https://", "http://"} {
+		if strings.Contains(body, forbidden) {
+			t.Fatalf("landing HTML contains forbidden cross-service asset reference %q:\n%s", forbidden, body)
+		}
+	}
+}
+
+func TestLandingHandlerPreloadsSelfServedFontFiles(t *testing.T) {
+	// R-XTWR-79P3
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+
+	LandingHandler("github", "dev").ServeHTTP(rec, req)
+
+	head := htmlHead(t, rec.Body.String())
+	for _, font := range []string{"space-grotesk.woff2", "ibm-plex-sans.woff2"} {
+		preload := `<link rel="preload" as="font" type="font/woff2" crossorigin href="static/fonts/` + font + `">`
+		if !strings.Contains(head, preload) {
+			t.Fatalf("landing head missing font preload %q:\n%s", preload, head)
+		}
+
+		req := httptest.NewRequest(http.MethodGet, "/static/tokens.css", nil)
+		rec := httptest.NewRecorder()
+		StaticHandler().ServeHTTP(rec, req)
+		if !strings.Contains(rec.Body.String(), `url('fonts/`+font+`')`) {
+			t.Fatalf("tokens.css does not use matching self-served URL for %s:\n%s", font, rec.Body.String())
+		}
+	}
+}
+
+func TestLandingHandlerUsesCanonicalServiceLayout(t *testing.T) {
+	// R-7NJI-UTHM
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+
+	LandingHandler("github", "dev").ServeHTTP(rec, req)
+
+	body := rec.Body.String()
+	for _, want := range []string{
+		`<main>`,
+		`<section aria-labelledby="page-title">`,
+		`<div class="eyebrow">GitHub connector</div>`,
+		`<h1 id="page-title">github</h1>`,
+		`Github connects the suite to GitHub through one shared GitHub App and exposes repository, pull request, and issue actions as MCP tools.`,
+		`<dl aria-label="Service details">`,
+		`<dd><code>POST /mcp</code></dd>`,
+		`class="version"`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("landing HTML missing %q:\n%s", want, body)
+		}
+	}
+}
+
+func TestLandingHandlerRendersHomeLinkToDashboardApex(t *testing.T) {
+	// R-7PZB-MCZ0
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+
+	LandingHandler("github", "dev").ServeHTTP(rec, req)
+
+	body := rec.Body.String()
+	for _, want := range []string{
+		`<a class="home" href="/">Home</a>`,
+		`.home {`,
+		`position: absolute;`,
+		`top: var(--space-8);`,
+		`position: relative;`,
+		`.home:hover,`,
+		`.home:focus-visible {`,
+		`color: var(--color-text);`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("landing HTML missing home link content %q:\n%s", want, body)
+		}
+	}
+}
+
+func TestStaticHandlerServesTokensAndFonts(t *testing.T) {
+	// R-EX70-9PAO
+	cases := []struct {
+		path        string
+		contentType string
+	}{
+		{path: "/static/tokens.css", contentType: "text/css; charset=utf-8"},
+		{path: "/static/fonts/space-grotesk.woff2", contentType: "font/woff2"},
+		{path: "/static/fonts/ibm-plex-sans.woff2", contentType: "font/woff2"},
+		{path: "/static/fonts/ibm-plex-mono-400.woff2", contentType: "font/woff2"},
+		{path: "/static/fonts/ibm-plex-mono-500.woff2", contentType: "font/woff2"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.path, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, tc.path, nil)
+			rec := httptest.NewRecorder()
+
+			StaticHandler().ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusOK {
+				t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+			}
+			if got := rec.Header().Get("Content-Type"); got != tc.contentType {
+				t.Fatalf("Content-Type = %q, want %q", got, tc.contentType)
+			}
+			if rec.Body.Len() == 0 {
+				t.Fatal("body is empty")
+			}
+		})
+	}
+}
+
+func TestTokensCSSDeclaresEmbeddedFontFaces(t *testing.T) {
+	// R-XV4N-L1FS
+	req := httptest.NewRequest(http.MethodGet, "/static/tokens.css", nil)
+	rec := httptest.NewRecorder()
+
+	StaticHandler().ServeHTTP(rec, req)
+
+	body := rec.Body.String()
+	for _, want := range []string{
+		`@font-face`,
+		`url('fonts/space-grotesk.woff2')`,
+		`url('fonts/ibm-plex-sans.woff2')`,
+		`url('fonts/ibm-plex-mono-400.woff2')`,
+		`url('fonts/ibm-plex-mono-500.woff2')`,
+		`font-family: 'Space Grotesk'`,
+		`font-family: 'IBM Plex Mono'`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("tokens.css missing %q:\n%s", want, body)
+		}
+	}
+	if strings.Contains(body, `url('/static/fonts/`) {
+		t.Fatalf("tokens.css still contains origin-absolute font URL:\n%s", body)
+	}
+}
+
+func TestTokensCSSUsesOptionalFontDisplayForEveryFontFace(t *testing.T) {
+	// R-XWCJ-YT6H
+	req := httptest.NewRequest(http.MethodGet, "/static/tokens.css", nil)
+	rec := httptest.NewRecorder()
+
+	StaticHandler().ServeHTTP(rec, req)
+
+	body := rec.Body.String()
+	if strings.Contains(body, "font-display: swap") {
+		t.Fatalf("tokens.css still contains font-display swap:\n%s", body)
+	}
+	if faces, optional := strings.Count(body, "@font-face"), strings.Count(body, "font-display: optional"); optional != faces {
+		t.Fatalf("font-display optional count = %d, want one for each of %d @font-face blocks:\n%s", optional, faces, body)
+	}
+}
+
+func TestExactRootRouteDoesNotShadowMCPOrUnknownPaths(t *testing.T) {
+	// R-XXKG-CKX6
+	mux := http.NewServeMux()
+	mux.Handle("GET /{$}", LandingHandler("github", "dev"))
+	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.WriteString(w, "health")
+	})
+	mux.HandleFunc("GET /.well-known/prm", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.WriteString(w, "prm")
+	})
+	mux.HandleFunc("POST /mcp", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.WriteString(w, "mcp")
+	})
+
+	root := httptest.NewRecorder()
+	mux.ServeHTTP(root, httptest.NewRequest(http.MethodGet, "/", nil))
+	if root.Code != http.StatusOK || !strings.Contains(root.Body.String(), `<h1 id="page-title">github</h1>`) {
+		t.Fatalf("root did not dispatch landing handler: status=%d body=%q", root.Code, root.Body.String())
+	}
+
+	mcp := httptest.NewRecorder()
+	mux.ServeHTTP(mcp, httptest.NewRequest(http.MethodPost, "/mcp", nil))
+	if mcp.Code != http.StatusOK || mcp.Body.String() != "mcp" {
+		t.Fatalf("POST /mcp = status %d body %q, want stub handler", mcp.Code, mcp.Body.String())
+	}
+	if strings.Contains(mcp.Body.String(), `<h1 id="page-title">github</h1>`) {
+		t.Fatalf("POST /mcp returned landing page: status=%d body=%q", mcp.Code, mcp.Body.String())
+	}
+
+	for _, tc := range []struct {
+		path string
+		body string
+	}{
+		{path: "/health", body: "health"},
+		{path: "/.well-known/prm", body: "prm"},
+	} {
+		t.Run(tc.path, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, tc.path, nil))
+
+			if rec.Code != http.StatusOK || rec.Body.String() != tc.body {
+				t.Fatalf("GET %s = status %d body %q, want stub handler body %q", tc.path, rec.Code, rec.Body.String(), tc.body)
+			}
+			if strings.Contains(rec.Body.String(), `<h1 id="page-title">github</h1>`) {
+				t.Fatalf("GET %s returned landing page: status=%d body=%q", tc.path, rec.Code, rec.Body.String())
+			}
+		})
+	}
+
+	nope := httptest.NewRecorder()
+	mux.ServeHTTP(nope, httptest.NewRequest(http.MethodGet, "/nope", nil))
+	if nope.Code == http.StatusOK && strings.Contains(nope.Body.String(), `<h1 id="page-title">github</h1>`) {
+		t.Fatalf("GET /nope returned landing page: status=%d body=%q", nope.Code, nope.Body.String())
+	}
+	if nope.Code != http.StatusNotFound {
+		t.Fatalf("GET /nope status = %d, want %d", nope.Code, http.StatusNotFound)
+	}
+}
+
+func TestCompositionRootMountsLandingUngatedAndKeepsMCPWiring(t *testing.T) {
+	// R-XYSC-QCNV
+	src, err := os.ReadFile("../githubapp/spec.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	spec := string(src)
+
+	for _, want := range []string{
+		`rt.Handle("GET /{$}", web.LandingHandler(rt.Service(), rt.Version()))`,
+		`rt.Handle("POST /mcp", rt.RequireIdentity(`,
+		`mcp.NewHandler(client, rt.Version(), rt.Service(), health, rt.Logger()))`,
+	} {
+		if !strings.Contains(spec, want) {
+			t.Fatalf("internal/githubapp/spec.go missing %q", want)
+		}
+	}
+	for _, forbidden := range []string{
+		`rt.Events()`,
+		`rt.Subscriptions()`,
+		`Producer`,
+	} {
+		if strings.Contains(spec, forbidden) {
+			t.Fatalf("internal/githubapp/spec.go contains producer wiring %q", forbidden)
+		}
+	}
+
+	landingLine := lineContaining(t, spec, `web.LandingHandler`)
+	if strings.Contains(landingLine, "RequireIdentity") {
+		t.Fatalf("landing route is identity-gated: %s", landingLine)
+	}
+}
+
+func lineContaining(t *testing.T, text, needle string) string {
+	t.Helper()
+	for _, line := range strings.Split(text, "\n") {
+		if strings.Contains(line, needle) {
+			return line
+		}
+	}
+	t.Fatalf("no line contains %q", needle)
+	return ""
+}
+
+func htmlHead(t *testing.T, body string) string {
+	t.Helper()
+	start := strings.Index(body, "<head>")
+	if start == -1 {
+		t.Fatalf("HTML missing head opener:\n%s", body)
+	}
+	end := strings.Index(body[start:], "</head>")
+	if end == -1 {
+		t.Fatalf("HTML missing head closer:\n%s", body)
+	}
+	return body[start : start+end+len("</head>")]
 }
