@@ -15,6 +15,6 @@ grep matches only phase lines.
 - Phase 05 ✅ realizes R-CIUC-KW66, R-CK28-YNWV, R-CLA5-CFNK, R-CMI1-Q7E9 — setup provisions the DEFAULT app without a locations fragment
 - Phase 06 ✅ realizes R-CNPY-3Z4Y (re-realizes R-MSOP-5MDA, R-MTWL-JE3Z) — fix: deploy reads the apex domain from the environment, not the manifest
 - Phase 07 ✅ realizes R-AQMT-9M04 (R-ARUP-NDQT live-box, operator-verified out-of-loop) — init-box creates the `web` group and adds nginx to it
-- Phase 08 ⬜ realizes R-AT2M-15HI, R-AUAI-EX87 — setup provisions the served `www` tree as `<app>:web`, setgid, via `ensureWWWPerms`
+- Phase 08 ✅ realizes R-AT2M-15HI, R-AUAI-EX87 — setup provisions the served `www` tree as `<app>:web`, setgid, via `ensureWWWPerms`
 - Phase 09 ⬜ realizes R-AVIE-SOYW, R-AWQB-6GPL (R-AXY7-K8GA live-box, operator-verified out-of-loop) — deploy re-asserts the served-tree `web` invariant after the state chown
 - Phase 10 ⬜ realizes R-AZ63-Y06Z (R-B0E0-BRXO live-box, operator-verified out-of-loop) — restore re-asserts the served-tree `web` invariant after replacing state
