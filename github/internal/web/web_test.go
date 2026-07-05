@@ -3,6 +3,7 @@ package web
 import (
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -23,6 +24,61 @@ func TestLandingHandlerReturnsServiceAndVersion(t *testing.T) {
 		if !strings.Contains(body, want) {
 			t.Fatalf("body missing %q:\n%s", want, body)
 		}
+	}
+}
+
+func TestLandingHandlerRendersCanonicalSuiteLayout(t *testing.T) {
+	// R-7NJI-UTHM
+	body := renderLanding(t, "github", "v-test")
+
+	for _, want := range []string{
+		"<title>github · github</title>",
+		"GitHub connector",
+		"Github connects the suite to GitHub through one shared GitHub App and exposes repository, pull request, and issue actions as MCP tools.",
+		"<dt>Service</dt>",
+		"<dd>github</dd>",
+		"<dt>Version</dt>",
+		"<dd>v-test</dd>",
+		"<dt>API</dt>",
+		"<dd>POST /mcp</dd>",
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("landing body missing %q:\n%s", want, body)
+		}
+	}
+}
+
+func TestLandingHandlerEscapesInjectedServiceAndVersion(t *testing.T) {
+	// R-7ORF-8L8B
+	body := renderLanding(t, "<script>alert(1)</script>", "v&test")
+
+	for _, want := range []string{
+		"&lt;script&gt;alert(1)&lt;/script&gt;",
+		"v&amp;test",
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("landing body missing escaped value %q:\n%s", want, body)
+		}
+	}
+	for _, raw := range []string{
+		"<script>alert(1)</script>",
+		"v&test",
+	} {
+		if strings.Contains(body, raw) {
+			t.Fatalf("landing body contains raw value %q:\n%s", raw, body)
+		}
+	}
+}
+
+func TestLandingHandlerPlacesHomeLinkFirstInMain(t *testing.T) {
+	// R-7PZB-MCZ0
+	body := renderLanding(t, "github", "v-test")
+	match := regexp.MustCompile(`(?s)<main>\s*(<[^>]+>[^<]*</a>)`).FindStringSubmatch(body)
+	if match == nil {
+		t.Fatalf("landing body missing first element inside main:\n%s", body)
+	}
+	if got, want := match[1], `<a class="home" href="/">Home</a>`; got != want {
+		t.Fatalf("first element inside main = %q, want %q", got, want)
 	}
 }
 
@@ -78,4 +134,16 @@ func TestStaticHandlerServesTokensFontsAndRejectsMissingAssets(t *testing.T) {
 			}
 		})
 	}
+}
+
+func renderLanding(t *testing.T, service, version string) string {
+	t.Helper()
+
+	rec := httptest.NewRecorder()
+	LandingHandler(service, version).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	return rec.Body.String()
 }

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{.Service}}</title>
+  <title>{{.Service}} · github</title>
   <link rel="preload" as="font" type="font/woff2" crossorigin href="static/fonts/space-grotesk.woff2">
   <link rel="preload" as="font" type="font/woff2" crossorigin href="static/fonts/ibm-plex-sans.woff2">
   <link rel="stylesheet" href="static/tokens.css">
@@ -14,48 +14,132 @@
       color: var(--color-text);
       background: var(--color-bg);
       font-family: var(--font-sans);
-      display: grid;
-      place-items: center;
+      display: flex;
+      justify-content: center;
     }
 
     main {
-      width: min(100% - 48px, 680px);
+      width: min(100% - 48px, 880px);
+      padding: 64px 0;
+    }
+
+    .home {
+      display: inline-flex;
+      align-items: center;
+      min-height: 36px;
+      color: var(--color-text-muted);
+      font-size: .95rem;
+      text-decoration: none;
+    }
+
+    .home:hover {
+      color: var(--color-text);
+    }
+
+    .eyebrow {
+      margin: 88px 0 18px;
+      color: var(--color-accent);
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      font-weight: 500;
+      letter-spacing: .08em;
+      text-transform: uppercase;
     }
 
     h1 {
       margin: 0;
       font-family: var(--font-display);
-      font-size: clamp(3rem, 9vw, 6rem);
-      line-height: .9;
+      font-size: clamp(3.5rem, 10vw, 7rem);
+      line-height: .88;
       letter-spacing: 0;
     }
 
+    .description {
+      max-width: 760px;
+      margin: 28px 0 0;
+      color: var(--color-text-muted);
+      font-size: clamp(1.1rem, 2.6vw, 1.35rem);
+      line-height: 1.55;
+    }
+
     dl {
-      margin: 32px 0 0;
+      margin: 56px 0 0;
       display: grid;
-      grid-template-columns: max-content 1fr;
-      gap: 10px 20px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      border-top: 1px solid var(--color-border);
+      border-bottom: 1px solid var(--color-border);
       font-size: 1rem;
     }
 
+    .detail {
+      padding: 22px 20px;
+      border-left: 1px solid var(--color-border);
+    }
+
+    .detail:first-child {
+      border-left: 0;
+      padding-left: 0;
+    }
+
     dt {
-      color: var(--color-muted);
+      color: var(--color-text-muted);
+      font-size: .78rem;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
     }
 
     dd {
-      margin: 0;
+      margin: 8px 0 0;
       font-family: var(--font-mono);
+      overflow-wrap: anywhere;
+    }
+
+    @media (max-width: 640px) {
+      main {
+        padding: 36px 0;
+      }
+
+      .eyebrow {
+        margin-top: 56px;
+      }
+
+      dl {
+        grid-template-columns: 1fr;
+      }
+
+      .detail,
+      .detail:first-child {
+        padding: 18px 0;
+        border-left: 0;
+        border-top: 1px solid var(--color-border);
+      }
+
+      .detail:first-child {
+        border-top: 0;
+      }
     }
   </style>
 </head>
 <body>
   <main>
-    <h1>{{.Service}}</h1>
+    <a class="home" href="/">Home</a>
+    <p class="eyebrow">GitHub connector</p>
+    <h1>github</h1>
+    <p class="description">Github connects the suite to GitHub through one shared GitHub App and exposes repository, pull request, and issue actions as MCP tools.</p>
     <dl>
-      <dt>Service</dt>
-      <dd>{{.Service}}</dd>
-      <dt>Version</dt>
-      <dd>{{.Version}}</dd>
+      <div class="detail">
+        <dt>Service</dt>
+        <dd>{{.Service}}</dd>
+      </div>
+      <div class="detail">
+        <dt>Version</dt>
+        <dd>{{.Version}}</dd>
+      </div>
+      <div class="detail">
+        <dt>API</dt>
+        <dd>POST /mcp</dd>
+      </div>
     </dl>
   </main>
 </body>
