@@ -181,6 +181,49 @@ func TestLandingHandlerMatchesGoldenCanonicalLayout(t *testing.T) {
 	}
 }
 
+func TestLandingHandlerSatisfiesCanonicalStructuralContract(t *testing.T) {
+	// R-31CG-6FPW
+	body := renderLanding(t, "github", "v-test")
+	templateBytes, err := fs.ReadFile(assets, "landing.html")
+	if err != nil {
+		t.Fatalf("read embedded landing template: %v", err)
+	}
+	templateBody := string(templateBytes)
+
+	for _, source := range []struct {
+		name string
+		html string
+	}{
+		{name: "rendered HTML", html: body},
+		{name: "template", html: templateBody},
+	} {
+		t.Run(source.name, func(t *testing.T) {
+			for _, want := range []string{
+				`<section aria-labelledby="page-title">`,
+				`<div class="eyebrow">GitHub connector</div>`,
+				`<dl aria-label="Service details">`,
+				"<dl aria-label=\"Service details\">\n      <div>\n        <dt>Service</dt>",
+				"<dt>API</dt>\n        <dd><code>POST /mcp</code></dd>",
+			} {
+				if !strings.Contains(source.html, want) {
+					t.Fatalf("%s missing canonical marker %q:\n%s", source.name, want, source.html)
+				}
+			}
+			for _, forbidden := range []string{
+				`<p class="eyebrow">`,
+				`class="detail"`,
+				`class="description"`,
+				`color: var(--color-accent)`,
+				`position: fixed`,
+			} {
+				if strings.Contains(source.html, forbidden) {
+					t.Fatalf("%s contains non-canonical drift marker %q:\n%s", source.name, forbidden, source.html)
+				}
+			}
+		})
+	}
+}
+
 func renderLanding(t *testing.T, service, version string) string {
 	t.Helper()
 

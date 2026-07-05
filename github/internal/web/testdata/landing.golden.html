@@ -14,20 +14,24 @@
       color: var(--color-text);
       background: var(--color-bg);
       font-family: var(--font-body);
+      font-size: var(--text-body-size);
+      line-height: var(--text-body-lh);
       display: flex;
       justify-content: center;
     }
 
     main {
-      width: min(100% - (var(--layout-gutter) * 2), 880px);
+      position: relative;
+      width: min(100% - (var(--layout-gutter) * 2), var(--layout-max-width));
+      min-height: 100vh;
       padding: var(--space-16) 0;
+      box-sizing: border-box;
     }
 
     .home {
-      position: fixed;
-      top: var(--space-6);
-      left: var(--space-6);
-      z-index: var(--z-sticky);
+      position: absolute;
+      top: var(--space-8);
+      left: 0;
       display: inline-flex;
       align-items: center;
       min-height: var(--control-h-md);
@@ -42,9 +46,13 @@
       color: var(--color-text);
     }
 
+    section {
+      padding-top: var(--space-16);
+    }
+
     .eyebrow {
-      margin: var(--space-16) 0 var(--space-6);
-      color: var(--color-accent);
+      margin: 0 0 var(--space-6);
+      color: var(--color-text-muted);
       font-family: var(--font-mono);
       font-size: var(--text-label-size);
       font-weight: var(--text-label-weight);
@@ -56,13 +64,13 @@
     h1 {
       margin: 0;
       font-family: var(--font-display);
-      font-size: clamp(var(--text-display-size), 10vw, 112px);
+      font-size: var(--text-display-size);
       font-weight: var(--text-display-weight);
-      line-height: .88;
+      line-height: var(--text-display-lh);
       letter-spacing: 0;
     }
 
-    .description {
+    section p {
       max-width: 760px;
       margin: var(--space-8) 0 0;
       color: var(--color-text-muted);
@@ -81,12 +89,12 @@
       line-height: var(--text-body-lh);
     }
 
-    .detail {
+    dl > div {
       padding: var(--space-6);
       border-left: var(--border-width) solid var(--color-border);
     }
 
-    .detail:first-child {
+    dl > div:first-child {
       border-left: 0;
       padding-left: 0;
     }
@@ -112,31 +120,26 @@
 
     @media (max-width: 640px) {
       main {
-        width: min(100% - (var(--space-6) * 2), 880px);
+        width: min(100% - (var(--space-6) * 2), var(--layout-max-width));
         padding: var(--space-12) 0;
       }
 
       .home {
-        top: var(--space-4);
-        left: var(--space-4);
-      }
-
-      .eyebrow {
-        margin-top: var(--space-16);
+        top: var(--space-6);
       }
 
       dl {
         grid-template-columns: 1fr;
       }
 
-      .detail,
-      .detail:first-child {
+      dl > div,
+      dl > div:first-child {
         padding: var(--space-6) 0;
         border-left: 0;
         border-top: var(--border-width) solid var(--color-border);
       }
 
-      .detail:first-child {
+      dl > div:first-child {
         border-top: 0;
       }
     }
@@ -145,19 +148,21 @@
 <body>
   <main>
     <a class="home" href="/">Home</a>
-    <p class="eyebrow">GitHub connector</p>
-    <h1>github</h1>
-    <p class="description">Github connects the suite to GitHub through one shared GitHub App and exposes repository, pull request, and issue actions as MCP tools.</p>
-    <dl>
-      <div class="detail">
+    <section aria-labelledby="page-title">
+      <div class="eyebrow">GitHub connector</div>
+      <h1 id="page-title">github</h1>
+      <p>Github connects the suite to GitHub through one shared GitHub App and exposes repository, pull request, and issue actions as MCP tools.</p>
+    </section>
+    <dl aria-label="Service details">
+      <div>
         <dt>Service</dt>
         <dd>github</dd>
       </div>
-      <div class="detail">
+      <div>
         <dt>Version</dt>
         <dd>v-test</dd>
       </div>
-      <div class="detail">
+      <div>
         <dt>API</dt>
         <dd><code>POST /mcp</code></dd>
       </div>
