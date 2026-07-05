@@ -160,3 +160,26 @@ func TestLandingInstallInstructionsRemain(t *testing.T) {
 		}
 	}
 }
+
+func TestLandingTelemetryTileLinksToTelemetry(t *testing.T) {
+	body := signedInLanding(t, landingServerWithCRM(t))
+
+	// R-FWT0-UJPC
+	if !strings.Contains(body, `<a href="/telemetry" class="name telemetry-tile">Telemetry</a>`) {
+		t.Errorf("logged-in landing missing telemetry link:\n%s", body)
+	}
+}
+
+func TestLoggedOutLandingOmitsTelemetryLink(t *testing.T) {
+	srv := landingServerWithCRM(t)
+	rec := do(t, srv, "GET", "https://int.ikigenba.com/", nil)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rec.Code)
+	}
+
+	// R-FY0X-8BG1
+	if strings.Contains(rec.Body.String(), `href="/telemetry"`) {
+		t.Errorf("logged-out landing exposes telemetry link:\n%s", rec.Body.String())
+	}
+}
