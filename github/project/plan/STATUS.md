@@ -17,3 +17,4 @@ matches only phase lines.
 - Phase 07 ✅ realizes R-7NJI-UTHM, R-7ORF-8L8B, R-7PZB-MCZ0 — upgrade the landing page to the canonical suite layout
 - Phase 08 ✅ realizes R-WYSR-NPL3, R-X00O-1HBS — pin the landing page to the canonical layout (token integrity + golden render), not just its content
 - Phase 09 ✅ realizes R-31CG-6FPW, R-X00O-1HBS — realign the shipped landing.html to the true canonical layout (crm/gmail/ledger), regenerate the golden, and add an independent structural-contract check
+- Phase 10 ⬜ realizes R-EVZ3-VXJZ, R-XSOU-THYE, R-XTWR-79P3, R-7NJI-UTHM, R-7PZB-MCZ0, R-EX70-9PAO, R-XV4N-L1FS, R-XWCJ-YT6H, R-XXKG-CKX6, R-XYSC-QCNV — clone the canonical crm landing.html verbatim (three text fields aside) and mirror crm's web test set; drop the bespoke golden/structural/token/escaping guards and the golden fixture
