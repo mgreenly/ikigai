@@ -1,9 +1,12 @@
 package web
 
 import (
+	"io/fs"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"regexp"
+	"sort"
 	"strings"
 	"testing"
 )
@@ -40,7 +43,7 @@ func TestLandingHandlerRendersCanonicalSuiteLayout(t *testing.T) {
 		"<dt>Version</dt>",
 		"<dd>v-test</dd>",
 		"<dt>API</dt>",
-		"<dd>POST /mcp</dd>",
+		"<code>POST /mcp</code>",
 	} {
 		if !strings.Contains(body, want) {
 			t.Fatalf("landing body missing %q:\n%s", want, body)
@@ -133,6 +136,48 @@ func TestStaticHandlerServesTokensFontsAndRejectsMissingAssets(t *testing.T) {
 				t.Fatalf("body missing %q", tt.wantContent)
 			}
 		})
+	}
+}
+
+func TestLandingHandlerReferencesOnlyDefinedTokens(t *testing.T) {
+	// R-WYSR-NPL3
+	body := renderLanding(t, "github", "v-test")
+	tokensCSS, err := fs.ReadFile(staticAssets, "tokens.css")
+	if err != nil {
+		t.Fatalf("read embedded tokens.css: %v", err)
+	}
+
+	defined := make(map[string]bool)
+	for _, match := range regexp.MustCompile(`--([A-Za-z0-9-]+)\s*:`).FindAllStringSubmatch(string(tokensCSS), -1) {
+		defined[match[1]] = true
+	}
+
+	referenced := make(map[string]bool)
+	for _, match := range regexp.MustCompile(`var\(--([A-Za-z0-9-]+)\)`).FindAllStringSubmatch(body, -1) {
+		referenced[match[1]] = true
+	}
+
+	var undefined []string
+	for token := range referenced {
+		if !defined[token] {
+			undefined = append(undefined, token)
+		}
+	}
+	sort.Strings(undefined)
+	if len(undefined) > 0 {
+		t.Fatalf("landing page references undefined CSS tokens: %v", undefined)
+	}
+}
+
+func TestLandingHandlerMatchesGoldenCanonicalLayout(t *testing.T) {
+	// R-X00O-1HBS
+	got := renderLanding(t, "github", "v-test")
+	want, err := os.ReadFile("testdata/landing.golden.html")
+	if err != nil {
+		t.Fatalf("read golden landing fixture: %v", err)
+	}
+	if got != string(want) {
+		t.Fatalf("landing render does not match golden fixture\n--- got ---\n%s\n--- want ---\n%s", got, string(want))
 	}
 }
 
