@@ -47,13 +47,20 @@ Shared facts every Decision leans on:
   `cd sites && go build ./...`, `cd sites && go vet ./...`, `cd sites && gofmt -l .`
   (no output), and `cd sites && go test ./...` all succeed with zero failures.
 - **Formatting:** `gofmt`-clean; `gofmt -l .` must print nothing.
-- **Module wiring:** `appkit`, `agentkit`, and `eventplane` are committed in-repo
+- **Module wiring:** `appkit` and `eventplane` are committed in-repo
   replace-siblings. The landing page adds **no new dependency** — it uses only the
   standard library (`net/http`, `embed`, `html/template` or `text/template`) and
   the appkit chassis. **D9** adds one further committed replace-sibling,
   `registry` (`replace registry => ../registry`), the suite's zero-dependency
   leaf `name → port` table — used at the composition root to resolve sites's own
-  port and the dropbox mirror address by name instead of by literal.
+  port and the dropbox mirror address by name instead of by literal. **D10/D11**
+  *remove* the `agentkit` replace-sibling entirely: sites was the local `agentkit`
+  module's only consumer, and the confined file-tool logic it borrowed moves into
+  the native `internal/files` package, so `require agentkit` and
+  `replace agentkit => ../agentkit` are dropped from `go.mod` and no agentkit
+  (local or remote) is imported anywhere in sites. (The orphaned repo-root
+  `agentkit/` tree is left on disk — deleting it is suite-level work outside this
+  `project/`.)
 - **The chassis owns the server.** sites is `appkit.Main(appkit.Spec{…})`:
   `App:"sites"`, `Mount:"/srv/sites/"`, `Port:registry.MustPort("sites")` (== 3004,
   resolved by name through the shared `registry` — D9, no longer a literal),

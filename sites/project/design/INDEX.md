@@ -13,9 +13,26 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - D7 → `project/design/D07.md` — A top-left Home link to the dashboard landing page — owns R-HOME-9S3W
 - D8 → `project/design/D08.md` — Self-serve the landing page's fonts and eliminate the FOUT (relative stylesheet link + `font-display: optional` + self-served `src` + `<head>` preload + session-gated nginx `/srv/sites/static/`) — owns R-629P-84O5, R-63HL-LWEU, R-64PH-ZO5J, R-65XE-DFW8, R-675A-R7MX
 - D9 → `project/design/D09.md` — Resolve sites's own port and the dropbox mirror address by name through the shared `registry` (import + startup resolve at the composition root + committed `go.mod` replace; behavior-preserving) — owns R-7K2P-QN4D, R-7L9F-XW3H, R-7M4C-BV8J, R-7N6R-TZ2Q
+- D10 → `project/design/D10.md` — `internal/files`: confined filesystem operations as native Go (ports the confined Read/Edit/Glob/Grep/Write/List/Mkdir + symlink-resolving ConfinePath; no agentkit, no JSON, no agent framing) — owns R-027Y-BQ1I, R-03FU-PHS7, R-04NR-39IW, R-05VN-H19L, R-073J-UT0A, R-08BG-8KQZ, R-09JC-MCHO, R-0AR9-048D, R-0D71-RNPR, R-0EEY-5FGG
+- D11 → `project/design/D11.md` — Rewire the MCP file tools onto `internal/files` and drop `agentkit` (delete the bridge, hand-write the four schemas, cleaner structured results, typed confinement envelope, remove the `go.mod` require+replace; surface-preserving) — owns R-0FMU-J775, R-0GUQ-WYXU, R-0I2N-AQOJ, R-0JAJ-OIF8, R-0KIG-2A5X
 
 ## Verification ids → Decision
 
+- R-027Y-BQ1I → D10 → `project/design/D10.md`
+- R-03FU-PHS7 → D10 → `project/design/D10.md`
+- R-04NR-39IW → D10 → `project/design/D10.md`
+- R-05VN-H19L → D10 → `project/design/D10.md`
+- R-073J-UT0A → D10 → `project/design/D10.md`
+- R-08BG-8KQZ → D10 → `project/design/D10.md`
+- R-09JC-MCHO → D10 → `project/design/D10.md`
+- R-0AR9-048D → D10 → `project/design/D10.md`
+- R-0D71-RNPR → D10 → `project/design/D10.md`
+- R-0EEY-5FGG → D10 → `project/design/D10.md`
+- R-0FMU-J775 → D11 → `project/design/D11.md`
+- R-0GUQ-WYXU → D11 → `project/design/D11.md`
+- R-0I2N-AQOJ → D11 → `project/design/D11.md`
+- R-0JAJ-OIF8 → D11 → `project/design/D11.md`
+- R-0KIG-2A5X → D11 → `project/design/D11.md`
 - R-ASST-3H7N → D3 → `project/design/D03.md`
 - R-ASST-5K9Q → D3 → `project/design/D03.md`
 - R-ASST-7M2S → D3 → `project/design/D03.md`
