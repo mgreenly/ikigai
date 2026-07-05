@@ -170,7 +170,6 @@ func TestSetupMaterializesInstallTreeWithPermissionsAndOwnership(t *testing.T) {
 	for _, dir := range []string{
 		l.AppDir(),
 		l.StateDir(),
-		l.WWWDir(),
 		l.CacheDir(),
 		l.LibexecDir(),
 		l.BinDir(),
@@ -187,9 +186,9 @@ func TestSetupMaterializesInstallTreeWithPermissionsAndOwnership(t *testing.T) {
 
 	assertMode(t, l.StateDir(), 0o711)
 	assertMode(t, l.DBPath(), 0o640)
-	assertMode(t, l.WWWDir(), 0o750)
-	assertMode(t, l.WWWPublicDir(), 0o750)
-	assertMode(t, l.WWWPrivateDir(), 0o750)
+	if _, err := os.Stat(l.WWWDir()); !os.IsNotExist(err) {
+		t.Fatalf("worker setup created www dir %s, want absent (err=%v)", l.WWWDir(), err)
+	}
 
 	if err := os.WriteFile(filepath.Join(l.CacheDir(), "probe"), []byte("ok"), 0o644); err != nil {
 		t.Fatalf("cache dir is not writable: %v", err)
@@ -198,12 +197,15 @@ func TestSetupMaterializesInstallTreeWithPermissionsAndOwnership(t *testing.T) {
 	wantOps := []string{
 		"chown:" + app + ":" + app + ":" + l.StateDir(),
 		"chown:" + app + ":" + app + ":" + l.DBPath(),
-		"chown:" + app + ":web:" + l.WWWDir(),
-		"ensure-group:web",
 	}
 	for _, want := range wantOps {
 		if !hasOp(sys.opSeq(), want) {
 			t.Fatalf("setup ownership ops = %v, missing %q", sys.opSeq(), want)
+		}
+	}
+	for _, op := range sys.opSeq() {
+		if op == "ensure-group:web" || strings.HasPrefix(op, "chown:"+app+":web:") || strings.HasPrefix(op, "chmod:") {
+			t.Fatalf("worker setup requested served-tree op %q; ops = %v", op, sys.opSeq())
 		}
 	}
 
@@ -216,7 +218,7 @@ func TestSetupMaterializesInstallTreeWithPermissionsAndOwnership(t *testing.T) {
 }
 
 // R-CMI1-Q7E9
-func TestSetupWorkerNoFragmentStillCreatesFragmentSymlinkAndWebGroup(t *testing.T) {
+func TestSetupWorkerNoFragmentStillCreatesFragmentSymlinkWithoutWebGroup(t *testing.T) {
 	const app = "worker"
 	o, sys, l := newSetupTestOpsctl(t, app)
 
@@ -234,17 +236,56 @@ func TestSetupWorkerNoFragmentStillCreatesFragmentSymlinkAndWebGroup(t *testing.
 	if target, err := os.Readlink(l.FragmentPath()); err != nil || target != l.ActiveNginxConf() {
 		t.Fatalf("worker fragment symlink target = %q, err=%v; want %q", target, err, l.ActiveNginxConf())
 	}
-	for _, dir := range []string{l.WWWDir(), l.WWWPublicDir(), l.WWWPrivateDir()} {
-		if fi, err := os.Stat(dir); err != nil || !fi.IsDir() {
-			t.Fatalf("worker www dir %s not materialized: %v", dir, err)
+	// R-AUAI-EX87
+	if _, err := os.Stat(l.WWWDir()); !os.IsNotExist(err) {
+		t.Fatalf("worker setup created www dir %s, want absent (err=%v)", l.WWWDir(), err)
+	}
+	for _, op := range sys.opSeq() {
+		if op == "ensure-group:web" || strings.HasPrefix(op, "chown:"+app+":web:") || strings.HasPrefix(op, "chmod:") {
+			t.Fatalf("worker setup requested served-tree op %q; ops = %v", op, sys.opSeq())
 		}
 	}
-	for _, want := range []string{
-		"ensure-group:web",
-		"chown:" + app + ":web:" + l.WWWDir(),
-	} {
-		if !hasOp(sys.opSeq(), want) {
-			t.Fatalf("worker setup ops = %v, missing %q", sys.opSeq(), want)
+}
+
+func TestSetupServedTreeUsesWebGroupSetgidPerms(t *testing.T) {
+	const app = "sites"
+	o, sys, l := newSetupTestOpsctl(t, app)
+
+	if err := o.Setup(context.Background(), SetupOptions{
+		App: app,
+		Fragment: "location /srv/sites/ {\n" +
+			"    proxy_pass http://127.0.0.1:3005;\n" +
+			"}\n",
+		WWWDirs: WWWDirsFor(l.Root, app),
+	}); err != nil {
+		t.Fatalf("setup served tree: %v", err)
+	}
+
+	// R-AT2M-15HI
+	for _, dir := range []string{l.WWWRoot(), l.WWWWorkingDir(), l.WWWPublicDir(), l.WWWPrivateDir()} {
+		if fi, err := os.Stat(dir); err != nil || !fi.IsDir() {
+			t.Fatalf("served www dir %s not created: %v", dir, err)
+		}
+		assertMode(t, dir, 0o750)
+	}
+	wantOps := []string{
+		"ensure-user:" + app + ":" + l.AppDir(),
+		"chown:" + app + ":web:" + l.WWWRoot(),
+		"chmod:2750:" + l.WWWRoot(),
+		"chmod:2750:" + l.WWWWorkingDir(),
+		"chmod:2750:" + l.WWWPublicDir(),
+		"chmod:2750:" + l.WWWPrivateDir(),
+		"daemon-reload",
+		"enable:" + app + ".service",
+		"nginx-test",
+		"nginx-reload",
+	}
+	if got := sys.opSeq(); strings.Join(got, "|") != strings.Join(wantOps, "|") {
+		t.Fatalf("served-tree setup ops = %v, want %v", got, wantOps)
+	}
+	for _, op := range sys.opSeq() {
+		if op == "ensure-group:web" || op == "chown:"+app+":"+app+":"+l.WWWRoot() {
+			t.Fatalf("served-tree setup requested legacy op %q; ops = %v", op, sys.opSeq())
 		}
 	}
 }
@@ -276,10 +317,16 @@ func TestSetupCreatesStableNginxSymlinkToActiveConfig(t *testing.T) {
 
 // R-VB77-BU5O
 func TestSetupPermissionModelAllowsWebGroupOnlyForWWW(t *testing.T) {
-	const app = "svc"
+	const app = "sites"
 	o, sys, l := newSetupTestOpsctl(t, app)
 
-	if err := o.Setup(context.Background(), SetupOptions{App: app}); err != nil {
+	if err := o.Setup(context.Background(), SetupOptions{
+		App: app,
+		Fragment: "location /srv/sites/ {\n" +
+			"    proxy_pass http://127.0.0.1:3005;\n" +
+			"}\n",
+		WWWDirs: WWWDirsFor(l.Root, app),
+	}); err != nil {
 		t.Fatalf("setup: %v", err)
 	}
 
@@ -293,9 +340,6 @@ func TestSetupPermissionModelAllowsWebGroupOnlyForWWW(t *testing.T) {
 	if !web.canRead(statMode(t, l.WWWPrivateDir()), ownerForPath(owners, l.WWWPrivateDir())) ||
 		!web.canList(statMode(t, l.WWWPrivateDir()), ownerForPath(owners, l.WWWPrivateDir())) {
 		t.Fatalf("web group cannot read/list private www dir under modeled Unix mode/owner semantics")
-	}
-	if web.canRead(statMode(t, l.DBPath()), ownerForPath(owners, l.DBPath())) {
-		t.Fatalf("web group can read %s; want DB denied by mode/owner model", l.DBPath())
 	}
 	if web.canList(statMode(t, l.StateDir()), ownerForPath(owners, l.StateDir())) {
 		t.Fatalf("web group can list %s; want state dir listing denied by mode/owner model", l.StateDir())

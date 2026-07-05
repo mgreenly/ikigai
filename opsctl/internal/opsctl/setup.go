@@ -20,11 +20,11 @@ type SetupOptions struct {
 	// fragment is dropped.
 	IsDefault bool // true for the apex/DEFAULT app whose nginx block is init-box/deploy-owned.
 
-	// WWWDirs are extra directories (absolute paths) to create at mode 0755 and
-	// hand to the app user via `chown -R <app>:<app>` on the www ROOT. They back
-	// the sites service's SEPARATE world-readable state/www tree (working/,
+	// WWWDirs are extra directories (absolute paths) to create at mode 0750 and
+	// hand to the app user plus web group via `chown -R <app>:web` on the www
+	// ROOT. They back the sites service's SEPARATE state/www tree (working/,
 	// public/, private/): the stock per-app state/ is 0750 <app>:<app> so nginx
-	// (www-data) cannot traverse it, so sites serves from this 0755 tree instead.
+	// cannot traverse it, so sites serves from this web-group tree instead.
 	// Apps that need no static tree (every app but sites) pass none — and
 	// then setup creates no www dir at all, leaving their behavior unchanged. The
 	// command layer derives this list per-app (see wwwDirsFor); it is not an
@@ -116,12 +116,8 @@ func (o *Opsctl) Setup(ctx context.Context, opts SetupOptions) error {
 		}
 	} else if opts.Fragment == "" {
 		// Worker/no-route services use the current state/cache/libexec layout. The
-		// app-owned state dir is traverse-only for non-owners, the DB exists with
-		// service-private group-readable bits, and the web subtree is group-readable
-		// by nginx's web group.
-		if err := o.System.EnsureSystemGroup(ctx, "web"); err != nil {
-			return fmt.Errorf("setup: ensure web group: %w", err)
-		}
+		// app-owned state dir is traverse-only for non-owners, and the DB exists
+		// with service-private group-readable bits. Workers have no served tree.
 		if err := mkdirAll755(
 			l.AppDir(), l.BinDir(), l.EtcDir(), l.LibexecDir(), l.CacheDir(), l.shareDir(),
 		); err != nil {
@@ -133,17 +129,11 @@ func (o *Opsctl) Setup(ctx context.Context, opts SetupOptions) error {
 		if err := ensureFileMode(l.DBPath(), 0o640); err != nil {
 			return fmt.Errorf("setup: create db: %w", err)
 		}
-		if err := mkdirAllMode(0o750, l.WWWDir(), l.WWWPublicDir(), l.WWWPrivateDir()); err != nil {
-			return fmt.Errorf("setup: create www dirs: %w", err)
-		}
 		if err := o.System.ChownTree(ctx, app, app, l.StateDir()); err != nil {
 			return fmt.Errorf("setup: chown state dir: %w", err)
 		}
 		if err := o.System.ChownTree(ctx, app, app, l.DBPath()); err != nil {
 			return fmt.Errorf("setup: chown db: %w", err)
-		}
-		if err := o.System.ChownTree(ctx, app, "web", l.WWWDir()); err != nil {
-			return fmt.Errorf("setup: chown www dirs: %w", err)
 		}
 	} else {
 		// Path-routed services still consume the existing fragment-driven setup
@@ -157,19 +147,18 @@ func (o *Opsctl) Setup(ctx context.Context, opts SetupOptions) error {
 			return fmt.Errorf("setup: create state dir: %w", err)
 		}
 
-		// 2b. The OPTIONAL world-readable www/ tree (sites only). state/ is 0750 so
-		//     nginx (www-data) cannot traverse it; sites serves from this 0755 subtree
-		//     instead. Create each requested dir at 0755, then `chown -R <app>:<app>`
-		//     the www ROOT so the tree is owned by the service user but still
-		//     traversable+readable by www-data (/opt/<app> itself is already 0755).
+		// 2b. The OPTIONAL served www/ tree (sites only). state/ is 0750 so
+		//     nginx cannot traverse it; sites serves from this web-group subtree
+		//     instead. Create each requested dir at 0750, then hand the www ROOT
+		//     to <app>:web and setgid the tier dirs so future entries inherit web.
 		//     Apps that request none skip this entirely — behavior unchanged.
 		if len(opts.WWWDirs) > 0 {
-			o.logf("create world-readable www tree for %s", app)
-			if err := mkdirAll755(opts.WWWDirs...); err != nil {
+			o.logf("create served www tree for %s", app)
+			if err := mkdirAllMode(0o750, opts.WWWDirs...); err != nil {
 				return fmt.Errorf("setup: create www tree: %w", err)
 			}
-			if err := o.System.ChownTree(ctx, app, app, l.WWWRoot()); err != nil {
-				return fmt.Errorf("setup: chown www tree: %w", err)
+			if err := o.ensureWWWPerms(ctx, app, l); err != nil {
+				return fmt.Errorf("setup: ensure www perms: %w", err)
 			}
 		}
 	}

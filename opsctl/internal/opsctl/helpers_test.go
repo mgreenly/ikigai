@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -75,6 +76,11 @@ func (s *stubSystem) DeleteSystemUser(ctx context.Context, app string) error {
 
 func (s *stubSystem) ChownTree(ctx context.Context, owner, group, path string) error {
 	s.record("chown:" + owner + ":" + group + ":" + path)
+	return nil
+}
+
+func (s *stubSystem) Chmod(ctx context.Context, path string, mode os.FileMode) error {
+	s.record("chmod:" + strconv.FormatUint(uint64(mode), 8) + ":" + path)
 	return nil
 }
 

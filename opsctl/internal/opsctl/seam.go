@@ -73,6 +73,9 @@ type System interface {
 	// a freshly-created DB (+ -wal/-shm + generation file) owned root:root and
 	// crash-loop the unit (the service user cannot take a write lock). Idempotent.
 	ChownTree(ctx context.Context, owner, group, path string) error
+	// Chmod sets path's mode (the box runs `chmod`). setup uses it to set setgid
+	// on served-tree tier dirs so new entries inherit the web group.
+	Chmod(ctx context.Context, path string, mode os.FileMode) error
 	// DaemonReload reloads systemd's unit cache after a unit file is written (the
 	// box runs `systemctl daemon-reload`).
 	DaemonReload(ctx context.Context) error
@@ -257,6 +260,10 @@ func (s RealSystem) DeleteSystemUser(ctx context.Context, app string) error {
 
 func (s RealSystem) ChownTree(ctx context.Context, owner, group, path string) error {
 	return run(ctx, "chown", "-R", owner+":"+group, path)
+}
+
+func (s RealSystem) Chmod(ctx context.Context, path string, mode os.FileMode) error {
+	return run(ctx, "chmod", fmt.Sprintf("%04o", mode), path)
 }
 
 func (s RealSystem) DaemonReload(ctx context.Context) error {

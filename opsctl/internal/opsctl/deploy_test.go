@@ -1414,8 +1414,8 @@ func TestSitesSetupDeployBootsHealthWithStateWWWPaths(t *testing.T) {
 		if err != nil || !fi.IsDir() {
 			t.Fatalf("sites www dir %s was not created: %v", dir, err)
 		}
-		if fi.Mode().Perm() != 0o755 {
-			t.Fatalf("sites www dir %s mode = %o, want 0755", dir, fi.Mode().Perm())
+		if fi.Mode().Perm() != 0o750 {
+			t.Fatalf("sites www dir %s mode = %o, want 0750", dir, fi.Mode().Perm())
 		}
 	}
 

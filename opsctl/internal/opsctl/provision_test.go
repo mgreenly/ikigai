@@ -345,11 +345,10 @@ func TestSetup_PathRoutedService(t *testing.T) {
 }
 
 // TestSetup_WWWTree provisions the sites service: in addition to the standard
-// tree, setup must create the SEPARATE world-readable www/ tree (working/,
-// public/, private/, and the www/ root) at mode 0755 and
-// `chown -R sites:sites` the www root, so nginx (www-data) can traverse+read it
-// (the stock state/ is 0750 and untraversable). The WWWDirs are derived per-app
-// via WWWDirsFor, so `opsctl setup sites` provisions them with no operator flag.
+// tree, setup must create the SEPARATE web-group www/ tree (working/, public/,
+// private/, and the www/ root) at mode 0750, `chown -R sites:web` the www root,
+// and setgid the tier dirs. The WWWDirs are derived per-app via WWWDirsFor, so
+// `opsctl setup sites` provisions them with no operator flag.
 func TestSetup_WWWTree(t *testing.T) {
 	// R-4LKF-FB23
 	root := t.TempDir()
@@ -370,8 +369,7 @@ func TestSetup_WWWTree(t *testing.T) {
 
 	l := NewLayoutSys(root, sysRoot, app)
 
-	// The four served/working dirs plus the www/ root all exist at exactly 0755 —
-	// world-traversable so www-data can reach the served trees.
+	// The four served/working dirs plus the www/ root all exist at exactly 0750.
 	for _, dir := range []string{
 		l.WWWRoot(), l.WWWWorkingDir(), l.WWWPublicDir(), l.WWWPrivateDir(),
 	} {
@@ -379,16 +377,20 @@ func TestSetup_WWWTree(t *testing.T) {
 		if err != nil || !fi.IsDir() {
 			t.Fatalf("www dir %s not created: %v", dir, err)
 		}
-		if fi.Mode().Perm() != 0o755 {
-			t.Errorf("www dir %s perm = %o, want 0755", dir, fi.Mode().Perm())
+		if fi.Mode().Perm() != 0o750 {
+			t.Errorf("www dir %s perm = %o, want 0750", dir, fi.Mode().Perm())
 		}
 	}
 
-	// The www ROOT was handed to the sites user via a recursive chown through the
-	// seam (so the whole subtree ends up sites:sites but 0755-traversable).
+	// The www ROOT was handed to the sites user and web group via a recursive
+	// chown through the seam, then each tier dir was setgid.
 	wantOps := []string{
 		"ensure-user:sites:" + l.AppDir(),
-		"chown:sites:sites:" + l.WWWRoot(),
+		"chown:sites:web:" + l.WWWRoot(),
+		"chmod:2750:" + l.WWWRoot(),
+		"chmod:2750:" + l.WWWWorkingDir(),
+		"chmod:2750:" + l.WWWPublicDir(),
+		"chmod:2750:" + l.WWWPrivateDir(),
 		"daemon-reload",
 		"enable:sites.service",
 		"nginx-test",
