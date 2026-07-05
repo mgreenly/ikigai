@@ -844,6 +844,84 @@ func TestInstall_ChownsStateDirToAppUser(t *testing.T) {
 	}
 }
 
+func TestDeployRestoresServedTreePermsAfterStateChown(t *testing.T) {
+	root := t.TempDir()
+	app := "sites"
+	version := "v1.0.0"
+	l := NewLayout(root, app)
+	sys := &stubSystem{}
+	o := newOpsctl(t, root, app, sys, fakeEnv(app, version, 1, "APP="+app+"\n"))
+
+	for _, dir := range []string{l.WWWRoot(), l.WWWWorkingDir(), l.WWWPublicDir(), l.WWWPrivateDir()} {
+		if err := os.MkdirAll(dir, 0o750); err != nil {
+			t.Fatalf("create www dir %s: %v", dir, err)
+		}
+	}
+
+	if err := stageAndDeploy(t, o, app, version, stageArtifact(t, app+"-"+version)); err != nil {
+		t.Fatalf("deploy served app: %v", err)
+	}
+
+	// R-AVIE-SOYW
+	ops := sys.opSeq()
+	stateChown := "chown:" + app + ":" + app + ":" + l.StateDir()
+	stateIdx := eventIndex(ops, stateChown)
+	if stateIdx == -1 {
+		t.Fatalf("deploy ops = %v, missing state chown %q", ops, stateChown)
+	}
+	wwwChown := "chown:" + app + ":web:" + l.WWWDir()
+	wwwIdx := eventIndex(ops, wwwChown)
+	if wwwIdx == -1 {
+		t.Fatalf("deploy ops = %v, missing served-tree chown %q", ops, wwwChown)
+	}
+	if wwwIdx <= stateIdx {
+		t.Fatalf("served-tree chown index %d must be after state chown index %d in %v", wwwIdx, stateIdx, ops)
+	}
+	for _, dir := range []string{l.WWWRoot(), l.WWWWorkingDir(), l.WWWPublicDir(), l.WWWPrivateDir()} {
+		chmod := "chmod:2750:" + dir
+		chmodIdx := eventIndex(ops, chmod)
+		if chmodIdx == -1 {
+			t.Fatalf("deploy ops = %v, missing served-tree chmod %q", ops, chmod)
+		}
+		if chmodIdx <= stateIdx {
+			t.Fatalf("served-tree chmod %q index %d must be after state chown index %d in %v", chmod, chmodIdx, stateIdx, ops)
+		}
+	}
+}
+
+func TestDeploySkipsServedTreePermsWhenWWWDirAbsent(t *testing.T) {
+	t.Setenv("IKIGENBA_DOMAIN", "example.test")
+	root := t.TempDir()
+	sysRoot := t.TempDir()
+	app := "dashboard"
+	version := "v1.0.0"
+	l := NewLayoutSys(root, sysRoot, app)
+	sys := &stubSystem{}
+	o := newOpsctl(t, root, app, sys, fakeEnv(app, version, 1, "APP="+app+"\nDEFAULT=true\nPORT=4310\n"))
+	o.SysRoot = sysRoot
+
+	manifest := "APP=dashboard\nDEFAULT=true\nPORT=4310\n"
+	nginxSrc := "server_name __DOMAIN__; proxy_pass http://127.0.0.1:4310;\n"
+	stageReleaseWithConfig(t, o, l, app, version, manifest, nginxSrc)
+
+	if err := o.Deploy(context.Background(), app, version); err != nil {
+		t.Fatalf("deploy default app: %v", err)
+	}
+
+	// R-AWQB-6GPL
+	if _, err := os.Stat(l.WWWDir()); !os.IsNotExist(err) {
+		t.Fatalf("default deploy has www dir stat err = %v, want absent", err)
+	}
+	for _, op := range sys.opSeq() {
+		if strings.HasPrefix(op, "chown:") && strings.Contains(op, ":web:") {
+			t.Fatalf("default deploy requested served-tree chown %q; ops = %v", op, sys.opSeq())
+		}
+		if strings.HasPrefix(op, "chmod:") && strings.Contains(op, l.WWWDir()) {
+			t.Fatalf("default deploy requested served-tree chmod %q; ops = %v", op, sys.opSeq())
+		}
+	}
+}
+
 // TestInstall_IsActiveFailure asserts a failed is-active surfaces an error that
 // points the operator at rollback (the release dir + backup are left intact).
 func TestInstall_IsActiveFailure(t *testing.T) {

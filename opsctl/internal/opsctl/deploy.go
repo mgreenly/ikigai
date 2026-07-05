@@ -296,6 +296,13 @@ func (o *Opsctl) Deploy(ctx context.Context, app, version string) error {
 	if err := o.System.ChownTree(ctx, app, app, l.StateDir()); err != nil {
 		return fmt.Errorf("deploy: chown state dir: %w", err)
 	}
+	if _, err := os.Stat(l.WWWDir()); err == nil {
+		if err := o.ensureWWWPerms(ctx, app, l); err != nil {
+			return fmt.Errorf("deploy: restore www perms: %w", err)
+		}
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("deploy: stat www dir: %w", err)
+	}
 
 	// 4. Atomic swap: all live-facing symlinks repoint to the same staged version.
 	//    Each symlink only ever points at a complete target: the temp symlink is
