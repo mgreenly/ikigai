@@ -4,12 +4,16 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
+
+	"appkit/server"
 
 	"crm/internal/crm"
 	"crm/internal/db"
@@ -20,7 +24,7 @@ import (
 // newTestStore). Outbox is left nil — Save/Log are fully functional without
 // event emission (the Phase 4 seam in service.go is guarded), so the tool
 // surface is exercised end-to-end with a deterministic clock.
-func newTestHandler(t *testing.T) *Handler {
+func newTestHandler(t *testing.T) http.Handler {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "crm_test.db")
 	conn, err := db.Open(path)
@@ -39,7 +43,32 @@ func newTestHandler(t *testing.T) *Handler {
 		tick = tick.Add(time.Millisecond)
 		return tick
 	}
-	return NewHandler(svc, testVersion, testService, nil, crm.Events, nil)
+	var captured *server.Router
+	_, err = server.New(server.Options{
+		Addr:       "127.0.0.1:0",
+		Logger:     slog.New(slog.NewTextHandler(io.Discard, nil)),
+		ResourceID: "https://example.test/srv/crm",
+		AuthServer: "https://auth.example.test",
+		Version:    testVersion,
+		Service:    testService,
+		Events:     crm.Events,
+		DB:         conn,
+		Register: func(rt *server.Router) error {
+			captured = rt
+			return nil
+		},
+	})
+	if err != nil {
+		t.Fatalf("build test router: %v", err)
+	}
+	if captured == nil {
+		t.Fatalf("server.New did not invoke Register")
+	}
+	h, err := NewHandler(svc, captured)
+	if err != nil {
+		t.Fatalf("build mcp handler: %v", err)
+	}
+	return h
 }
 
 // jsonRPCResponse is the wire shape we decode tool responses out of. result is
@@ -77,7 +106,7 @@ const (
 
 // rpc drives a single JSON-RPC request through the real ServeHTTP seam with the
 // nginx-injected identity headers set, and returns the decoded response.
-func rpc(t *testing.T, h *Handler, method string, params any) jsonRPCResponse {
+func rpc(t *testing.T, h http.Handler, method string, params any) jsonRPCResponse {
 	t.Helper()
 	body := map[string]any{"jsonrpc": "2.0", "id": 1, "method": method}
 	if params != nil {
@@ -104,7 +133,7 @@ func rpc(t *testing.T, h *Handler, method string, params any) jsonRPCResponse {
 }
 
 // call drives a tools/call and decodes the inner tool result.
-func call(t *testing.T, h *Handler, name string, args any) toolResult {
+func call(t *testing.T, h http.Handler, name string, args any) toolResult {
 	t.Helper()
 	resp := rpc(t, h, "tools/call", map[string]any{"name": name, "arguments": args})
 	var tr toolResult
@@ -116,7 +145,7 @@ func call(t *testing.T, h *Handler, name string, args any) toolResult {
 
 // callOK asserts the success envelope (no isError) and decodes the text payload
 // into a generic map.
-func callOK(t *testing.T, h *Handler, name string, args any) map[string]any {
+func callOK(t *testing.T, h http.Handler, name string, args any) map[string]any {
 	t.Helper()
 	tr := call(t, h, name, args)
 	if tr.IsError {
@@ -135,7 +164,7 @@ func callOK(t *testing.T, h *Handler, name string, args any) map[string]any {
 // callErr asserts an error envelope (isError:true) and returns the rendered
 // `error` object (the errorEnvelope shape: code, message, optional field /
 // existing_id).
-func callErr(t *testing.T, h *Handler, name string, args any) map[string]any {
+func callErr(t *testing.T, h http.Handler, name string, args any) map[string]any {
 	t.Helper()
 	tr := call(t, h, name, args)
 	if !tr.IsError {
@@ -160,7 +189,7 @@ func payloadText(tr toolResult) string {
 	return tr.Content[0].Text
 }
 
-func toolsList(t *testing.T, h *Handler) []toolDescriptor {
+func toolsList(t *testing.T, h http.Handler) []toolDescriptor {
 	t.Helper()
 	resp := rpc(t, h, "tools/list", nil)
 	var result struct {
@@ -215,6 +244,7 @@ func TestToolsList(t *testing.T) {
 		"delete", "log", "health",
 		"reflection", "guide",
 	}
+	// R-MW1X-S9EV
 	// R-PGF0-9CS1
 	if len(result.Tools) != len(want) {
 		t.Fatalf("expected exactly %d tools, got %d: %+v", len(want), len(result.Tools), result.Tools)
@@ -232,6 +262,16 @@ func TestToolsList(t *testing.T) {
 	for _, name := range want {
 		if !got[name] {
 			t.Errorf("missing expected tool %q", name)
+		}
+	}
+	for _, name := range []string{"search", "get", "save", "delete", "log", "guide"} {
+		if !got[name] {
+			t.Errorf("missing crm-declared tool %q", name)
+		}
+	}
+	for _, name := range []string{"health", "reflection"} {
+		if !got[name] {
+			t.Errorf("missing chassis tool %q", name)
 		}
 	}
 }
@@ -643,12 +683,15 @@ func TestToolsCallReflection(t *testing.T) {
 		t.Fatalf("detail missing example object: %+v", detail["example"])
 	}
 
-	// Unknown event_type → corrective error listing valid types.
-	badErr := callErr(t, h, "reflection", map[string]any{"event_type": "contact.nope"})
-	if badErr["code"] != "unknown_event_type" {
-		t.Fatalf("expected unknown_event_type code, got %+v", badErr)
+	// Unknown event_type -> corrective error listing valid types.
+	bad := call(t, h, "reflection", map[string]any{"event_type": "contact.nope"})
+	if !bad.IsError {
+		t.Fatalf("expected reflection unknown event_type to return an error envelope: %s", payloadText(bad))
 	}
-	msg, _ := badErr["message"].(string)
+	msg := payloadText(bad)
+	if !strings.Contains(msg, "contact.nope") {
+		t.Fatalf("corrective message missing unknown type: %q", msg)
+	}
 	for _, want := range []string{"contact.created", "contact.updated", "contact.tagged", "contact.untagged"} {
 		if !strings.Contains(msg, want) {
 			t.Errorf("corrective message missing valid type %q: %q", want, msg)

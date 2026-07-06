@@ -392,9 +392,8 @@ func TestCompositionRootEnablesChassisWWWAndKeepsMCPWiring(t *testing.T) {
 		`rt.WWW().Render(w, "landing.html", struct {`,
 		`Service string`,
 		`Version string`,
-		`rt.Handle("POST /mcp", rt.RequireIdentity(`,
-		`mcp.NewHandler(svc, rt.Version(), rt.Service(), rt.Health(),`,
-		`rt.Events(), rt.Subscriptions())`,
+		`handler, err := mcp.NewHandler(svc, rt)`,
+		`rt.Handle("POST /mcp", rt.RequireIdentity(handler))`,
 	} {
 		if !strings.Contains(main, want) {
 			t.Fatalf("cmd/crm/main.go missing %q", want)

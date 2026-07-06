@@ -70,9 +70,11 @@ func main() {
 					http.Error(w, "template error", http.StatusInternalServerError)
 				}
 			}))
-			rt.Handle("POST /mcp", rt.RequireIdentity(
-				mcp.NewHandler(svc, rt.Version(), rt.Service(), rt.Health(),
-					rt.Events(), rt.Subscriptions())))
+			handler, err := mcp.NewHandler(svc, rt)
+			if err != nil {
+				return err
+			}
+			rt.Handle("POST /mcp", rt.RequireIdentity(handler))
 			return nil
 		},
 		// Producer fires after Handlers: inject the outbox so every committed
