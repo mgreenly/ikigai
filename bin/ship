@@ -33,7 +33,7 @@
 #      and never disturbs the operator's tree. Build flags honor §2:
 #      CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GOWORK=off -trimpath -buildvcs=false,
 #      ldflags stamping appkit.version to the full v<core>+<sha>. The committed
-#      `replace appkit/eventplane/agentkit => ../...` directives resolve against
+#      `replace appkit/eventplane => ../...` directives resolve against
 #      the worktree's sibling lib trees (no network).
 #   5. Bundle the binary as <app> with nginx.conf, manifest.env, and optional
 #      share/.

@@ -46,15 +46,16 @@ in the folders below and in `docs/`.
 | **webhooks** | Path-routed service `/srv/webhooks/` — loopback inbound-webhook receiver: owner-facing MCP (create/list/delete/rotate) plus a public `POST /in/<name>` ingress self-guarded by a per-webhook secret; event-plane **producer** (`/feed` outbox). |
 | **appkit** | Shared Go **chassis** library: config-from-env, migration runner + downgrade guard, loopback server, `/feed`, manifest emit/parse, the verb dispatcher (consumed via a committed `replace`). |
 | **eventplane** | Shared Go **library** — the event-plane producer/consumer plumbing (committed `replace`). |
-| **agentkit** | Shared Go **library** for the agent-backed services (prompts/dropbox/wiki). |
 | **opsctl** | The **on-box CLI** (Go) that owns every box-side operation — stage, deploy, rollback, prune, status, provisioning; built here and installed to `/usr/local/bin/opsctl`. |
 | **bin** | Shared repo-root **operator scripts** — the off-box build/version tooling (`ship`, `bump`, …). |
 | **nginx** | Local-dev front door on **:8080** mirroring the prod `/srv/<svc>/` routing (`./run`). |
 | **docs** | Suite-level docs: the deployment ADR, versioning how-to, runbooks, and the event-plane protocol write-ups. |
 
 The twelve deployable apps are **dashboard, crm, ledger, notify, dropbox,
-prompts, wiki, cron, gmail, scripts, sites, webhooks**; `appkit`/`eventplane`/`agentkit`
-and `opsctl` are libraries/tooling and are **not** versioned. The root `go.work` wires the modules for local dev; the
+prompts, wiki, cron, gmail, scripts, sites, webhooks**; `appkit`/`eventplane`
+and `opsctl` are libraries/tooling and are **not** versioned. The agent chassis
+lives in its own repo, `github.com/ikigenba/agentkit`, consumed as a tagged
+module. The root `go.work` wires the modules for local dev; the
 production build forces `GOWORK=off`.
 
 ## Working locally

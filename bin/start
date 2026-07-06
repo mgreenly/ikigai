@@ -120,7 +120,7 @@ run_bg() {
 
 # build_svc <name> — native build of <name>/cmd/<name> into tmp/bin/<name>. -C
 # runs go from the service dir; the root go.work (one level up) resolves the
-# shared appkit/eventplane/agentkit libs without a network fetch. -buildvcs=false
+# shared appkit/eventplane libs without a network fetch. -buildvcs=false
 # for the same reason the shared bin/ship build half uses it: Go's VCS stamping
 # walks up to the bare mono-repo .git and fails (exit 128), and the stamp is not
 # needed for dev. (This is the dev mirror; prod ships via bin/ship -> opsctl.)

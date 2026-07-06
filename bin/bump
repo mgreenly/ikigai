@@ -81,7 +81,7 @@ cd "$REPO"
 
 # Guard against typos bumping a non-existent / non-versioned service. A bumpable
 # service is a deployable one: it has both a <app>/ dir AND a committed VERSION
-# file (libraries — appkit/eventplane/agentkit — and opsctl carry no VERSION and
+# file (libraries — appkit/eventplane — and opsctl carry no VERSION and
 # are not versioned).
 VERSION_FILE="${APP}/VERSION"
 [ -d "$APP" ] || { echo "!! no such service dir: ${APP}/" >&2; exit 1; }
