@@ -23,6 +23,7 @@ import (
 	"appkit"
 	"appkit/manifest"
 	"appkit/server"
+	appweb "appkit/web"
 	"eventplane/consumer"
 	"notify/internal/push"
 	"registry"
@@ -100,6 +101,7 @@ func TestNotifyBootsFromOpsctlLayoutAndServesHealth(t *testing.T) {
 			t.Fatalf("mkdir %s: %v", dir, err)
 		}
 	}
+	copyTree(t, wwwRoot(t), filepath.Join(shareVersionDir, "www"))
 	shippedManifest := filepath.Join(etcVersionDir, "manifest.env")
 	if err := os.WriteFile(shippedManifest, committedManifest, 0o644); err != nil {
 		t.Fatalf("write shipped manifest.env: %v", err)
@@ -161,6 +163,7 @@ func TestNotifyBootsFromOpsctlLayoutAndServesHealth(t *testing.T) {
 		"NOTIFY_PORT":            fmt.Sprintf("%d", port),
 		"NOTIFY_DB_PATH":         dbPath,
 		"NOTIFY_GENERATION_PATH": generationPath,
+		"NOTIFY_WWW_PATH":        filepath.Join(shareDir, "current", "www"),
 		crmFeedKey:               crmFeed.URL + "/feed",
 		promptsFeedKey:           promptsFeed.URL + "/feed",
 		"NOTIFY_NTFY_BASE_URL":   ntfy.URL,
@@ -307,6 +310,344 @@ func TestNotifyConsumerHandlersPushSubscribedEventsOnly(t *testing.T) {
 	}
 }
 
+func TestNotifySpecEnablesChassisWWWAndKeepsMCPWiring(t *testing.T) {
+	// R-4FW1-V9QL — notify opts into appkit's WWW loader/static mount while keeping MCP enabled.
+	spec := notifySpec()
+	if !spec.WWW {
+		t.Fatal("notifySpec().WWW = false, want true")
+	}
+	if !spec.MCP {
+		t.Fatal("notifySpec().MCP = false, want true")
+	}
+
+	src, err := os.ReadFile("main.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	main := string(src)
+	for _, want := range []string{
+		`WWW:   true,`,
+		`r.Handle("GET /{$}", landingHandler(r.WWW(), r.Service(), r.Version()))`,
+		`pushClient := push.NewClient(cfg.ntfyBase, cfg.ntfyTopic, cfg.ntfyToken, r.Logger())`,
+		`r.Handle("POST /mcp", r.RequireIdentity(`,
+	} {
+		if !strings.Contains(main, want) {
+			t.Fatalf("cmd/notify/main.go missing %q", want)
+		}
+	}
+	for _, forbidden := range []string{
+		`"notify/internal/web"`,
+		`r.Handle("GET /static/"`,
+		`web.LandingHandler`,
+		`web.StaticHandler`,
+	} {
+		if strings.Contains(main, forbidden) {
+			t.Fatalf("cmd/notify/main.go still contains %q", forbidden)
+		}
+	}
+}
+
+func TestWWWSiteLoadsRealShareTree(t *testing.T) {
+	// R-4H3Y-91HA — landing and static assets are loaded from share/www, not the deleted internal web package.
+	root := wwwRoot(t)
+	if strings.Contains(root, "internal/web") {
+		t.Fatalf("WWW root %q points at deleted internal web package", root)
+	}
+
+	site := loadWWW(t)
+	rec := httptest.NewRecorder()
+	if err := site.Render(rec, "landing.html", landingData("notify-real", "v1.2.3")); err != nil {
+		t.Fatalf("render landing.html from share/www: %v", err)
+	}
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "<title>notify-real") {
+		t.Fatalf("share/www landing render = status %d body:\n%s", rec.Code, rec.Body.String())
+	}
+
+	for _, rel := range []string{
+		"landing.html",
+		filepath.Join("static", "tokens.css"),
+		filepath.Join("static", "fonts", "space-grotesk.woff2"),
+		filepath.Join("static", "fonts", "ibm-plex-sans.woff2"),
+		filepath.Join("static", "fonts", "ibm-plex-mono-400.woff2"),
+		filepath.Join("static", "fonts", "ibm-plex-mono-500.woff2"),
+	} {
+		info, err := os.Stat(filepath.Join(root, rel))
+		if err != nil {
+			t.Fatalf("share/www missing %s: %v", rel, err)
+		}
+		if info.IsDir() || info.Size() == 0 {
+			t.Fatalf("share/www/%s is not a non-empty file: dir=%v size=%d", rel, info.IsDir(), info.Size())
+		}
+	}
+}
+
+func TestWWWSiteRendersLandingWithServiceVersionAndHTMLContentType(t *testing.T) {
+	// R-LAND-3C8K — render landing.html through appkit/web and assert a 200 response.
+	// R-LAND-5D1M — rendered body contains the service name passed in.
+	// R-LAND-7E4N — a distinctive injected version appears verbatim.
+	// R-LAND-9F6P — landing response Content-Type is text/html; charset=utf-8.
+	rec := renderLanding(t, "notify-test", "9.9.9-test")
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if got := rec.Header().Get("Content-Type"); got != "text/html; charset=utf-8" {
+		t.Fatalf("content type = %q, want text/html; charset=utf-8", got)
+	}
+
+	body := rec.Body.String()
+	if !strings.Contains(body, "notify-test") {
+		t.Fatalf("body does not render service name: %s", body)
+	}
+	if !strings.Contains(body, "9.9.9-test") {
+		t.Fatalf("body does not render injected version verbatim: %s", body)
+	}
+}
+
+func TestWWWSiteLandingIncludesHomeLinkToDashboardApex(t *testing.T) {
+	// R-HOME-5N7S — GET / renders a top-left Home anchor to the dashboard apex.
+	rec := renderLanding(t, "notify", "v1.2.3")
+
+	body := rec.Body.String()
+	if !strings.Contains(body, `<a class="home" href="/">Home</a>`) {
+		t.Fatalf("body does not render Home link to apex: %s", body)
+	}
+	if strings.Index(body, `<a class="home" href="/">Home</a>`) < strings.Index(body, "<main>") {
+		t.Fatalf("Home link is not inside main: %s", body)
+	}
+	for _, want := range []string{
+		".home {",
+		"position: absolute;",
+		"top: var(--space-8);",
+		"position: relative;",
+		".home:hover,\n    .home:focus-visible",
+		"color: var(--color-text);",
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("body missing Home link style %q: %s", want, body)
+		}
+	}
+}
+
+func TestExactRootRouteDispatchesToLanding(t *testing.T) {
+	// R-ROUT-4G2Q — GET / dispatches to the landing handler registered at GET /{$}.
+	rec := httptest.NewRecorder()
+	composedMux(t, http.NotFoundHandler()).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "notify") || !strings.Contains(body, "9.9.9-test") {
+		t.Fatalf("GET / did not reach landing handler: %s", body)
+	}
+}
+
+func TestExactRootRouteDoesNotShadowMCP(t *testing.T) {
+	// R-ROUT-6H5R — {$} does not shadow a sibling POST /mcp; the stub is reached.
+	stub := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusTeapot)
+		_, _ = w.Write([]byte("mcp-stub"))
+	})
+
+	rec := httptest.NewRecorder()
+	composedMux(t, stub).ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/mcp", nil))
+
+	if rec.Code != http.StatusTeapot || rec.Body.String() != "mcp-stub" {
+		t.Fatalf("POST /mcp did not reach stub: code=%d body=%q", rec.Code, rec.Body.String())
+	}
+	if strings.Contains(rec.Body.String(), "notify") {
+		t.Fatalf("POST /mcp was shadowed by the landing page")
+	}
+}
+
+func TestExactRootRouteDoesNotCaptureNonRootPaths(t *testing.T) {
+	// R-ROUT-8J7S — an unregistered non-root path is not captured by {$}.
+	rec := httptest.NewRecorder()
+	composedMux(t, http.NotFoundHandler()).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/nope", nil))
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("GET /nope status = %d, want %d", rec.Code, http.StatusNotFound)
+	}
+	if strings.Contains(rec.Body.String(), "notify") {
+		t.Fatalf("GET /nope returned the landing page")
+	}
+}
+
+func TestWWWStaticServesTokensCSSWithContentType(t *testing.T) {
+	// R-ASST-3K9T — GET /static/tokens.css through the chassis site handler is 200 with a CSS content type.
+	rec := readWWWStaticResponse(t, "/static/tokens.css")
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if got := rec.Header().Get("Content-Type"); !strings.Contains(got, "text/css") {
+		t.Fatalf("content type = %q, want text/css", got)
+	}
+}
+
+func TestWWWSiteReferencesOnlyDocumentRelativeLocalStaticAssets(t *testing.T) {
+	// R-ASST-5L2V — rendered HTML references notify's own static asset path and no cross-service/dashboard URL.
+	// R-8M7T-A9VB — GET / renders the stylesheet document-relative, not origin-absolute.
+	rec := renderLanding(t, "notify", "v1.2.3")
+
+	body := rec.Body.String()
+	if !strings.Contains(body, `href="static/tokens.css"`) {
+		t.Fatalf("landing body does not reference its own document-relative static asset path: %s", body)
+	}
+	if strings.Contains(body, `href="/static/tokens.css"`) {
+		t.Fatalf("landing body references origin-absolute static asset path: %s", body)
+	}
+	for _, forbidden := range []string{"http://", "https://", "dashboard"} {
+		if strings.Contains(body, forbidden) {
+			t.Fatalf("landing body references a cross-service/external asset URL %q: %s", forbidden, body)
+		}
+	}
+}
+
+func TestWWWSitePreloadsSelfServedFontFiles(t *testing.T) {
+	// R-8NFP-O1M0 — GET / preloads above-the-fold fonts with document-relative hrefs matching @font-face src targets.
+	rec := renderLanding(t, "notify", "v1.2.3")
+
+	head := htmlHead(t, rec.Body.String())
+	css := readWWWStatic(t, "/static/tokens.css")
+	for _, font := range []string{"space-grotesk.woff2", "ibm-plex-sans.woff2"} {
+		want := `<link rel="preload" as="font" type="font/woff2" crossorigin
+        href="static/fonts/` + font + `">`
+		if !strings.Contains(head, want) {
+			t.Fatalf("landing head missing preload %q:\n%s", want, head)
+		}
+		if strings.Contains(head, `href="/static/fonts/`+font+`"`) {
+			t.Fatalf("landing head preloads %s with origin-absolute href:\n%s", font, head)
+		}
+		if !strings.Contains(css, `url('fonts/`+font+`')`) {
+			t.Fatalf("tokens.css missing @font-face src target for preloaded font %s", font)
+		}
+	}
+}
+
+func TestWWWStaticServesFontWithWoff2ContentType(t *testing.T) {
+	// R-ASST-7M4W — GET /static/fonts/space-grotesk.woff2 is 200 with a font/woff2 content type.
+	rec := readWWWStaticResponse(t, "/static/fonts/space-grotesk.woff2")
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if got := rec.Header().Get("Content-Type"); got != "font/woff2" {
+		t.Fatalf("content type = %q, want font/woff2", got)
+	}
+	if rec.Body.Len() == 0 {
+		t.Fatal("font body is empty")
+	}
+}
+
+func TestWWWTokensCSSUsesDocumentRelativeFontURLs(t *testing.T) {
+	// R-8KZW-WI4M — served tokens.css uses document-relative embedded font URLs, never origin-absolute /static/fonts URLs.
+	css := readWWWStatic(t, "/static/tokens.css")
+	if strings.Contains(css, "url('/static/fonts/") {
+		t.Fatalf("tokens.css contains origin-absolute static font URL: %s", css)
+	}
+	for _, font := range []string{
+		"space-grotesk.woff2",
+		"ibm-plex-sans.woff2",
+		"ibm-plex-mono-400.woff2",
+		"ibm-plex-mono-500.woff2",
+	} {
+		want := "url('fonts/" + font + "')"
+		if !strings.Contains(css, want) {
+			t.Fatalf("tokens.css missing embedded font URL %q", want)
+		}
+	}
+}
+
+func TestWWWTokensCSSUsesOptionalFontDisplay(t *testing.T) {
+	// R-8JS0-IQDX — every @font-face block in served tokens.css uses optional display and no block uses swap.
+	css := readWWWStatic(t, "/static/tokens.css")
+	if strings.Contains(css, "font-display: swap") {
+		t.Fatalf("tokens.css still contains font-display: swap: %s", css)
+	}
+	if got := strings.Count(css, "font-display: optional"); got != 4 {
+		t.Fatalf("font-display: optional count = %d, want 4", got)
+	}
+	if got := strings.Count(css, "@font-face"); got != 4 {
+		t.Fatalf("@font-face block count = %d, want 4", got)
+	}
+}
+
+func TestNginxHasExactMatchLandingLocation(t *testing.T) {
+	// R-NGNX-3N6X — the fragment contains an exact-match `location = /srv/notify/ {` block.
+	frag := readNginxConfig(t)
+	if !strings.Contains(frag, "location = /srv/notify/ {") {
+		t.Fatal("missing exact-match `location = /srv/notify/ {` block")
+	}
+	if strings.Index(frag, "location = /srv/notify/ {") == strings.Index(frag, "location /srv/notify/ {") {
+		t.Fatal("exact-match and prefix locations must be distinct blocks")
+	}
+}
+
+func TestNginxExactMatchUsesSessionAuthn(t *testing.T) {
+	// R-NGNX-5P8Y — the exact-match block gates the landing root with session auth, not bearer auth.
+	block := nginxLocationBlock(t, readNginxConfig(t), "location = /srv/notify/ {")
+	if !strings.Contains(block, "auth_request /_session-authn") {
+		t.Errorf("exact-match block missing `auth_request /_session-authn`:\n%s", block)
+	}
+	if strings.Contains(block, "auth_request /_authn") {
+		t.Errorf("exact-match block must NOT gate landing root with bearer `auth_request /_authn`:\n%s", block)
+	}
+}
+
+func TestNginxExactMatchProxiesToLoopbackRoot(t *testing.T) {
+	// R-NGNX-7Q1Z — the exact-match block proxies to the loopback upstream root with a trailing slash.
+	// R-RGDR-4F6Q — the expected loopback upstream is derived from the notify registry entry.
+	block := nginxLocationBlock(t, readNginxConfig(t), "location = /srv/notify/ {")
+	want := "proxy_pass " + registry.BaseURL("notify") + "/;"
+	if !strings.Contains(block, want) {
+		t.Errorf("exact-match block missing %q:\n%s", want, block)
+	}
+}
+
+func TestNginxPreExistingLocationsSurvive(t *testing.T) {
+	// R-NGNX-9R3B — the additive edit preserves the bearer-gated prefix location and the unauthenticated PRM bootstrap.
+	frag := readNginxConfig(t)
+	if !strings.Contains(frag, "location /srv/notify/ {") {
+		t.Error("bearer-gated prefix `location /srv/notify/ {` missing")
+	}
+	if !strings.Contains(frag, "auth_request /_authn;") {
+		t.Error("bearer-gated prefix must still use `auth_request /_authn;`")
+	}
+	if !strings.Contains(frag, "location = /srv/notify/.well-known/oauth-protected-resource {") {
+		t.Error("PRM bootstrap location missing")
+	}
+}
+
+func TestNginxSessionGatesStaticAssets(t *testing.T) {
+	// R-8ONM-1TCP — static assets are session-gated while existing landing, bearer, PRM, and rate-limit locations remain.
+	frag := readNginxConfig(t)
+	block := nginxLocationBlock(t, frag, "location /srv/notify/static/ {")
+	wantStatic := "proxy_pass " + registry.BaseURL("notify") + "/static/;"
+	for _, want := range []string{
+		"auth_request /_session-authn;",
+		wantStatic,
+		"proxy_set_header Host $host;",
+		"proxy_set_header X-Forwarded-Proto $scheme;",
+		"proxy_http_version 1.1;",
+	} {
+		if !strings.Contains(block, want) {
+			t.Fatalf("static asset block missing %q:\n%s", want, block)
+		}
+	}
+	for _, want := range []string{
+		"location = /srv/notify/ {",
+		"location /srv/notify/ {",
+		"location = /srv/notify/.well-known/oauth-protected-resource {",
+		"location @notify_authn_500 {",
+	} {
+		if !strings.Contains(frag, want) {
+			t.Fatalf("pre-existing nginx location %q missing", want)
+		}
+	}
+}
+
 type capturedNtfyPost struct {
 	method string
 	path   string
@@ -418,6 +759,135 @@ func TestSpecPortComesFromRegistryNotifyPort(t *testing.T) {
 	}
 	if got, want := notifySpec().Port, registry.MustPort("notify"); got != want {
 		t.Fatalf("notifySpec().Port = %d, want registry.MustPort(%q) = %d", got, "notify", want)
+	}
+}
+
+func loadWWW(t *testing.T) *appweb.Site {
+	t.Helper()
+	site, err := appweb.Load(wwwRoot(t))
+	if err != nil {
+		t.Fatalf("load share/www: %v", err)
+	}
+	return site
+}
+
+func wwwRoot(t *testing.T) string {
+	t.Helper()
+	root, err := filepath.Abs(filepath.Join("..", "..", "share", "www"))
+	if err != nil {
+		t.Fatalf("resolve share/www: %v", err)
+	}
+	return root
+}
+
+func renderLanding(t *testing.T, service, version string) *httptest.ResponseRecorder {
+	t.Helper()
+	rec := httptest.NewRecorder()
+	if err := loadWWW(t).Render(rec, "landing.html", landingData(service, version)); err != nil {
+		t.Fatalf("render landing.html: %v", err)
+	}
+	return rec
+}
+
+func landingData(service, version string) struct {
+	Service string
+	Version string
+} {
+	return struct {
+		Service string
+		Version string
+	}{
+		Service: service,
+		Version: version,
+	}
+}
+
+func composedMux(t *testing.T, mcp http.Handler) *http.ServeMux {
+	t.Helper()
+	mux := http.NewServeMux()
+	mux.Handle("GET /{$}", landingHandler(loadWWW(t), "notify", "9.9.9-test"))
+	mux.Handle("POST /mcp", mcp)
+	return mux
+}
+
+func readWWWStaticResponse(t *testing.T, path string) *httptest.ResponseRecorder {
+	t.Helper()
+	rec := httptest.NewRecorder()
+	loadWWW(t).Static().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
+	return rec
+}
+
+func readWWWStatic(t *testing.T, path string) string {
+	t.Helper()
+	rec := readWWWStaticResponse(t, path)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("GET %s status = %d, want %d\n%s", path, rec.Code, http.StatusOK, rec.Body.String())
+	}
+	return rec.Body.String()
+}
+
+func htmlHead(t *testing.T, body string) string {
+	t.Helper()
+	start := strings.Index(body, "<head>")
+	if start == -1 {
+		t.Fatalf("HTML missing head opener:\n%s", body)
+	}
+	end := strings.Index(body[start:], "</head>")
+	if end == -1 {
+		t.Fatalf("HTML missing head closer:\n%s", body)
+	}
+	return body[start : start+end+len("</head>")]
+}
+
+func readNginxConfig(t *testing.T) string {
+	t.Helper()
+	src, err := os.ReadFile(filepath.Join("..", "..", "etc", "nginx.conf"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(src)
+}
+
+func nginxLocationBlock(t *testing.T, conf, opener string) string {
+	t.Helper()
+	start := strings.Index(conf, opener)
+	if start == -1 {
+		t.Fatalf("nginx config missing %q", opener)
+	}
+	bodyStart := start + len(opener)
+	endRel := strings.Index(conf[bodyStart:], "\n}")
+	if endRel == -1 {
+		t.Fatalf("nginx config location %q has no closing brace", opener)
+	}
+	return conf[start : bodyStart+endRel+len("\n}")]
+}
+
+func copyTree(t *testing.T, src, dst string) {
+	t.Helper()
+	err := filepath.WalkDir(src, func(path string, entry os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, err := filepath.Rel(src, path)
+		if err != nil {
+			return err
+		}
+		target := filepath.Join(dst, rel)
+		if entry.IsDir() {
+			return os.MkdirAll(target, 0o755)
+		}
+		info, err := entry.Info()
+		if err != nil {
+			return err
+		}
+		b, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(target, b, info.Mode().Perm())
+	})
+	if err != nil {
+		t.Fatalf("copy %s to %s: %v", src, dst, err)
 	}
 }
 

@@ -22,16 +22,17 @@ package main
 
 import (
 	"errors"
+	"net/http"
 	"os"
 
 	"appkit"
+	"appkit/web"
 
 	"eventplane/consumer"
 
 	"notify/internal/db"
 	"notify/internal/mcp"
 	"notify/internal/push"
-	"notify/internal/web"
 
 	"registry"
 )
@@ -46,6 +47,7 @@ func notifySpec() appkit.Spec {
 		Mount: "/srv/notify/",
 		Port:  registry.MustPort("notify"),
 		MCP:   true,
+		WWW:   true,
 		Consumers: []appkit.Consumer{
 			{
 				Source:        "crm",
@@ -74,7 +76,7 @@ func notifySpec() appkit.Spec {
 		},
 		Migrations: db.FS,
 		// Handlers mounts the health MCP surface (gated behind
-		// nginx-injected identity) plus notify's landing/static routes.
+		// nginx-injected identity) plus notify's landing route.
 		Handlers: func(r *appkit.Router) error {
 			// The MCP send verb publishes through a push client built here at the
 			// composition root, reusing the same ntfy config (base/topic/token) the
@@ -85,14 +87,20 @@ func notifySpec() appkit.Spec {
 				return err
 			}
 			pushClient := push.NewClient(cfg.ntfyBase, cfg.ntfyTopic, cfg.ntfyToken, r.Logger())
-			r.Handle("GET /{$}", web.LandingHandler(r.Service(), r.Version()))
-			r.Handle("GET /static/", web.StaticHandler())
+			r.Handle("GET /{$}", landingHandler(r.WWW(), r.Service(), r.Version()))
 			r.Handle("POST /mcp", r.RequireIdentity(
 				mcp.NewHandler(r.Version(), r.Service(), r.Health(),
 					r.Events(), r.Subscriptions(), pushClient)))
 			return nil
 		},
 	}
+}
+
+func landingHandler(site *web.Site, service, version string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = site.Render(w, "landing.html",
+			struct{ Service, Version string }{service, version})
+	})
 }
 
 // ntfyCfg is notify's push configuration, read once at the composition root. The
