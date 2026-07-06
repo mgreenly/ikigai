@@ -50,6 +50,26 @@ func TestLoadAndRenderLandingTemplate(t *testing.T) {
 	}
 }
 
+func TestLoadParsesHTMLAndTmplIntoOneTemplateSet(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, filepath.Join(root, "landing.html"), `{{template "card.tmpl" .}}`)
+	writeFile(t, filepath.Join(root, "card.tmpl"), `service={{.Service}}`)
+
+	site, err := Load(root)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+
+	rec := httptest.NewRecorder()
+	if err := site.Render(rec, "landing.html", map[string]string{"Service": "crm"}); err != nil {
+		t.Fatalf("Render: %v", err)
+	}
+
+	if got := rec.Body.String(); got != "service=crm" {
+		t.Fatalf("body = %q, want rendered tmpl partial", got)
+	}
+}
+
 // R-M1KG-7ZVI
 func TestLoadNonexistentRootReturnsPathError(t *testing.T) {
 	root := filepath.Join(t.TempDir(), "missing-www")
