@@ -4,6 +4,8 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"registry"
 )
 
 // envFunc returns a getenv backed by a map.
@@ -226,6 +228,53 @@ func TestResolve_ComposesWWWPath(t *testing.T) {
 			}
 			if cfg.WWWPath != tt.want {
 				t.Fatalf("WWWPath = %q, want %q", cfg.WWWPath, tt.want)
+			}
+		})
+	}
+}
+
+func TestResolveConsumerFeed_DefaultsAndOverrides(t *testing.T) {
+	tests := []struct {
+		name        string
+		env         map[string]string
+		wantFeedURL string
+		wantFrom    string
+	}{
+		{
+			// R-464U-T3T1
+			name:        "registry feed default and tail default",
+			env:         map[string]string{},
+			wantFeedURL: registry.BaseURL("crm") + "/feed",
+			wantFrom:    "tail",
+		},
+		{
+			// R-47CR-6VJQ
+			name: "feed url override wins",
+			env: map[string]string{
+				"NOTIFY_CRM_FEED_URL": "http://sentinel.example/feed",
+			},
+			wantFeedURL: "http://sentinel.example/feed",
+			wantFrom:    "tail",
+		},
+		{
+			// R-48KN-KNAF
+			name: "from override wins verbatim",
+			env: map[string]string{
+				"NOTIFY_CRM_FROM": "earliest",
+			},
+			wantFeedURL: registry.BaseURL("crm") + "/feed",
+			wantFrom:    "earliest",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			feedURL, from := ResolveConsumerFeed("notify", "crm", envFunc(tt.env))
+			if feedURL != tt.wantFeedURL {
+				t.Fatalf("feedURL = %q, want %q", feedURL, tt.wantFeedURL)
+			}
+			if from != tt.wantFrom {
+				t.Fatalf("from = %q, want %q", from, tt.wantFrom)
 			}
 		})
 	}

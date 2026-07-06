@@ -18,6 +18,9 @@ import (
 
 	"appkit/internal/testmigrations"
 	"appkit/manifest"
+	"appkit/server"
+
+	"eventplane/consumer"
 )
 
 // testSpec is a producer-shaped spec over the shared test migrations, used to
@@ -117,6 +120,123 @@ func TestDispatch_ReducedVerbSetAndManifestLibrary(t *testing.T) {
 	}
 	if out != want {
 		t.Fatalf("manifest dispatch\n got: %q\nwant: %q", out, want)
+	}
+}
+
+func TestDispatch_ConsumersDeriveManifestConsumes(t *testing.T) {
+	// R-4199-A0U9
+	spec := testSpec()
+	spec.Consumes = nil
+	spec.Consumers = []Consumer{{Source: "a"}, {Source: "b"}}
+
+	code, out, errs := run(t, spec, nil, "manifest")
+	if code != 0 {
+		t.Fatalf("manifest exit = %d, want 0; stderr=%q", code, errs)
+	}
+	fields, _, err := manifest.Parse(strings.NewReader(out))
+	if err != nil {
+		t.Fatalf("parse manifest: %v", err)
+	}
+	if fields["CONSUMES"] != "a,b" {
+		t.Fatalf("CONSUMES = %q, want %q", fields["CONSUMES"], "a,b")
+	}
+
+	spec.Consumers = nil
+	code, out, errs = run(t, spec, nil, "manifest")
+	if code != 0 {
+		t.Fatalf("manifest without consumers exit = %d, want 0; stderr=%q", code, errs)
+	}
+	fields, _, err = manifest.Parse(strings.NewReader(out))
+	if err != nil {
+		t.Fatalf("parse manifest without consumers: %v", err)
+	}
+	if _, ok := fields["CONSUMES"]; ok {
+		t.Fatalf("CONSUMES was emitted for a Spec with no consumer fields: %q", out)
+	}
+}
+
+func TestConsumersDeriveReflectionSubscriptions(t *testing.T) {
+	// R-42H5-NSKY
+	spec := Spec{
+		Consumers: []Consumer{
+			{Source: "crm", Subscriptions: []consumer.Subscription{
+				{Source: "crm", Filter: "contact.created"},
+				{Source: "crm", Filter: "contact.updated"},
+			}},
+			{Source: "ledger", Subscriptions: []consumer.Subscription{
+				{Source: "ledger", Filter: "invoice.paid"},
+			}},
+		},
+	}
+
+	var got []consumer.Subscription
+	_, err := server.New(server.Options{
+		Addr:          "127.0.0.1:0",
+		Logger:        discardLogger(),
+		ResourceID:    "http://localhost:8080/srv/widget/mcp",
+		AuthServer:    "http://localhost:8080",
+		Version:       versionString(),
+		Service:       "widget",
+		Subscriptions: specSubscriptions(spec),
+		Register: func(rt *server.Router) error {
+			provider := rt.Subscriptions()
+			if provider == nil {
+				t.Fatal("Router Subscriptions provider is nil for Consumers")
+			}
+			got = provider()
+			return nil
+		},
+	})
+	if err != nil {
+		t.Fatalf("server.New: %v", err)
+	}
+	want := []consumer.Subscription{
+		{Source: "crm", Filter: "contact.created"},
+		{Source: "crm", Filter: "contact.updated"},
+		{Source: "ledger", Filter: "invoice.paid"},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("subscriptions = %#v, want %#v", got, want)
+	}
+}
+
+func TestServe_ConsumersConflictWithLegacyFields(t *testing.T) {
+	cases := []struct {
+		name string
+		spec Spec
+		want string
+	}{
+		{
+			name: "legacy consumes",
+			spec: Spec{
+				App:       "widget",
+				Consumes:  []string{"crm"},
+				Consumers: []Consumer{{Source: "crm", Handler: func(*Router) consumer.Handler { return nil }}},
+			},
+			want: "Spec.Consumers conflicts with legacy Spec.Consumes",
+		},
+		{
+			name: "legacy subscriptions",
+			spec: Spec{
+				App:           "widget",
+				Subscriptions: func() []consumer.Subscription { return nil },
+				Consumers:     []Consumer{{Source: "crm", Handler: func(*Router) consumer.Handler { return nil }}},
+			},
+			want: "Spec.Consumers conflicts with legacy Spec.Subscriptions",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			// R-44WY-FC2C
+			code, _, errs := run(t, tc.spec, map[string]string{"WIDGET_DB_PATH": filepath.Join(t.TempDir(), "widget.db")}, "serve")
+			if code != 1 {
+				t.Fatalf("serve exit = %d, want 1; stderr=%q", code, errs)
+			}
+			if !strings.Contains(errs, tc.want) {
+				t.Fatalf("stderr = %q, want conflict %q", errs, tc.want)
+			}
+		})
 	}
 }
 
@@ -295,6 +415,10 @@ func buildBootSmokeService(t *testing.T) string {
 	if err != nil {
 		t.Fatalf("resolve eventplane dir: %v", err)
 	}
+	registryDir, err := filepath.Abs(filepath.Join(appkitDir, "..", "registry"))
+	if err != nil {
+		t.Fatalf("resolve registry dir: %v", err)
+	}
 
 	dir := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(dir, "migrations"), 0o755); err != nil {
@@ -308,11 +432,13 @@ go 1.26
 require (
 	appkit v0.0.0
 	eventplane v0.0.0
+	registry v0.0.0
 )
 
 replace appkit => %s
 replace eventplane => %s
-`, filepath.ToSlash(appkitDir), filepath.ToSlash(eventplaneDir)),
+replace registry => %s
+`, filepath.ToSlash(appkitDir), filepath.ToSlash(eventplaneDir), filepath.ToSlash(registryDir)),
 		"main.go": `package main
 
 import (

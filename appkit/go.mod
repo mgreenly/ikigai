@@ -4,6 +4,7 @@ go 1.26
 
 require (
 	eventplane v0.0.0
+	registry v0.0.0
 	modernc.org/sqlite v1.50.1
 )
 
@@ -11,6 +12,8 @@ require (
 // module. go.work resolves it for local dev; this committed replace makes the
 // build deterministic with or without the workspace (PLAN §2 invariants 3–4).
 replace eventplane => ../eventplane
+
+replace registry => ../registry
 
 require (
 	github.com/dustin/go-humanize v1.0.1 // indirect

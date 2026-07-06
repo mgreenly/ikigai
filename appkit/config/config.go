@@ -16,6 +16,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"registry"
 )
 
 // Config is the resolved universal runtime configuration for one app.
@@ -127,6 +129,19 @@ func composeWWWPath(getenv func(string) string, up, app string) string {
 		www = filepath.Join(root, app, "share", "current", "www")
 	}
 	return EnvOr(getenv, up+"_WWW_PATH", www)
+}
+
+// ResolveConsumerFeed returns the feed URL and first-subscription position for
+// app consuming source. Per-app env overrides win over registry defaults.
+func ResolveConsumerFeed(app, source string, getenv func(string) string) (feedURL, from string) {
+	prefix := strings.ToUpper(app) + "_" + strings.ToUpper(source)
+	if override := getenv(prefix + "_FEED_URL"); override != "" {
+		feedURL = override
+	} else {
+		feedURL = registry.BaseURL(source) + "/feed"
+	}
+	from = EnvOr(getenv, prefix+"_FROM", "tail")
+	return feedURL, from
 }
 
 // EnvOr returns getenv(key) when non-empty, else def.

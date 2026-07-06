@@ -43,6 +43,15 @@ type ManifestKV struct {
 	Value string
 }
 
+// Consumer declares one upstream this service consumes. Source and
+// Subscriptions are static so one-shot verbs and reflection can inspect them
+// without building a Router; Handler is built after the Router is complete.
+type Consumer struct {
+	Source        string
+	Subscriptions []consumer.Subscription
+	Handler       func(rt *Router) consumer.Handler
+}
+
 // Router is the route-registration seam a service's Handlers hook uses to mount
 // its own routes (gated via Router.RequireIdentity, or unauthenticated) on the
 // server appkit stands up. Aliased from appkit/server so services depend only on
@@ -177,6 +186,11 @@ type Spec struct {
 	// a static consumer and the live union for a future dynamic one, so reflection
 	// always reports the live in-edges with no redesign. nil for non-consumers.
 	Subscriptions func() []consumer.Subscription
+	// Consumers is the chassis-owned consumer table. When set, appkit derives the
+	// manifest CONSUMES sources, reflection subscriptions, and serve-time
+	// consumer.Run workers from this single declaration. It must not be combined
+	// with the legacy Consumes or Subscriptions fields.
+	Consumers []Consumer
 }
 
 func (s Spec) migrationsDir() string {

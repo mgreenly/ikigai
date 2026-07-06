@@ -23,6 +23,7 @@ import (
 	"appkit/server"
 	"appkit/web"
 
+	"eventplane/consumer"
 	"eventplane/outbox"
 )
 
@@ -54,9 +55,20 @@ func manifestFields(spec Spec) manifest.Fields {
 		Port:     spec.Port,
 		MCP:      spec.MCP,
 		Feed:     spec.Feed,
-		Consumes: spec.Consumes,
+		Consumes: manifestConsumes(spec),
 		Extras:   extras,
 	}
+}
+
+func manifestConsumes(spec Spec) []string {
+	if len(spec.Consumers) == 0 {
+		return spec.Consumes
+	}
+	consumes := make([]string, 0, len(spec.Consumers))
+	for _, c := range spec.Consumers {
+		consumes = append(consumes, c.Source)
+	}
+	return consumes
 }
 
 // runMigrate applies pending migrations against the app's DB and exits. It is
@@ -134,6 +146,10 @@ func runSchema(spec Spec, args []string, getenv func(string) string, stdout, std
 // resolves config, opens + migrates the DB, starts the producer feed when the
 // service is a producer, builds the loopback server, and runs until interrupted.
 func runServe(spec Spec, args []string, getenv func(string) string, stdout, stderr io.Writer) error {
+	if err := validateConsumerFields(spec); err != nil {
+		return err
+	}
+
 	cfg, err := config.Resolve(spec.App, spec.Mount, spec.Port, getenv)
 	if err != nil {
 		return err
@@ -218,6 +234,15 @@ func runServe(spec Spec, args []string, getenv func(string) string, stdout, stde
 		producerOutbox = prod.Outbox
 	}
 
+	var rt *Router
+	register := func(router *Router) error {
+		rt = router
+		if spec.Handlers == nil {
+			return nil
+		}
+		return spec.Handlers(router)
+	}
+
 	addr := net.JoinHostPort(*ip, strconv.Itoa(*port))
 	srv, err := server.New(server.Options{
 		Addr:          addr,
@@ -229,12 +254,12 @@ func runServe(spec Spec, args []string, getenv func(string) string, stdout, stde
 		Service:       spec.App,
 		Health:        spec.Health,
 		Events:        spec.Events,
-		Subscriptions: spec.Subscriptions,
+		Subscriptions: specSubscriptions(spec),
 		Publishes:     spec.Publishes,
 		WWW:           site,
 		Feed:          feedH,
 		FeedPath:      spec.Feed,
-		Register:      spec.Handlers,
+		Register:      register,
 		DB:            conn,
 	})
 	if err != nil {
@@ -252,10 +277,84 @@ func runServe(spec Spec, args []string, getenv func(string) string, stdout, stde
 		}
 	}
 
+	workers := spec.Workers
+	if len(spec.Consumers) > 0 {
+		consumerWorkers, err := buildConsumerWorkers(spec, rt, getenv)
+		if err != nil {
+			return err
+		}
+		workers = append(append([]func(context.Context) error{}, workers...), consumerWorkers...)
+	}
+
 	logger.Info("starting "+spec.App,
 		"addr", addr, "resource_id", cfg.ResourceID, "auth_server", cfg.AuthServer,
 		"db_path", cfg.DBPath, "version", versionString())
-	return runServerAndWorkers(ctx, cancel, srv, spec.Workers, logger)
+	return runServerAndWorkers(ctx, cancel, srv, workers, logger)
+}
+
+func validateConsumerFields(spec Spec) error {
+	if len(spec.Consumers) == 0 {
+		return nil
+	}
+	if len(spec.Consumes) > 0 {
+		return errors.New("Spec.Consumers conflicts with legacy Spec.Consumes")
+	}
+	if spec.Subscriptions != nil {
+		return errors.New("Spec.Consumers conflicts with legacy Spec.Subscriptions")
+	}
+	return nil
+}
+
+func specSubscriptions(spec Spec) func() []consumer.Subscription {
+	if len(spec.Consumers) == 0 {
+		return spec.Subscriptions
+	}
+	return func() []consumer.Subscription {
+		var subs []consumer.Subscription
+		for _, c := range spec.Consumers {
+			subs = append(subs, c.Subscriptions...)
+		}
+		return subs
+	}
+}
+
+func buildConsumerWorkers(spec Spec, rt *Router, getenv func(string) string) ([]func(context.Context) error, error) {
+	if rt == nil {
+		return nil, errors.New("consumer wiring: Router is required")
+	}
+
+	workers := make([]func(context.Context) error, 0, len(spec.Consumers))
+	for _, entry := range spec.Consumers {
+		entry := entry
+		if entry.Source == "" {
+			return nil, errors.New("consumer wiring: Source is required")
+		}
+		if entry.Handler == nil {
+			return nil, fmt.Errorf("consumer wiring (%s): Handler is required", entry.Source)
+		}
+		handler := entry.Handler(rt)
+		if handler == nil {
+			return nil, fmt.Errorf("consumer wiring (%s): Handler returned nil", entry.Source)
+		}
+		feedURL, from := config.ResolveConsumerFeed(spec.App, entry.Source, getenv)
+		cfg := consumer.Config{
+			FeedURL:    feedURL,
+			From:       from,
+			DB:         rt.DB(),
+			Source:     entry.Source,
+			ConsumerID: spec.App,
+			Logger:     rt.Logger(),
+		}
+		workers = append(workers, func(ctx context.Context) error {
+			rt.Logger().Info("starting "+spec.App+" "+entry.Source+" consumer",
+				"feed_url", cfg.FeedURL, "from", cfg.From)
+			if err := consumer.Run(ctx, cfg, handler); err != nil {
+				return fmt.Errorf("event-plane consumer (%s): %w", entry.Source, err)
+			}
+			return nil
+		})
+	}
+	return workers, nil
 }
 
 // runServerAndWorkers runs the HTTP server and every Spec.Worker concurrently on
