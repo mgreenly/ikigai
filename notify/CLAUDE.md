@@ -1,131 +1,107 @@
 # notify
 
-The **notify** service for the ikigenba single-tenant suite. It serves an **MCP
-surface for agents** (`send`/`health`/`reflection`, bearer-gated) **and a human
-web landing page** (dashboard-session-cookie-gated) under `/srv/notify/`, plus its
-east/west event-plane consumer loops; it still runs **no token logic** — nginx
-remains the sole trust boundary. Deployed at `<account>.ikigenba.com/srv/notify/`
-(e.g. `int.ikigenba.com/srv/notify/`). First demo account: **int**.
+The **notify** service for the ikigenba single-tenant suite serves an MCP surface
+for agents and a dashboard-session-gated landing page under `/srv/notify/`.
+nginx remains the north/south trust boundary: it terminates TLS, performs the
+dashboard auth checks, strips the mount prefix, and injects identity headers.
+notify does not implement token validation.
 
-notify is the suite's **first event-plane consumer**. It was duplicated from
-`../ledger` (the health-only chassis skeleton) and given a domain: it subscribes
-to crm's and prompts's east/west event feeds and fires a best-effort ntfy.sh push
-in reaction (every contact created; every prompts run that succeeds or fails).
+notify is an event-plane consumer. It subscribes to the `crm` and `prompts`
+feeds and sends best-effort ntfy.sh pushes in reaction to contact creation and
+prompt run outcomes. The MCP `send` tool is the proactive path: a connected
+agent can push a notification to the owner's device on demand. The chassis
+`health` and `reflection` tools are served alongside `send`.
 
-notify has **two faces on ntfy**. The east/west consumer loop is *reactive* —
-best-effort pushes driven by events. The north/south MCP surface is *proactive*:
-the **`send`** tool lets a connected agent push a notification to the owner's
-device on demand (see `../../docs/plan-notify-mcp-send.md`). Alongside `send`, the
-chassis `health` tool is the north/south auth proof and `reflection` self-describes
-notify's event-graph edges.
+## Planes
 
-**Read the decisions first — do not re-derive them:**
+- **North/south (external, owner-facing).** Public traffic reaches notify through
+  `/srv/notify/`. The exposed app surfaces are `GET /` for the human landing
+  page, `GET /static/...` for landing assets, `POST /mcp` for MCP, and the
+  unauthenticated RFC 9728 protected resource metadata document. notify is not a
+  producer and serves no `/feed` endpoint.
+- **East/west (internal, service-to-service).** The appkit chassis runs the
+  configured `appkit.Spec.Consumers` entries. Feed URLs and ports are resolved
+  through `registry` (`registry.MustPort`, `registry.BaseURL`) using the
+  per-source environment convention `NOTIFY_<SRC>_FEED_URL` and
+  `NOTIFY_<SRC>_FROM`.
 
-- `../../docs/event-protocol.md` — the **normative** event-plane wire contract.
-  On any conflict it wins over this file. notify is a *consumer* under §10.
-- `../../docs/event-plane-decisions.md` — the design rationale for this consumer.
-- `../crm` — the producer this consumer reacts to (owns the `contact.created`
-  payload shape, §8.6); `../ledger` — the chassis skeleton this was cloned from;
-  `../eventplane` — the shared library whose `consumer` package is the engine.
+## Composition Root
 
-If anything here conflicts with those docs, the docs win — and flag the conflict.
+`cmd/notify/main.go` builds an `appkit.Spec` for the binary:
 
-## The two planes notify lives on
+- `App: "notify"`, `Mount: "/srv/notify/"`, and `Port:
+  registry.MustPort("notify")`.
+- `MCP: true` and `WWW: true`.
+- `Consumers` contains one `crm` consumer using `push.Subscription()` and one
+  `prompts` consumer using `push.PromptsSubscriptions()`.
+- `Migrations: db.FS`, so the embedded migration set is handed to appkit.
+- `Handlers` mounts the landing page through `r.WWW()` at `GET /{$}` and mounts
+  `POST /mcp` through `r.RequireIdentity(handler)`.
 
-- **North/south (external, owner-facing).** nginx terminates TLS, introspects
-  every request via `auth_request` against the dashboard, strips the
-  `/srv/notify/` prefix, and injects `X-Owner-Email` / `X-Client-Id`. notify
-  trusts those headers and does NO token logic. Surface: `POST /mcp` (`send`,
-  `health`, `reflection`), a dashboard-session-cookie-gated human web **landing
-  page**, and the unauthenticated RFC 9728 PRM doc. notify is a
-  consumer, **not** a producer — it serves **no** `/feed` endpoint, and its nginx
-  fragment (`etc/nginx.conf`, dev mirror `../nginx/locations/notify.conf`) has no
-  feed block.
-- **East/west (internal, service-to-service).** A background goroutine runs
-  `eventplane/consumer.Run`, holding one long-lived SSE connection to crm's
-  `http://127.0.0.1:3100/feed` (loopback-direct — the event plane bypasses nginx,
-  §2). It is unauthenticated and loopback-only by construction.
+## Behavior
 
-## What the consumer does
+- **Engine, not hand-rolled.** The SSE client, reconnect/backoff loop, durable
+  per-upstream cursor, and connect-time resync behavior live in
+  `eventplane/consumer`. notify supplies subscriptions and handlers.
+- **Best-effort delivery.** `internal/push` maps events to ntfy POSTs. Contact
+  creation uses `Title: New contact` with the contact display name as the body.
+  Prompt run events use prompt-oriented notification copy. Push delivery is not a
+  transactional leg of event consumption; cursor advancement is owned by the
+  consumer engine.
+- **Structural failures are loud.** Missing cursor storage or migration problems
+  are deployment bugs and should fail the process. Transport failures to a
+  producer are retried by the consumer engine.
 
-- **Engine, not hand-rolled.** All the hard parts — the SSE client, the
-  reconnect/backoff loop, the durable per-upstream cursor, and all four
-  connect-time resync reasons — live in `eventplane/consumer`. notify supplies
-  only a `Config` and a `Handler`.
-- **The effect is best-effort (§11.2).** `internal/push` maps `contact.created`
-  → one ntfy POST (`Title: New contact`, body = the contact's `display_name`,
-  `Authorization: Bearer <NTFY_API_KEY>`), fired **asynchronously** in a
-  timeout-bounded goroutine. The engine commits the cursor regardless of the push
-  outcome, so the controlled leg (crm → notify) stays at-least-once while end-user
-  delivery is intentionally unreliable. A non-`contact.created` event runs no
-  push but **still advances the cursor** (consumer-side filtering, §7.3). There is
-  no dedup table — duplicate pushes on reconnect are expected and acceptable.
-- **First-subscription = `tail` by default** (`NOTIFY_FROM`), so a fresh notify
-  only pushes for contacts created from now on, not the entire backlog.
-- **Structural vs transport (decision 11).** A `feed_offset` read/write failure
-  (a missing table — a deploy bug) crashes the whole process so systemd
-  restart-loops visibly; crm being down is a transport fault the engine retries
-  indefinitely without bringing notify down. `cmd/notify` runs the HTTP server and
-  the consumer under one context: a structural consumer fault cancels the server
-  too — no half-alive (HTTP up / consumer dead) state.
+## Secrets And Config
 
-## Secrets
+The ntfy topic and API key are deployment secrets (`NTFY_TOPIC`,
+`NTFY_API_KEY`). They reach the process only through the environment. The ntfy
+base URL (`NOTIFY_NTFY_BASE_URL`, default `https://ntfy.sh`) is plain config, so
+tests point it at a mock server. Do not read, log, or commit secret values.
 
-The ntfy **topic** and **key** are deployment secrets (`~/.secrets/NTFY_TOPIC`,
-`~/.secrets/NTFY_API_KEY`). They reach the process only via the environment: the
-committed `.envrc` injects them locally (run `direnv allow` once); app-config
-injects them in prod. notify reads them with `getenv` at its composition root
-(`cmd/notify/main.go`) and **fails loudly at boot** if either is absent. Never
-read, log, or commit their values (the `secrets` skill's hard rule). The ntfy
-**base URL** (`NOTIFY_NTFY_BASE_URL`, default `https://ntfy.sh`) is plain config,
-so tests point it at a mock.
+Source-specific consumer config follows the chassis convention:
+`NOTIFY_<SRC>_FEED_URL` selects the producer feed URL for a source and
+`NOTIFY_<SRC>_FROM` selects the first-consumption position for a source.
 
 ## Layout
 
-- **`internal/push`** — the domain: the ntfy `Client` and the `consumer.Handler`
-  that filters and pushes. Mirrors how crm's `internal/contacts` owns the producer
-  domain. `Client.Send` is the consumer's best-effort, fire-and-forget hop;
-  `Client.Publish(ctx, Notification) error` is the synchronous hop behind the MCP
-  `send` verb (`Send` delegates to it, so there is one ntfy-POST code path).
-- **`internal/db`** — SQLite open (WAL, FK, single-writer) + migration runner.
-  `001_schema_migrations`, then `002_feed_offset` which applies
-  `consumer.SchemaSQL` verbatim (asserted by `migrations_feed_offset_test.go`).
-- **`internal/mcp`** — the JSON-RPC `/mcp` transport and notify's tool surface:
-  the `send` write verb (validates args → `push.Client.Publish` → `{ok:true}` or a
-  closed-vocab `validation`/`upstream` error envelope) plus the chassis `health`
-  and `reflection` tools. The handler holds a `*push.Client` built at the
-  composition root.
-- **`internal/server`, `internal/logging`, `internal/ids`** — the carried-over
-  chassis (PRM, identity gate, security headers, request ids).
+- **`internal/push`** — ntfy client code and the event consumer handlers.
+  `Client.Send` is the best-effort path used by consumers, while
+  `Client.Publish(ctx, Notification) error` is the synchronous path behind the
+  MCP `send` verb.
+- **`internal/db`** — the embedded migration set (`FS`) and the
+  `migrations_feed_offset_test.go` byte-equality guard against
+  `consumer.SchemaSQL`. SQLite open and migration execution are appkit concerns
+  (`appkit/db`, `appkit.Spec.Migrations`).
+- **`internal/mcp`** — `Instructions`, `Tools(client)`, and `NewHandler`, over
+  the `appkit/mcp` chassis transport. Local code owns notify's tool definitions,
+  not the JSON-RPC transport.
+- **`share/www`** — `landing.html` and static assets served by the appkit WWW
+  handler through `Spec.WWW` and `r.WWW()`.
 
 ## Tests
 
-`go test ./...` (workspace mode via `ikigai/go.work`). The migration-assertion test
-guards that `002_feed_offset.sql` stays byte-identical to `consumer.SchemaSQL`.
-The §13c e2e (`internal/push`) wires the **real** `outbox.FeedHandler` to a
-consumer whose handler points at a **mock** ntfy server, and asserts a
-`contact.created` yields exactly one correctly-shaped POST while a
-non-`contact.created` event yields none but still advances the cursor. The
-`internal/mcp` send tests (`send_test.go`) drive `tools/call` against a **mock**
-ntfy and assert the header mapping (priority→1..5, tags join, click), that
-validation rejects (no POST fired) and that an `upstream` failure never leaks the
-topic or token. Real ntfy.sh is never contacted.
+Run `go test ./...` from this directory. Migration tests guard that the embedded
+set loads through `appkit/db` and that `002_feed_offset.sql` stays byte-identical
+to `consumer.SchemaSQL`. Push tests use mock HTTP servers and never contact real
+ntfy.sh. MCP tests drive the tool surface against a mock push client path and
+assert validation, success, and upstream failure behavior.
 
-## Manifest / deploy
+## Manifest And Deploy
 
-notify is one static appkit binary (the `appkit.Main(appkit.Spec{…})` contract,
-`Consumes:["crm"]`, with the consumer loop run as an appkit `Worker`): `<app>`
-serve + the fixed `version`/`manifest`/`migrate`/`schema`
-verbs, no `run` wrapper. `etc/manifest.env` (`APP=notify`, `MOUNT=/srv/notify/`,
-`DEFAULT=false`, `PORT=3201`, `MCP=true` so the dashboard inventory lists it,
-`CONSUMES=crm`) is emitted by `notify manifest`; the public consumer config
-(`NOTIFY_FROM`, `NOTIFY_NTFY_BASE_URL`, the feed URL resolved by name via
-`bin/registry`) is read from env at the composition root, and the ntfy secrets
-flow via app-config only. Shipping is the shared repo-root `bin/ship notify`
-(no version arg; version is the committed `notify/VERSION`, advanced by
-`bin/bump notify <field>`) → `opsctl stage` + `opsctl deploy` (which regenerates
-the on-box manifest on every swap); provisioning is `opsctl setup notify`. The only `bin/*` scripts notify
-still carries are `start`/`stop` (systemd control) and `secrets` (SSM seeding). No
-`plugin/` in this repo. notify is a consumer with no generation sidecar, so
-restore is trivial: a consumer restored from an older snapshot simply replays from
-its rolled-back cursor, and best-effort tolerates the duplicates (§11.1).
+notify is one static appkit binary with the standard `serve`, `version`,
+`manifest`, `migrate`, and `schema` verbs. `etc/manifest.env` declares:
+
+```text
+APP=notify
+MOUNT=/srv/notify/
+DEFAULT=false
+PORT=3201
+MCP=true
+CONSUMES=crm,prompts
+```
+
+Shipping is the shared repo-root `bin/ship notify` flow. `notify/VERSION` is the
+committed version source, and the on-box manifest is regenerated during deploy.
+The local `bin/` scripts retained by notify are for systemd start/stop and secret
+seeding.
