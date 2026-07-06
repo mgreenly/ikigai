@@ -88,9 +88,11 @@ func notifySpec() appkit.Spec {
 			}
 			pushClient := push.NewClient(cfg.ntfyBase, cfg.ntfyTopic, cfg.ntfyToken, r.Logger())
 			r.Handle("GET /{$}", landingHandler(r.WWW(), r.Service(), r.Version()))
-			r.Handle("POST /mcp", r.RequireIdentity(
-				mcp.NewHandler(r.Version(), r.Service(), r.Health(),
-					r.Events(), r.Subscriptions(), pushClient)))
+			handler, err := mcp.NewHandler(pushClient, r)
+			if err != nil {
+				return err
+			}
+			r.Handle("POST /mcp", r.RequireIdentity(handler))
 			return nil
 		},
 	}

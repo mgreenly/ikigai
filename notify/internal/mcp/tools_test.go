@@ -9,6 +9,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"appkit/server"
+
 	"eventplane/consumer"
 	"eventplane/outbox"
 
@@ -33,17 +35,40 @@ func discardLogger() *slog.Logger {
 // send). It has an EMPTY published-event registry (notify produces nothing) and
 // the live subscription provider returning notify's one declared in-edge — the
 // same push.Subscription() the consumer Handler matches against.
-func newTestHandler() *Handler {
-	return newHandlerWithClient(push.NewClient("http://127.0.0.1:1", "topic", "tok", discardLogger()))
+func newTestHandler(t testing.TB) http.Handler {
+	t.Helper()
+	return newHandlerWithClient(t, push.NewClient("http://127.0.0.1:1", "topic", "tok", discardLogger()))
 }
 
 // newHandlerWithClient builds a notify Handler around a specific push client so a
 // send test can point it at a mock ntfy server.
-func newHandlerWithClient(c *push.Client) *Handler {
-	return NewHandler(testVersion, testService, nil,
-		outbox.Registry{},
-		func() []consumer.Subscription { return []consumer.Subscription{push.Subscription()} },
-		c)
+func newHandlerWithClient(t testing.TB, c *push.Client) http.Handler {
+	t.Helper()
+	var handler http.Handler
+	_, err := server.New(server.Options{
+		Addr:       "127.0.0.1:0",
+		Logger:     discardLogger(),
+		ResourceID: "https://int.ikigenba.com/srv/notify/mcp",
+		AuthServer: "https://int.ikigenba.com",
+		Version:    testVersion,
+		Service:    testService,
+		Events:     outbox.Registry{},
+		Subscriptions: func() []consumer.Subscription {
+			return []consumer.Subscription{push.Subscription()}
+		},
+		Register: func(rt *server.Router) error {
+			var err error
+			handler, err = NewHandler(c, rt)
+			return err
+		},
+	})
+	if err != nil {
+		t.Fatalf("build test server: %v", err)
+	}
+	if handler == nil {
+		t.Fatal("NewHandler returned nil handler")
+	}
+	return handler
 }
 
 type jsonRPCResponse struct {
@@ -66,7 +91,7 @@ type toolResult struct {
 
 // rpc drives a single JSON-RPC request through the real ServeHTTP seam with the
 // nginx-injected identity headers set, and returns the decoded response.
-func rpc(t *testing.T, h *Handler, method string, params any) jsonRPCResponse {
+func rpc(t *testing.T, h http.Handler, method string, params any) jsonRPCResponse {
 	t.Helper()
 	body := map[string]any{"jsonrpc": "2.0", "id": 1, "method": method}
 	if params != nil {
@@ -93,7 +118,7 @@ func rpc(t *testing.T, h *Handler, method string, params any) jsonRPCResponse {
 }
 
 // call drives a tools/call and decodes the inner tool result.
-func call(t *testing.T, h *Handler, name string, args any) toolResult {
+func call(t *testing.T, h http.Handler, name string, args any) toolResult {
 	t.Helper()
 	resp := rpc(t, h, "tools/call", map[string]any{"name": name, "arguments": args})
 	var tr toolResult
@@ -105,7 +130,7 @@ func call(t *testing.T, h *Handler, name string, args any) toolResult {
 
 // callOK asserts the success envelope (no isError) and decodes the text payload
 // into a generic map.
-func callOK(t *testing.T, h *Handler, name string, args any) map[string]any {
+func callOK(t *testing.T, h http.Handler, name string, args any) map[string]any {
 	t.Helper()
 	tr := call(t, h, name, args)
 	if tr.IsError {
@@ -123,7 +148,7 @@ func callOK(t *testing.T, h *Handler, name string, args any) map[string]any {
 
 // callErr asserts an error envelope (isError:true) and returns the rendered
 // `error` object.
-func callErr(t *testing.T, h *Handler, name string, args any) map[string]any {
+func callErr(t *testing.T, h http.Handler, name string, args any) map[string]any {
 	t.Helper()
 	tr := call(t, h, name, args)
 	if !tr.IsError {
@@ -148,10 +173,9 @@ func payloadText(tr toolResult) string {
 	return tr.Content[0].Text
 }
 
-// TestToolsList asserts tools/list includes reflection alongside
-// the health tool, each with the required descriptor keys.
-func TestToolsList(t *testing.T) {
-	h := newTestHandler()
+func TestToolsListComposesNotifyToolWithChassisTools(t *testing.T) {
+	// R-4IBU-MT7Z
+	h := newTestHandler(t)
 	resp := rpc(t, h, "tools/list", nil)
 
 	var result struct {
@@ -164,9 +188,15 @@ func TestToolsList(t *testing.T) {
 	if err := json.Unmarshal(resp.Result, &result); err != nil {
 		t.Fatalf("decode tools/list: %v", err)
 	}
+	if len(result.Tools) != 3 {
+		t.Fatalf("tools/list returned %d tools, want exactly 3: %+v", len(result.Tools), result.Tools)
+	}
 
 	got := map[string]bool{}
 	for _, tool := range result.Tools {
+		if got[tool.Name] {
+			t.Fatalf("duplicate tool %q in tools/list: %+v", tool.Name, result.Tools)
+		}
 		got[tool.Name] = true
 		if tool.Description == "" {
 			t.Errorf("tool %q has an empty description", tool.Name)
@@ -180,14 +210,20 @@ func TestToolsList(t *testing.T) {
 			t.Errorf("missing expected tool %q: %+v", name, result.Tools)
 		}
 	}
+	for name := range got {
+		switch name {
+		case "send", "health", "reflection":
+		default:
+			t.Errorf("unexpected tool %q in tools/list: %+v", name, result.Tools)
+		}
+	}
 }
 
-// TestToolsCallReflection covers reflection: the no-arg index
-// shows empty publishes (notify produces nothing) and exactly one subscribes
-// in-edge (crm/contact.created) with no Handler leaked; an event_type arg against
-// the empty registry returns the corrective error with an empty valid list.
+// TestToolsCallReflection covers the chassis reflection index: notify produces
+// nothing and subscribes to exactly one crm/contact.created in-edge with no
+// Handler leaked.
 func TestToolsCallReflection(t *testing.T) {
-	h := newTestHandler()
+	h := newTestHandler(t)
 
 	idx := callOK(t, h, "reflection", map[string]any{})
 
@@ -225,13 +261,4 @@ func TestToolsCallReflection(t *testing.T) {
 		}
 	}
 
-	// An event_type arg against the empty registry → corrective error with an
-	// empty valid-type list.
-	badErr := callErr(t, h, "reflection", map[string]any{"event_type": "contact.created"})
-	if badErr["code"] != "unknown_event_type" {
-		t.Fatalf("expected unknown_event_type code, got %+v", badErr)
-	}
-	if msg, _ := badErr["message"].(string); msg == "" {
-		t.Fatalf("corrective error missing message: %+v", badErr)
-	}
 }

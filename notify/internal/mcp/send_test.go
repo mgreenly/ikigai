@@ -73,8 +73,9 @@ func (m *ntfyMock) setStatus(s int) {
 }
 
 // handlerForMock builds a Handler whose push client targets the mock ntfy server.
-func handlerForMock(m *ntfyMock) *Handler {
-	return newHandlerWithClient(push.NewClient(m.srv.URL, "mytopic", "secret-token", discardLogger()))
+func handlerForMock(t testing.TB, m *ntfyMock) http.Handler {
+	t.Helper()
+	return newHandlerWithClient(t, push.NewClient(m.srv.URL, "mytopic", "secret-token", discardLogger()))
 }
 
 // TestSendHappyPath: a full message/title/priority/tags/click call yields exactly
@@ -82,7 +83,7 @@ func handlerForMock(m *ntfyMock) *Handler {
 // and returns {ok:true}.
 func TestSendHappyPath(t *testing.T) {
 	m := newNtfyMock(t)
-	h := handlerForMock(m)
+	h := handlerForMock(t, m)
 
 	res := callOK(t, h, "send", map[string]any{
 		"message":  "build failed on main",
@@ -130,7 +131,7 @@ func TestSendHappyPath(t *testing.T) {
 // Priority / Tags / Click), proving the defaults are "unset", not empty strings.
 func TestSendMinimal(t *testing.T) {
 	m := newNtfyMock(t)
-	h := handlerForMock(m)
+	h := handlerForMock(t, m)
 
 	callOK(t, h, "send", map[string]any{"message": "hello"})
 
@@ -165,7 +166,7 @@ func TestSendValidation(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			m := newNtfyMock(t)
-			h := handlerForMock(m)
+			h := handlerForMock(t, m)
 
 			e := callErr(t, h, "send", c.args)
 			if e["code"] != "validation" {
@@ -186,7 +187,7 @@ func TestSendValidation(t *testing.T) {
 func TestSendUpstreamNon2xx(t *testing.T) {
 	m := newNtfyMock(t)
 	m.setStatus(http.StatusInternalServerError)
-	h := handlerForMock(m)
+	h := handlerForMock(t, m)
 
 	e := callErr(t, h, "send", map[string]any{"message": "x"})
 	if e["code"] != "upstream" {
@@ -202,7 +203,7 @@ func TestSendUpstreamNon2xx(t *testing.T) {
 // as a non-leaking `upstream` envelope.
 func TestSendUpstreamUnreachable(t *testing.T) {
 	// A client pointed at a closed port: NewClient against an unroutable address.
-	h := newHandlerWithClient(push.NewClient("http://127.0.0.1:1", "mytopic", "secret-token", discardLogger()))
+	h := newHandlerWithClient(t, push.NewClient("http://127.0.0.1:1", "mytopic", "secret-token", discardLogger()))
 
 	e := callErr(t, h, "send", map[string]any{"message": "x"})
 	if e["code"] != "upstream" {
