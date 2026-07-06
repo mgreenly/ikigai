@@ -154,6 +154,7 @@ launch_dashboard() {
 
 launch_crm() {
 	export CRM_DB_PATH="$RUN_DIR/crm.db"
+	export CRM_WWW_PATH="$repo/crm/share/www"
 	exec "$RUN_DIR/bin/crm" serve --port "$(port 3100)"
 }
 
