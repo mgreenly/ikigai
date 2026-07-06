@@ -14,13 +14,13 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 
 	"appkit"
 
 	"crm/internal/crm"
 	"crm/internal/db"
 	"crm/internal/mcp"
-	"crm/internal/web"
 
 	"eventplane/outbox"
 )
@@ -38,6 +38,7 @@ func main() {
 		Mount:      "/srv/crm/",
 		Port:       3100,
 		MCP:        true,
+		WWW:        true,
 		Feed:       "/feed", // event-plane producer
 		Migrations: db.FS,
 		Events:     crm.Events, // published event types: reflection + Append validation
@@ -54,8 +55,21 @@ func main() {
 				return fmt.Errorf("crm: no DB handle on router")
 			}
 			svc = crm.NewService(conn)
-			rt.Handle("GET /{$}", web.LandingHandler(rt.Service(), rt.Version()))
-			rt.Handle("GET /static/", web.StaticHandler())
+			rt.Handle("GET /{$}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path != "/" {
+					http.NotFound(w, r)
+					return
+				}
+				if err := rt.WWW().Render(w, "landing.html", struct {
+					Service string
+					Version string
+				}{
+					Service: rt.Service(),
+					Version: rt.Version(),
+				}); err != nil {
+					http.Error(w, "template error", http.StatusInternalServerError)
+				}
+			}))
 			rt.Handle("POST /mcp", rt.RequireIdentity(
 				mcp.NewHandler(svc, rt.Version(), rt.Service(), rt.Health(),
 					rt.Events(), rt.Subscriptions())))
