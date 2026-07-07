@@ -12,12 +12,16 @@ current statement of the landing-page architecture — it is rewritten in place 
 stay true (stale decisions are removed, not stacked); the history of how it got
 here lives in the plan.
 
-> **Scope.** This design covers **only** gmail's web landing page and the seam it
-> establishes. The existing gmail connector domain (the normal-mailbox MCP tool
-> surface, the History-API poll daemon, the `mail.*` outbox producer, the
-> migrations) is owned elsewhere (the `cmd/gmail/main.go` package comment and the
-> connector decisions) and is untouched. No schema changes: the landing page adds
-> **no migration**.
+> **Scope.** This design covers gmail's web landing page and the seam it
+> establishes (D1–D8) **plus** the appkit-chassis conversion (D9–D14): serving the
+> web surface from `share/www` through `Spec.WWW` (D9), the MCP surface over
+> `appkit/mcp` (D10), `registry` port adoption + drift guards (D11–D12),
+> composition-root normalization (D13), and the `internal/db` shim deletion + doc
+> truth-up (D14). The conversion is **behavior-preserving**: the normal-mailbox MCP
+> tool surface (the ten mailbox verbs), the History-API poll daemon (`Workers`),
+> the `mail.*` outbox producer (`Producer`/`Feed`), and the migrations keep their
+> observable contracts — only their wiring moves onto the shared chassis. **No
+> schema changes: this work adds no migration.**
 
 ## Requirement ids
 
@@ -47,21 +51,24 @@ Shared facts every Decision leans on:
   (no output), and `cd gmail && go test ./...` all
   succeed with zero failures.
 - **Formatting:** `gofmt`-clean; `gofmt -l .` must print nothing.
-- **Module wiring:** `appkit` and `eventplane` are committed in-repo
+- **Module wiring:** `appkit`, `eventplane`, and `registry` are committed in-repo
   replace-siblings (`replace appkit => ../appkit`,
-  `replace eventplane => ../eventplane`). The landing page adds **no new
-  dependency** — it uses only the standard library (`net/http`, `embed`,
-  `html/template` or `text/template`) and the appkit chassis.
+  `replace eventplane => ../eventplane`, `replace registry => ../registry` — the
+  last added by D11). The web surface adds **no new third-party dependency** — the
+  template loading, rendering, and static serving are the appkit chassis's
+  (`appkit/web`, `Spec.WWW`); the service ships only the on-disk `share/www` tree.
 - **The chassis owns the server.** gmail is `appkit.Main(appkit.Spec{…})`:
-  `App:"gmail"`, `Mount:"/srv/gmail/"`, `Port:3202`, `MCP:true`, `Feed:"/feed"`
-  (event-plane producer). The fixed verbs (`serve`/`version`/`manifest`/`migrate`
-  /`schema`), config-from-env, the loopback HTTP server + PRM +
-  identity gate, and the `/feed` mount are appkit's. main.go declares gmail's
-  identity (the Spec) and wires its surface through the Spec hooks — `Handlers`
-  (the MCP surface), `Producer` (the outbox sink), and `Workers` (the poll
-  daemon). The landing route is wired through the existing **`Spec.Handlers`**
-  hook, beside the `POST /mcp` mount; the `Producer`/`Workers` connector wiring is
-  untouched.
+  `App:"gmail"`, `Mount:"/srv/gmail/"`, `Port:registry.MustPort("gmail")` (== 3202,
+  D11), `MCP:true`, `WWW:true` (D9), `Feed:"/feed"` (event-plane producer). The
+  fixed verbs (`serve`/`version`/`manifest`/`migrate`/`schema`), config-from-env,
+  the loopback HTTP server + PRM + identity gate, the `/feed` mount, **and the
+  www loader + `GET /static/` mount** are appkit's. The Spec is declared inline at
+  the composition root (`cmd/gmail/main.go` as `gmailSpec()`, D13) and wires
+  gmail's surface through the Spec hooks — `Handlers` (the landing render through
+  `rt.WWW()` + the `POST /mcp` mount), `Producer` (the outbox sink), and
+  `Workers` (the poll daemon). The landing route is wired through the
+  **`Spec.Handlers`** hook, beside the `POST /mcp` mount; the `Producer`/`Workers`
+  connector wiring is untouched.
 - **nginx is the sole trust boundary.** gmail runs no token logic. nginx
   introspects every `/srv/gmail/` request against the dashboard and forwards to the
   loopback service. The landing page's gate is therefore an **nginx** concern
@@ -79,24 +86,24 @@ Shared facts every Decision leans on:
 Testing is part of the architecture, not an afterthought. The cross-cutting
 approach every Decision's Verification list assumes:
 
-- **The landing handler is tested in-process with `net/http/httptest`.** The
-  handler is a plain `http.HandlerFunc` built from the service name and version
-  strings the chassis already exposes (`rt.Service()`, `rt.Version()`); its tests
-  construct it directly with fixed name/version values and drive it with
+- **The landing render is tested in-process with `net/http/httptest`.** The
+  page renders through an `appkit/web` Site loaded from the repo-real
+  `gmail/share/www` tree (resolved relative to the `cmd/gmail` test package);
+  tests render `landing.html` with fixed service/version values and drive it with
   `httptest.NewRequest` / `httptest.NewRecorder`, asserting status, body
   substrings (name, version), and `Content-Type`. **No test makes a network call
-  and no test needs a running suite** — the handler is pure over its two string
-  inputs and its embedded assets.
+  and no test needs a running suite** — the render is deterministic over its two
+  string inputs and the shipped template.
 - **The route mux is tested as wired.** The `GET /{$}` exact-root pattern is
   proven against an `http.ServeMux` configured the way the composition root
   configures it, asserting that the bare root path is served by the landing
   handler while a non-root path under the mux is **not** captured by `{$}`
   (Go 1.22+ pattern semantics: `{$}` matches only the exact path).
-- **Embedded assets are real bytes.** The Carbon `tokens.css` and the woff2 fonts
-  are embedded via `//go:embed` and served by the same handler/mux; tests assert
-  the embedded `tokens.css` is served with a CSS content type and that the
-  template references the app's **own** embedded asset path (not a cross-service
-  URL).
+- **Shipped assets are real bytes.** The Carbon `tokens.css` and the woff2 fonts
+  ship on disk in `share/www/static/` and are served by the chassis static mount
+  (`Spec.WWW`); tests assert `tokens.css` is served with a CSS content type and
+  that the template references the app's **own** `/static/` asset path (not a
+  cross-service URL).
 - **The nginx fragment is proven by content assertion.** The session-gate
   fragment is config, not Go, so its behavior is pinned by a test that reads
   `gmail/etc/nginx.conf` from disk and asserts the exact-match `= /srv/gmail/`
@@ -122,11 +129,13 @@ Decision it realizes:
   sorted `R-id → Decision/file` reverse map. It is the grep target for resolving
   an id.
 
-**New package.** The landing page introduces one new package,
-`gmail/internal/web/` — the handler, the embedded `*.html` template, and the
-embedded `static/` design assets (`tokens.css` + the woff2 fonts). This keeps the
-web surface in one place, parallel to the existing `internal/db`, `internal/gmail`,
-`internal/mcp` packages, and is the seam every later gmail web page grows from.
+**Web assets on disk (no service package).** The web surface is **shipped
+files**, not a Go package: `gmail/share/www/landing.html` + `share/www/static/`
+(`tokens.css` + the woff2 fonts), loaded and served by the chassis through
+`Spec.WWW`/`appkit/web` (D9). The former `gmail/internal/web/` package is
+deleted; the few-line landing render (`rt.WWW().Render("landing.html", …)`) lives
+at the composition root (`cmd/gmail`), alongside `internal/db`, `internal/gmail`,
+`internal/mcp`. `share/www` is the seam every later gmail web page grows from.
 
 Design is **rewritten in place**, not append-only (history lives in the plan): a
 changed Decision is rewritten in its `DNN.md` and `INDEX.md` is regenerated; a
