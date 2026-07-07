@@ -1,20 +1,61 @@
-package web
+package main
 
 import (
 	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+
+	appweb "appkit/web"
 )
+
+func TestPromptsSpecEnablesChassisWWWFromShareTree(t *testing.T) {
+	// R-DIAW-ZFMC
+	if spec := promptsSpec(); !spec.WWW {
+		t.Fatal("promptsSpec().WWW = false, want true")
+	}
+
+	site := loadPromptsSite(t)
+	rec := renderLanding(t, site, "prompts-canary", "v2036.01.02")
+	if got, want := rec.Header().Get("Content-Type"), "text/html; charset=utf-8"; got != want {
+		t.Fatalf("Content-Type = %q, want %q", got, want)
+	}
+	if body := rec.Body.String(); !strings.Contains(body, "prompts-canary") || !strings.Contains(body, "v2036.01.02") {
+		t.Fatalf("landing render did not use chassis-loaded share/www template:\n%s", body)
+	}
+
+	staticRec := httptest.NewRecorder()
+	site.Static().ServeHTTP(staticRec, httptest.NewRequest(http.MethodGet, "/static/tokens.css", nil))
+	if staticRec.Code != http.StatusOK {
+		t.Fatalf("site.Static tokens.css status = %d, want %d", staticRec.Code, http.StatusOK)
+	}
+
+	dirRec := httptest.NewRecorder()
+	site.Static().ServeHTTP(dirRec, httptest.NewRequest(http.MethodGet, "/static/fonts/", nil))
+	if dirRec.Code != http.StatusNotFound {
+		t.Fatalf("site.Static directory status = %d, want %d", dirRec.Code, http.StatusNotFound)
+	}
+}
+
+func TestStartExportsPromptsWWWPath(t *testing.T) {
+	// R-DJIT-D7D1
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "bin", "start"))
+	if err != nil {
+		t.Fatalf("read bin/start: %v", err)
+	}
+	block := shellFunctionBlock(t, string(data), "launch_prompts()")
+	want := `export PROMPTS_WWW_PATH="$repo/prompts/share/www"`
+	if !strings.Contains(block, want) {
+		t.Fatalf("launch_prompts missing %q:\n%s", want, block)
+	}
+}
 
 func TestLandingHandlerRootResponse(t *testing.T) {
 	// R-LAND-PG01
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	rec := httptest.NewRecorder()
-
-	LandingHandler("prompts", "v11-test")(rec, req)
+	rec := renderLanding(t, loadPromptsSite(t), "prompts", "v11-test")
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
@@ -26,10 +67,7 @@ func TestLandingHandlerRootResponse(t *testing.T) {
 
 func TestLandingHandlerRendersInjectedNameAndVersion(t *testing.T) {
 	// R-LAND-NMVR
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	rec := httptest.NewRecorder()
-
-	LandingHandler("prompts-canary", "v2035.04.19-phase11")(rec, req)
+	rec := renderLanding(t, loadPromptsSite(t), "prompts-canary", "v2035.04.19-phase11")
 
 	body := rec.Body.String()
 	for _, want := range []string{"prompts-canary", "v2035.04.19-phase11"} {
@@ -40,10 +78,7 @@ func TestLandingHandlerRendersInjectedNameAndVersion(t *testing.T) {
 }
 
 func TestLandingHandlerRendersCanonicalPromptsLanding(t *testing.T) {
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	rec := httptest.NewRecorder()
-
-	LandingHandler("prompts-canary", "v2035.04.19-phase14")(rec, req)
+	rec := renderLanding(t, loadPromptsSite(t), "prompts-canary", "v2035.04.19-phase14")
 
 	body := rec.Body.String()
 	for _, want := range []string{
@@ -68,10 +103,7 @@ func TestLandingHandlerRendersCanonicalPromptsLanding(t *testing.T) {
 
 func TestLandingHandlerRendersHomeLinkToDashboardApex(t *testing.T) {
 	// R-HOME-2T4X
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	rec := httptest.NewRecorder()
-
-	LandingHandler("prompts", "v15-test")(rec, req)
+	rec := renderLanding(t, loadPromptsSite(t), "prompts", "v15-test")
 
 	body := rec.Body.String()
 	for _, want := range []string{
@@ -87,29 +119,27 @@ func TestLandingHandlerRendersHomeLinkToDashboardApex(t *testing.T) {
 	}
 }
 
-func TestLandingAssetsAreEmbeddedAndServed(t *testing.T) {
+func TestLandingAssetsAreLoadedFromShareWWWAndServed(t *testing.T) {
 	// R-LAND-CARB
-	if _, err := content.ReadFile("static/tokens.css"); err != nil {
-		t.Fatalf("embedded tokens.css missing: %v", err)
+	www := promptsWWWPath()
+	if _, err := os.Stat(filepath.Join(www, "static", "tokens.css")); err != nil {
+		t.Fatalf("share/www tokens.css missing: %v", err)
 	}
-	fonts, err := fs.Glob(content, "static/fonts/*.woff2")
+	fonts, err := fs.Glob(os.DirFS(www), "static/fonts/*.woff2")
 	if err != nil {
 		t.Fatalf("glob fonts: %v", err)
 	}
 	if len(fonts) == 0 {
-		t.Fatal("embedded woff2 fonts missing")
+		t.Fatal("share/www woff2 fonts missing")
 	}
 
-	pageReq := httptest.NewRequest(http.MethodGet, "/", nil)
-	pageRec := httptest.NewRecorder()
-	LandingHandler("prompts", "v11")(pageRec, pageReq)
+	pageRec := renderLanding(t, loadPromptsSite(t), "prompts", "v11")
 	if !strings.Contains(pageRec.Body.String(), `href="static/tokens.css"`) {
 		t.Fatalf("landing page does not reference tokens.css:\n%s", pageRec.Body.String())
 	}
 
-	staticReq := httptest.NewRequest(http.MethodGet, "/tokens.css", nil)
 	staticRec := httptest.NewRecorder()
-	StaticHandler().ServeHTTP(staticRec, staticReq)
+	loadPromptsSite(t).Static().ServeHTTP(staticRec, httptest.NewRequest(http.MethodGet, "/static/tokens.css", nil))
 
 	if staticRec.Code != http.StatusOK {
 		t.Fatalf("tokens.css status = %d, want %d", staticRec.Code, http.StatusOK)
@@ -122,7 +152,12 @@ func TestLandingAssetsAreEmbeddedAndServed(t *testing.T) {
 func TestLandingMuxMatchesExactRootOnly(t *testing.T) {
 	// R-LAND-ROOT
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /{$}", LandingHandler("prompts-root-only", "v11"))
+	site := loadPromptsSite(t)
+	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
+		if err := site.Render(w, "landing.html", landingData{Service: "prompts-root-only", Version: "v11"}); err != nil {
+			t.Fatalf("render landing: %v", err)
+		}
+	})
 
 	for _, path := range []string{"/health", "/mcp", "/nope"} {
 		req := httptest.NewRequest(http.MethodGet, path, nil)
@@ -138,10 +173,7 @@ func TestLandingMuxMatchesExactRootOnly(t *testing.T) {
 
 func TestLandingIsUngated(t *testing.T) {
 	// R-LAND-UNGT
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	rec := httptest.NewRecorder()
-
-	LandingHandler("prompts", "v11")(rec, req)
+	rec := renderLanding(t, loadPromptsSite(t), "prompts", "v11")
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status without identity or bearer = %d, want %d", rec.Code, http.StatusOK)
@@ -149,9 +181,8 @@ func TestLandingIsUngated(t *testing.T) {
 }
 
 func TestTokensCSSUsesOptionalRelativeFontSources(t *testing.T) {
-	staticReq := httptest.NewRequest(http.MethodGet, "/tokens.css", nil)
 	staticRec := httptest.NewRecorder()
-	StaticHandler().ServeHTTP(staticRec, staticReq)
+	loadPromptsSite(t).Static().ServeHTTP(staticRec, httptest.NewRequest(http.MethodGet, "/static/tokens.css", nil))
 
 	if staticRec.Code != http.StatusOK {
 		t.Fatalf("tokens.css status = %d, want %d", staticRec.Code, http.StatusOK)
@@ -183,10 +214,7 @@ func TestTokensCSSUsesOptionalRelativeFontSources(t *testing.T) {
 }
 
 func TestLandingHeadUsesRelativeTokensAndPreloadsFonts(t *testing.T) {
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	rec := httptest.NewRecorder()
-
-	LandingHandler("prompts", "v16")(rec, req)
+	rec := renderLanding(t, loadPromptsSite(t), "prompts", "v16")
 
 	head := renderedHead(t, rec.Body.String())
 
@@ -208,7 +236,7 @@ func TestLandingHeadUsesRelativeTokensAndPreloadsFonts(t *testing.T) {
 }
 
 func TestNginxStaticLocationUsesSessionAuth(t *testing.T) {
-	conf, err := os.ReadFile("../../etc/nginx.conf")
+	conf, err := os.ReadFile(filepath.Join("..", "..", "etc", "nginx.conf"))
 	if err != nil {
 		t.Fatalf("read nginx conf: %v", err)
 	}
@@ -236,6 +264,28 @@ func TestNginxStaticLocationUsesSessionAuth(t *testing.T) {
 	}
 }
 
+func loadPromptsSite(t *testing.T) *appweb.Site {
+	t.Helper()
+	site, err := appweb.Load(promptsWWWPath())
+	if err != nil {
+		t.Fatalf("web.Load share/www: %v", err)
+	}
+	return site
+}
+
+func promptsWWWPath() string {
+	return filepath.Join("..", "..", "share", "www")
+}
+
+func renderLanding(t *testing.T, site *appweb.Site, service, version string) *httptest.ResponseRecorder {
+	t.Helper()
+	rec := httptest.NewRecorder()
+	if err := site.Render(rec, "landing.html", landingData{Service: service, Version: version}); err != nil {
+		t.Fatalf("Render landing.html: %v", err)
+	}
+	return rec
+}
+
 func renderedHead(t *testing.T, html string) string {
 	t.Helper()
 	start := strings.Index(html, "<head>")
@@ -256,6 +306,20 @@ func nginxLocationBlock(t *testing.T, conf, marker string) string {
 	end := strings.Index(rest, "\n}\n")
 	if end < 0 {
 		t.Fatalf("nginx conf location %q is not closed:\n%s", marker, rest)
+	}
+	return rest[:end+len("\n}")]
+}
+
+func shellFunctionBlock(t *testing.T, text, marker string) string {
+	t.Helper()
+	start := strings.Index(text, marker)
+	if start < 0 {
+		t.Fatalf("shell file missing %q", marker)
+	}
+	rest := text[start:]
+	end := strings.Index(rest, "\n}\n")
+	if end < 0 {
+		t.Fatalf("shell function %q is not closed:\n%s", marker, rest)
 	}
 	return rest[:end+len("\n}")]
 }

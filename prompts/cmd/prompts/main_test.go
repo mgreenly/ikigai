@@ -158,6 +158,7 @@ func TestPromptsBootsFromOpsctlLayoutAndServesHealth(t *testing.T) {
 		"PROMPTS_PORT":                fmt.Sprintf("%d", port),
 		"PROMPTS_DB_PATH":             dbPath,
 		"PROMPTS_GENERATION_PATH":     generationPath,
+		"PROMPTS_WWW_PATH":            filepath.Join("..", "..", "share", "www"),
 		"PROMPTS_CRON_FEED_URL":       feedServers["cron"].URL + "/feed",
 		"PROMPTS_CRM_FEED_URL":        feedServers["crm"].URL + "/feed",
 		"PROMPTS_LEDGER_FEED_URL":     feedServers["ledger"].URL + "/feed",

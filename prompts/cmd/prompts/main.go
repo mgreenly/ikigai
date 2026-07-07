@@ -43,7 +43,6 @@ import (
 	"prompts/internal/prompt"
 	"prompts/internal/runner"
 	"prompts/internal/sandbox"
-	"prompts/internal/web"
 
 	"registry"
 )
@@ -99,6 +98,7 @@ func promptsSpec() appkit.Spec {
 		Mount:     "/srv/prompts/",
 		Port:      registry.MustPort("prompts"),
 		MCP:       true,
+		WWW:       true,
 		Consumers: consumers,
 		// prompts is ALSO an event-plane PRODUCER of two STATIC outcome types:
 		// run.succeeded / run.failed, emitted in the SAME tx as a run's
@@ -135,8 +135,18 @@ func promptsSpec() appkit.Spec {
 // the chassis (appkit) hands off to the domain: appkit has already resolved
 // config, opened, and migrated the shared single-writer DB before calling this.
 func registerRoutes(rt *appkit.Router) error {
-	rt.HandleFunc("GET /{$}", web.LandingHandler(rt.Service(), rt.Version()))
-	rt.Handle("GET /static/", http.StripPrefix("/static/", web.StaticHandler()))
+	site := rt.WWW()
+	if site == nil {
+		return fmt.Errorf("prompts: no WWW site on router")
+	}
+	rt.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
+		if err := site.Render(w, "landing.html", landingData{
+			Service: rt.Service(),
+			Version: rt.Version(),
+		}); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	})
 
 	conn := rt.DB()
 	if conn == nil {
@@ -197,6 +207,11 @@ func registerRoutes(rt *appkit.Router) error {
 
 	rt.Handle("POST /mcp", rt.RequireIdentity(mcp.NewHandler(svc, rt.Version(), rt.Service(), rt.Health())))
 	return nil
+}
+
+type landingData struct {
+	Service string
+	Version string
 }
 
 func dropboxBaseURL(getenv func(string) string) string {
