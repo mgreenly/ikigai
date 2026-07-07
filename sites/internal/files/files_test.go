@@ -533,6 +533,22 @@ func TestGlobRejectsEscapingPatterns(t *testing.T) {
 	}
 }
 
+func TestGlobRejectsEscapingSearchBasePath(t *testing.T) {
+	root := globRecursiveFixture(t)
+	outside := t.TempDir()
+	if err := os.Symlink(outside, filepath.Join(root, "outside")); err != nil {
+		t.Fatal(err)
+	}
+
+	// R-40X5-6S7E
+	if _, err := Glob(root, "**/*.css", "../assets"); !errors.Is(err, ErrEscapes) {
+		t.Fatalf("Glob parent-escaping search base error = %v, want ErrEscapes", err)
+	}
+	if _, err := Glob(root, "**/*.css", "outside"); !errors.Is(err, ErrEscapes) {
+		t.Fatalf("Glob symlink-escaping search base error = %v, want ErrEscapes", err)
+	}
+}
+
 func TestGlobAbsolutePatternInsideSearchBaseReturnsBaseRelativeMatches(t *testing.T) {
 	root := globRecursiveFixture(t)
 
