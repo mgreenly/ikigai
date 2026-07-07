@@ -5,10 +5,14 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
+	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"appkit/server"
 
 	"dropbox/internal/db"
 	"dropbox/internal/dropbox"
@@ -16,7 +20,11 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-func newHandler(t *testing.T) *Handler {
+func discardLogger() *slog.Logger {
+	return slog.New(slog.NewJSONHandler(io.Discard, nil))
+}
+
+func newHandler(t *testing.T) http.Handler {
 	t.Helper()
 	conn, err := sql.Open("sqlite", ":memory:")
 	if err != nil {
@@ -29,12 +37,39 @@ func newHandler(t *testing.T) *Handler {
 	if err := db.Migrate(context.Background(), conn); err != nil {
 		t.Fatalf("migrate: %v", err)
 	}
-	return NewHandler(dropbox.NewService(conn), "v-test", "dropbox", nil, dropbox.Events, nil)
+	return newHandlerWithService(t, dropbox.NewService(conn), nil)
+}
+
+func newHandlerWithService(t testing.TB, svc *dropbox.Service, health func(context.Context) (map[string]any, error)) http.Handler {
+	t.Helper()
+	var handler http.Handler
+	_, err := server.New(server.Options{
+		Addr:       "127.0.0.1:0",
+		Logger:     discardLogger(),
+		ResourceID: "https://int.ikigenba.com/srv/dropbox/mcp",
+		AuthServer: "https://int.ikigenba.com",
+		Version:    "v-test",
+		Service:    "dropbox",
+		Health:     health,
+		Events:     dropbox.Events,
+		Register: func(rt *server.Router) error {
+			var err error
+			handler, err = NewHandler(svc, rt)
+			return err
+		},
+	})
+	if err != nil {
+		t.Fatalf("build test server: %v", err)
+	}
+	if handler == nil {
+		t.Fatal("NewHandler returned nil handler")
+	}
+	return handler
 }
 
 // rpc drives one JSON-RPC call through ServeHTTP and returns the decoded result
 // object. params is the raw JSON for "params".
-func rpc(t *testing.T, h *Handler, method, params string) map[string]any {
+func rpc(t *testing.T, h http.Handler, method, params string) map[string]any {
 	t.Helper()
 	body := `{"jsonrpc":"2.0","id":1,"method":"` + method + `","params":` + params + `}`
 	req := httptest.NewRequest(http.MethodPost, "/mcp", strings.NewReader(body))
@@ -60,7 +95,7 @@ func rpc(t *testing.T, h *Handler, method, params string) map[string]any {
 
 // callTool invokes tools/call and returns the decoded text payload plus the
 // isError flag.
-func callTool(t *testing.T, h *Handler, name, args string) (map[string]any, bool) {
+func callToolText(t *testing.T, h http.Handler, name, args string) (string, bool) {
 	t.Helper()
 	res := rpc(t, h, "tools/call", `{"name":"`+name+`","arguments":`+args+`}`)
 	isErr, _ := res["isError"].(bool)
@@ -68,7 +103,14 @@ func callTool(t *testing.T, h *Handler, name, args string) (map[string]any, bool
 	if !ok || len(content) == 0 {
 		t.Fatalf("%s: no content: %v", name, res)
 	}
-	text := content[0].(map[string]any)["text"].(string)
+	return content[0].(map[string]any)["text"].(string), isErr
+}
+
+// callTool invokes tools/call and returns the decoded JSON text payload plus the
+// isError flag.
+func callTool(t *testing.T, h http.Handler, name, args string) (map[string]any, bool) {
+	t.Helper()
+	text, isErr := callToolText(t, h, name, args)
 	var payload map[string]any
 	if err := json.Unmarshal([]byte(text), &payload); err != nil {
 		t.Fatalf("%s: decode payload %q: %v", name, text, err)
@@ -76,29 +118,41 @@ func callTool(t *testing.T, h *Handler, name, args string) (map[string]any, bool
 	return payload, isErr
 }
 
-func TestToolsList(t *testing.T) {
+func TestToolsListComposesDropboxToolsWithChassisTools(t *testing.T) {
+	// R-QQJT-LKCV
 	h := newHandler(t)
 	res := rpc(t, h, "tools/list", `{}`)
 	tools, _ := res["tools"].([]any)
+	if len(tools) != 4 {
+		t.Fatalf("tools/list returned %d tools, want exactly 4: %v", len(tools), tools)
+	}
 	names := map[string]bool{}
 	for _, tl := range tools {
-		names[tl.(map[string]any)["name"].(string)] = true
+		tool := tl.(map[string]any)
+		name := tool["name"].(string)
+		if names[name] {
+			t.Fatalf("duplicate tool %q in tools/list: %v", name, tools)
+		}
+		names[name] = true
+		if tool["description"] == "" {
+			t.Errorf("tool %q has empty description", name)
+		}
+		schema, _ := tool["inputSchema"].(map[string]any)
+		if schema == nil || schema["type"] != "object" {
+			t.Errorf("tool %q inputSchema is not an object schema: %v", name, tool["inputSchema"])
+		}
 	}
-	if !names["health"] {
-		t.Errorf("tools/list missing health (got %v)", names)
+	for _, want := range []string{"health", "reflection", "list", "get"} {
+		if !names[want] {
+			t.Errorf("tools/list missing %q (got %v)", want, names)
+		}
 	}
-	if !names["reflection"] {
-		t.Errorf("tools/list missing reflection (got %v)", names)
-	}
-	if !names["list"] {
-		t.Errorf("tools/list missing list (got %v)", names)
-	}
-	if !names["get"] {
-		t.Errorf("tools/list missing get (got %v)", names)
-	}
-	// whoami is folded away — it must not reappear.
-	if names["whoami"] || names["dropbox_whoami"] {
-		t.Errorf("tools/list still advertises a whoami tool: %v", names)
+	for name := range names {
+		switch name {
+		case "health", "reflection", "list", "get":
+		default:
+			t.Errorf("unexpected tool %q in tools/list: %v", name, names)
+		}
 	}
 }
 
@@ -166,18 +220,15 @@ func TestReflection(t *testing.T) {
 		t.Fatalf("detail missing example object: %v", detail["example"])
 	}
 
-	// Unknown event_type → corrective error listing valid types.
-	badErr, isErr := callTool(t, h, "reflection", `{"event_type":"file.nope"}`)
+	// Unknown event_type -> chassis error envelope naming the unknown and known types.
+	msg, isErr := callToolText(t, h, "reflection", `{"event_type":"file.nope"}`)
 	if !isErr {
-		t.Fatalf("expected error for unknown event_type, got %v", badErr)
+		t.Fatalf("expected error for unknown event_type, got %q", msg)
 	}
-	em, _ := badErr["error"].(map[string]any)
-	if em == nil || em["code"] != "unknown_event_type" {
-		t.Fatalf("expected unknown_event_type code, got %v", badErr)
-	}
-	msg, _ := em["message"].(string)
-	if !strings.Contains(msg, "file.created") {
-		t.Errorf("corrective message missing valid type: %q", msg)
+	for _, want := range []string{"file.nope", "known types", "file.created", "file.modified", "file.deleted"} {
+		if !strings.Contains(msg, want) {
+			t.Errorf("corrective message missing %q: %q", want, msg)
+		}
 	}
 }
 
@@ -237,7 +288,7 @@ func TestHealth_ReporterPopulatesDetails(t *testing.T) {
 			"failed_files":     info.FailedFiles,
 		}, nil
 	}
-	h := NewHandler(svc, "v-test", "dropbox", reporter, dropbox.Events, nil)
+	h := newHandlerWithService(t, svc, reporter)
 
 	p, isErr := callTool(t, h, "health", `{}`)
 	if isErr {
@@ -271,7 +322,7 @@ func TestHealth_ReporterPopulatesDetails(t *testing.T) {
 // newMirrorHandler builds a Handler over a Service with a real file-backed DB
 // and a real mirror (the bare newHandler has no mirror, so it can't serve `get`
 // bytes). It mirrors TestHealth_ReporterPopulatesDetails' wiring.
-func newMirrorHandler(t *testing.T) (*Handler, *dropbox.Service) {
+func newMirrorHandler(t *testing.T) (http.Handler, *dropbox.Service) {
 	t.Helper()
 	conn, err := sql.Open("sqlite", "file:"+t.TempDir()+"/dropbox.db?_pragma=foreign_keys(ON)")
 	if err != nil {
@@ -288,7 +339,7 @@ func newMirrorHandler(t *testing.T) (*Handler, *dropbox.Service) {
 	}
 	svc := dropbox.NewService(conn)
 	svc.Mirror = mirror
-	h := NewHandler(svc, "v-test", "dropbox", nil, dropbox.Events, nil)
+	h := newHandlerWithService(t, svc, nil)
 	return h, svc
 }
 
@@ -481,10 +532,24 @@ func TestGet_MissingPath(t *testing.T) {
 	}
 }
 
-func TestUnknownTool_IsToolError(t *testing.T) {
+func TestUnknownTool_IsTransportError(t *testing.T) {
 	h := newHandler(t)
-	res := rpc(t, h, "tools/call", `{"name":"dropbox_bogus","arguments":{}}`)
-	if isErr, _ := res["isError"].(bool); !isErr {
-		t.Errorf("expected isError for unknown tool, got %v", res)
+	body := `{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"dropbox_bogus","arguments":{}}}`
+	req := httptest.NewRequest(http.MethodPost, "/mcp", strings.NewReader(body))
+	req.Header.Set("X-Owner-Email", "me@example.com")
+	req.Header.Set("X-Client-Id", "client-123")
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	var env struct {
+		Error map[string]any `json:"error"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil {
+		t.Fatalf("decode envelope: %v\n%s", err, rec.Body.String())
+	}
+	if env.Error["code"] != float64(-32602) {
+		t.Fatalf("error code = %v, want -32602: %v", env.Error["code"], env.Error)
+	}
+	if msg, _ := env.Error["message"].(string); !strings.Contains(msg, "unknown tool: dropbox_bogus") {
+		t.Errorf("error message = %q", msg)
 	}
 }

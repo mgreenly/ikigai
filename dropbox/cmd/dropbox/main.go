@@ -179,9 +179,11 @@ func main() {
 					http.Error(w, "template error", http.StatusInternalServerError)
 				}
 			}))
-			rt.Handle("POST /mcp", rt.RequireIdentity(
-				mcp.NewHandler(svc, rt.Version(), rt.Service(), rt.Health(),
-					rt.Events(), rt.Subscriptions())))
+			handler, err := mcp.NewHandler(svc, rt)
+			if err != nil {
+				return err
+			}
+			rt.Handle("POST /mcp", rt.RequireIdentity(handler))
 			// /content and /list are unauthenticated + loopback-only (each handler
 			// self-guards, 404ing any nginx-injected identity header), so they are
 			// registered verbatim, NOT behind RequireIdentity. /content delivers a
