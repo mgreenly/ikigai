@@ -243,6 +243,37 @@ func TestGlobDoubleStarKeepsSegmentAndBaseBoundaries(t *testing.T) {
 	}
 }
 
+func TestGlobRecursiveDoubleStarDoesNotFollowSymlinks(t *testing.T) {
+	root := globRecursiveFixture(t)
+	outside := t.TempDir()
+	if err := os.WriteFile(filepath.Join(outside, "outside.css"), []byte("outside"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(filepath.Join(outside, "outside.css"), filepath.Join(root, "assets", "css", "linked.css")); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(outside, filepath.Join(root, "assets", "linked-dir")); err != nil {
+		t.Fatal(err)
+	}
+
+	// R-3ZP8-T0GP
+	got, err := Glob(root, "**/*.css", "")
+	if err != nil {
+		t.Fatalf("Glob recursive css: %v", err)
+	}
+	if !reflect.DeepEqual(got, []string{"a.css", "assets/css/style.css", "deep/a/b/c.css"}) {
+		t.Fatalf("Glob recursive css with symlinks = %#v", got)
+	}
+
+	scoped, err := Glob(root, "**/*.css", "assets")
+	if err != nil {
+		t.Fatalf("Glob scoped recursive css: %v", err)
+	}
+	if !reflect.DeepEqual(scoped, []string{"css/style.css"}) {
+		t.Fatalf("Glob scoped recursive css with symlinks = %#v", scoped)
+	}
+}
+
 func TestGlobRejectsEscapingPatterns(t *testing.T) {
 	root := globRecursiveFixture(t)
 
