@@ -12,11 +12,25 @@ current statement of the landing-page architecture — it is rewritten in place 
 stay true (stale decisions are removed, not stacked); the history of how it got
 here lives in the plan.
 
-> **Scope.** This design covers **only** ledger's web landing page and the seam it
-> establishes. The existing ledger bookkeeping domain (the immutable journal, the
-> eight-verb MCP surface, the outbox producer, the migrations) is owned elsewhere
-> (`ledger/CLAUDE.md`) and is untouched. No schema
-> changes: the landing page adds **no migration**.
+> **Scope.** This design's Decisions cover two threads:
+>
+> 1. **The web landing page** (D1–D8, built; substrate moved by D10): the page's
+>    content, route, session gate, canonical markup, and self-served assets — now
+>    rendered from the on-disk `share/www` tree through the chassis.
+> 2. **The chassis conversion** (D9–D12): ledger resolves its **own** loopback
+>    port by name through `registry` with source-scan and deploy-artifact drift
+>    guards (D9); the web surface serves from `share/www` through `Spec.WWW` (D10);
+>    the MCP surface serves the seven domain tools over `appkit/mcp`, the transport
+>    and the `health`/`reflection` tools chassis-owned (D11); and the leftover
+>    `internal/db` shims are deleted with the doctrine doc trued up (D12) — all
+>    behavior-preserving. appkit's `Spec.WWW`/`appkit/web`/`appkit/mcp` surfaces
+>    (appkit design D5–D10) are fixed external contracts consumed through the
+>    committed `replace appkit => ../appkit`.
+>
+> The existing ledger bookkeeping **domain** (the immutable journal, the domain
+> tool bodies, the outbox producer, the migration *contents*) is owned elsewhere
+> (`ledger/CLAUDE.md`) and is untouched. **No schema changes: no Decision here adds
+> a migration.**
 
 ## Requirement ids
 
@@ -46,19 +60,21 @@ Shared facts every Decision leans on:
   `cd ledger && gofmt -l .` (no output), and `cd ledger && go test ./...` all
   succeed with zero failures.
 - **Formatting:** `gofmt`-clean; `gofmt -l .` must print nothing.
-- **Module wiring:** `appkit` and `eventplane` are committed in-repo
+- **Module wiring:** `appkit`, `eventplane`, and `registry` are committed in-repo
   replace-siblings (`replace appkit => ../appkit`,
-  `replace eventplane => ../eventplane`). The landing page adds **no new
-  dependency** — it uses only the standard library (`net/http`, `embed`,
-  `html/template` or `text/template`) and the appkit chassis.
+  `replace eventplane => ../eventplane`, `replace registry => ../registry`; D9).
+  The repo-root `go.work` and the sibling modules themselves are external
+  preconditions owned outside `ledger/`.
 - **The chassis owns the server.** ledger is `appkit.Main(appkit.Spec{…})`:
-  `App:"ledger"`, `Mount:"/srv/ledger/"`, `Port:3101`, `MCP:true`, `Feed:"/feed"`
-  (event-plane producer). The fixed verbs (`serve`/`version`/`manifest`/`migrate`
-  /`backup`/`restore`), config-from-env, the loopback HTTP server + PRM +
-  identity gate, and the `/feed` mount are appkit's. main.go declares ledger's
-  identity (the Spec) and wires its surface through the Spec hooks. The landing
-  route is wired through the existing **`Spec.Handlers`** hook, beside the
-  `POST /mcp` mount.
+  `App:"ledger"`, `Mount:"/srv/ledger/"`, `Port:registry.MustPort("ledger")`
+  (== `3101`; D9), `MCP:true`, `WWW:true` (D10), and `Feed:"/feed"` (event-plane
+  producer). The fixed verbs (`serve`/`version`/`manifest`/`migrate`/`schema`),
+  config-from-env, the loopback HTTP server + PRM + identity gate, the www-site
+  load + static mount, the MCP transport with the standard `health`/`reflection`
+  tools, and the `/feed` mount are appkit's. main.go declares ledger's identity
+  (the Spec) and wires its surface through the Spec hooks; the landing route is
+  wired through the existing **`Spec.Handlers`** hook, beside the `POST /mcp`
+  mount.
 - **nginx is the sole trust boundary.** ledger runs no token logic. nginx
   introspects every `/srv/ledger/` request against the dashboard and forwards to
   the loopback service. The landing page's gate is therefore an **nginx** concern
@@ -76,35 +92,31 @@ Shared facts every Decision leans on:
 Testing is part of the architecture, not an afterthought. The cross-cutting
 approach every Decision's Verification list assumes:
 
-- **The landing handler is tested in-process with `net/http/httptest`.** The
-  handler is a plain `http.HandlerFunc` built from the service name and version
-  strings the chassis already exposes (`rt.Service()`, `rt.Version()`); its tests
-  construct it directly with fixed name/version values and drive it with
-  `httptest.NewRequest` / `httptest.NewRecorder`, asserting status, body
-  substrings (name, version), and `Content-Type`. **No test makes a network call
-  and no test needs a running suite** — the handler is pure over its two string
-  inputs and its embedded assets.
-- **The route mux is tested as wired.** The `GET /{$}` exact-root pattern is
-  proven against an `http.ServeMux` configured the way the composition root
-  configures it, asserting that the bare root path is served by the landing
-  handler while a non-root path under the mux is **not** captured by `{$}`
-  (Go 1.22+ pattern semantics: `{$}` matches only the exact path).
-- **Embedded assets are real bytes.** The Carbon `tokens.css` and the woff2 fonts
-  are embedded via `//go:embed` and served by the same handler/mux; tests assert
-  the embedded `tokens.css` is served with a CSS content type and that the
-  template references the app's **own** embedded asset path (not a cross-service
-  URL).
-- **The nginx fragment is proven by content assertion.** The session-gate
-  fragment is config, not Go, so its behavior is pinned by a test that reads
-  `ledger/etc/nginx.conf` from disk and asserts the exact-match `= /srv/ledger/`
-  location exists, uses `auth_request /_session-authn` (not `/_authn`), and
-  proxies to the loopback upstream root — while the pre-existing bearer-gated
-  `/srv/ledger/` prefix, its `@ledger_authn_500` re-emit, and the PRM well-known
-  location remain. This is a genuine assertion over the shipped artifact, runnable
-  in the same `go test ./...`.
-- **Determinism.** The handler takes its name/version as plain string arguments
-  (injected at the composition root from `rt.Service()`/`rt.Version()`), so its
-  output is fully determined by its inputs — no clock, no network, no DB.
+- **The landing page is tested over the shipped tree.** Tests in `cmd/ledger`
+  load the repo-real `ledger/share/www` via `appkit/web` (a relative path from the
+  package dir) and drive the landing handler and the chassis static mount with
+  `net/http/httptest`, asserting status, body substrings (name, version, asset
+  links), and content types. The files under test are the exact files that ship.
+  **No test makes a network call and no test needs a running suite** (D10).
+- **The route mux is tested as wired.** The `GET /{$}` exact-root pattern is proven
+  against an `http.ServeMux` configured the way the composition root configures it,
+  asserting the bare root is served while a non-root path is **not** captured by
+  `{$}` (Go 1.22+ semantics: `{$}` matches only the exact path).
+- **The MCP surface is tested through the assembled chassis handler.** The
+  `internal/mcp` / `cmd/ledger` tests build `NewHandler(svc, rt)` over a migrated
+  in-memory `ledger.Service` and drive `tools/list`/`tools/call` through the real
+  `appkit/mcp` `ServeHTTP` seam, keeping the pre-conversion behavioral assertions
+  (the seven domain verbs' success/error envelopes, account/period normalization,
+  the reflection index, the health envelope + identity) unchanged (D11).
+- **The nginx fragment is proven by content assertion.** Tests read
+  `ledger/etc/nginx.conf` from disk and assert the exact-match `= /srv/ledger/`
+  session-gated location, the session-gated `/srv/ledger/static/` location, and
+  **registry-derived** proxy targets (`registry.BaseURL("ledger")`, D9) — while the
+  pre-existing bearer-gated `/srv/ledger/` prefix, its `@ledger_authn_500` re-emit,
+  and the PRM well-known location remain. A genuine assertion over the shipped
+  artifact, runnable in the same `go test ./...`.
+- **Determinism.** The landing handler takes name/version as plain strings and the
+  MCP handler runs over an in-memory DB; no clock, no network in the web/MCP tests.
 
 ## Layout
 
@@ -119,12 +131,17 @@ Decision it realizes:
   sorted `R-id → Decision/file` reverse map. It is the grep target for resolving
   an id.
 
-**New package.** The landing page introduces one new package,
-`ledger/internal/web/` — the handler, the embedded `*.html` template, and the
-embedded `static/` design assets (`tokens.css` + the woff2 fonts). This keeps the
-web surface in one place, parallel to the existing `internal/ledger`, `internal/db`,
-`internal/ids`, `internal/mcp`, `internal/server` packages, and is the seam every
-later ledger web page grows from.
+**Package shape after D9–D12.** ledger carries `internal/ledger` (the immutable
+double-entry domain), `internal/ids` (ULID generation), `internal/db` (the embedded
+migration set `FS` plus the load + outbox-DDL byte-equality guard tests only — DB
+open and the migration runner are `appkit/db`, D12), and `internal/mcp` (the seven
+domain tools' declaration — `Instructions` + `Tools(svc)` + `NewHandler` — over the
+`appkit/mcp` transport, D11). There is **no** `internal/web` (deleted by D10 — the
+page template and assets live in `share/www/`, the mechanism in `appkit/web`) and
+**no** `internal/server`/`internal/logging` (routing, the PRM document, the identity
+gate, `/feed`, security headers, graceful shutdown, and structured slog are all
+appkit's). The composition root (`cmd/ledger/main.go`) is the Spec plus the landing
+handler; the outbox is injected into the domain Service through the `Producer` hook.
 
 Design is **rewritten in place**, not append-only (history lives in the plan): a
 changed Decision is rewritten in its `DNN.md` and `INDEX.md` is regenerated; a
