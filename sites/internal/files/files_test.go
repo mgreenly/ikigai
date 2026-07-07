@@ -250,6 +250,33 @@ func TestGlobDoubleStarKeepsSegmentAndBaseBoundaries(t *testing.T) {
 	}
 }
 
+func TestGlobDoubleStarMatchesZeroSegmentsWithinScopedBase(t *testing.T) {
+	root := t.TempDir()
+	for _, path := range []string{
+		"index.html",
+		"assets/index.html",
+		"assets/nested/page.html",
+		"assets/nested/style.css",
+	} {
+		if err := os.MkdirAll(filepath.Dir(filepath.Join(root, path)), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(root, path), []byte(path), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// R-3ZP8-T0GP
+	// R-40X5-6S7E
+	got, err := Glob(root, "**/*.html", "assets")
+	if err != nil {
+		t.Fatalf("Glob scoped recursive html: %v", err)
+	}
+	if !reflect.DeepEqual(got, []string{"index.html", "nested/page.html"}) {
+		t.Fatalf("Glob scoped recursive html = %#v", got)
+	}
+}
+
 func TestGlobDoubleStarMatchesZeroSegmentsAfterPrefix(t *testing.T) {
 	root := t.TempDir()
 	for _, path := range []string{
