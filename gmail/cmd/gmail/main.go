@@ -100,9 +100,11 @@ func gmailSpec() appkit.Spec {
 			})
 
 			rt.Handle("GET /{$}", landingHandler(rt.WWW(), rt.Service(), rt.Version()))
-			rt.Handle("POST /mcp", rt.RequireIdentity(
-				mcp.NewHandler(client, rt.Version(), rt.Service(), rt.Health(),
-					rt.Events(), rt.Subscriptions())))
+			handler, err := mcp.NewHandler(client, rt)
+			if err != nil {
+				return err
+			}
+			rt.Handle("POST /mcp", rt.RequireIdentity(handler))
 			return nil
 		},
 		// Producer fires after Handlers: attach the outbox as the engine's EventSink

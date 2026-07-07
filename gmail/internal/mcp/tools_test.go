@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	appkitmcp "appkit/mcp"
+
 	gm "gmail/internal/gmail"
 )
 
@@ -108,16 +110,25 @@ func (f *fakeClient) MessageDelete(_ context.Context, id string) error {
 	return f.err
 }
 
-func newHandler(t *testing.T) (*Handler, *fakeClient) {
+func newHandler(t *testing.T) (http.Handler, *fakeClient) {
 	t.Helper()
 	fc := &fakeClient{}
-	// events falls back to the static mail.* registry (nil → Events).
-	return NewHandler(fc, "v-test", "gmail", nil, nil, nil), fc
+	h, err := appkitmcp.New(appkitmcp.Options{
+		Service:      "gmail",
+		Version:      "v-test",
+		Instructions: Instructions,
+		Tools:        Tools(fc),
+		Events:       Events,
+	})
+	if err != nil {
+		t.Fatalf("new appkit mcp handler: %v", err)
+	}
+	return h, fc
 }
 
 // rpc drives one JSON-RPC call through ServeHTTP and returns the decoded result
 // object. params is the raw JSON for "params".
-func rpc(t *testing.T, h *Handler, method, params string) map[string]any {
+func rpc(t *testing.T, h http.Handler, method, params string) map[string]any {
 	t.Helper()
 	body := `{"jsonrpc":"2.0","id":1,"method":"` + method + `","params":` + params + `}`
 	req := httptest.NewRequest(http.MethodPost, "/mcp", strings.NewReader(body))
@@ -144,7 +155,7 @@ func rpc(t *testing.T, h *Handler, method, params string) map[string]any {
 // callToolText invokes tools/call and returns the raw text content plus the
 // isError flag. Used when the result text may be plain (a validation/error
 // message) rather than a JSON object.
-func callToolText(t *testing.T, h *Handler, name, args string) (string, bool) {
+func callToolText(t *testing.T, h http.Handler, name, args string) (string, bool) {
 	t.Helper()
 	res := rpc(t, h, "tools/call", `{"name":"`+name+`","arguments":`+args+`}`)
 	isErr, _ := res["isError"].(bool)
@@ -157,7 +168,7 @@ func callToolText(t *testing.T, h *Handler, name, args string) (string, bool) {
 
 // callTool invokes tools/call and returns the decoded JSON text payload plus the
 // isError flag. For a non-error result the text is always a JSON object.
-func callTool(t *testing.T, h *Handler, name, args string) (map[string]any, bool) {
+func callTool(t *testing.T, h http.Handler, name, args string) (map[string]any, bool) {
 	t.Helper()
 	text, isErr := callToolText(t, h, name, args)
 	if isErr {
@@ -176,9 +187,9 @@ func callTool(t *testing.T, h *Handler, name, args string) (map[string]any, bool
 	return payload, isErr
 }
 
-// TestToolsList asserts the full P4 surface is advertised: the two chassis tools
-// plus the ten mailbox verbs, and nothing deferred (reply/sync_now).
-func TestToolsList(t *testing.T) {
+// TestToolsList_ExactlyTwelve asserts the full MCP surface is advertised: the
+// two chassis tools plus the ten mailbox verbs, and nothing deferred.
+func TestToolsList_ExactlyTwelve(t *testing.T) {
 	h, _ := newHandler(t)
 	res := rpc(t, h, "tools/list", `{}`)
 	tools, _ := res["tools"].([]any)
@@ -193,6 +204,7 @@ func TestToolsList(t *testing.T) {
 		"label", "unlabel",
 		"trash", "delete",
 	}
+	// R-9NYN-SVIR
 	for _, w := range want {
 		if !names[w] {
 			t.Errorf("tools/list missing %q (got %v)", w, names)
@@ -264,9 +276,9 @@ func TestReflection(t *testing.T) {
 	if !isErr {
 		t.Fatalf("expected error for unknown event_type, got %v", badErr)
 	}
-	em, _ := badErr["error"].(map[string]any)
-	if em == nil || em["code"] != "unknown_event_type" {
-		t.Fatalf("expected unknown_event_type code, got %v", badErr)
+	text, _ := badErr["_text"].(string)
+	if !strings.Contains(text, "unknown event_type") || !strings.Contains(text, "mail.received") {
+		t.Fatalf("expected corrective unknown event_type error, got %v", badErr)
 	}
 }
 
@@ -284,11 +296,20 @@ func TestHealth_Envelope(t *testing.T) {
 	}
 }
 
-func TestUnknownTool_IsToolError(t *testing.T) {
+func TestUnknownTool_IsTransportError(t *testing.T) {
 	h, _ := newHandler(t)
-	res := rpc(t, h, "tools/call", `{"name":"gmail_bogus","arguments":{}}`)
-	if isErr, _ := res["isError"].(bool); !isErr {
-		t.Errorf("expected isError for unknown tool, got %v", res)
+	body := `{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"gmail_bogus","arguments":{}}}`
+	req := httptest.NewRequest(http.MethodPost, "/mcp", strings.NewReader(body))
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	var env struct {
+		Error map[string]any `json:"error"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &env); err != nil {
+		t.Fatalf("decode envelope: %v\n%s", err, rec.Body.String())
+	}
+	if env.Error["message"] != "unknown tool: gmail_bogus" {
+		t.Errorf("expected transport unknown-tool error, got %v", env.Error)
 	}
 }
 
@@ -299,7 +320,7 @@ func TestNewHandler_NilClientPanics(t *testing.T) {
 			t.Fatal("expected panic on nil client")
 		}
 	}()
-	NewHandler(nil, "v", "gmail", nil, nil, nil)
+	NewHandler(nil, nil)
 }
 
 // ── read-only tools ───────────────────────────────────────────────────────
