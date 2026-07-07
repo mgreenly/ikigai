@@ -518,6 +518,28 @@ func TestGlobSegmentPatternsUseFilepathMatchSemantics(t *testing.T) {
 	}
 }
 
+func TestGlobRecursiveDoubleStarCombinesWithCharacterClasses(t *testing.T) {
+	root := globRecursiveFixture(t)
+
+	// R-3ZP8-T0GP
+	got, err := Glob(root, "**/[cs]*.css", "")
+	if err != nil {
+		t.Fatalf("Glob recursive character class css: %v", err)
+	}
+	if !reflect.DeepEqual(got, []string{"assets/css/style.css", "deep/a/b/c.css"}) {
+		t.Fatalf("Glob recursive character class css = %#v", got)
+	}
+
+	// R-40X5-6S7E
+	direct, err := Glob(root, "[cs]*.css", "")
+	if err != nil {
+		t.Fatalf("Glob direct character class css: %v", err)
+	}
+	if direct == nil || len(direct) != 0 {
+		t.Fatalf("Glob direct character class css = %#v, want empty non-nil slice", direct)
+	}
+}
+
 func TestGlobRecursiveDoubleStarKeepsFilenameWildcardsWithinSegments(t *testing.T) {
 	root := globRecursiveFixture(t)
 
