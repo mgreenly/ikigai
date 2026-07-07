@@ -12,17 +12,21 @@ current statement of the landing-page architecture — it is rewritten in place 
 stay true (stale decisions are removed, not stacked); the history of how it got
 here lives in the plan.
 
-> **Scope.** This design covers **only** scripts's web landing page and the seam
-> it establishes. The existing scripts domain (the deterministic `python3`-exec
-> script runner, the `ikigenba_scripts_*` MCP surface, the event-plane producer
-> outbox, the multi-upstream consumer, the migrations) is owned elsewhere
-> and is untouched. No schema changes: the landing page adds **no migration**.
->
-> Two later Decisions in this directory are **orthogonal to the landing series**
-> and touch the composition root only: **D9** relocates the rebuildable `runs/`
-> tree, and **D10** adopts the shared `registry` library for loopback-port
-> resolution (behavior-preserving). Both are recorded here because they live in
-> scripts's design dir; neither changes the landing-page surface.
+> **Scope.** This design began as scripts's web **landing page** and the seam it
+> establishes (D1–D8), and grew two composition-root Decisions orthogonal to the
+> landing series — **D9** (relocate the rebuildable `runs/` tree) and **D10** (adopt
+> the shared `registry` for loopback-port resolution). It now also carries the
+> **appkit-chassis conversion** (D11–D14): the event-plane consumer loops move to the
+> chassis `Spec.Consumers` table (**D11**, which also normalizes the composition
+> root), the web surface de-embeds to `share/www` through `Spec.WWW` (**D12**), the
+> MCP surface moves onto the `appkit/mcp` transport as a domain tool table (**D13**),
+> and the `internal/db` open/migrate shim is deleted (**D14**). Those conversions are
+> **behavior-preserving** except where D13 states otherwise (it adds the chassis
+> `reflection` tool scripts never exposed and surfaces the runtime contract on HTTP
+> `/health`). The `python3`-exec runner, the script/run data model, the event
+> semantics (`internal/consume` fan-out, the producer outbox), and the migrations
+> themselves are unchanged. No schema changes: none of these Decisions add a
+> migration.
 
 ## Requirement ids
 
@@ -62,18 +66,24 @@ Shared facts every Decision leans on:
   composition root. The matching repo-root `go.work use ./registry` entry is
   **external, repo-root-owned wiring** (like the existing `eventplane` entry) and
   is a precondition, not built here.
-- **The chassis owns the server.** scripts is `appkit.Main(appkit.Spec{…})`:
+- **The chassis owns the server.** scripts is `appkit.Main(scriptsSpec())`, where
+  `scriptsSpec()` returns **one fully-formed `appkit.Spec` literal** (no
+  post-construction mutation, per **D11**'s composition-root normalization):
   `App:"scripts"`, `Mount:"/srv/scripts/"`, `Port: registry.MustPort("scripts")`
   (== `3003`, resolved by name per **D10**; was a `3003` literal), `MCP:true`,
+  `WWW:true` (web surface from `share/www` through the chassis, **D12**),
   `Feed:"/feed"` (event-plane **producer** of `scripts.succeeded`/`scripts.failed`),
-  `Consumes:[]string{"cron","crm","ledger","dropbox","prompts"}` (multi-upstream
-  **consumer**), plus the consumer `Workers` and the `Producer` outbox hook. The
-  fixed verbs (`serve`/`version`/`manifest`/`migrate`/`schema`),
-  config-from-env, the loopback HTTP server + PRM + identity gate, and the `/feed`
-  mount are appkit's. main.go declares scripts's identity (the Spec) and wires its
-  surface through the Spec hooks. The landing route is wired through the existing
-  **`Spec.Handlers`** hook (specifically `registerRoutes`), beside the
-  `POST /mcp` mount.
+  the `Consumers` table (five upstream entries — `cron`/`crm`/`ledger`/`dropbox`/
+  `prompts` — chassis-owned per **D11**, replacing the legacy `Consumes` +
+  `Subscriptions` fields and the hand-rolled consumer `Workers`), `Health` (the
+  static runtime-contract reporter, feeding both HTTP `/health` and the MCP `health`
+  tool, **D13**), and the `Producer` outbox hook. The fixed verbs
+  (`serve`/`version`/`manifest`/`migrate`/`schema`), config-from-env, the loopback
+  HTTP server + PRM + identity gate, DB open + migration run, the `/feed` mount, the
+  `GET /static/` mount, and the `consumer.Run` loops are appkit's. main.go declares
+  scripts's identity (the Spec) and wires its domain surface through the Spec hooks.
+  The landing route and `POST /mcp` (assembled via `appkit/mcp`, **D13**) are wired
+  through the **`Spec.Handlers`** hook (`registerRoutes`).
 - **nginx is the sole trust boundary.** scripts runs no token logic. nginx
   introspects every `/srv/scripts/` request against the dashboard and forwards to
   the loopback service. The landing page's gate is therefore an **nginx** concern
@@ -92,24 +102,22 @@ Shared facts every Decision leans on:
 Testing is part of the architecture, not an afterthought. The cross-cutting
 approach every Decision's Verification list assumes:
 
-- **The landing handler is tested in-process with `net/http/httptest`.** The
-  handler is a plain `http.HandlerFunc` built from the service name and version
-  strings the chassis already exposes (`rt.Service()`, `rt.Version()`); its tests
-  construct it directly with fixed name/version values and drive it with
-  `httptest.NewRequest` / `httptest.NewRecorder`, asserting status, body
-  substrings (name, version), and `Content-Type`. **No test makes a network call
-  and no test needs a running suite** — the handler is pure over its two string
-  inputs and its embedded assets.
+- **The landing page is tested in-process with `net/http/httptest`** over the
+  shipped `scripts/share/www` tree (D12): the tests live in `cmd/scripts`, load the
+  repo-real tree via `appkit/web` (a relative path from the package dir), render
+  `landing.html` with fixed service/version values, and assert status, body
+  substrings (name, version), and `Content-Type`. **No test makes a network call and
+  no test needs a running suite** — the page is a pure function of its two string
+  inputs and the shipped template.
 - **The route mux is tested as wired.** The `GET /{$}` exact-root pattern is
   proven against an `http.ServeMux` configured the way the composition root
   configures it, asserting that the bare root path is served by the landing
   handler while a non-root path under the mux is **not** captured by `{$}`
   (Go 1.22+ pattern semantics: `{$}` matches only the exact path).
-- **Embedded assets are real bytes.** The Carbon `tokens.css` and the woff2 fonts
-  are embedded via `//go:embed` and served by the same handler/mux; tests assert
-  the embedded `tokens.css` is served with a CSS content type and that the
-  template references the app's **own** embedded asset path (not a cross-service
-  URL).
+- **Shipped assets are real bytes.** The Carbon `tokens.css` and the woff2 fonts
+  ship under `share/www/static` and are served by the chassis static mount (D12);
+  tests assert `tokens.css` is served with a CSS content type and that the template
+  references the app's **own** `/static/` asset path (not a cross-service URL).
 - **The nginx fragment is proven by content assertion.** The session-gate
   fragment is config, not Go, so its behavior is pinned by a test that reads
   `scripts/etc/nginx.conf` from disk and asserts the exact-match `= /srv/scripts/`
@@ -135,13 +143,14 @@ Decision it realizes:
   sorted `R-id → Decision/file` reverse map. It is the grep target for resolving
   an id.
 
-**New package.** The landing page introduces one new package,
-`scripts/internal/web/` — the handler, the embedded `*.html` template, and the
-embedded `static/` design assets (`tokens.css` + the woff2 fonts). This keeps the
-web surface in one place, parallel to the existing `internal/consume`,
-`internal/db`, `internal/ids`, `internal/mcp`, `internal/runner`,
-`internal/script` packages, and is the seam every later scripts web page grows
-from.
+**Web surface on disk.** The landing page and its Carbon assets live at
+`scripts/share/www/` — `landing.html` + `static/` (`tokens.css` + the woff2 fonts)
+— served by the chassis through `Spec.WWW` (**D12**); there is no `internal/web`
+package (D12 deleted it, and its landing/asset/nginx tests moved to `cmd/scripts`).
+The remaining domain packages are `internal/consume` (event-plane fan-out),
+`internal/db` (the embedded migration set only — **D14** deleted its open/migrate
+shim), `internal/ids`, `internal/mcp` (the domain tool table over `appkit/mcp` —
+**D13**), `internal/runner`, and `internal/script`.
 
 Design is **rewritten in place**, not append-only (history lives in the plan): a
 changed Decision is rewritten in its `DNN.md` and `INDEX.md` is regenerated; a
