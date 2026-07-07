@@ -457,6 +457,28 @@ func TestGlobSegmentPatternsUseFilepathMatchSemantics(t *testing.T) {
 	}
 }
 
+func TestGlobRecursiveDoubleStarCombinesWithFilenameWildcards(t *testing.T) {
+	root := globRecursiveFixture(t)
+
+	// R-3ZP8-T0GP
+	app, err := Glob(root, "**/app.*", "")
+	if err != nil {
+		t.Fatalf("Glob recursive app wildcard: %v", err)
+	}
+	if !reflect.DeepEqual(app, []string{"assets/js/app.js"}) {
+		t.Fatalf("Glob recursive app wildcard = %#v", app)
+	}
+
+	// R-40X5-6S7E
+	css, err := Glob(root, "**/c.?ss", "")
+	if err != nil {
+		t.Fatalf("Glob recursive question wildcard: %v", err)
+	}
+	if !reflect.DeepEqual(css, []string{"deep/a/b/c.css"}) {
+		t.Fatalf("Glob recursive question wildcard = %#v", css)
+	}
+}
+
 func TestGlobRecursiveDoubleStarDoesNotFollowSymlinks(t *testing.T) {
 	root := globRecursiveFixture(t)
 	outside := t.TempDir()
