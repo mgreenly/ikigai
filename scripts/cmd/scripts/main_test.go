@@ -569,8 +569,9 @@ func TestCompositionRootEnablesChassisWWWAndKeepsMCPWiring(t *testing.T) {
 		`WWW:    true,`,
 		`rt.Handle("GET /{$}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {`,
 		`rt.WWW().Render(w, "landing.html", struct{ Service, Version string }{rt.Service(), rt.Version()})`,
-		`rt.Handle("POST /mcp", rt.RequireIdentity(`,
-		`mcp.NewHandler(svc, rt.Version(), rt.Service(), rt.Health())`,
+		`Health: scriptsHealth,`,
+		`handler, err := mcp.NewHandler(svc, rt)`,
+		`rt.Handle("POST /mcp", rt.RequireIdentity(handler))`,
 	} {
 		if !strings.Contains(main, want) {
 			t.Fatalf("cmd/scripts/main.go missing %q", want)

@@ -77,6 +77,7 @@ func scriptsSpec() appkit.Spec {
 		Feed:   "/feed",
 		Events: script.Events,
 		WWW:    true,
+		Health: scriptsHealth,
 		// CONSUMES is emitted by appkit from Spec.Consumes (above), so it is NOT
 		// repeated here.
 		ManifestExtras: []appkit.ManifestKV{
@@ -167,8 +168,21 @@ func registerRoutes(rt *appkit.Router) error {
 	rt.Handle("GET /{$}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_ = rt.WWW().Render(w, "landing.html", struct{ Service, Version string }{rt.Service(), rt.Version()})
 	}))
-	rt.Handle("POST /mcp", rt.RequireIdentity(mcp.NewHandler(svc, rt.Version(), rt.Service(), rt.Health())))
+	handler, err := mcp.NewHandler(svc, rt)
+	if err != nil {
+		return err
+	}
+	rt.Handle("POST /mcp", rt.RequireIdentity(handler))
 	return nil
+}
+
+func scriptsHealth(ctx context.Context) (map[string]any, error) {
+	return map[string]any{
+		"python_version": ">=3.11",
+		"bash_version":   ">=5.0",
+		"network":        true,
+		"packages":       "stdlib",
+	}, nil
 }
 
 func scriptsRuntimeRoot(generationPath string) string {

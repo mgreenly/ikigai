@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -13,13 +15,18 @@ import (
 	"sync"
 	"testing"
 
-	"scripts/internal/db"
+	appkitdb "appkit/db"
+	"appkit/server"
+
+	scriptdb "scripts/internal/db"
 	"scripts/internal/script"
 )
 
 const (
-	ownerEmail = "owner@example.com"
-	clientID   = "client-123"
+	ownerEmail  = "owner@example.com"
+	clientID    = "client-123"
+	testVersion = "1.2.3"
+	testService = "scripts"
 )
 
 // fakeRunner records Spawn/Cancel and leaves runs running (does not
@@ -50,27 +57,77 @@ func (f *fakeRunner) spawnCount() int {
 	return len(f.spawns)
 }
 
-// newTestHandler wires a real store over a temp DB + a fake recording runner,
-// and the MCP Handler over that Service. runsDir is the on-disk run tree root.
-func newTestHandler(t *testing.T) (*Handler, *fakeRunner, string) {
+type testHarness struct {
+	mcpHandler http.Handler
+	server     http.Handler
+	runner     *fakeRunner
+	runsDir    string
+}
+
+// newTestHarness wires a real store over a temp DB + a fake recording runner,
+// captures an appkit Router from server.New, and assembles the shared MCP
+// handler through NewHandler. runsDir is the on-disk run tree root.
+func newTestHarness(t *testing.T) testHarness {
 	t.Helper()
 	ctx := t.Context()
 
-	conn, err := db.Open(filepath.Join(t.TempDir(), "scripts.db"))
+	conn, err := appkitdb.Open(filepath.Join(t.TempDir(), "scripts_test.db"))
 	if err != nil {
-		t.Fatalf("db.Open: %v", err)
+		t.Fatalf("open test db: %v", err)
 	}
 	t.Cleanup(func() { conn.Close() })
-	if err := db.Migrate(ctx, conn); err != nil {
-		t.Fatalf("db.Migrate: %v", err)
+	migs, err := appkitdb.LoadMigrations(scriptdb.FS, "migrations")
+	if err != nil {
+		t.Fatalf("load migrations: %v", err)
+	}
+	if err := appkitdb.Migrate(ctx, conn, migs); err != nil {
+		t.Fatalf("migrate test db: %v", err)
 	}
 
 	runsDir := t.TempDir()
 	store := script.NewStore(conn)
 	fr := &fakeRunner{}
 	svc := script.NewService(store, runsDir, fr)
-	// No reporter wired (mirrors main.go): health.details is the static contract.
-	return NewHandler(svc, "1.2.3", "scripts", nil), fr, runsDir
+	var captured *server.Router
+	srv, err := server.New(server.Options{
+		Addr:       "127.0.0.1:0",
+		Logger:     slog.New(slog.NewTextHandler(io.Discard, nil)),
+		ResourceID: "https://example.test/srv/scripts",
+		AuthServer: "https://auth.example.test",
+		Version:    testVersion,
+		Service:    testService,
+		Events:     script.Events,
+		Health: func(ctx context.Context) (map[string]any, error) {
+			return map[string]any{
+				"python_version": ">=3.11",
+				"bash_version":   ">=5.0",
+				"network":        true,
+				"packages":       "stdlib",
+			}, nil
+		},
+		DB: conn,
+		Register: func(rt *server.Router) error {
+			captured = rt
+			return nil
+		},
+	})
+	if err != nil {
+		t.Fatalf("build test router: %v", err)
+	}
+	if captured == nil {
+		t.Fatalf("server.New did not invoke Register")
+	}
+	h, err := NewHandler(svc, captured)
+	if err != nil {
+		t.Fatalf("build mcp handler: %v", err)
+	}
+	return testHarness{mcpHandler: h, server: srv.Handler, runner: fr, runsDir: runsDir}
+}
+
+func newTestHandler(t *testing.T) (http.Handler, *fakeRunner, string) {
+	t.Helper()
+	h := newTestHarness(t)
+	return h.mcpHandler, h.runner, h.runsDir
 }
 
 // fakeFetcher is a script.ContentFetcher returning canned bytes, so the import
@@ -86,20 +143,57 @@ func (f fakeFetcher) Fetch(ctx context.Context, path string) ([]byte, error) {
 
 // newTestHandlerWithFetcher wires a handler whose Service has its Fetcher set to
 // the given fake, for the import verb dispatch test.
-func newTestHandlerWithFetcher(t *testing.T, f script.ContentFetcher) *Handler {
+func newTestHandlerWithFetcher(t *testing.T, f script.ContentFetcher) http.Handler {
 	t.Helper()
 	ctx := t.Context()
-	conn, err := db.Open(filepath.Join(t.TempDir(), "scripts.db"))
+	conn, err := appkitdb.Open(filepath.Join(t.TempDir(), "scripts_test.db"))
 	if err != nil {
-		t.Fatalf("db.Open: %v", err)
+		t.Fatalf("open test db: %v", err)
 	}
 	t.Cleanup(func() { conn.Close() })
-	if err := db.Migrate(ctx, conn); err != nil {
-		t.Fatalf("db.Migrate: %v", err)
+	migs, err := appkitdb.LoadMigrations(scriptdb.FS, "migrations")
+	if err != nil {
+		t.Fatalf("load migrations: %v", err)
+	}
+	if err := appkitdb.Migrate(ctx, conn, migs); err != nil {
+		t.Fatalf("migrate test db: %v", err)
 	}
 	svc := script.NewService(script.NewStore(conn), t.TempDir(), &fakeRunner{})
 	svc.Fetcher = f
-	return NewHandler(svc, "1.2.3", "scripts", nil)
+	var captured *server.Router
+	_, err = server.New(server.Options{
+		Addr:       "127.0.0.1:0",
+		Logger:     slog.New(slog.NewTextHandler(io.Discard, nil)),
+		ResourceID: "https://example.test/srv/scripts",
+		AuthServer: "https://auth.example.test",
+		Version:    testVersion,
+		Service:    testService,
+		Events:     script.Events,
+		Health: func(ctx context.Context) (map[string]any, error) {
+			return map[string]any{
+				"python_version": ">=3.11",
+				"bash_version":   ">=5.0",
+				"network":        true,
+				"packages":       "stdlib",
+			}, nil
+		},
+		DB: conn,
+		Register: func(rt *server.Router) error {
+			captured = rt
+			return nil
+		},
+	})
+	if err != nil {
+		t.Fatalf("build test router: %v", err)
+	}
+	if captured == nil {
+		t.Fatalf("server.New did not invoke Register")
+	}
+	h, err := NewHandler(svc, captured)
+	if err != nil {
+		t.Fatalf("build mcp handler: %v", err)
+	}
+	return h
 }
 
 // TestImportDispatch asserts the import verb routes to the service and returns
@@ -126,7 +220,7 @@ func TestImportDispatch(t *testing.T) {
 }
 
 // call drives one tools/call over ServeHTTP and returns the decoded result.
-func call(t *testing.T, h *Handler, tool string, args map[string]any) map[string]any {
+func call(t *testing.T, h http.Handler, tool string, args map[string]any) map[string]any {
 	t.Helper()
 	argsJSON, _ := json.Marshal(args)
 	body, _ := json.Marshal(map[string]any{
@@ -155,7 +249,7 @@ func call(t *testing.T, h *Handler, tool string, args map[string]any) map[string
 	return resp.Result
 }
 
-func do(t *testing.T, h *Handler, body []byte) *httptest.ResponseRecorder {
+func do(t *testing.T, h http.Handler, body []byte) *httptest.ResponseRecorder {
 	t.Helper()
 	req := httptest.NewRequest(http.MethodPost, "/mcp", bytes.NewReader(body))
 	req.Header.Set("X-Owner-Email", ownerEmail)
@@ -180,10 +274,10 @@ func isError(res map[string]any) bool {
 	return v
 }
 
-// TestToolsListReturns17 asserts the exact 17-tool surface, every name a bare
-// verb, with the run-scoped run_fs_* readers present and
-// NO bare fs_list / fs_read.
-func TestToolsListReturns17(t *testing.T) {
+// TestToolsListPartitionsDomainAndChassis asserts the exact 18-tool surface:
+// the shared chassis health/reflection tools plus scripts' 16 domain verbs.
+func TestToolsListPartitionsDomainAndChassis(t *testing.T) {
+	// R-91IM-JYPA
 	h, _, _ := newTestHandler(t)
 	body, _ := json.Marshal(map[string]any{"jsonrpc": "2.0", "id": 1, "method": "tools/list"})
 	rr := do(t, h, body)
@@ -198,10 +292,10 @@ func TestToolsListReturns17(t *testing.T) {
 	if err := json.Unmarshal(rr.Body.Bytes(), &resp); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
-	if len(resp.Result.Tools) != 17 {
-		t.Fatalf("want 17 tools, got %d", len(resp.Result.Tools))
+	if len(resp.Result.Tools) != 18 {
+		t.Fatalf("want 18 tools, got %d", len(resp.Result.Tools))
 	}
-	got := make([]string, 0, 17)
+	got := make([]string, 0, 18)
 	for _, tl := range resp.Result.Tools {
 		got = append(got, tl.Name)
 		if tl.Name == "fs_list" || tl.Name == "fs_read" {
@@ -218,6 +312,7 @@ func TestToolsListReturns17(t *testing.T) {
 		"health",
 		"import",
 		"list",
+		"reflection",
 		"run",
 		"run_cancel",
 		"run_fs_list",
@@ -236,7 +331,7 @@ func TestToolsListReturns17(t *testing.T) {
 }
 
 // createScript runs create and returns the new script_id.
-func createScript(t *testing.T, h *Handler) string {
+func createScript(t *testing.T, h http.Handler) string {
 	t.Helper()
 	res := call(t, h, tool("create"), map[string]any{
 		"name": "nightly",
@@ -436,12 +531,13 @@ func TestRunOutputAndFs(t *testing.T) {
 	}
 }
 
-// TestHealthDetailsContract asserts health returns the exact static runtime
-// contract under details, plus the injected identity.
+// TestHealthDetailsContract asserts the appkit health reporter serves the same
+// runtime contract through MCP health and HTTP GET /health.
 func TestHealthDetailsContract(t *testing.T) {
-	h, _, _ := newTestHandler(t)
-	res := call(t, h, tool("health"), nil)
-	var out struct {
+	// R-92QI-XQFZ
+	h := newTestHarness(t)
+	res := call(t, h.mcpHandler, "health", nil)
+	var mcpOut struct {
 		Status     string `json:"status"`
 		Version    string `json:"version"`
 		Service    string `json:"service"`
@@ -454,18 +550,56 @@ func TestHealthDetailsContract(t *testing.T) {
 			Packages      string `json:"packages"`
 		} `json:"details"`
 	}
-	if err := json.Unmarshal([]byte(resultText(t, res)), &out); err != nil {
+	if err := json.Unmarshal([]byte(resultText(t, res)), &mcpOut); err != nil {
 		t.Fatalf("decode health: %v", err)
 	}
-	if out.Version != "1.2.3" || out.Service != "scripts" {
-		t.Fatalf("health envelope: %+v", out)
+	if mcpOut.Version != testVersion || mcpOut.Service != testService {
+		t.Fatalf("mcp health envelope: %+v", mcpOut)
 	}
-	if out.OwnerEmail != ownerEmail || out.ClientID != clientID {
-		t.Fatalf("health identity: %+v", out)
+	if mcpOut.OwnerEmail != ownerEmail || mcpOut.ClientID != clientID {
+		t.Fatalf("mcp health identity: %+v", mcpOut)
 	}
-	if out.Details.PythonVersion != ">=3.11" || out.Details.BashVersion != ">=5.0" ||
-		out.Details.Network != true || out.Details.Packages != "stdlib" {
-		t.Fatalf("health details contract mismatch: %+v", out.Details)
+	assertRuntimeContract(t, mcpOut.Details)
+
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	rr := httptest.NewRecorder()
+	h.server.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("GET /health status = %d, body=%s", rr.Code, rr.Body.String())
+	}
+	var httpOut struct {
+		Status  string `json:"status"`
+		Version string `json:"version"`
+		Service string `json:"service"`
+		Details struct {
+			PythonVersion string `json:"python_version"`
+			BashVersion   string `json:"bash_version"`
+			Network       bool   `json:"network"`
+			Packages      string `json:"packages"`
+		} `json:"details"`
+	}
+	if err := json.Unmarshal(rr.Body.Bytes(), &httpOut); err != nil {
+		t.Fatalf("decode GET /health: %v", err)
+	}
+	if httpOut.Version != testVersion || httpOut.Service != testService {
+		t.Fatalf("http health envelope: %+v", httpOut)
+	}
+	if httpOut.Status != "ok" {
+		t.Fatalf("http health status = %q", httpOut.Status)
+	}
+	assertRuntimeContract(t, httpOut.Details)
+}
+
+func assertRuntimeContract(t *testing.T, details struct {
+	PythonVersion string `json:"python_version"`
+	BashVersion   string `json:"bash_version"`
+	Network       bool   `json:"network"`
+	Packages      string `json:"packages"`
+}) {
+	t.Helper()
+	if details.PythonVersion != ">=3.11" || details.BashVersion != ">=5.0" ||
+		details.Network != true || details.Packages != "stdlib" {
+		t.Fatalf("health details contract mismatch: %+v", details)
 	}
 }
 
