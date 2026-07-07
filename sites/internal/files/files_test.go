@@ -175,6 +175,60 @@ func TestGlobReturnsSearchBaseRelativeMatches(t *testing.T) {
 	}
 }
 
+func TestGlobRecursiveDoubleStarMatchesAllDepths(t *testing.T) {
+	root := globRecursiveFixture(t)
+
+	// R-3ZP8-T0GP
+	css, err := Glob(root, "**/*.css", "")
+	if err != nil {
+		t.Fatalf("Glob css: %v", err)
+	}
+	if !reflect.DeepEqual(css, []string{"a.css", "assets/css/style.css", "deep/a/b/c.css"}) {
+		t.Fatalf("Glob recursive css = %#v", css)
+	}
+	html, err := Glob(root, "**/*.html", "")
+	if err != nil {
+		t.Fatalf("Glob html: %v", err)
+	}
+	if !reflect.DeepEqual(html, []string{"index.html"}) {
+		t.Fatalf("Glob recursive html = %#v", html)
+	}
+	assets, err := Glob(root, "assets/**", "")
+	if err != nil {
+		t.Fatalf("Glob assets: %v", err)
+	}
+	if !reflect.DeepEqual(assets, []string{"assets/css/style.css", "assets/js/app.js"}) {
+		t.Fatalf("Glob recursive assets = %#v", assets)
+	}
+}
+
+func TestGlobDoubleStarKeepsSegmentAndBaseBoundaries(t *testing.T) {
+	root := globRecursiveFixture(t)
+
+	// R-40X5-6S7E
+	baseCSS, err := Glob(root, "*.css", "")
+	if err != nil {
+		t.Fatalf("Glob base css: %v", err)
+	}
+	if !reflect.DeepEqual(baseCSS, []string{"a.css"}) {
+		t.Fatalf("Glob base css = %#v", baseCSS)
+	}
+	scopedCSS, err := Glob(root, "**/*.css", "assets")
+	if err != nil {
+		t.Fatalf("Glob scoped css: %v", err)
+	}
+	if !reflect.DeepEqual(scopedCSS, []string{"css/style.css"}) {
+		t.Fatalf("Glob scoped css = %#v", scopedCSS)
+	}
+	missing, err := Glob(root, "**/*.md", "")
+	if err != nil {
+		t.Fatalf("Glob missing: %v", err)
+	}
+	if missing == nil || len(missing) != 0 {
+		t.Fatalf("Glob missing = %#v, want empty non-nil slice", missing)
+	}
+}
+
 func TestGrepReturnsTypedRootRelativeMatches(t *testing.T) {
 	root := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(root, "content"), 0o755); err != nil {
@@ -341,4 +395,24 @@ func errOnlyFileInfos(_ []FileInfo, err error) error {
 
 func editErr(_ int, err error) error {
 	return err
+}
+
+func globRecursiveFixture(t *testing.T) string {
+	t.Helper()
+	root := t.TempDir()
+	for _, path := range []string{
+		"a.css",
+		"index.html",
+		"assets/css/style.css",
+		"assets/js/app.js",
+		"deep/a/b/c.css",
+	} {
+		if err := os.MkdirAll(filepath.Dir(filepath.Join(root, path)), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(root, path), []byte(path), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return root
 }

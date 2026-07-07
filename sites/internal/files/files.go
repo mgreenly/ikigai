@@ -128,32 +128,84 @@ func Glob(root, pattern, path string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	globPattern := pattern
-	if !filepath.IsAbs(globPattern) {
-		globPattern = filepath.Join(base, globPattern)
+	absPattern := pattern
+	if !filepath.IsAbs(absPattern) {
+		absPattern = filepath.Join(base, absPattern)
 	}
-	globPattern, err = ConfinePath(root, globPattern)
+	absPattern, err = ConfinePath(root, absPattern)
 	if err != nil {
 		return nil, err
 	}
-	matches, err := filepath.Glob(globPattern)
+	if !inside(base, absPattern) {
+		return nil, fmt.Errorf("%w: %q", ErrEscapes, pattern)
+	}
+	relPattern, err := filepath.Rel(base, absPattern)
 	if err != nil {
 		return nil, err
 	}
-	out := make([]string, 0, len(matches))
-	for _, match := range matches {
-		confined, err := ConfinePath(root, match)
+	relPattern = filepath.ToSlash(relPattern)
+
+	out := []string{}
+	err = filepath.WalkDir(base, func(path string, d fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if d.IsDir() || !d.Type().IsRegular() {
+			return nil
+		}
+		confined, err := ConfinePath(root, path)
 		if err != nil {
-			continue
+			return nil
 		}
 		rel, err := filepath.Rel(base, confined)
 		if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
-			continue
+			return nil
 		}
-		out = append(out, filepath.ToSlash(rel))
+		rel = filepath.ToSlash(rel)
+		ok, err := matchSlashPattern(relPattern, rel)
+		if err != nil {
+			return err
+		}
+		if ok {
+			out = append(out, rel)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
 	sort.Strings(out)
 	return out, nil
+}
+
+func matchSlashPattern(pattern, path string) (bool, error) {
+	if pattern == "." {
+		return path == ".", nil
+	}
+	return matchPatternSegments(strings.Split(pattern, "/"), strings.Split(path, "/"))
+}
+
+func matchPatternSegments(pattern, path []string) (bool, error) {
+	if len(pattern) == 0 {
+		return len(path) == 0, nil
+	}
+	if pattern[0] == "**" {
+		for i := 0; i <= len(path); i++ {
+			ok, err := matchPatternSegments(pattern[1:], path[i:])
+			if err != nil || ok {
+				return ok, err
+			}
+		}
+		return false, nil
+	}
+	if len(path) == 0 {
+		return false, nil
+	}
+	ok, err := filepath.Match(pattern[0], path[0])
+	if err != nil || !ok {
+		return ok, err
+	}
+	return matchPatternSegments(pattern[1:], path[1:])
 }
 
 func Grep(root, pattern, path, glob string) ([]Match, error) {
