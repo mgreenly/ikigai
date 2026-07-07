@@ -19,13 +19,14 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 
 	"appkit"
+	"appkit/web"
 	"registry"
 
 	"webhooks/internal/db"
 	"webhooks/internal/mcp"
-	"webhooks/internal/web"
 	"webhooks/internal/webhooks"
 
 	"eventplane/outbox"
@@ -53,8 +54,7 @@ func main() {
 			mcp.NewHandler(svc, rt.Version(), rt.Service(), rt.ResourceID(),
 				rt.Health(), rt.Events())))
 		rt.Handle("/in/", webhooks.NewIngressHandler(svc, rt.Logger()))
-		rt.Handle("GET /{$}", web.LandingHandler(rt.Service(), rt.Version()))
-		rt.Handle("GET /static/", web.StaticHandler())
+		rt.Handle("GET /{$}", landingHandler(rt.WWW(), rt.Service(), rt.Version()))
 		return nil
 	}
 	// Producer fires after Handlers: inject the outbox so every committed inbound
@@ -79,9 +79,17 @@ func webhooksSpec() appkit.Spec {
 		Feed:       "/feed", // event-plane producer
 		Migrations: db.FS,
 		Events:     webhooks.Events, // published event types: reflection + Append validation
+		WWW:        true,
 		ManifestExtras: []appkit.ManifestKV{
 			{Key: "OUTBOX_RETENTION_DAYS", Value: "7"},
 			{Key: "OUTBOX_RETENTION_MAX_ROWS", Value: "1000000"},
 		},
 	}
+}
+
+func landingHandler(site *web.Site, service, version string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = site.Render(w, "landing.html",
+			struct{ Service, Version string }{service, version})
+	})
 }

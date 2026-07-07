@@ -1,20 +1,71 @@
-package web
+package main
 
 import (
+	"bytes"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
+
+	"appkit/web"
 )
 
 const webhooksDescription = "Webhooks keeps named inbound endpoints in SQLite and emits typed event-plane messages when callbacks arrive."
 
+func TestLoadedShareWWWRendersLandingWithServiceAndVersion(t *testing.T) {
+	site := loadShareWWW(t)
+	rec := httptest.NewRecorder()
+
+	if err := site.Render(rec, "landing.html",
+		struct{ Service, Version string }{Service: "webhooks", Version: "v11-test"}); err != nil {
+		t.Fatal(err)
+	}
+
+	body := rec.Body.String()
+	// R-0GVM-EPJ9
+	if !strings.Contains(body, "webhooks") {
+		t.Fatalf("rendered landing body does not contain service name:\n%s", body)
+	}
+	if !strings.Contains(body, "v11-test") {
+		t.Fatalf("rendered landing body does not contain exact version string:\n%s", body)
+	}
+}
+
+func TestChassisStaticMountServesTokensAndFonts(t *testing.T) {
+	site := loadShareWWW(t)
+	mux := http.NewServeMux()
+	mux.Handle("GET /static/", site.Static())
+
+	// R-0I3I-SH9Y
+	css := requestAsset(t, mux, "/static/tokens.css", "text/css")
+	if strings.TrimSpace(string(css)) == "" {
+		t.Fatal("tokens.css body is empty")
+	}
+
+	font := requestAsset(t, mux, "/static/fonts/space-grotesk.woff2", "font/woff2")
+	if !bytes.HasPrefix(font, []byte("wOF2")) {
+		t.Fatalf("space-grotesk.woff2 does not look like a WOFF2 payload")
+	}
+
+	mainGo, err := os.ReadFile("main.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(mainGo, []byte(`rt.Handle("GET /static/`)) {
+		t.Fatalf("main.go still registers a webhooks-side static route:\n%s", mainGo)
+	}
+}
+
 func TestLandingHandlerRendersRootWithServiceVersionAndHTMLContentType(t *testing.T) {
+	site := loadShareWWW(t)
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
 
-	LandingHandler("webhooks", "v8-test").ServeHTTP(rec, req)
+	landingHandler(site, "webhooks", "v11-handler").ServeHTTP(rec, req)
 
 	res := rec.Result()
 	body := rec.Body.String()
@@ -28,16 +79,18 @@ func TestLandingHandlerRendersRootWithServiceVersionAndHTMLContentType(t *testin
 	if !strings.Contains(body, "webhooks") {
 		t.Fatalf("landing body does not contain service name %q:\n%s", "webhooks", body)
 	}
-	if !strings.Contains(body, "v8-test") {
-		t.Fatalf("landing body does not contain injected version %q:\n%s", "v8-test", body)
+	if !strings.Contains(body, "v11-handler") {
+		t.Fatalf("landing body does not contain injected version %q:\n%s", "v11-handler", body)
 	}
 }
 
-func TestLandingHandlerRejectsNonRootPath(t *testing.T) {
-	req := httptest.NewRequest(http.MethodGet, "/nope", nil)
-	rec := httptest.NewRecorder()
+func TestExactRootLandingRouteDoesNotMatchNonRootPath(t *testing.T) {
+	site := loadShareWWW(t)
+	mux := http.NewServeMux()
+	mux.Handle("GET /{$}", landingHandler(site, "webhooks", "test"))
 
-	LandingHandler("webhooks", "test").ServeHTTP(rec, req)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/nope", nil))
 
 	// R-TNRE-8TEE
 	if rec.Result().StatusCode != http.StatusNotFound {
@@ -48,23 +101,25 @@ func TestLandingHandlerRejectsNonRootPath(t *testing.T) {
 	}
 }
 
-func TestStaticHandlerServesTokensAndFonts(t *testing.T) {
-	handler := StaticHandler()
+func TestShareWWWStaticHandlerServesTokensAndFonts(t *testing.T) {
+	site := loadShareWWW(t)
+	mux := http.NewServeMux()
+	mux.Handle("GET /static/", site.Static())
 
 	// R-TOZA-ML53
-	css := requestAsset(t, handler, "/static/tokens.css", "text/css; charset=utf-8")
-	if strings.TrimSpace(css) == "" {
+	css := requestAsset(t, mux, "/static/tokens.css", "text/css")
+	if strings.TrimSpace(string(css)) == "" {
 		t.Fatal("tokens.css body is empty")
 	}
 
-	font := requestAsset(t, handler, "/static/fonts/space-grotesk.woff2", "font/woff2")
-	if !strings.HasPrefix(font, "wOF2") {
-		t.Fatalf("space-grotesk.woff2 does not look like a WOFF2 payload")
+	font := requestAsset(t, mux, "/static/fonts/ibm-plex-sans.woff2", "font/woff2")
+	if !bytes.HasPrefix(font, []byte("wOF2")) {
+		t.Fatalf("ibm-plex-sans.woff2 does not look like a WOFF2 payload")
 	}
 }
 
-func TestEmbeddedLandingHTMLKeepsWebhooksContentAndStructure(t *testing.T) {
-	body := readEmbedded(t, "landing.html")
+func TestShippedLandingHTMLKeepsWebhooksContentAndStructure(t *testing.T) {
+	body := readShareFile(t, "landing.html")
 
 	// R-TQ77-0CVS
 	for _, want := range []string{
@@ -88,9 +143,9 @@ func TestEmbeddedLandingHTMLKeepsWebhooksContentAndStructure(t *testing.T) {
 	}
 }
 
-func TestEmbeddedAssetsUseOptionalLocalFontsAndPreloads(t *testing.T) {
-	css := readEmbedded(t, "static/tokens.css")
-	head := headMarkup(t, readEmbedded(t, "landing.html"))
+func TestShippedAssetsUseOptionalLocalFontsAndPreloads(t *testing.T) {
+	css := readShareFile(t, "static", "tokens.css")
+	head := headMarkup(t, readShareFile(t, "landing.html"))
 
 	// R-TRF3-E4MH
 	fontFaceCount := strings.Count(css, "@font-face")
@@ -133,9 +188,10 @@ func TestEmbeddedAssetsUseOptionalLocalFontsAndPreloads(t *testing.T) {
 }
 
 func TestServeMuxLandingAndStaticDoNotShadowExistingRoutes(t *testing.T) {
+	site := loadShareWWW(t)
 	mux := http.NewServeMux()
-	mux.Handle("GET /{$}", LandingHandler("webhooks", "route-test"))
-	mux.Handle("GET /static/", StaticHandler())
+	mux.Handle("GET /{$}", landingHandler(site, "webhooks", "route-test"))
+	mux.Handle("GET /static/", site.Static())
 	mux.Handle("POST /mcp", markerHandler("mcp"))
 	mux.Handle("/in/", markerHandler("ingress"))
 	mux.Handle("GET /feed", markerHandler("feed"))
@@ -166,7 +222,7 @@ func TestServeMuxLandingAndStaticDoNotShadowExistingRoutes(t *testing.T) {
 	}
 }
 
-func requestAsset(t *testing.T, h http.Handler, path, contentType string) string {
+func requestAsset(t *testing.T, h http.Handler, path, contentType string) []byte {
 	t.Helper()
 
 	rec := httptest.NewRecorder()
@@ -180,13 +236,44 @@ func requestAsset(t *testing.T, h http.Handler, path, contentType string) string
 	if res.StatusCode != http.StatusOK {
 		t.Fatalf("%s status = %d, want %d", path, res.StatusCode, http.StatusOK)
 	}
-	if got := res.Header.Get("Content-Type"); got != contentType {
+	if got := res.Header.Get("Content-Type"); strings.TrimSpace(strings.Split(got, ";")[0]) != contentType {
 		t.Fatalf("%s Content-Type = %q, want %q", path, got, contentType)
 	}
 	if len(body) == 0 {
 		t.Fatalf("%s returned an empty body", path)
 	}
+	return body
+}
+
+func loadShareWWW(t *testing.T) *web.Site {
+	t.Helper()
+
+	site, err := web.Load(shareWWWRoot(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return site
+}
+
+func readShareFile(t *testing.T, elem ...string) string {
+	t.Helper()
+
+	path := filepath.Join(append([]string{shareWWWRoot(t)}, elem...)...)
+	body, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
 	return string(body)
+}
+
+func shareWWWRoot(t *testing.T) string {
+	t.Helper()
+
+	_, file, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("runtime.Caller failed")
+	}
+	return filepath.Clean(filepath.Join(filepath.Dir(file), "..", "..", "share", "www"))
 }
 
 func markerHandler(marker string) http.Handler {
@@ -194,16 +281,6 @@ func markerHandler(marker string) http.Handler {
 		w.Header().Set("X-Test-Route", marker)
 		w.WriteHeader(http.StatusNoContent)
 	})
-}
-
-func readEmbedded(t *testing.T, name string) string {
-	t.Helper()
-
-	body, err := content.ReadFile(name)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return string(body)
 }
 
 func headMarkup(t *testing.T, body string) string {

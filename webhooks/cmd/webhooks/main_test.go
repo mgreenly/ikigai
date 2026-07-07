@@ -99,6 +99,7 @@ func TestServeMigratesAndServesHealth(t *testing.T) {
 	cmd := exec.CommandContext(ctx, bin, "serve")
 	cmd.Env = append(os.Environ(),
 		"WEBHOOKS_DB_PATH="+dbPath,
+		"WEBHOOKS_WWW_PATH="+repoShareWWWPath(t),
 		"WEBHOOKS_PORT="+strconv.Itoa(port),
 		// Provide explicit dev URLs so config.Resolve doesn't need IKIGENBA_DOMAIN.
 		"WEBHOOKS_RESOURCE_ID=http://127.0.0.1/srv/webhooks/mcp",
@@ -187,6 +188,7 @@ func TestWebhooksBootsFromOpsctlLayoutAndServesHealth(t *testing.T) {
 	if err := os.WriteFile(shippedManifest, committedManifest, 0o644); err != nil {
 		t.Fatalf("write shipped manifest.env: %v", err)
 	}
+	copyShareWWW(t, filepath.Join(shareVersionDir, "www"))
 	if err := os.Symlink(version, filepath.Join(etcDir, "current")); err != nil {
 		t.Fatalf("symlink etc/current: %v", err)
 	}
@@ -289,6 +291,49 @@ func freeTCPPort(t *testing.T) int {
 	}
 	defer ln.Close()
 	return ln.Addr().(*net.TCPAddr).Port
+}
+
+func repoShareWWWPath(t *testing.T) string {
+	t.Helper()
+
+	path, err := filepath.Abs(filepath.Join("..", "..", "share", "www"))
+	if err != nil {
+		t.Fatalf("resolve share/www path: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(path, "landing.html")); err != nil {
+		t.Fatalf("share/www landing missing: %v", err)
+	}
+	return path
+}
+
+func copyShareWWW(t *testing.T, dst string) {
+	t.Helper()
+
+	src := repoShareWWWPath(t)
+	if err := filepath.WalkDir(src, func(path string, entry os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, err := filepath.Rel(src, path)
+		if err != nil {
+			return err
+		}
+		target := filepath.Join(dst, rel)
+		info, err := entry.Info()
+		if err != nil {
+			return err
+		}
+		if entry.IsDir() {
+			return os.MkdirAll(target, info.Mode().Perm())
+		}
+		body, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(target, body, info.Mode().Perm())
+	}); err != nil {
+		t.Fatalf("copy share/www into opsctl layout: %v", err)
+	}
 }
 
 func waitForHealth(t *testing.T, port int, done <-chan error, stdout, stderr *bytes.Buffer) map[string]any {

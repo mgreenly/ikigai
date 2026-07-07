@@ -242,6 +242,7 @@ launch_webhooks() {
 	# webhooks holds no secret; the public /in/ ingress self-guards on per-webhook
 	# secrets. DB under tmp/ so it's wiped with bin/stop --clean.
 	export WEBHOOKS_DB_PATH="$RUN_DIR/webhooks.db"
+	export WEBHOOKS_WWW_PATH="$repo/webhooks/share/www"
 	exec "$RUN_DIR/bin/webhooks" serve --port "$(port 3006)"
 }
 
