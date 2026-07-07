@@ -15,7 +15,11 @@ Verification ids change.
 - D6 → `project/design/D06.md` — MCP tool surface (the four owner tools) — R-5Z8J-Y0YP, R-60GG-BSPE, R-61OC-PKG3, R-62W9-3C6S, R-6445-H3XH, R-65C1-UVO6
 - D7 → `project/design/D07.md` — nginx location fragment (tiers) — R-OD12-3CVG, R-OE8Y-H4M5, R-OFGU-UWCU, R-OGOR-8O3J, R-TTUW-5O3V, R-TV2S-JFUK, R-TWAO-X7L9
 - D8 → `project/design/D08.md` — Test strategy, harness & dev-onboarding — R-UELV-YLA4, R-UFTS-CD0T
-- D9 → `project/design/D09.md` — Human landing page (web package, template & Carbon assets) — R-TMJH-V1NP, R-TNRE-8TEE, R-TOZA-ML53, R-TQ77-0CVS, R-TRF3-E4MH
+- D9 → `project/design/D09.md` — Human landing page (`share/www` template & Carbon assets) — R-TMJH-V1NP, R-TNRE-8TEE, R-TOZA-ML53, R-TQ77-0CVS, R-TRF3-E4MH
+- D10 → `project/design/D10.md` — Adopt `registry` (own port by name + drift guards) — R-0D7X-9EB6, R-0EFT-N61V, R-0FNQ-0XSK
+- D11 → `project/design/D11.md` — Web surface from `share/www` through the chassis (de-embed) — R-0GVM-EPJ9, R-0I3I-SH9Y
+- D12 → `project/design/D12.md` — MCP surface over `appkit/mcp` (`internal/mcp` becomes the tool table) — R-0JBF-690N
+- D13 → `project/design/D13.md` — Delete the `internal/db` shim, normalize the composition root, true up the doctrine — (structural; no ids)
 
 ## Verification ids → Decision
 
@@ -61,3 +65,9 @@ Verification ids change.
 - R-TOZA-ML53 → D9 — `project/design/D09.md`
 - R-TQ77-0CVS → D9 — `project/design/D09.md`
 - R-TRF3-E4MH → D9 — `project/design/D09.md`
+- R-0D7X-9EB6 → D10 — `project/design/D10.md`
+- R-0EFT-N61V → D10 — `project/design/D10.md`
+- R-0FNQ-0XSK → D10 — `project/design/D10.md`
+- R-0GVM-EPJ9 → D11 — `project/design/D11.md`
+- R-0I3I-SH9Y → D11 — `project/design/D11.md`
+- R-0JBF-690N → D12 — `project/design/D12.md`
