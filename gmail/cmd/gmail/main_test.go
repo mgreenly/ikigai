@@ -19,7 +19,6 @@ import (
 	"appkit"
 	"appkit/manifest"
 
-	"gmail/internal/gmailapp"
 	"registry"
 )
 
@@ -41,7 +40,7 @@ func TestCommittedManifestIsPortable(t *testing.T) {
 
 // R-8IAN-FB87
 func TestManifestLibraryByteEqualsCommittedFile(t *testing.T) {
-	spec := gmailapp.Spec()
+	spec := gmailSpec()
 	got := manifest.Emit(manifest.Fields{
 		App:      spec.App,
 		Mount:    spec.Mount,
@@ -64,7 +63,7 @@ func TestManifestLibraryByteEqualsCommittedFile(t *testing.T) {
 
 // R-9QEG-KF05
 func TestSpecPortComesFromRegistry(t *testing.T) {
-	spec := gmailapp.Spec()
+	spec := gmailSpec()
 	want := registry.MustPort("gmail")
 	if want != 3202 {
 		t.Fatalf("registry.MustPort(%q) = %d, want committed gmail port 3202", "gmail", want)
