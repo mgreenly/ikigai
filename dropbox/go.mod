@@ -6,6 +6,7 @@ require (
 	appkit v0.0.0
 	eventplane v0.0.0
 	modernc.org/sqlite v1.50.1
+	registry v0.0.0
 )
 
 // The shared chassis (appkit) and event-plane (eventplane) libraries are sibling
@@ -15,6 +16,8 @@ require (
 replace appkit => ../appkit
 
 replace eventplane => ../eventplane
+
+replace registry => ../registry
 
 require (
 	github.com/dustin/go-humanize v1.0.1 // indirect

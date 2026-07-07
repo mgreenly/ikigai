@@ -39,6 +39,7 @@ import (
 	"dropbox/internal/web"
 
 	"eventplane/outbox"
+	"registry"
 )
 
 func main() {
@@ -58,7 +59,7 @@ func main() {
 	appkit.Main(appkit.Spec{
 		App:        "dropbox",
 		Mount:      "/srv/dropbox/",
-		Port:       3200,
+		Port:       registry.MustPort("dropbox"),
 		MCP:        true,
 		Feed:       "/feed", // event-plane producer
 		Migrations: db.FS,
@@ -111,7 +112,7 @@ func main() {
 			// (PLAN.md §5). It is the service's own loopback address; consumers fetch
 			// bytes there. dropbox always binds 127.0.0.1:<port>; compose it from the
 			// same env appkit resolves the listen port from.
-			port, err := config.EnvOrInt(os.Getenv, "DROPBOX_PORT", 3200)
+			port, err := config.EnvOrInt(os.Getenv, "DROPBOX_PORT", registry.MustPort("dropbox"))
 			if err != nil {
 				return err
 			}
