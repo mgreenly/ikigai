@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	appkitdb "appkit/db"
+
 	"cron/internal/crontab"
 	"cron/internal/db"
 	"cron/internal/event"
@@ -21,12 +23,16 @@ import (
 func harness(t *testing.T) (*Worker, *crontab.Store, *sql.DB, context.Context) {
 	t.Helper()
 	ctx := context.Background()
-	conn, err := db.Open(filepath.Join(t.TempDir(), "test.db"))
+	conn, err := appkitdb.Open(filepath.Join(t.TempDir(), "test.db"))
 	if err != nil {
 		t.Fatalf("open: %v", err)
 	}
 	t.Cleanup(func() { conn.Close() })
-	if err := db.Migrate(ctx, conn); err != nil {
+	migs, err := appkitdb.LoadMigrations(db.FS, "migrations")
+	if err != nil {
+		t.Fatalf("load migrations: %v", err)
+	}
+	if err := appkitdb.Migrate(ctx, conn, migs); err != nil {
 		t.Fatalf("migrate: %v", err)
 	}
 	store := crontab.NewStore(conn)

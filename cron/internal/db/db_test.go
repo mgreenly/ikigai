@@ -2,8 +2,11 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"path/filepath"
 	"testing"
+
+	appkitdb "appkit/db"
 )
 
 func tempDB(t *testing.T) string {
@@ -11,17 +14,25 @@ func tempDB(t *testing.T) string {
 	return filepath.Join(t.TempDir(), "test.db")
 }
 
+func migrateCron(ctx context.Context, conn *sql.DB) error {
+	migs, err := appkitdb.LoadMigrations(FS, "migrations")
+	if err != nil {
+		return err
+	}
+	return appkitdb.Migrate(ctx, conn, migs)
+}
+
 // TestOpenAndMigrate smoke-checks that cron's embedded migration set applies
 // cleanly through appkit's runner and stands up the crontab table.
 func TestOpenAndMigrate(t *testing.T) {
 	ctx := context.Background()
-	conn, err := Open(tempDB(t))
+	conn, err := appkitdb.Open(tempDB(t))
 	if err != nil {
 		t.Fatalf("open: %v", err)
 	}
 	defer conn.Close()
 
-	if err := Migrate(ctx, conn); err != nil {
+	if err := migrateCron(ctx, conn); err != nil {
 		t.Fatalf("first migrate: %v", err)
 	}
 
@@ -42,20 +53,20 @@ func TestOpenAndMigrate(t *testing.T) {
 // TestMigrate_IsIdempotent re-asserts cron's set is safe to re-apply.
 func TestMigrate_IsIdempotent(t *testing.T) {
 	ctx := context.Background()
-	conn, err := Open(tempDB(t))
+	conn, err := appkitdb.Open(tempDB(t))
 	if err != nil {
 		t.Fatalf("open: %v", err)
 	}
 	defer conn.Close()
 
-	if err := Migrate(ctx, conn); err != nil {
+	if err := migrateCron(ctx, conn); err != nil {
 		t.Fatalf("first migrate: %v", err)
 	}
 	var before int
 	if err := conn.QueryRowContext(ctx, `SELECT COUNT(*) FROM schema_migrations`).Scan(&before); err != nil {
 		t.Fatalf("count before: %v", err)
 	}
-	if err := Migrate(ctx, conn); err != nil {
+	if err := migrateCron(ctx, conn); err != nil {
 		t.Fatalf("second migrate: %v", err)
 	}
 	var after int
@@ -72,12 +83,12 @@ func TestMigrate_IsIdempotent(t *testing.T) {
 // event-type-safe charset (lowercase, digits, hyphen).
 func TestCrontabNameCheck(t *testing.T) {
 	ctx := context.Background()
-	conn, err := Open(tempDB(t))
+	conn, err := appkitdb.Open(tempDB(t))
 	if err != nil {
 		t.Fatalf("open: %v", err)
 	}
 	defer conn.Close()
-	if err := Migrate(ctx, conn); err != nil {
+	if err := migrateCron(ctx, conn); err != nil {
 		t.Fatalf("migrate: %v", err)
 	}
 
