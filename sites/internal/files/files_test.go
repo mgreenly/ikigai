@@ -237,6 +237,14 @@ func TestGlobRejectsEscapingPatterns(t *testing.T) {
 	}
 }
 
+func TestGlobRejectsMalformedPatternWithoutWalkingMatches(t *testing.T) {
+	root := t.TempDir()
+
+	if _, err := Glob(root, "[", ""); err == nil {
+		t.Fatal("Glob malformed pattern succeeded, want error")
+	}
+}
+
 func TestGrepReturnsTypedRootRelativeMatches(t *testing.T) {
 	root := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(root, "content"), 0o755); err != nil {

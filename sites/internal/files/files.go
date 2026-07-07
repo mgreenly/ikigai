@@ -144,6 +144,9 @@ func Glob(root, pattern, path string) ([]string, error) {
 		return nil, err
 	}
 	relPattern = filepath.ToSlash(relPattern)
+	if err := validateSlashPattern(relPattern); err != nil {
+		return nil, err
+	}
 
 	out := []string{}
 	err = filepath.WalkDir(base, func(path string, d fs.DirEntry, walkErr error) error {
@@ -183,6 +186,18 @@ func matchSlashPattern(pattern, path string) (bool, error) {
 		return path == ".", nil
 	}
 	return matchPatternSegments(strings.Split(pattern, "/"), strings.Split(path, "/"))
+}
+
+func validateSlashPattern(pattern string) error {
+	for _, segment := range strings.Split(pattern, "/") {
+		if segment == "**" {
+			continue
+		}
+		if _, err := filepath.Match(segment, ""); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func matchPatternSegments(pattern, path []string) (bool, error) {
