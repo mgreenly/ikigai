@@ -272,6 +272,28 @@ func TestGlobRepeatedDoubleStarKeepsSingleBaseRelativeMatches(t *testing.T) {
 	}
 }
 
+func TestGlobAdjacentDoubleStarMatchesLiteralAtBaseDepth(t *testing.T) {
+	root := globRecursiveFixture(t)
+
+	// R-3ZP8-T0GP
+	html, err := Glob(root, "**/**/index.html", "")
+	if err != nil {
+		t.Fatalf("Glob adjacent recursive html: %v", err)
+	}
+	if !reflect.DeepEqual(html, []string{"index.html"}) {
+		t.Fatalf("Glob adjacent recursive html = %#v", html)
+	}
+
+	// R-40X5-6S7E
+	scoped, err := Glob(root, "**/**/style.css", "assets")
+	if err != nil {
+		t.Fatalf("Glob adjacent recursive scoped css: %v", err)
+	}
+	if !reflect.DeepEqual(scoped, []string{"css/style.css"}) {
+		t.Fatalf("Glob adjacent recursive scoped css = %#v", scoped)
+	}
+}
+
 func TestGlobDoubleStarMatchesZeroSegmentsWithinScopedBase(t *testing.T) {
 	root := t.TempDir()
 	for _, path := range []string{
