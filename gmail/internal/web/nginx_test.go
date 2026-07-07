@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"registry"
 	"strings"
 	"testing"
 )
@@ -40,10 +41,11 @@ func TestNginxLandingLocationForwardsSessionOwner(t *testing.T) {
 
 func TestNginxLandingLocationProxiesBareRootWithLiteralPort(t *testing.T) {
 	// R-NGNX-7F1G
+	// R-9SU9-BYHJ
 	block := nginxLocationBlock(t, readNginxFragment(t), `location = /srv/gmail/ {`)
 
 	for _, want := range []string{
-		"proxy_pass http://127.0.0.1:3202/;",
+		"proxy_pass " + registry.BaseURL("gmail") + "/;",
 		"proxy_set_header Host $host;",
 		"proxy_set_header X-Forwarded-Proto $scheme;",
 		"proxy_http_version 1.1;",
@@ -79,12 +81,13 @@ func TestNginxLandingLocationCoexistsWithExistingFragment(t *testing.T) {
 
 func TestNginxStaticLocationUsesSessionAuthAndStaticProxy(t *testing.T) {
 	// R-41ZW-HBBA
+	// R-9SU9-BYHJ
 	conf := readNginxFragment(t)
 	block := nginxLocationBlock(t, conf, `location /srv/gmail/static/ {`)
 
 	for _, want := range []string{
 		"auth_request /_session-authn;",
-		"proxy_pass http://127.0.0.1:3202/static/;",
+		"proxy_pass " + registry.BaseURL("gmail") + "/static/;",
 		"proxy_set_header Host $host;",
 		"proxy_set_header X-Forwarded-Proto $scheme;",
 		"proxy_http_version 1.1;",
