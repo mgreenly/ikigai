@@ -54,6 +54,11 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - D48 → `project/design/D48.md` — The markdown → sanitized-HTML rendering seam (`internal/markdown`, goldmark + bluemonday) — owns R-SS0J-U7PG, R-ST8G-7ZG5, R-SUGC-LR6U, R-SVO8-ZIXJ, R-SWW5-DAO8, R-SY41-R2EX, R-SZBY-4U5M, R-T0JU-ILWB, R-T1RQ-WDN0, R-T2ZN-A5DP
 - D49 → `project/design/D49.md` — Token-based CSS for the rendered markdown element set (the `.prose` container) — owns R-9EPS-LWWY, R-9FXO-ZONN
 - D50 → `project/design/D50.md` — Eliminate the web-font FOUT (`font-display: optional` + self-served fonts + `<head>` preload) — owns R-KFVF-EMEO, R-KH3B-SE5D, R-KIB8-65W2, R-KJJ4-JXMR
+- D51 → `project/design/D51.md` — Registry adoption: resolve wiki's own port through `registry` — owns R-JDBC-V0EV, R-JEJ9-8S5K, R-JFR5-MJW9
+- D52 → `project/design/D52.md` — Web surface from `share/www` through the chassis (de-embed the read UI) — owns R-JGZ2-0BMY, R-JI6Y-E3DN, R-JJEU-RV4C
+- D53 → `project/design/D53.md` — MCP surface over `appkit/mcp`: `internal/mcp` becomes the tool table — owns R-JKMR-5MV1
+- D54 → `project/design/D54.md` — Composition-root normalization: one inline `Spec` in `cmd/wiki/main.go` — none (structural)
+- D55 → `project/design/D55.md` — Delete the `internal/db` chassis shim (keep the read handle) and true up the docs — none (structural)
 
 ## Verification ids → Decision
 
@@ -195,9 +200,16 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - R-J8QP-BETB → D5 → `project/design/D05.md`
 - R-J9YL-P6K0 → D5 → `project/design/D05.md`
 - R-JCEE-GQ1E → D5 → `project/design/D05.md`
+- R-JDBC-V0EV → D51 → `project/design/D51.md`
 - R-JDMA-UHS3 → D5 → `project/design/D05.md`
 - R-JEC4-3M6O → D37 → `project/design/D37.md`
+- R-JEJ9-8S5K → D51 → `project/design/D51.md`
 - R-JEU7-89IS → D5 → `project/design/D05.md`
+- R-JFR5-MJW9 → D51 → `project/design/D51.md`
+- R-JGZ2-0BMY → D52 → `project/design/D52.md`
+- R-JI6Y-E3DN → D52 → `project/design/D52.md`
+- R-JJEU-RV4C → D52 → `project/design/D52.md`
+- R-JKMR-5MV1 → D53 → `project/design/D53.md`
 - R-KFVF-EMEO → D50 → `project/design/D50.md`
 - R-KH3B-SE5D → D50 → `project/design/D50.md`
 - R-KIB8-65W2 → D50 → `project/design/D50.md`
