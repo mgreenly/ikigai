@@ -30,42 +30,6 @@ func TestRegistryProvidesPromptsPortAndSpecUsesIt(t *testing.T) {
 	}
 }
 
-func TestFeedDefaultsUseRegistryForEverySource(t *testing.T) {
-	// R-RG02-FEED
-	wantConcrete := map[string]string{
-		"cron":    "http://127.0.0.1:3005/feed",
-		"crm":     "http://127.0.0.1:3100/feed",
-		"ledger":  "http://127.0.0.1:3101/feed",
-		"dropbox": "http://127.0.0.1:3200/feed",
-		"scripts": "http://127.0.0.1:3003/feed",
-		"prompts": "http://127.0.0.1:3002/feed",
-	}
-
-	if got, want := len(feedDefaults), len(sources); got != want {
-		t.Fatalf("len(feedDefaults) = %d, want len(sources) = %d", got, want)
-	}
-
-	seen := make(map[string]bool, len(sources))
-	for _, src := range sources {
-		if seen[src] {
-			t.Fatalf("sources contains duplicate %q", src)
-		}
-		seen[src] = true
-
-		got, ok := feedDefaults[src]
-		if !ok {
-			t.Fatalf("feedDefaults missing source %q", src)
-		}
-		wantFromRegistry := registry.BaseURL(src) + "/feed"
-		if got != wantFromRegistry {
-			t.Fatalf("feedDefaults[%q] = %q, want registry-derived %q", src, got, wantFromRegistry)
-		}
-		if got != wantConcrete[src] {
-			t.Fatalf("feedDefaults[%q] = %q, want concrete value %q", src, got, wantConcrete[src])
-		}
-	}
-}
-
 func TestDropboxBaseURLDefaultsThroughRegistryAndCanBeOverridden(t *testing.T) {
 	// R-RG03-DBOX
 	if got, want := dropboxBaseURL(func(string) string { return "" }), registry.BaseURL("dropbox"); got != want {

@@ -29,7 +29,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"appkit"
@@ -61,20 +60,9 @@ const consumerID = "prompts"
 // run.succeeded/run.failed.
 var sources = []string{"cron", "crm", "ledger", "dropbox", "scripts", "prompts"}
 
-// feedDefaults is each upstream's registry-sourced loopback dev fallback (A11).
-// The event plane bypasses nginx; production can still override each
-// PROMPTS_<SRC>_FEED_URL via env.
-var feedDefaults = func() map[string]string {
-	m := make(map[string]string, len(sources))
-	for _, src := range sources {
-		m[src] = registry.BaseURL(src) + "/feed"
-	}
-	return m
-}()
-
 // svcRef carries the prompt service from the Handlers hook (where appkit has
-// opened + migrated the DB and built the domain) to the consumer Worker, which
-// runs strictly afterward. A package-level capture mirrors notify's `rt` capture.
+// opened + migrated the DB and built the domain) to the consumer handlers, which
+// are built strictly afterward by appkit's Consumers table.
 // storeRef is the same hand-off for the producer outbox: the Producer hook
 // (which runs AFTER Handlers, once appkit has constructed the outbox) injects it
 // onto the store so the runner's terminal write emits the outcome event on the
@@ -85,38 +73,40 @@ var (
 )
 
 func main() {
-	var rt *appkit.Router
+	appkit.Main(promptsSpec())
+}
 
-	// One worker per upstream — the notify multi-cursor pattern. Each closes over
-	// its own source so it reads PROMPTS_<SRC>_FEED_URL with its own cursor.
-	workers := make([]func(context.Context) error, 0, len(sources))
+func promptsSpec() appkit.Spec {
+	consumers := make([]appkit.Consumer, 0, len(sources))
 	for _, src := range sources {
 		src := src
-		workers = append(workers, func(ctx context.Context) error {
-			return runConsumer(ctx, rt, src)
+		consumers = append(consumers, appkit.Consumer{
+			Source:        src,
+			Subscriptions: consume.Subscriptions([]string{src}),
+			Handler: func(rt *appkit.Router) consumer.Handler {
+				logger := rt.Logger()
+				fire := func(ctx context.Context, promptID, s, evType, eventID string, payload []byte) error {
+					_, err := svcRef.RunByEvent(ctx, promptID, s, evType, eventID, payload)
+					return err
+				}
+				return consume.Handler(fire, svcRef.PromptsForEvent, src, logger)
+			},
 		})
 	}
 
-	appkit.Main(appkit.Spec{
-		App:   "prompts",
-		Mount: "/srv/prompts/",
-		Port:  registry.MustPort("prompts"),
-		MCP:   true,
-		// Multi-upstream CONSUMER: CONSUMES mirrors `sources` for the registry.
-		Consumes: sources,
-		// Subscriptions is the LIVE provider the reflection tool reports — the SAME
-		// consume.Subscriptions(sources) the consumer Handlers match against, so the
-		// runtime filter and reflection cannot drift.
-		Subscriptions: func() []consumer.Subscription {
-			return consume.Subscriptions(sources)
-		},
+	return appkit.Spec{
+		App:       "prompts",
+		Mount:     "/srv/prompts/",
+		Port:      registry.MustPort("prompts"),
+		MCP:       true,
+		Consumers: consumers,
 		// prompts is ALSO an event-plane PRODUCER of two STATIC outcome types:
 		// run.succeeded / run.failed, emitted in the SAME tx as a run's
 		// terminal-state write. Feed mounts the /feed producer; Events is the static
 		// registry (NOT a dynamic Publishes provider — the outcome types are fixed at
-		// build time); Producer injects the outbox onto the store; ManifestExtras
-		// round-trips the retention config like every other producer. CONSUMES is
-		// emitted by appkit from Spec.Consumes (above), so it is NOT repeated here.
+		// build time); Consumers emits CONSUMES; Producer injects the outbox onto the
+		// store; ManifestExtras round-trips the retention config like every other
+		// producer.
 		Feed:   "/feed",
 		Events: prompt.Events,
 		ManifestExtras: []appkit.ManifestKV{
@@ -133,60 +123,12 @@ func main() {
 		Migrations: db.FS,
 		// Handlers builds prompts' domain over appkit's shared single-writer DB
 		// handle, runs the boot-time crash-recovery sweep (after migrate, before
-		// serving), captures the Router + service for the consumer workers, and
-		// mounts the prompts_* MCP surface gated behind nginx-injected identity.
+		// serving), captures the service for the consumer handlers, and mounts the
+		// prompts_* MCP surface gated behind nginx-injected identity.
 		Handlers: func(r *appkit.Router) error {
-			rt = r
 			return registerRoutes(r)
 		},
-		// Workers carries prompts' event-plane consumer loops (one per upstream),
-		// launched by appkit on the serve context alongside the HTTP server. The
-		// consumer Config + the fire-and-run Handler stay app-side — appkit owns the
-		// lifecycle, not the event semantics.
-		Workers: workers,
-	})
-}
-
-// runConsumer drives eventplane/consumer.Run over one upstream's /feed until ctx
-// is cancelled (clean shutdown → nil) or a structural fault escapes (→ error,
-// which appkit propagates to cancel the server too). The handler is the
-// fire-and-run effect: it never stalls the feed (always returns nil/ErrSkip), so
-// an upstream being down is the only thing the engine retries.
-func runConsumer(ctx context.Context, rt *appkit.Router, source string) error {
-	logger := rt.Logger()
-	feedURL := config.EnvOr(os.Getenv, feedURLEnv(source), feedDefaults[source])
-	// PROMPTS_<SRC>_FROM is the first-subscription choice; tail by default so a
-	// fresh prompts only reacts to events fired from now on, not the whole backlog.
-	from := config.EnvOr(os.Getenv, fromEnv(source), "tail")
-
-	cfg := consumer.Config{
-		FeedURL:    feedURL,
-		From:       from,
-		DB:         rt.DB(),
-		Source:     source,
-		ConsumerID: consumerID,
-		Logger:     logger,
 	}
-	fire := func(ctx context.Context, promptID, src, evType, eventID string, payload []byte) error {
-		_, err := svcRef.RunByEvent(ctx, promptID, src, evType, eventID, payload)
-		return err
-	}
-	lookup := svcRef.PromptsForEvent
-	logger.Info("starting prompts consumer", "source", source, "feed_url", feedURL, "from", from)
-	if err := consumer.Run(ctx, cfg, consume.Handler(fire, lookup, source, logger)); err != nil {
-		return fmt.Errorf("event-plane consumer (%s): %w", source, err)
-	}
-	return nil
-}
-
-// feedURLEnv / fromEnv build the per-upstream env var names
-// (PROMPTS_<SRC>_FEED_URL / PROMPTS_<SRC>_FROM).
-func feedURLEnv(source string) string {
-	return "PROMPTS_" + strings.ToUpper(source) + "_FEED_URL"
-}
-
-func fromEnv(source string) string {
-	return "PROMPTS_" + strings.ToUpper(source) + "_FROM"
 }
 
 // registerRoutes wires prompts' domain on appkit's server. It is the seam where
