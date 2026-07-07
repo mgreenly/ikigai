@@ -238,6 +238,7 @@ launch_scripts() {
 launch_sites() {
 	# sites is a pure MCP service; SITES_ROOT is the sandbox root for served sites.
 	export SITES_DB_PATH="$RUN_DIR/sites.db"
+	export SITES_WWW_PATH="$repo/sites/share/www"
 	export SITES_ROOT="$RUN_DIR/sites-root"
 	mkdir -p "$SITES_ROOT"
 	exec "$RUN_DIR/bin/sites" serve --port "$(port 3004)"

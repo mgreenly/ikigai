@@ -20,6 +20,7 @@
 package main
 
 import (
+	"net/http"
 	"os"
 	"strings"
 
@@ -30,7 +31,6 @@ import (
 	"sites/internal/db"
 	"sites/internal/mcp"
 	"sites/internal/sites"
-	"sites/internal/web"
 )
 
 func main() {
@@ -51,8 +51,14 @@ func main() {
 		// decision 2). The client derives <base>/list and <base>/content.
 		base := config.EnvOr(os.Getenv, "DROPBOX_BASE_URL", registry.BaseURL("dropbox"))
 		handler.SetMirrorClient(sites.NewMirrorClient(base))
-		rt.Handle("GET /{$}", web.LandingHandler(rt.Service(), rt.Version()))
-		rt.Handle("GET /static/", web.StaticHandler())
+		rt.Handle("GET /{$}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path != "/" {
+				http.NotFound(w, r)
+				return
+			}
+			_ = rt.WWW().Render(w, "landing.html",
+				struct{ Service, Version string }{rt.Service(), rt.Version()})
+		}))
 		rt.Handle("POST /mcp", rt.RequireIdentity(handler))
 		return nil
 	}
@@ -65,6 +71,7 @@ func sitesSpec() appkit.Spec {
 		Mount:      "/srv/sites/",
 		Port:       registry.MustPort("sites"),
 		MCP:        true,
+		WWW:        true,
 		Migrations: db.FS,
 	}
 }
