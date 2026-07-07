@@ -229,6 +229,14 @@ func TestGlobDoubleStarKeepsSegmentAndBaseBoundaries(t *testing.T) {
 	}
 }
 
+func TestGlobRejectsEscapingPatterns(t *testing.T) {
+	root := globRecursiveFixture(t)
+
+	if _, err := Glob(root, "../*.css", "assets"); !errors.Is(err, ErrEscapes) {
+		t.Fatalf("Glob escaping pattern error = %v, want ErrEscapes", err)
+	}
+}
+
 func TestGrepReturnsTypedRootRelativeMatches(t *testing.T) {
 	root := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(root, "content"), 0o755); err != nil {
