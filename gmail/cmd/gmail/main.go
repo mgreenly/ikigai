@@ -29,11 +29,11 @@ import (
 
 	"appkit"
 	"appkit/config"
+	"appkit/web"
 
 	"gmail/internal/db"
 	gm "gmail/internal/gmail"
 	"gmail/internal/mcp"
-	"gmail/internal/web"
 
 	"eventplane/outbox"
 	"registry"
@@ -57,6 +57,7 @@ func gmailSpec() appkit.Spec {
 		Mount:      "/srv/gmail/",
 		Port:       registry.MustPort("gmail"),
 		MCP:        true,
+		WWW:        true,
 		Feed:       "/feed", // event-plane producer
 		Migrations: db.FS,
 		// Events is the static published-event registry -- the three mail.* types
@@ -98,8 +99,7 @@ func gmailSpec() appkit.Spec {
 				Interval: interval,
 			})
 
-			rt.Handle("GET /{$}", web.LandingHandler(rt.Service(), rt.Version()))
-			rt.Handle("GET /static/", http.StripPrefix("/static/", web.StaticHandler()))
+			rt.Handle("GET /{$}", landingHandler(rt.WWW(), rt.Service(), rt.Version()))
 			rt.Handle("POST /mcp", rt.RequireIdentity(
 				mcp.NewHandler(client, rt.Version(), rt.Service(), rt.Health(),
 					rt.Events(), rt.Subscriptions())))
@@ -127,4 +127,11 @@ func gmailSpec() appkit.Spec {
 			},
 		},
 	}
+}
+
+func landingHandler(site *web.Site, service, version string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = site.Render(w, "landing.html",
+			struct{ Service, Version string }{service, version})
+	})
 }

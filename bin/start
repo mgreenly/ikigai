@@ -211,6 +211,7 @@ launch_gmail() {
 	# gmail/.envrc supplies GMAIL_CLIENT_ID/SECRET/REFRESH_TOKEN (from ~/.secrets).
 	source "$repo/gmail/.envrc"
 	export GMAIL_DB_PATH="$RUN_DIR/gmail.db"
+	export GMAIL_WWW_PATH="$repo/gmail/share/www"
 	exec "$RUN_DIR/bin/gmail" serve --port "$(port 3202)"
 }
 

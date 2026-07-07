@@ -109,6 +109,7 @@ func TestGmailBootsFromOpsctlLayoutAndServesHealth(t *testing.T) {
 			t.Fatalf("mkdir %s: %v", dir, err)
 		}
 	}
+	copyTree(t, wwwRoot(t), filepath.Join(shareVersionDir, "www"))
 	shippedManifest := filepath.Join(etcVersionDir, "manifest.env")
 	if err := os.WriteFile(shippedManifest, committedManifest, 0o644); err != nil {
 		t.Fatalf("write shipped manifest.env: %v", err)
@@ -165,6 +166,7 @@ func TestGmailBootsFromOpsctlLayoutAndServesHealth(t *testing.T) {
 		"GMAIL_CLIENT_SECRET":       "",
 		"GMAIL_REFRESH_TOKEN":       "",
 		"GMAIL_POLL_INTERVAL":       "24h",
+		"GMAIL_WWW_PATH":            filepath.Join(shareDir, "current", "www"),
 		"OUTBOX_RETENTION_DAYS":     "7",
 		"OUTBOX_RETENTION_MAX_ROWS": "1000000",
 	})
