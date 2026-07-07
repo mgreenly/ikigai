@@ -13,6 +13,8 @@ import (
 	"testing"
 	"time"
 
+	"appkit/server"
+
 	"eventplane/outbox"
 
 	"webhooks/internal/db"
@@ -36,12 +38,12 @@ type fixedClock struct{ t time.Time }
 
 func (c fixedClock) Now() time.Time { return c.t }
 
-// newTestHandler builds a Handler over a real webhooks.Service backed by a fresh,
-// migrated temp-file SQLite database (never :memory:), with a real *outbox.Outbox
-// and a deterministic clock — no mocks for DB/Service. It returns the Handler and
-// the underlying Service so a test can also drive the public ingress handler to
-// prove a secret still verifies end-to-end.
-func newTestHandler(t *testing.T) (*Handler, *webhooks.Service) {
+// newTestHandler builds the assembled MCP handler through a real appkit/server
+// Router over a real webhooks.Service backed by a fresh, migrated temp-file
+// SQLite database (never :memory:), with a real *outbox.Outbox and a deterministic
+// clock. It returns the handler and underlying Service so a test can also drive
+// the public ingress handler to prove a secret still verifies end-to-end.
+func newTestHandler(t *testing.T) (http.Handler, *webhooks.Service) {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "webhooks_test.db")
 	conn, err := db.Open(path)
@@ -63,8 +65,29 @@ func newTestHandler(t *testing.T) (*Handler, *webhooks.Service) {
 		t.Fatalf("outbox.New: %v", err)
 	}
 	svc.Outbox = ob
-	h := NewHandler(svc, testVersion, testService, testBaseURL, nil, webhooks.Events)
-	return h, svc
+	var handler http.Handler
+	_, err = server.New(server.Options{
+		Addr:       "127.0.0.1:0",
+		Logger:     slog.New(slog.NewTextHandler(io.Discard, nil)),
+		ResourceID: testBaseURL + "mcp",
+		AuthServer: "https://int.ikigenba.com",
+		Version:    testVersion,
+		Service:    testService,
+		Events:     webhooks.Events,
+		DB:         conn,
+		Register: func(rt *server.Router) error {
+			var err error
+			handler, err = NewHandler(svc, rt)
+			return err
+		},
+	})
+	if err != nil {
+		t.Fatalf("build test server: %v", err)
+	}
+	if handler == nil {
+		t.Fatal("NewHandler returned nil handler")
+	}
+	return handler, svc
 }
 
 // ── JSON-RPC drivers ───────────────────────────────────────────────────────
@@ -87,10 +110,16 @@ type toolResult struct {
 	} `json:"content"`
 }
 
+type toolDescriptor struct {
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+	InputSchema map[string]any `json:"inputSchema"`
+}
+
 // rpcAs drives a single JSON-RPC request through the real ServeHTTP seam with the
 // nginx-injected X-Owner-Email identity header set, and returns the decoded
 // response.
-func rpcAs(t *testing.T, h *Handler, owner, method string, params any) jsonRPCResponse {
+func rpcAs(t *testing.T, h http.Handler, owner, method string, params any) jsonRPCResponse {
 	t.Helper()
 	body := map[string]any{"jsonrpc": "2.0", "id": 1, "method": method}
 	if params != nil {
@@ -116,7 +145,7 @@ func rpcAs(t *testing.T, h *Handler, owner, method string, params any) jsonRPCRe
 }
 
 // callAs drives a tools/call as owner and decodes the inner tool result.
-func callAs(t *testing.T, h *Handler, owner, name string, args any) toolResult {
+func callAs(t *testing.T, h http.Handler, owner, name string, args any) toolResult {
 	t.Helper()
 	resp := rpcAs(t, h, owner, "tools/call", map[string]any{"name": name, "arguments": args})
 	var tr toolResult
@@ -128,7 +157,7 @@ func callAs(t *testing.T, h *Handler, owner, name string, args any) toolResult {
 
 // callOK asserts the success envelope (no isError) and decodes the text payload
 // into a generic map.
-func callOK(t *testing.T, h *Handler, owner, name string, args any) map[string]any {
+func callOK(t *testing.T, h http.Handler, owner, name string, args any) map[string]any {
 	t.Helper()
 	tr := callAs(t, h, owner, name, args)
 	if tr.IsError {
@@ -146,7 +175,7 @@ func callOK(t *testing.T, h *Handler, owner, name string, args any) map[string]a
 
 // callErr asserts an error envelope (isError:true) and returns the rendered
 // `error` object (code, message, optional field).
-func callErr(t *testing.T, h *Handler, owner, name string, args any) map[string]any {
+func callErr(t *testing.T, h http.Handler, owner, name string, args any) map[string]any {
 	t.Helper()
 	tr := callAs(t, h, owner, name, args)
 	if !tr.IsError {
@@ -173,7 +202,7 @@ func payloadText(tr toolResult) string {
 
 // listNames returns the set of webhook names owner currently sees via the real
 // list tool.
-func listNames(t *testing.T, h *Handler, owner string) map[string]map[string]any {
+func listNames(t *testing.T, h http.Handler, owner string) map[string]map[string]any {
 	t.Helper()
 	res := callOK(t, h, owner, "list", map[string]any{})
 	rawItems, ok := res["items"].([]any)
@@ -217,6 +246,45 @@ func secretVerifies(t *testing.T, svc *webhooks.Service, name, secret string) bo
 }
 
 // ── tests ──────────────────────────────────────────────────────────────────
+
+// R-0JBF-690N — tools/list through the assembled appkit handler exposes exactly
+// webhooks's four domain tools plus the chassis health and reflection tools.
+func TestAssembledHandlerListsExactlySixTools(t *testing.T) {
+	h, _ := newTestHandler(t)
+
+	resp := rpcAs(t, h, ownerA, "tools/list", nil)
+	var result struct {
+		Tools []toolDescriptor `json:"tools"`
+	}
+	if err := json.Unmarshal(resp.Result, &result); err != nil {
+		t.Fatalf("decode tools/list result: %v (result=%s)", err, resp.Result)
+	}
+	if len(result.Tools) != 6 {
+		t.Fatalf("tools/list returned %d tools, want 6: %+v", len(result.Tools), result.Tools)
+	}
+
+	got := map[string]bool{}
+	for _, tool := range result.Tools {
+		if tool.Name == "" {
+			t.Fatalf("tools/list returned a tool with no name: %+v", tool)
+		}
+		if tool.Description == "" {
+			t.Fatalf("tool %q has no description", tool.Name)
+		}
+		if tool.InputSchema == nil {
+			t.Fatalf("tool %q has no inputSchema", tool.Name)
+		}
+		if got[tool.Name] {
+			t.Fatalf("tools/list returned duplicate tool %q", tool.Name)
+		}
+		got[tool.Name] = true
+	}
+	for _, name := range []string{"create", "list", "delete", "rotate", "health", "reflection"} {
+		if !got[name] {
+			t.Fatalf("tools/list missing %q; got %v", name, got)
+		}
+	}
+}
 
 // R-5Z8J-Y0YP — create with no name mints an opaque name; trigger_url is
 // baseURL+"in/"+name, the secret is show-once (ms_wh_ prefix), and the row is

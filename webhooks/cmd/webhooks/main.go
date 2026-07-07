@@ -50,9 +50,11 @@ func main() {
 			return fmt.Errorf("webhooks: no DB handle on router")
 		}
 		svc = webhooks.NewService(conn, webhooks.RealClock{})
-		rt.Handle("POST /mcp", rt.RequireIdentity(
-			mcp.NewHandler(svc, rt.Version(), rt.Service(), rt.ResourceID(),
-				rt.Health(), rt.Events())))
+		handler, err := mcp.NewHandler(svc, rt)
+		if err != nil {
+			return err
+		}
+		rt.Handle("POST /mcp", rt.RequireIdentity(handler))
 		rt.Handle("/in/", webhooks.NewIngressHandler(svc, rt.Logger()))
 		rt.Handle("GET /{$}", landingHandler(rt.WWW(), rt.Service(), rt.Version()))
 		return nil
