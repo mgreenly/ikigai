@@ -156,12 +156,8 @@ func Glob(root, pattern, path string) ([]string, error) {
 		if d.IsDir() || !d.Type().IsRegular() {
 			return nil
 		}
-		confined, err := ConfinePath(root, path)
+		rel, err := filepath.Rel(base, path)
 		if err != nil {
-			return nil
-		}
-		rel, err := filepath.Rel(base, confined)
-		if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
 			return nil
 		}
 		rel = filepath.ToSlash(rel)
