@@ -156,7 +156,7 @@ func Glob(root, pattern, path string) ([]string, error) {
 		}
 		rel, err := filepath.Rel(base, path)
 		if err != nil {
-			return nil
+			return err
 		}
 		rel = filepath.ToSlash(rel)
 		ok, err := matchSlashPattern(relPattern, rel)
