@@ -396,6 +396,9 @@ func TestGlobRejectsPatternsResolvingOutsideSearchBase(t *testing.T) {
 	if _, err := Glob(root, "outside/*.css", "assets"); !errors.Is(err, ErrEscapes) {
 		t.Fatalf("Glob symlinked escaping pattern error = %v, want ErrEscapes", err)
 	}
+	if _, err := Glob(root, "outside/**/*.css", "assets"); !errors.Is(err, ErrEscapes) {
+		t.Fatalf("Glob recursive symlinked escaping pattern error = %v, want ErrEscapes", err)
+	}
 }
 
 func TestGlobRejectsMalformedPatternWithoutWalkingMatches(t *testing.T) {
