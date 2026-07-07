@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	appkitdatabase "appkit/db"
 	"gmail/internal/db"
 
 	"eventplane/outbox"
@@ -68,7 +69,11 @@ func openTestDB(t *testing.T) *sql.DB {
 	}
 	conn.SetMaxOpenConns(1)
 	t.Cleanup(func() { conn.Close() })
-	if err := db.Migrate(context.Background(), conn); err != nil {
+	migs, err := appkitdatabase.LoadMigrations(db.FS, "migrations")
+	if err != nil {
+		t.Fatalf("load migrations: %v", err)
+	}
+	if err := appkitdatabase.Migrate(context.Background(), conn, migs); err != nil {
 		t.Fatalf("migrate: %v", err)
 	}
 	return conn
