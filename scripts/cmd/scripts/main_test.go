@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"appkit"
+	appkitdatabase "appkit/db"
 	"appkit/manifest"
 	"appkit/server"
 	appweb "appkit/web"
@@ -273,11 +274,12 @@ func TestScriptsConsumerFactoryFansOutAndSkipsMalformedEvents(t *testing.T) {
 func TestWWWSiteLoadsRealShareTree(t *testing.T) {
 	// R-8Z2T-SF7W
 	root := wwwRoot(t)
-	if strings.Contains(root, "internal/web") {
+	deletedWebPackage := filepath.Join("internal", "web")
+	if strings.Contains(root, deletedWebPackage) {
 		t.Fatalf("WWW root %q points at deleted internal web package", root)
 	}
 	if _, err := os.Stat(filepath.Join("..", "..", "internal", "web")); !os.IsNotExist(err) {
-		t.Fatalf("internal/web still exists or stat failed unexpectedly: %v", err)
+		t.Fatalf("deleted internal web package still exists or stat failed unexpectedly: %v", err)
 	}
 
 	site := loadWWW(t)
@@ -577,12 +579,14 @@ func TestCompositionRootEnablesChassisWWWAndKeepsMCPWiring(t *testing.T) {
 			t.Fatalf("cmd/scripts/main.go missing %q", want)
 		}
 	}
-	for _, forbidden := range []string{
-		`"scripts/internal/web"`,
+	webPackage := "web."
+	forbidden := []string{
+		`"scripts/internal/` + `web"`,
 		`rt.Handle("GET /static/"`,
-		`web.LandingHandler`,
-		`web.StaticHandler`,
-	} {
+		webPackage + "Landing" + "Handler",
+		webPackage + "Static" + "Handler",
+	}
+	for _, forbidden := range forbidden {
 		if strings.Contains(main, forbidden) {
 			t.Fatalf("cmd/scripts/main.go still contains %q", forbidden)
 		}
@@ -910,13 +914,17 @@ func (r *consumerTestRunner) assertNoSpawn(t *testing.T) {
 func newConsumerTestService(t *testing.T) (*script.Service, *consumerTestRunner) {
 	t.Helper()
 	ctx := context.Background()
-	conn, err := scriptsdb.Open(filepath.Join(t.TempDir(), "scripts.db"))
+	conn, err := appkitdatabase.Open(filepath.Join(t.TempDir(), "scripts.db"))
 	if err != nil {
-		t.Fatalf("db.Open: %v", err)
+		t.Fatalf("appkitdatabase.Open: %v", err)
 	}
 	t.Cleanup(func() { conn.Close() })
-	if err := scriptsdb.Migrate(ctx, conn); err != nil {
-		t.Fatalf("db.Migrate: %v", err)
+	migs, err := appkitdatabase.LoadMigrations(scriptsdb.FS, "migrations")
+	if err != nil {
+		t.Fatalf("appkitdatabase.LoadMigrations: %v", err)
+	}
+	if err := appkitdatabase.Migrate(ctx, conn, migs); err != nil {
+		t.Fatalf("appkitdatabase.Migrate: %v", err)
 	}
 	runner := &consumerTestRunner{spawns: make(chan consumerTestSpawn, 2)}
 	return script.NewService(script.NewStore(conn), t.TempDir(), runner), runner

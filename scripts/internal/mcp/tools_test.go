@@ -15,7 +15,7 @@ import (
 	"sync"
 	"testing"
 
-	appkitdb "appkit/db"
+	appkitdatabase "appkit/db"
 	"appkit/server"
 
 	scriptdb "scripts/internal/db"
@@ -71,16 +71,16 @@ func newTestHarness(t *testing.T) testHarness {
 	t.Helper()
 	ctx := t.Context()
 
-	conn, err := appkitdb.Open(filepath.Join(t.TempDir(), "scripts_test.db"))
+	conn, err := appkitdatabase.Open(filepath.Join(t.TempDir(), "scripts_test.db"))
 	if err != nil {
 		t.Fatalf("open test db: %v", err)
 	}
 	t.Cleanup(func() { conn.Close() })
-	migs, err := appkitdb.LoadMigrations(scriptdb.FS, "migrations")
+	migs, err := appkitdatabase.LoadMigrations(scriptdb.FS, "migrations")
 	if err != nil {
 		t.Fatalf("load migrations: %v", err)
 	}
-	if err := appkitdb.Migrate(ctx, conn, migs); err != nil {
+	if err := appkitdatabase.Migrate(ctx, conn, migs); err != nil {
 		t.Fatalf("migrate test db: %v", err)
 	}
 
@@ -146,16 +146,16 @@ func (f fakeFetcher) Fetch(ctx context.Context, path string) ([]byte, error) {
 func newTestHandlerWithFetcher(t *testing.T, f script.ContentFetcher) http.Handler {
 	t.Helper()
 	ctx := t.Context()
-	conn, err := appkitdb.Open(filepath.Join(t.TempDir(), "scripts_test.db"))
+	conn, err := appkitdatabase.Open(filepath.Join(t.TempDir(), "scripts_test.db"))
 	if err != nil {
 		t.Fatalf("open test db: %v", err)
 	}
 	t.Cleanup(func() { conn.Close() })
-	migs, err := appkitdb.LoadMigrations(scriptdb.FS, "migrations")
+	migs, err := appkitdatabase.LoadMigrations(scriptdb.FS, "migrations")
 	if err != nil {
 		t.Fatalf("load migrations: %v", err)
 	}
-	if err := appkitdb.Migrate(ctx, conn, migs); err != nil {
+	if err := appkitdatabase.Migrate(ctx, conn, migs); err != nil {
 		t.Fatalf("migrate test db: %v", err)
 	}
 	svc := script.NewService(script.NewStore(conn), t.TempDir(), &fakeRunner{})

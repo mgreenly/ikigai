@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	appkitdatabase "appkit/db"
 	"eventplane/outbox"
 
 	"scripts/internal/db"
@@ -26,13 +27,17 @@ func nowStr() string { return time.Now().UTC().Format(time.RFC3339Nano) }
 func newStore(t *testing.T) (*script.Store, *sql.DB) {
 	t.Helper()
 	ctx := context.Background()
-	conn, err := db.Open(filepath.Join(t.TempDir(), "scripts.db"))
+	conn, err := appkitdatabase.Open(filepath.Join(t.TempDir(), "scripts.db"))
 	if err != nil {
-		t.Fatalf("db.Open: %v", err)
+		t.Fatalf("appkitdatabase.Open: %v", err)
 	}
 	t.Cleanup(func() { conn.Close() })
-	if err := db.Migrate(ctx, conn); err != nil {
-		t.Fatalf("db.Migrate: %v", err)
+	migs, err := appkitdatabase.LoadMigrations(db.FS, "migrations")
+	if err != nil {
+		t.Fatalf("appkitdatabase.LoadMigrations: %v", err)
+	}
+	if err := appkitdatabase.Migrate(ctx, conn, migs); err != nil {
+		t.Fatalf("appkitdatabase.Migrate: %v", err)
 	}
 	st := script.NewStore(conn)
 	ob, err := outbox.New(conn, outbox.Options{Source: "scripts", Registry: script.Events})
