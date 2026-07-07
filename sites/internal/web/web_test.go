@@ -188,7 +188,7 @@ func TestLandingHandlerRendersHomeLinkBeforeMain(t *testing.T) {
 func TestLandingTemplateConformsToCronCanonicalWithSitesCopy(t *testing.T) {
 	webDir := currentWebDir(t)
 	sitesLanding := readFile(t, filepath.Join(webDir, "landing.html"))
-	cronLanding := string(readFile(t, filepath.Join(webDir, "..", "..", "..", "cron", "internal", "web", "landing.html")))
+	cronLanding := string(readFile(t, filepath.Join(webDir, "..", "..", "..", "cron", "share", "www", "landing.html")))
 
 	want := cronLanding
 	for _, replacement := range []struct {
@@ -213,7 +213,7 @@ func TestLandingTemplateConformsToCronCanonicalWithSitesCopy(t *testing.T) {
 func TestTokensCSSMatchesCronCanonical(t *testing.T) {
 	webDir := currentWebDir(t)
 	sitesTokens := readFile(t, filepath.Join(webDir, "static", "tokens.css"))
-	cronTokens := readFile(t, filepath.Join(webDir, "..", "..", "..", "cron", "internal", "web", "static", "tokens.css"))
+	cronTokens := readFile(t, filepath.Join(webDir, "..", "..", "..", "cron", "share", "www", "static", "tokens.css"))
 
 	if !bytes.Equal(sitesTokens, cronTokens) {
 		t.Fatalf("sites tokens.css differs from cron canonical tokens.css")

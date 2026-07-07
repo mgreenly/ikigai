@@ -831,6 +831,40 @@ func TestGlobReturnsEmptyForNonDirectorySearchBase(t *testing.T) {
 	}
 }
 
+func TestGlobRecursiveDoubleStarMatchesDotPrefixedSegments(t *testing.T) {
+	root := t.TempDir()
+	for _, path := range []string{
+		"a.css",
+		".well-known/theme.css",
+		"assets/.cache/app.css",
+	} {
+		if err := os.MkdirAll(filepath.Dir(filepath.Join(root, path)), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(root, path), []byte(path), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// R-3ZP8-T0GP
+	recursive, err := Glob(root, "**/*.css", "")
+	if err != nil {
+		t.Fatalf("Glob recursive dot-prefixed css: %v", err)
+	}
+	if !reflect.DeepEqual(recursive, []string{".well-known/theme.css", "a.css", "assets/.cache/app.css"}) {
+		t.Fatalf("Glob recursive dot-prefixed css = %#v", recursive)
+	}
+
+	// R-40X5-6S7E
+	direct, err := Glob(root, "*.css", "assets")
+	if err != nil {
+		t.Fatalf("Glob scoped direct dot-prefixed css: %v", err)
+	}
+	if direct == nil || len(direct) != 0 {
+		t.Fatalf("Glob scoped direct dot-prefixed css = %#v, want empty non-nil slice", direct)
+	}
+}
+
 func TestGrepReturnsTypedRootRelativeMatches(t *testing.T) {
 	root := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(root, "content"), 0o755); err != nil {
