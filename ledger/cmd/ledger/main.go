@@ -15,19 +15,24 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 
 	"appkit"
+	"appkit/web"
 
 	"ledger/internal/db"
 	"ledger/internal/ledger"
 	"ledger/internal/mcp"
-	"ledger/internal/web"
 
 	"eventplane/outbox"
 	"registry"
 )
 
 func main() {
+	appkit.Main(ledgerSpec())
+}
+
+func ledgerSpec() appkit.Spec {
 	// The domain Service is built once and shared by the producer-injection hook
 	// (which attaches the outbox so transaction.recorded events append atomically
 	// with the journal write) and the route hook (which mounts the ledger_* MCP
@@ -35,11 +40,12 @@ func main() {
 	// when ledger is a producer (Spec.Feed != "").
 	var svc *ledger.Service
 
-	appkit.Main(appkit.Spec{
+	return appkit.Spec{
 		App:        "ledger",
 		Mount:      "/srv/ledger/",
 		Port:       registry.MustPort("ledger"),
 		MCP:        true,
+		WWW:        true,
 		Feed:       "/feed", // event-plane producer
 		Migrations: db.FS,
 		Events:     ledger.Events, // published event types: reflection + Append validation
@@ -67,14 +73,19 @@ func main() {
 			}
 			svc = ledger.NewService(conn)
 
-			landing := web.LandingHandler(rt.Service(), rt.Version())
-			rt.Handle("GET /static/{file...}", landing)
-			rt.HandleFunc("GET /{$}", landing.ServeHTTP)
+			rt.Handle("GET /{$}", landingHandler(rt.WWW(), rt.Service(), rt.Version()))
 
 			rt.Handle("POST /mcp", rt.RequireIdentity(
 				mcp.NewHandler(svc, rt.Version(), rt.Service(), rt.Health(),
 					rt.Events(), rt.Subscriptions())))
 			return nil
 		},
+	}
+}
+
+func landingHandler(site *web.Site, service, version string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = site.Render(w, "landing.html",
+			struct{ Service, Version string }{service, version})
 	})
 }

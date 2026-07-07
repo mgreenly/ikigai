@@ -8,6 +8,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -17,6 +18,7 @@ import (
 	"time"
 
 	"appkit/manifest"
+	appweb "appkit/web"
 	"registry"
 )
 
@@ -99,6 +101,7 @@ func TestLedgerBootsFromOpsctlLayoutAndServesHealth(t *testing.T) {
 			t.Fatalf("mkdir %s: %v", dir, err)
 		}
 	}
+	copyTree(t, wwwRoot(t), filepath.Join(shareVersionDir, "www"))
 	shippedManifest := filepath.Join(etcVersionDir, "manifest.env")
 	if err := os.WriteFile(shippedManifest, committedManifest, 0o644); err != nil {
 		t.Fatalf("write shipped manifest.env: %v", err)
@@ -151,6 +154,7 @@ func TestLedgerBootsFromOpsctlLayoutAndServesHealth(t *testing.T) {
 		fmt.Sprintf("LEDGER_PORT=%d", port),
 		"LEDGER_DB_PATH="+dbPath,
 		"LEDGER_GENERATION_PATH="+generationPath,
+		"LEDGER_WWW_PATH="+filepath.Join(shareDir, "current", "www"),
 	)
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
@@ -179,6 +183,431 @@ func TestLedgerBootsFromOpsctlLayoutAndServesHealth(t *testing.T) {
 	}
 	if filepath.Dir(generationPath) != cacheDir {
 		t.Fatalf("generation sidecar path %s is not under cache dir %s", generationPath, cacheDir)
+	}
+}
+
+func TestLedgerSpecEnablesChassisWWWAndKeepsMCPWiring(t *testing.T) {
+	spec := ledgerSpec()
+
+	// R-509H-WUP9
+	if !spec.WWW {
+		t.Fatal("ledgerSpec().WWW = false, want true")
+	}
+	if !spec.MCP {
+		t.Fatal("ledgerSpec().MCP = false, want true")
+	}
+	if spec.Feed != "/feed" {
+		t.Fatalf("ledgerSpec().Feed = %q, want /feed", spec.Feed)
+	}
+
+	src, err := os.ReadFile("main.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	main := string(src)
+	for _, want := range []string{
+		`WWW:        true,`,
+		`rt.Handle("GET /{$}", landingHandler(rt.WWW(), rt.Service(), rt.Version()))`,
+		`rt.Handle("POST /mcp", rt.RequireIdentity(`,
+		`Producer: func(ob *outbox.Outbox) error {`,
+	} {
+		if !strings.Contains(main, want) {
+			t.Fatalf("cmd/ledger/main.go missing %q", want)
+		}
+	}
+
+	// R-51HE-AMFY
+	for _, forbidden := range []string{
+		`"ledger/internal/web"`,
+		`rt.Handle("GET /static/`,
+		`web.LandingHandler`,
+		`web.StaticHandler`,
+	} {
+		if strings.Contains(main, forbidden) {
+			t.Fatalf("cmd/ledger/main.go still contains %q", forbidden)
+		}
+	}
+}
+
+func TestWWWSiteLoadsRealShareTree(t *testing.T) {
+	root := wwwRoot(t)
+	if strings.Contains(root, "internal/web") {
+		t.Fatalf("WWW root %q points at deleted internal web package", root)
+	}
+
+	site := loadWWW(t)
+	rec := httptest.NewRecorder()
+	if err := site.Render(rec, "landing.html", landingData("ledger-real", "v1.2.3")); err != nil {
+		t.Fatalf("render landing.html from share/www: %v", err)
+	}
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "<title>ledger-real") {
+		t.Fatalf("share/www landing render = status %d body:\n%s", rec.Code, rec.Body.String())
+	}
+
+	for _, rel := range []string{
+		"landing.html",
+		filepath.Join("static", "tokens.css"),
+		filepath.Join("static", "fonts", "space-grotesk.woff2"),
+		filepath.Join("static", "fonts", "ibm-plex-sans.woff2"),
+		filepath.Join("static", "fonts", "ibm-plex-mono-400.woff2"),
+		filepath.Join("static", "fonts", "ibm-plex-mono-500.woff2"),
+	} {
+		info, err := os.Stat(filepath.Join(root, rel))
+		if err != nil {
+			t.Fatalf("share/www missing %s: %v", rel, err)
+		}
+		if info.IsDir() || info.Size() == 0 {
+			t.Fatalf("share/www/%s is not a non-empty file: dir=%v size=%d", rel, info.IsDir(), info.Size())
+		}
+	}
+}
+
+func TestWWWSiteRendersLandingWithServiceVersionAndHTMLContentType(t *testing.T) {
+	rec := renderLanding(t, `ledger <service>`, `v1&2`)
+
+	// R-LAND-3C9D
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if got := rec.Header().Get("Content-Type"); got != "text/html; charset=utf-8" {
+		t.Fatalf("content-type = %q, want text/html; charset=utf-8", got)
+	}
+
+	body := rec.Body.String()
+	// R-LAND-5E1F
+	if !strings.Contains(body, "ledger &lt;service&gt;") {
+		t.Fatalf("rendered body did not contain escaped service name: %s", body)
+	}
+	if !strings.Contains(body, ">v1&amp;2<") {
+		t.Fatalf("rendered body did not contain escaped version: %s", body)
+	}
+}
+
+func TestWWWSiteReferencesOnlyDocumentRelativeLocalStaticAssets(t *testing.T) {
+	rec := renderLanding(t, "ledger", "1.2.3")
+	body := rec.Body.String()
+
+	// R-LAND-7G2H
+	// R-7EJP-A1NB
+	if !strings.Contains(body, `href="static/tokens.css"`) {
+		t.Fatalf("landing markup does not link share/www tokens.css: %s", body)
+	}
+	if strings.Contains(body, `href="/static/tokens.css"`) {
+		t.Fatalf("landing markup uses origin-absolute tokens.css href: %s", body)
+	}
+	for _, forbidden := range []string{"http://", "https://", "fonts.googleapis.com", "dashboard"} {
+		if strings.Contains(body, forbidden) {
+			t.Fatalf("landing markup references external or dashboard asset %q: %s", forbidden, body)
+		}
+	}
+}
+
+func TestWWWSitePreloadsSelfServedFontFiles(t *testing.T) {
+	rec := renderLanding(t, "ledger", "1.2.3")
+	head := htmlHead(t, rec.Body.String())
+	css := readWWWStatic(t, "/static/tokens.css")
+
+	// R-7FRL-NTE0
+	for _, font := range []string{"space-grotesk.woff2", "ibm-plex-sans.woff2"} {
+		tag := linkTagContaining(t, head, `href="static/fonts/`+font+`"`)
+		for _, want := range []string{
+			`rel="preload"`,
+			`as="font"`,
+			`type="font/woff2"`,
+			`crossorigin`,
+			`href="static/fonts/` + font + `"`,
+		} {
+			if !strings.Contains(tag, want) {
+				t.Fatalf("landing font preload for %s missing %q: %s", font, want, tag)
+			}
+		}
+		if !strings.Contains(css, `url('fonts/`+font+`')`) {
+			t.Fatalf("tokens.css missing matching @font-face src for preloaded font %s", font)
+		}
+	}
+	if strings.Contains(head, "ibm-plex-mono-400.woff2") || strings.Contains(head, "ibm-plex-mono-500.woff2") {
+		t.Fatalf("landing head preloads mono font: %s", head)
+	}
+}
+
+func TestWWWSiteLandingIncludesHomeLinkToDashboardApex(t *testing.T) {
+	rec := renderLanding(t, "ledger", "1.2.3")
+	body := rec.Body.String()
+
+	// R-HOME-4M6R
+	for _, want := range []string{
+		`<a class="home" href="/">Home</a>`,
+		".home {",
+		"position: absolute;",
+		"top: var(--space-8);",
+		"position: relative;",
+		".home:hover,\n    .home:focus-visible",
+		"color: var(--color-text);",
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("body missing Home link content %q: %s", want, body)
+		}
+	}
+	if strings.Contains(body, ">Dashboard</a>") {
+		t.Fatalf("landing markup used Dashboard link text instead of Home: %s", body)
+	}
+}
+
+func TestWWWSiteLandingAppliesCarbonTypeScale(t *testing.T) {
+	rec := renderLanding(t, "ledger", "1.2.3")
+	body := rec.Body.String()
+
+	// R-LAND-9J4K
+	for _, want := range []string{
+		"width: min(100% - 32px, 960px)",
+		"font-family: var(--font-display)",
+		"font-size: clamp(40px, 8vw, var(--text-display-size))",
+		"line-height: var(--text-display-lh)",
+		"font-family: var(--font-mono)",
+		"font-size: var(--text-label-size)",
+		"<code>POST /mcp</code>",
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("landing markup missing Carbon styling %q in body: %s", want, body)
+		}
+	}
+}
+
+func TestExactRootRouteDispatchesToLanding(t *testing.T) {
+	rec := httptest.NewRecorder()
+	composedMux(t, http.NotFoundHandler()).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, "ledger") || !strings.Contains(body, "9.9.9-test") {
+		t.Fatalf("GET / did not reach landing handler: %s", body)
+	}
+}
+
+func TestExactRootRouteDoesNotCaptureNonRootPaths(t *testing.T) {
+	for _, path := range []string{"/health", "/feed", "/.well-known/prm", "/nope"} {
+		rec := httptest.NewRecorder()
+		composedMux(t, http.NotFoundHandler()).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
+
+		// R-ROUT-2M6N
+		if rec.Code != http.StatusNotFound {
+			t.Fatalf("GET %s status = %d, want %d", path, rec.Code, http.StatusNotFound)
+		}
+		if strings.Contains(rec.Body.String(), "ledger") {
+			t.Fatalf("GET %s returned the landing page", path)
+		}
+	}
+}
+
+func TestExactRootRouteDoesNotShadowMCP(t *testing.T) {
+	stub := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusTeapot)
+		_, _ = w.Write([]byte("mcp-stub"))
+	})
+
+	rec := httptest.NewRecorder()
+	composedMux(t, stub).ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/mcp", nil))
+
+	if rec.Code != http.StatusTeapot || rec.Body.String() != "mcp-stub" {
+		t.Fatalf("POST /mcp did not reach stub: code=%d body=%q", rec.Code, rec.Body.String())
+	}
+	if strings.Contains(rec.Body.String(), "ledger") {
+		t.Fatalf("POST /mcp was shadowed by the landing page")
+	}
+}
+
+func TestWWWStaticServesTokensCSSWithContentType(t *testing.T) {
+	rec := readWWWStaticResponse(t, "/static/tokens.css")
+
+	// R-ROUT-4P8Q
+	if rec.Code != http.StatusOK {
+		t.Fatalf("tokens.css status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if got := rec.Header().Get("Content-Type"); got != "text/css; charset=utf-8" {
+		t.Fatalf("tokens.css content-type = %q, want text/css; charset=utf-8", got)
+	}
+}
+
+func TestWWWStaticKeepsAssetsUnderStaticPath(t *testing.T) {
+	for _, path := range []string{"/tokens.css", "/srv/ledger/static/tokens.css", "/static/missing.css"} {
+		rec := readWWWStaticResponse(t, path)
+
+		// R-ROUT-6R1S
+		if rec.Code != http.StatusNotFound {
+			t.Fatalf("GET %s status = %d, want %d", path, rec.Code, http.StatusNotFound)
+		}
+	}
+}
+
+func TestWWWTokensCSSDefinesSelfHostedFonts(t *testing.T) {
+	body := readWWWStatic(t, "/static/tokens.css")
+
+	// R-ASST-3T7V
+	for _, want := range []string{
+		"@font-face",
+		"font-family: 'Space Grotesk'",
+		"font-family: 'IBM Plex Sans'",
+		"font-family: 'IBM Plex Mono'",
+		`url('fonts/space-grotesk.woff2')`,
+		`url('fonts/ibm-plex-mono-500.woff2')`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("tokens.css missing %q", want)
+		}
+	}
+	if strings.Contains(body, "@import") || strings.Contains(body, "fonts.googleapis.com") {
+		t.Fatalf("tokens.css contains external font loading: %s", body)
+	}
+}
+
+func TestWWWTokensCSSUsesOptionalFontDisplay(t *testing.T) {
+	body := readWWWStatic(t, "/static/tokens.css")
+
+	// R-7AW0-4QF8
+	if got := strings.Count(body, "font-display: optional;"); got != 4 {
+		t.Fatalf("tokens.css optional font-display count = %d, want 4", got)
+	}
+	if strings.Contains(body, "font-display: swap") {
+		t.Fatalf("tokens.css still contains font-display swap: %s", body)
+	}
+	if got := strings.Count(body, "@font-face"); got != 4 {
+		t.Fatalf("tokens.css @font-face count = %d, want 4", got)
+	}
+}
+
+func TestWWWTokensCSSUsesDocumentRelativeFontURLs(t *testing.T) {
+	body := readWWWStatic(t, "/static/tokens.css")
+
+	// R-7DBS-W9WM
+	if strings.Contains(body, `url('/static/fonts/`) {
+		t.Fatalf("tokens.css contains origin-absolute font URL: %s", body)
+	}
+	for _, want := range []string{
+		`url('fonts/space-grotesk.woff2')`,
+		`url('fonts/ibm-plex-sans.woff2')`,
+		`url('fonts/ibm-plex-mono-400.woff2')`,
+		`url('fonts/ibm-plex-mono-500.woff2')`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("tokens.css missing document-relative font URL %q", want)
+		}
+	}
+}
+
+func TestWWWStaticServesRealWoff2Bytes(t *testing.T) {
+	for _, path := range []string{
+		"/static/fonts/space-grotesk.woff2",
+		"/static/fonts/ibm-plex-sans.woff2",
+		"/static/fonts/ibm-plex-mono-400.woff2",
+		"/static/fonts/ibm-plex-mono-500.woff2",
+	} {
+		rec := readWWWStaticResponse(t, path)
+
+		// R-ASST-5W9X
+		if rec.Code != http.StatusOK {
+			t.Fatalf("GET %s status = %d, want %d", path, rec.Code, http.StatusOK)
+		}
+		if got := rec.Header().Get("Content-Type"); got != "font/woff2" {
+			t.Fatalf("GET %s content-type = %q, want font/woff2", path, got)
+		}
+		if rec.Body.Len() < 1024 {
+			t.Fatalf("GET %s body length = %d, want real font bytes", path, rec.Body.Len())
+		}
+	}
+}
+
+func TestWWWTokensCSSContainsCarbonNeutralPalette(t *testing.T) {
+	body := readWWWStatic(t, "/static/tokens.css")
+
+	// R-ASST-7Y2Z
+	for _, want := range []string{
+		"Carbon — Design Tokens",
+		"--layout-max-width: 1120px",
+		"--text-display-size:   56px",
+		"--text-label-size:     12px",
+		"--color-bg:            #FFFFFF",
+		"--color-text:          #09090B",
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("tokens.css missing Carbon token %q", want)
+		}
+	}
+}
+
+func TestNginxLandingLocationIsExactSessionGatedRoot(t *testing.T) {
+	conf := readNginxConfig(t)
+	landing := nginxLocationBlock(t, conf, "location = /srv/ledger/ {")
+	prefix := nginxLocationBlock(t, conf, "location /srv/ledger/ {")
+
+	// R-NGNX-2B4C
+	if landing == prefix {
+		t.Fatal("exact landing location resolved to the bearer-gated prefix block")
+	}
+
+	// R-NGNX-4D6E
+	if !strings.Contains(landing, "auth_request /_session-authn;") {
+		t.Fatalf("landing location missing session auth_request: %s", landing)
+	}
+	if strings.Contains(landing, "auth_request /_authn;") {
+		t.Fatalf("landing location uses bearer auth_request: %s", landing)
+	}
+
+	// R-NGNX-6F8G
+	// R-4XTP-5B7V
+	if !strings.Contains(landing, "proxy_pass "+registry.BaseURL("ledger")+"/;") {
+		t.Fatalf("landing location does not proxy to upstream root with trailing slash: %s", landing)
+	}
+}
+
+func TestNginxFragmentRetainsBearerAndBootstrapLocations(t *testing.T) {
+	conf := readNginxConfig(t)
+
+	prefix := nginxLocationBlock(t, conf, "location /srv/ledger/ {")
+	reemit := nginxLocationBlock(t, conf, "location @ledger_authn_500 {")
+	prm := nginxLocationBlock(t, conf, "location = /srv/ledger/.well-known/oauth-protected-resource {")
+
+	// R-NGNX-8H1J
+	if !strings.Contains(prefix, "auth_request /_authn;") {
+		t.Fatalf("prefix location missing bearer auth_request: %s", prefix)
+	}
+	if !strings.Contains(reemit, "return 429;") || !strings.Contains(reemit, "return 500;") {
+		t.Fatalf("authn 500 re-emit location missing expected returns: %s", reemit)
+	}
+	if !strings.Contains(prm, "proxy_pass "+registry.BaseURL("ledger")+"/.well-known/oauth-protected-resource;") {
+		t.Fatalf("PRM bootstrap location missing expected proxy_pass: %s", prm)
+	}
+}
+
+func TestNginxStaticLocationIsSessionGated(t *testing.T) {
+	conf := readNginxConfig(t)
+
+	landing := nginxLocationBlock(t, conf, "location = /srv/ledger/ {")
+	static := nginxLocationBlock(t, conf, "location /srv/ledger/static/ {")
+	prefix := nginxLocationBlock(t, conf, "location /srv/ledger/ {")
+	reemit := nginxLocationBlock(t, conf, "location @ledger_authn_500 {")
+	prm := nginxLocationBlock(t, conf, "location = /srv/ledger/.well-known/oauth-protected-resource {")
+
+	// R-7GZI-1L4P
+	if !strings.Contains(static, "auth_request /_session-authn;") {
+		t.Fatalf("static location missing session auth_request: %s", static)
+	}
+	// R-4XTP-5B7V
+	if !strings.Contains(static, "proxy_pass "+registry.BaseURL("ledger")+"/static/;") {
+		t.Fatalf("static location missing upstream static proxy_pass: %s", static)
+	}
+	if !strings.Contains(landing, "proxy_pass "+registry.BaseURL("ledger")+"/;") {
+		t.Fatalf("exact landing location changed: %s", landing)
+	}
+	if !strings.Contains(prefix, "auth_request /_authn;") {
+		t.Fatalf("bearer prefix location changed: %s", prefix)
+	}
+	if !strings.Contains(prm, "proxy_pass "+registry.BaseURL("ledger")+"/.well-known/oauth-protected-resource;") {
+		t.Fatalf("PRM bootstrap location changed: %s", prm)
+	}
+	if !strings.Contains(reemit, "return 429;") || !strings.Contains(reemit, "return 500;") {
+		t.Fatalf("authn 500 re-emit location changed: %s", reemit)
 	}
 }
 
@@ -231,5 +660,147 @@ func stopProcess(cancel context.CancelFunc, done <-chan error) {
 	select {
 	case <-done:
 	case <-time.After(time.Second):
+	}
+}
+
+func loadWWW(t *testing.T) *appweb.Site {
+	t.Helper()
+	site, err := appweb.Load(wwwRoot(t))
+	if err != nil {
+		t.Fatalf("load share/www: %v", err)
+	}
+	return site
+}
+
+func wwwRoot(t *testing.T) string {
+	t.Helper()
+	root, err := filepath.Abs(filepath.Join("..", "..", "share", "www"))
+	if err != nil {
+		t.Fatalf("resolve share/www: %v", err)
+	}
+	return root
+}
+
+func renderLanding(t *testing.T, service, version string) *httptest.ResponseRecorder {
+	t.Helper()
+	rec := httptest.NewRecorder()
+	if err := loadWWW(t).Render(rec, "landing.html", landingData(service, version)); err != nil {
+		t.Fatalf("render landing.html: %v", err)
+	}
+	return rec
+}
+
+func landingData(service, version string) struct {
+	Service string
+	Version string
+} {
+	return struct {
+		Service string
+		Version string
+	}{
+		Service: service,
+		Version: version,
+	}
+}
+
+func composedMux(t *testing.T, mcp http.Handler) *http.ServeMux {
+	t.Helper()
+	mux := http.NewServeMux()
+	mux.Handle("GET /{$}", landingHandler(loadWWW(t), "ledger", "9.9.9-test"))
+	mux.Handle("POST /mcp", mcp)
+	return mux
+}
+
+func readWWWStaticResponse(t *testing.T, path string) *httptest.ResponseRecorder {
+	t.Helper()
+	rec := httptest.NewRecorder()
+	loadWWW(t).Static().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
+	return rec
+}
+
+func readWWWStatic(t *testing.T, path string) string {
+	t.Helper()
+	rec := readWWWStaticResponse(t, path)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("GET %s status = %d, want %d\n%s", path, rec.Code, http.StatusOK, rec.Body.String())
+	}
+	return rec.Body.String()
+}
+
+func htmlHead(t *testing.T, body string) string {
+	t.Helper()
+
+	start := strings.Index(body, "<head>")
+	end := strings.Index(body, "</head>")
+	if start == -1 || end == -1 || end < start {
+		t.Fatalf("landing markup missing head: %s", body)
+	}
+	return body[start:end]
+}
+
+func linkTagContaining(t *testing.T, head, needle string) string {
+	t.Helper()
+
+	needleAt := strings.Index(head, needle)
+	if needleAt == -1 {
+		t.Fatalf("landing head missing link with %q: %s", needle, head)
+	}
+	tagStart := strings.LastIndex(head[:needleAt], "<link")
+	tagEnd := strings.Index(head[needleAt:], ">")
+	if tagStart == -1 || tagEnd == -1 {
+		t.Fatalf("landing head has malformed link for %q: %s", needle, head)
+	}
+	return head[tagStart : needleAt+tagEnd+1]
+}
+
+func readNginxConfig(t *testing.T) string {
+	t.Helper()
+	src, err := os.ReadFile(filepath.Join("..", "..", "etc", "nginx.conf"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(src)
+}
+
+func nginxLocationBlock(t *testing.T, conf, opener string) string {
+	t.Helper()
+	start := strings.Index(conf, opener)
+	if start == -1 {
+		t.Fatalf("nginx config missing %q", opener)
+	}
+	bodyStart := start + len(opener)
+	endRel := strings.Index(conf[bodyStart:], "\n}")
+	if endRel == -1 {
+		t.Fatalf("nginx config location %q has no closing brace", opener)
+	}
+	return conf[start : bodyStart+endRel+len("\n}")]
+}
+
+func copyTree(t *testing.T, src, dst string) {
+	t.Helper()
+	err := filepath.WalkDir(src, func(path string, entry os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, err := filepath.Rel(src, path)
+		if err != nil {
+			return err
+		}
+		target := filepath.Join(dst, rel)
+		if entry.IsDir() {
+			return os.MkdirAll(target, 0o755)
+		}
+		info, err := entry.Info()
+		if err != nil {
+			return err
+		}
+		b, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(target, b, info.Mode().Perm())
+	})
+	if err != nil {
+		t.Fatalf("copy %s to %s: %v", src, dst, err)
 	}
 }

@@ -160,6 +160,7 @@ launch_crm() {
 
 launch_ledger() {
 	export LEDGER_DB_PATH="$RUN_DIR/ledger.db"
+	export LEDGER_WWW_PATH="$repo/ledger/share/www"
 	exec "$RUN_DIR/bin/ledger" serve --port "$(port 3101)"
 }
 
