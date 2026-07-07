@@ -48,9 +48,11 @@ Shared facts every Decision leans on:
   (no output), and `cd sites && go test ./...` all succeed with zero failures.
 - **Formatting:** `gofmt`-clean; `gofmt -l .` must print nothing.
 - **Module wiring:** `appkit` and `eventplane` are committed in-repo
-  replace-siblings. The landing page adds **no new dependency** — it uses only the
-  standard library (`net/http`, `embed`, `html/template` or `text/template`) and
-  the appkit chassis. **D9** adds one further committed replace-sibling,
+  replace-siblings. The landing page adds **no new dependency** — its template is
+  loaded and rendered by the chassis (`appkit/web`, via `Spec.WWW`; the
+  page/assets ship on disk in `share/www`, **D12** — no sites-side `//go:embed`
+  or `html/template`), and the route handler uses only `net/http`. **D9** adds one
+  further committed replace-sibling,
   `registry` (`replace registry => ../registry`), the suite's zero-dependency
   leaf `name → port` table — used at the composition root to resolve sites's own
   port and the dropbox mirror address by name instead of by literal. **D10/D11**
@@ -64,13 +66,18 @@ Shared facts every Decision leans on:
 - **The chassis owns the server.** sites is `appkit.Main(appkit.Spec{…})`:
   `App:"sites"`, `Mount:"/srv/sites/"`, `Port:registry.MustPort("sites")` (== 3004,
   resolved by name through the shared `registry` — D9, no longer a literal),
-  `MCP:true`, `Migrations:db.FS`. sites is **not** an event-plane producer — the
-  `Feed`/`Producer`/`Workers`/`Events` hooks are deliberately omitted (no `/feed`).
-  The fixed verbs (`serve`/`version`/`manifest`/`migrate`/`schema`),
-  config-from-env, the loopback HTTP server + PRM + identity gate are appkit's.
-  main.go declares sites's identity (the Spec) and wires its surface through the
-  Spec hooks. The landing route is wired through the existing **`Spec.Handlers`**
-  hook, beside the `POST /mcp` mount and the existing layout/store/mirror-client
+  `MCP:true`, `WWW:true` (**D12** — the chassis loads and serves the `share/www`
+  landing template and `/static/` assets), `Migrations:db.FS`. sites is **not** an
+  event-plane producer — the `Feed`/`Producer`/`Workers`/`Events` hooks are
+  deliberately omitted (no `/feed`); its MCP `reflection` therefore reports an
+  empty event graph (D13). The fixed verbs
+  (`serve`/`version`/`manifest`/`migrate`/`schema`), config-from-env, the loopback
+  HTTP server + PRM + identity gate, the `appkit/mcp` transport, and the
+  `appkit/web` render/static mechanism are appkit's. main.go declares sites's
+  identity (the Spec) and wires its surface through the Spec hooks. The landing
+  route (`GET /{$}` rendering through `rt.WWW()`) and the `POST /mcp` mount (the
+  `appkit/mcp` handler over sites's declared tool table, D13) are wired through
+  the existing **`Spec.Handlers`** hook, beside the layout/store/mirror-client
   wiring.
 - **nginx is the sole trust boundary.** sites runs no token logic. nginx
   introspects every `/srv/sites/` request against the dashboard and forwards to
@@ -92,25 +99,25 @@ Shared facts every Decision leans on:
 Testing is part of the architecture, not an afterthought. The cross-cutting
 approach every Decision's Verification list assumes:
 
-- **The landing handler is tested in-process with `net/http/httptest`.** The
-  handler is a plain `http.Handler` built from the service name and version
-  strings the chassis already exposes (`rt.Service()`, `rt.Version()`); its tests
-  construct it directly with fixed name/version values and drive it with
-  `httptest.NewRequest` / `httptest.NewRecorder`, asserting status, body
-  substrings (name, version), and `Content-Type`. **No test makes a network call
-  and no test needs a running suite** — the handler is pure over its two string
-  inputs and its embedded assets.
+- **The landing surface is tested over the repo-real `share/www` tree with
+  `net/http/httptest`.** The tests (in `cmd/sites` after D12) load the shipped
+  tree with `appkit/web.Load` relative to the package dir, render `landing.html`
+  with fixed name/version values, and drive it with `httptest.NewRequest` /
+  `httptest.NewRecorder`, asserting status, body substrings (name, version), and
+  `Content-Type`. **No test makes a network call and no test needs a running
+  suite** — the render is pure over its two string inputs and the shipped template
+  file.
 - **The route mux is tested as wired.** The `GET /{$}` exact-root pattern is
   proven against an `http.ServeMux` configured the way the composition root
   configures it, asserting that the bare root path is served by the landing
   handler while a non-root path under the mux is **not** captured by `{$}`
   (Go 1.22+ pattern semantics: `{$}` matches only the exact path), and a sibling
   `POST /mcp` is not shadowed.
-- **Embedded assets are real bytes.** The Carbon `tokens.css` and the woff2 fonts
-  are embedded via `//go:embed` and served by the same handler/mux; tests assert
-  the embedded `tokens.css` is served with a CSS content type and that the
-  template references the app's **own** embedded asset path (not a cross-service
-  URL).
+- **Shipped assets are real bytes.** The Carbon `tokens.css` and the woff2 fonts
+  ship on disk in `share/www/static` and are served by the **chassis static
+  mount** (D3/D12); tests drive that mount over the real tree and assert
+  `tokens.css` is served with a CSS content type and that the template references
+  the app's **own** `/static/` asset path (not a cross-service URL).
 - **The nginx fragment is proven by content assertion.** The session-gate
   fragment is config, not Go, so its behavior is pinned by a test that reads
   `sites/etc/nginx.conf` from disk and asserts the exact-match `= /srv/sites/`
@@ -137,14 +144,19 @@ Decision it realizes:
   sorted `R-id → Decision/file` reverse map. It is the grep target for resolving
   an id.
 
-**New package.** The landing page introduces one new package,
-`sites/internal/web/` — the handler, the embedded `*.html` template, and the
-embedded `static/` design assets (`tokens.css` + the woff2 fonts). This keeps the
-new dynamic web surface in one place, parallel to the existing
-`internal/sites`, `internal/db`, `internal/mcp` packages, and is the seam every
-later sites-specific web page grows from. (sites already serves *static* pages
-off disk via nginx; this package adds the **dynamic, in-process** rendered
-landing card.)
+**Web surface (no service package).** The landing page and its Carbon assets
+live on disk in `sites/share/www/` (`landing.html` + `static/tokens.css` + the
+woff2 fonts), shipped in the release `share` tier and loaded/served by the
+chassis (`appkit/web`, via `Spec.WWW`) — there is **no** `sites/internal/web`
+package (**D12** deleted it; the landing route is a few-line handler at the
+composition root over `rt.WWW().Render`). The remaining service packages are
+`internal/sites` (domain store/layout/publish/sync), `internal/files` (confined
+filesystem ops, D10), `internal/mcp` (the domain **tool table** over the
+`appkit/mcp` transport, D13 — no local JSON-RPC transport, no local
+`health`/`reflection`), and `internal/db` (the embedded migration set + its load
+guard only, D14 — no `Open`/`Migrate` wrappers). (sites already serves *static*
+user pages off disk via nginx from `state/www`; the `share/www` design assets are
+the service's **own** UI, a distinct concern.)
 
 Design is **rewritten in place**, not append-only (history lives in the plan): a
 changed Decision is rewritten in its `DNN.md` and `INDEX.md` is regenerated; a

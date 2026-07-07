@@ -15,6 +15,9 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - D9 → `project/design/D09.md` — Resolve sites's own port and the dropbox mirror address by name through the shared `registry` (import + startup resolve at the composition root + committed `go.mod` replace; behavior-preserving) — owns R-7K2P-QN4D, R-7L9F-XW3H, R-7M4C-BV8J, R-7N6R-TZ2Q
 - D10 → `project/design/D10.md` — `internal/files`: confined filesystem operations as native Go (ports the confined Read/Edit/Glob/Grep/Write/List/Mkdir + symlink-resolving ConfinePath; no agentkit, no JSON, no agent framing) — owns R-027Y-BQ1I, R-03FU-PHS7, R-04NR-39IW, R-05VN-H19L, R-073J-UT0A, R-08BG-8KQZ, R-3ZP8-T0GP, R-40X5-6S7E, R-09JC-MCHO, R-0AR9-048D, R-0D71-RNPR, R-0EEY-5FGG
 - D11 → `project/design/D11.md` — Rewire the MCP file tools onto `internal/files` and drop `agentkit` (delete the bridge, hand-write the four schemas, cleaner structured results, typed confinement envelope, remove the `go.mod` require+replace; surface-preserving) — owns R-0FMU-J775, R-0GUQ-WYXU, R-0I2N-AQOJ, R-0JAJ-OIF8, R-0KIG-2A5X
+- D12 → `project/design/D12.md` — Web surface from `share/www` through the chassis (de-embed via `Spec.WWW`): move `landing.html` + `static/` to `sites/share/www`, render at `GET /{$}` via `rt.WWW()`, delete `internal/web` and the service-side `/static/` mount (chassis auto-mounts it); rewrites the mechanism of D1/D2/D3/D6/D7/D8 — owns R-0SF5-VPQF, R-0TN2-9HH4
+- D13 → `project/design/D13.md` — MCP surface over `appkit/mcp`: `internal/mcp` becomes the fourteen-domain-tool table; delete the local JSON-RPC transport + local `health`; chassis supplies `health`/`reflection` (sites gains `reflection`, empty graph); mirror client becomes a constructor param; supersedes D11's R-0KIG-2A5X (16-tool set) — owns R-0UUY-N97T, R-P21E-0285
+- D14 → `project/design/D14.md` — Delete the `internal/db` `Open`/`Migrate` shim (keep only the embedded `FS` + load guard; test harnesses call `appkit/db` directly), normalize the composition root (relocate the `Handlers` closure inside `sitesSpec()`; no post-construction `.Handlers` mutation; keep the builder), and true up `AGENTS.md` if present — none (structural; shim deletion + composition-root normalization + doc truth)
 
 ## Verification ids → Decision
 
@@ -34,7 +37,11 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - R-0GUQ-WYXU → D11 → `project/design/D11.md`
 - R-0I2N-AQOJ → D11 → `project/design/D11.md`
 - R-0JAJ-OIF8 → D11 → `project/design/D11.md`
-- R-0KIG-2A5X → D11 → `project/design/D11.md`
+- R-0KIG-2A5X → D11 → `project/design/D11.md` (superseded by D13 — 16-tool chassis partition)
+- R-0SF5-VPQF → D12 → `project/design/D12.md`
+- R-0TN2-9HH4 → D12 → `project/design/D12.md`
+- R-0UUY-N97T → D13 → `project/design/D13.md`
+- R-P21E-0285 → D13 → `project/design/D13.md`
 - R-ASST-3H7N → D3 → `project/design/D03.md`
 - R-ASST-5K9Q → D3 → `project/design/D03.md`
 - R-ASST-7M2S → D3 → `project/design/D03.md`
