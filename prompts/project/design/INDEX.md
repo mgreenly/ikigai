@@ -19,7 +19,11 @@ Each Decision maps to its `DNN.md` file. Every `R-XXXX-XXXX` id maps to its Deci
 | D11 | project/design/D11.md | Conform the landing page to the cron canonical template | none — structural |
 | D12 | project/design/D12.md | A top-left Home link to the dashboard landing page | R-HOME-2T4X |
 | D13 | project/design/D13.md | Self-serve the landing page's fonts and eliminate the FOUT | R-DFKP-IVZU, R-DGSL-WNQJ, R-DI0I-AFH8, R-DJ8E-O77X, R-DKGB-1YYM |
-| D14 | project/design/D14.md | Adopt the shared `registry` for all loopback addressing | R-RG01-PORT, R-RG02-FEED, R-RG03-DBOX, R-RG04-NLIT |
+| D14 | project/design/D14.md | Adopt the shared `registry` for all loopback addressing | R-RG01-PORT, R-RG03-DBOX, R-RG04-NLIT |
+| D15 | project/design/D15.md | Consumer loops through `Spec.Consumers` (chassis-owned) | R-DFV4-7W4Y, R-DH30-LNVN |
+| D16 | project/design/D16.md | Web surface from `share/www` through the chassis (de-embed) | R-DIAW-ZFMC, R-DJIT-D7D1 |
+| D17 | project/design/D17.md | MCP surface over `appkit/mcp`: `internal/mcp` becomes the tool table | R-DKQP-QZ3Q, R-DLYM-4QUF |
+| D18 | project/design/D18.md | Delete the chassis shims (`internal/db` wrappers) and true up the doctrine doc | none — structural |
 
 ## Verification ids → Decision
 
@@ -55,6 +59,11 @@ Each Decision maps to its `DNN.md` file. Every `R-XXXX-XXXX` id maps to its Deci
 | R-DJ8E-O77X | D13 | project/design/D13.md |
 | R-DKGB-1YYM | D13 | project/design/D13.md |
 | R-RG01-PORT | D14 | project/design/D14.md |
-| R-RG02-FEED | D14 | project/design/D14.md |
 | R-RG03-DBOX | D14 | project/design/D14.md |
 | R-RG04-NLIT | D14 | project/design/D14.md |
+| R-DFV4-7W4Y | D15 | project/design/D15.md |
+| R-DH30-LNVN | D15 | project/design/D15.md |
+| R-DIAW-ZFMC | D16 | project/design/D16.md |
+| R-DJIT-D7D1 | D16 | project/design/D16.md |
+| R-DKQP-QZ3Q | D17 | project/design/D17.md |
+| R-DLYM-4QUF | D17 | project/design/D17.md |
