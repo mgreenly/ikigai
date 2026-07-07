@@ -473,6 +473,19 @@ func TestGlobRejectsEscapingPatterns(t *testing.T) {
 	}
 }
 
+func TestGlobAbsolutePatternInsideSearchBaseReturnsBaseRelativeMatches(t *testing.T) {
+	root := globRecursiveFixture(t)
+
+	// R-40X5-6S7E
+	got, err := Glob(root, filepath.Join(root, "assets", "**", "*.css"), "assets")
+	if err != nil {
+		t.Fatalf("Glob absolute pattern inside search base: %v", err)
+	}
+	if !reflect.DeepEqual(got, []string{"css/style.css"}) {
+		t.Fatalf("Glob absolute pattern inside search base = %#v", got)
+	}
+}
+
 func TestGlobRejectsPatternsResolvingOutsideSearchBase(t *testing.T) {
 	root := globRecursiveFixture(t)
 	outside := t.TempDir()
