@@ -15,6 +15,8 @@ import (
 	"strings"
 	"testing"
 
+	appkitmcp "appkit/mcp"
+
 	"sites/internal/db"
 	"sites/internal/sites"
 )
@@ -27,9 +29,15 @@ const (
 	testBaseURL  = "https://int.ikigenba.com/srv/sites/"
 )
 
+type testHandler struct {
+	http.Handler
+	store  *sites.Store
+	layout sites.Layout
+}
+
 // newTestHandler stands up a temp DB (migrated) and a temp SITES_ROOT, returning
-// a wired Handler plus the root for filesystem assertions.
-func newTestHandler(t *testing.T) (*Handler, string) {
+// a wired appkit MCP handler plus the root for filesystem assertions.
+func newTestHandler(t *testing.T, mirror ...sites.MirrorClient) (*testHandler, string) {
 	t.Helper()
 	root := t.TempDir()
 	dbPath := filepath.Join(t.TempDir(), "sites.db")
@@ -43,7 +51,20 @@ func newTestHandler(t *testing.T) (*Handler, string) {
 	}
 	layout := sites.NewLayout(root)
 	store := sites.NewStoreWithLayout(conn, layout)
-	return NewHandler(store, layout, testVersion, testService, testBaseURL, nil), root
+	var mc sites.MirrorClient
+	if len(mirror) > 0 {
+		mc = mirror[0]
+	}
+	handler, err := appkitmcp.New(appkitmcp.Options{
+		Service:      testService,
+		Version:      testVersion,
+		Instructions: Instructions,
+		Tools:        Tools(store, layout, testBaseURL, mc),
+	})
+	if err != nil {
+		t.Fatalf("new mcp handler: %v", err)
+	}
+	return &testHandler{Handler: handler, store: store, layout: layout}, root
 }
 
 type jsonRPCResponse struct {
@@ -64,7 +85,7 @@ type toolResult struct {
 	} `json:"content"`
 }
 
-func rpc(t *testing.T, h *Handler, method string, params any) jsonRPCResponse {
+func rpc(t *testing.T, h http.Handler, method string, params any) jsonRPCResponse {
 	t.Helper()
 	body := map[string]any{"jsonrpc": "2.0", "id": 1, "method": method}
 	if params != nil {
@@ -90,7 +111,7 @@ func rpc(t *testing.T, h *Handler, method string, params any) jsonRPCResponse {
 	return resp
 }
 
-func call(t *testing.T, h *Handler, name string, args any) toolResult {
+func call(t *testing.T, h http.Handler, name string, args any) toolResult {
 	t.Helper()
 	resp := rpc(t, h, "tools/call", map[string]any{"name": name, "arguments": args})
 	var tr toolResult
@@ -100,7 +121,7 @@ func call(t *testing.T, h *Handler, name string, args any) toolResult {
 	return tr
 }
 
-func callOK(t *testing.T, h *Handler, name string, args any) map[string]any {
+func callOK(t *testing.T, h http.Handler, name string, args any) map[string]any {
 	t.Helper()
 	tr := call(t, h, name, args)
 	if tr.IsError {
@@ -116,7 +137,7 @@ func callOK(t *testing.T, h *Handler, name string, args any) map[string]any {
 	return m
 }
 
-func callErr(t *testing.T, h *Handler, name string, args any) map[string]any {
+func callErr(t *testing.T, h http.Handler, name string, args any) map[string]any {
 	t.Helper()
 	tr := call(t, h, name, args)
 	if !tr.IsError {
@@ -238,6 +259,7 @@ func TestToolsList(t *testing.T) {
 
 	want := []string{
 		"health",
+		"reflection",
 		"describe",
 		"create",
 		"list",
@@ -266,8 +288,30 @@ func TestToolsList(t *testing.T) {
 			t.Errorf("unexpected tool %q: %+v", name, result.Tools)
 		}
 	}
+	// R-0UUY-N97T
 	if len(result.Tools) != len(want) {
 		t.Errorf("tools/list returned %d tools, want %d: %+v", len(result.Tools), len(want), result.Tools)
+	}
+}
+
+func TestReflectionWithoutEventGraphReturnsEmptySets(t *testing.T) {
+	h, _ := newTestHandler(t)
+
+	// R-P21E-0285
+	reflected := callOK(t, h, "reflection", nil)
+	publishes, ok := reflected["publishes"].([]any)
+	if !ok {
+		t.Fatalf("publishes is not an array: %+v", reflected)
+	}
+	if len(publishes) != 0 {
+		t.Fatalf("publishes = %+v, want empty array", publishes)
+	}
+	subscribes, ok := reflected["subscribes"].([]any)
+	if !ok {
+		t.Fatalf("subscribes is not an array: %+v", reflected)
+	}
+	if len(subscribes) != 0 {
+		t.Fatalf("subscribes = %+v, want empty array", subscribes)
 	}
 }
 

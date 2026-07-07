@@ -43,7 +43,7 @@ func (f *fakeMirror) Fetch(_ context.Context, path string) ([]byte, error) {
 
 // readWorking reads a file relative to a site's working dir, failing the test if
 // it is absent.
-func readWorking(t *testing.T, h *Handler, slug, rel string) string {
+func readWorking(t *testing.T, h *testHandler, slug, rel string) string {
 	t.Helper()
 	b, err := os.ReadFile(filepath.Join(h.layout.WorkingDir(slug), filepath.FromSlash(rel)))
 	if err != nil {
@@ -56,8 +56,7 @@ func readWorking(t *testing.T, h *Handler, slug, rel string) string {
 // writes every upstream file (keyed relative to source_path), reports the right
 // counts, and does NOT publish.
 func TestSyncNewSlug(t *testing.T) {
-	h, _ := newTestHandler(t)
-	h.SetMirrorClient(&fakeMirror{files: map[string][]byte{
+	h, _ := newTestHandler(t, &fakeMirror{files: map[string][]byte{
 		"/sites/marketing/index.html":   []byte("<h1>home</h1>"),
 		"/sites/marketing/css/app.css":  []byte("body{}"),
 		"/sites/marketing/img/logo.png": {0x89, 0x50, 0x4e, 0x47}, // binary-safe
@@ -98,12 +97,11 @@ func TestSyncNewSlug(t *testing.T) {
 // TestSyncExistingReconciles: a second sync over an existing site writes new
 // upstream files and deletes working files that vanished upstream.
 func TestSyncExistingReconciles(t *testing.T) {
-	h, _ := newTestHandler(t)
 	mirror := &fakeMirror{files: map[string][]byte{
 		"/site/a.html": []byte("a"),
 		"/site/b.html": []byte("b"),
 	}}
-	h.SetMirrorClient(mirror)
+	h, _ := newTestHandler(t, mirror)
 
 	if out := callOK(t, h, tool("sync"), map[string]any{"source_path": "/site", "slug": "blog"}); out["written"] != float64(2) {
 		t.Fatalf("first sync written = %v, want 2", out["written"])
@@ -135,8 +133,7 @@ func TestSyncExistingReconciles(t *testing.T) {
 // TestSyncSlugDerivation: a valid basename auto-derives the slug; an invalid
 // basename with no explicit slug is a validation error.
 func TestSyncSlugDerivation(t *testing.T) {
-	h, _ := newTestHandler(t)
-	h.SetMirrorClient(&fakeMirror{files: map[string][]byte{
+	h, _ := newTestHandler(t, &fakeMirror{files: map[string][]byte{
 		"/x/Marketing Site/index.html": []byte("x"),
 	}})
 
@@ -158,8 +155,7 @@ func TestSyncSlugDerivation(t *testing.T) {
 
 // TestSyncMissingSourcePath: source_path is required.
 func TestSyncMissingSourcePath(t *testing.T) {
-	h, _ := newTestHandler(t)
-	h.SetMirrorClient(&fakeMirror{files: map[string][]byte{}})
+	h, _ := newTestHandler(t, &fakeMirror{files: map[string][]byte{}})
 	env := callErr(t, h, tool("sync"), map[string]any{})
 	if env["code"] != "validation" {
 		t.Fatalf("error code = %v, want validation", env["code"])
@@ -170,11 +166,10 @@ func TestSyncMissingSourcePath(t *testing.T) {
 // tree is updated by a re-sync (the served symlink reflects it instantly) and
 // the site stays published without a republish — sync still does not publish.
 func TestSyncPublishedUpdatesLiveNoRepublish(t *testing.T) {
-	h, _ := newTestHandler(t)
 	mirror := &fakeMirror{files: map[string][]byte{
 		"/feed/index.html": []byte("v1"),
 	}}
-	h.SetMirrorClient(mirror)
+	h, _ := newTestHandler(t, mirror)
 
 	callOK(t, h, tool("sync"), map[string]any{"source_path": "/feed", "slug": "live"})
 

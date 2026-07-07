@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"net/http"
 	"os"
 
-	"appkit"
+	appkitmcp "appkit/mcp"
+	"appkit/server"
 
 	sitefiles "sites/internal/files"
 	"sites/internal/sites"
@@ -21,80 +21,111 @@ const toolPrefix = ""
 // toolDescriptors and dispatchTool so the two sites cannot drift.
 func tool(verb string) string { return toolPrefix + verb }
 
-// toolDescriptors returns the * lifecycle tool set: the two
-// chassis tools (health, describe) plus the registry/publish lifecycle verbs.
-// The five file tools (write/read/edit/glob/grep) are a later phase and append
-// to this list (and to dispatchTool) — keep this slice append-friendly. Schemas
-// are hand-coded; a full JSON Schema isn't required by MCP clients but improves
-// the LLM hinting.
-func toolDescriptors() []map[string]any {
-	return []map[string]any{
-		// ── chassis tools ───────────────────────────────────────────────
-		desc(tool("health"), "Health + diagnostics for the sites service. Returns the fixed envelope (status, version, service, details) plus the authenticated caller's identity (owner_email, client_id). Takes no inputs.", obj(map[string]any{})),
-		desc(tool("describe"), "Self-describe the sites service: how to host a static website. The lifecycle is create a site (a slug) → edit its working tree with the file tools → publish it to a tier (public or private) so the front door serves it; unpublish/delete to tear it down. Returns the concept overview and the lifecycle tool list. Takes no inputs.", obj(map[string]any{})),
-		// ── lifecycle tools ─────────────────────────────────────────────
+type toolHandlers struct {
+	store   *sites.Store
+	layout  sites.Layout
+	baseURL string
+	mirror  sites.MirrorClient
+}
+
+// Tools returns sites's service-owned MCP tool declarations. The shared appkit
+// MCP transport prepends the chassis health and reflection tools.
+func Tools(store *sites.Store, layout sites.Layout, baseURL string, mirror sites.MirrorClient) []appkitmcp.Tool {
+	if store == nil {
+		panic("mcp: sites store is required")
+	}
+	h := &toolHandlers{store: store, layout: layout, baseURL: baseURL, mirror: mirror}
+	return []appkitmcp.Tool{
+		desc(tool("describe"), "Self-describe the sites service: how to host a static website. The lifecycle is create a site (a slug) → edit its working tree with the file tools → publish it to a tier (public or private) so the front door serves it; unpublish/delete to tear it down. Returns the concept overview and the lifecycle tool list. Takes no inputs.", obj(map[string]any{}), func(ctx context.Context, args json.RawMessage, _ server.Identity) (map[string]any, error) {
+			return h.toolDescribe()
+		}),
 		desc(tool("create"), "Create a new site. 'name' is the slug (1–63 chars, lowercase alphanumeric + hyphen, must start alphanumeric); reserved names are rejected. Inserts the registry row and creates its empty working tree. Returns the created site.", obj(map[string]any{
 			"name": descTyp("string", "the site slug (lowercase alnum + hyphen, 1–63 chars)"),
-		}, "name")),
-		desc(tool("list"), "List every site with its tier, published flag, and timestamps. Takes no inputs.", obj(map[string]any{})),
+		}, "name"), func(ctx context.Context, args json.RawMessage, _ server.Identity) (map[string]any, error) {
+			return h.toolCreate(ctx, args)
+		}),
+		desc(tool("list"), "List every site with its tier, published flag, and timestamps. Takes no inputs.", obj(map[string]any{}), func(ctx context.Context, args json.RawMessage, _ server.Identity) (map[string]any, error) {
+			return h.toolList(ctx)
+		}),
 		desc(tool("delete"), "Delete a site: unpublish it (drop any served link), remove its working tree, then remove the registry row. Idempotent: tolerates an already-removed working tree.", obj(map[string]any{
 			"name": descTyp("string", "the site slug to delete"),
-		}, "name")),
+		}, "name"), func(ctx context.Context, args json.RawMessage, _ server.Identity) (map[string]any, error) {
+			return h.toolDelete(ctx, args)
+		}),
 		desc(tool("mkdir"), "Create a directory (and any missing parents) inside a site's working tree. 'path' is relative to the site's working root and is confined to it (absolute paths and any escape via '..' are rejected). file_write already creates parent dirs, so this is only needed to make an empty directory.", obj(map[string]any{
 			"name": descTyp("string", "the site slug whose working tree to create the directory in"),
 			"path": descTyp("string", "directory path relative to the site's working root"),
-		}, "name", "path")),
+		}, "name", "path"), func(ctx context.Context, args json.RawMessage, _ server.Identity) (map[string]any, error) {
+			return h.toolMkdir(args)
+		}),
 		desc(tool("publish"), "Publish a site to a tier so the front door serves it. 'tier' is 'public' or 'private'. Re-publishing to a different tier moves it (never reachable under both at once); re-publishing to the same tier is idempotent.", obj(map[string]any{
 			"name": descTyp("string", "the site slug to publish"),
 			"tier": descTyp("string", "'public' or 'private'"),
-		}, "name", "tier")),
+		}, "name", "tier"), func(ctx context.Context, args json.RawMessage, _ server.Identity) (map[string]any, error) {
+			return h.toolPublish(ctx, args)
+		}),
 		desc(tool("unpublish"), "Unpublish a site: drop its served link and flip it back to unpublished. Safe to call on an already-unpublished site.", obj(map[string]any{
 			"name": descTyp("string", "the site slug to unpublish"),
-		}, "name")),
+		}, "name"), func(ctx context.Context, args json.RawMessage, _ server.Identity) (map[string]any, error) {
+			return h.toolUnpublish(ctx, args)
+		}),
 		desc(tool("sync"), "Sync a Dropbox-mirrored subtree into a static site's working tree. 'source_path' is the mirror folder to sync from (e.g. \"/sites/marketing\"); 'slug' names the target site and defaults to the source_path basename when that is a valid slug, else it is required. Creates the site if absent, then reconciles its working tree to match the subtree: every upstream file is (over)written and every working file absent upstream is deleted (the subtree owns the tree). Does NOT publish — call publish(tier) once to expose it; an already-published site updates live. Returns {slug, written, deleted}.", obj(map[string]any{
 			"source_path": descTyp("string", "the mirror folder path to sync from"),
 			"slug":        descTyp("string", "target site slug; defaults to the source_path basename"),
-		}, "source_path")),
-		// ── file tools ──────────────────────────────────────────────────
+		}, "source_path"), func(ctx context.Context, args json.RawMessage, _ server.Identity) (map[string]any, error) {
+			return h.toolSync(ctx, args)
+		}),
 		desc(tool("file_write"), "Write content to file_path inside the site's working tree. Creates parent dirs; overwrites by default, or appends when append:true.", obj(map[string]any{
 			"site":      descTyp("string", "site slug whose working dir is the sandbox root"),
 			"file_path": descTyp("string", "path relative to the site's working root (confined; absolute and '..' rejected)"),
 			"content":   descTyp("string", "the bytes to write"),
 			"append":    descTyp("boolean", "append to the file instead of overwriting; creates the file if missing (default false)"),
-		}, "site", "file_path", "content")),
+		}, "site", "file_path", "content"), func(ctx context.Context, args json.RawMessage, _ server.Identity) (map[string]any, error) {
+			return h.toolFileWrite(ctx, args)
+		}),
 		desc(tool("file_read"), "Read a file inside a site's working tree. Optional offset/limit page large files.", obj(map[string]any{
 			"site":      descTyp("string", "site slug whose working dir is the sandbox root"),
 			"file_path": descTyp("string", "path relative to the site's working root (confined; absolute and '..' rejected)"),
 			"offset":    descTyp("number", "1-based line offset to start reading from"),
 			"limit":     descTyp("number", "maximum number of lines to return"),
-		}, "site", "file_path")),
+		}, "site", "file_path"), func(ctx context.Context, args json.RawMessage, _ server.Identity) (map[string]any, error) {
+			return h.toolFileRead(ctx, args)
+		}),
 		desc(tool("file_edit"), "Edit a file inside a site's working tree by replacing old_string with new_string.", obj(map[string]any{
 			"site":        descTyp("string", "site slug whose working dir is the sandbox root"),
 			"file_path":   descTyp("string", "path relative to the site's working root (confined; absolute and '..' rejected)"),
 			"old_string":  descTyp("string", "existing text to replace"),
 			"new_string":  descTyp("string", "replacement text"),
 			"replace_all": descTyp("boolean", "replace every occurrence instead of only the first"),
-		}, "site", "file_path", "old_string", "new_string")),
+		}, "site", "file_path", "old_string", "new_string"), func(ctx context.Context, args json.RawMessage, _ server.Identity) (map[string]any, error) {
+			return h.toolFileEdit(ctx, args)
+		}),
 		desc(tool("file_glob"), "Glob for files inside a site's working tree.", obj(map[string]any{
 			"site":    descTyp("string", "site slug whose working dir is the sandbox root"),
 			"pattern": descTyp("string", "glob pattern to match"),
 			"path":    descTyp("string", "optional directory path relative to the site's working root"),
-		}, "site", "pattern")),
+		}, "site", "pattern"), func(ctx context.Context, args json.RawMessage, _ server.Identity) (map[string]any, error) {
+			return h.toolFileGlob(ctx, args)
+		}),
 		desc(tool("file_grep"), "Grep file contents inside a site's working tree.", obj(map[string]any{
 			"site":    descTyp("string", "site slug whose working dir is the sandbox root"),
 			"pattern": descTyp("string", "regular expression to search for"),
 			"path":    descTyp("string", "optional file or directory path relative to the site's working root"),
 			"glob":    descTyp("string", "optional filename glob filter"),
-		}, "site", "pattern")),
+		}, "site", "pattern"), func(ctx context.Context, args json.RawMessage, _ server.Identity) (map[string]any, error) {
+			return h.toolFileGrep(ctx, args)
+		}),
 		desc(tool("file_list"), "List every regular file under the site's working tree with its size and md5, for reconciliation against local files. 'path' optionally scopes the walk; returned paths are relative to the working root.", obj(map[string]any{
 			"site": descTyp("string", "site slug whose working dir is the sandbox root"),
 			"path": descTyp("string", "optional subdirectory (relative to the working root) to scope the walk"),
-		}, "site")),
+		}, "site"), func(ctx context.Context, args json.RawMessage, _ server.Identity) (map[string]any, error) {
+			return h.toolFileList(ctx, args)
+		}),
 	}
 }
 
-func desc(name, description string, schema map[string]any) map[string]any {
-	return map[string]any{"name": name, "description": description, "inputSchema": schema}
+func desc(name, description string, schema map[string]any, handler func(context.Context, json.RawMessage, server.Identity) (map[string]any, error)) appkitmcp.Tool {
+	return appkitmcp.Tool{Name: name, Description: description, InputSchema: schema, Handler: handler}
 }
 
 func obj(props map[string]any, required ...string) map[string]any {
@@ -109,94 +140,11 @@ func descTyp(t, description string) map[string]any {
 	return map[string]any{"type": t, "description": description}
 }
 
-// ── dispatch ──────────────────────────────────────────────────────────────
-
-type toolCallParams struct {
-	Name      string          `json:"name"`
-	Arguments json.RawMessage `json:"arguments"`
-}
-
-func (h *Handler) handleToolCall(ctx context.Context, w http.ResponseWriter, req jsonRPCRequest, id Identity) {
-	var p toolCallParams
-	if err := json.Unmarshal(req.Params, &p); err != nil {
-		writeJSONRPCError(w, req.ID, -32602, "invalid params")
-		return
-	}
-	res, err := h.dispatchTool(ctx, p.Name, p.Arguments, id)
-	if err != nil {
-		writeJSONRPCResult(w, req.ID, toolResultErr(err.Error()))
-		return
-	}
-	writeJSONRPCResult(w, req.ID, res)
-}
-
-// dispatchTool routes a tool/call to its handler. The file-tool phase appends
-// its five cases here alongside the existing lifecycle cases — the switch is the
-// single dispatch point that must stay in lockstep with toolDescriptors.
-func (h *Handler) dispatchTool(ctx context.Context, name string, argsRaw json.RawMessage, id Identity) (map[string]any, error) {
-	switch name {
-	case tool("health"):
-		return h.toolHealth(ctx, id)
-	case tool("describe"):
-		return h.toolDescribe()
-	case tool("create"):
-		return h.toolCreate(ctx, argsRaw)
-	case tool("list"):
-		return h.toolList(ctx)
-	case tool("delete"):
-		return h.toolDelete(ctx, argsRaw)
-	case tool("mkdir"):
-		return h.toolMkdir(argsRaw)
-	case tool("publish"):
-		return h.toolPublish(ctx, argsRaw)
-	case tool("unpublish"):
-		return h.toolUnpublish(ctx, argsRaw)
-	case tool("sync"):
-		return h.toolSync(ctx, argsRaw)
-	case tool("file_write"):
-		return h.toolFileWrite(ctx, argsRaw)
-	case tool("file_read"):
-		return h.toolFileRead(ctx, argsRaw)
-	case tool("file_edit"):
-		return h.toolFileEdit(ctx, argsRaw)
-	case tool("file_glob"):
-		return h.toolFileGlob(ctx, argsRaw)
-	case tool("file_grep"):
-		return h.toolFileGrep(ctx, argsRaw)
-	case tool("file_list"):
-		return h.toolFileList(ctx, argsRaw)
-	default:
-		return nil, errors.New("unknown tool: " + name)
-	}
-}
-
-// ── chassis tool implementations ───────────────────────────────────────────
-
-// toolHealth renders the shared health envelope (status/version/service/details)
-// via appkit.Envelope and then adds the authenticated caller's identity — the
-// end-to-end auth-chain proof. sites supplies no reporter, so details renders as
-// {} unless a Health hook was wired.
-func (h *Handler) toolHealth(ctx context.Context, id Identity) (map[string]any, error) {
-	details := map[string]any{}
-	if h.health != nil {
-		d, err := h.health(ctx)
-		if err != nil {
-			details = map[string]any{"error": err.Error()}
-		} else if d != nil {
-			details = d
-		}
-	}
-	env := appkit.Envelope(h.version, h.service, details) // status/version/service/details
-	env["owner_email"] = id.OwnerEmail
-	env["client_id"] = id.ClientID
-	return toolResultJSON(env)
-}
-
 // toolDescribe is the self-describing tool: it explains what sites does and the
 // lifecycle of hosting a static website, so an agent connecting for the first
 // time can orient without out-of-band docs.
-func (h *Handler) toolDescribe() (map[string]any, error) {
-	return toolResultJSON(map[string]any{
+func (h *toolHandlers) toolDescribe() (map[string]any, error) {
+	return appkitmcp.JSONResult(map[string]any{
 		"service": "sites",
 		"summary": "Host static websites. Each site is a slug with an editable working tree; publishing it to a tier (public or private) makes the nginx front door serve it.",
 		"lifecycle": []string{
@@ -219,7 +167,7 @@ func (h *Handler) toolDescribe() (map[string]any, error) {
 // the working tree. The row is inserted first, then the directory; a mkdir
 // failure after a successful insert is surfaced (best-effort — the row is left in
 // place so a retry/cleanup can resolve it rather than silently swallowing).
-func (h *Handler) toolCreate(ctx context.Context, raw json.RawMessage) (map[string]any, error) {
+func (h *toolHandlers) toolCreate(ctx context.Context, raw json.RawMessage) (map[string]any, error) {
 	var a struct {
 		Name string `json:"name"`
 	}
@@ -233,11 +181,11 @@ func (h *Handler) toolCreate(ctx context.Context, raw json.RawMessage) (map[stri
 	if err := os.MkdirAll(h.layout.WorkingDir(a.Name), 0o755); err != nil {
 		return errResultMsg("create_working_dir", err.Error()), nil
 	}
-	return toolResultJSON(h.renderSite(site))
+	return appkitmcp.JSONResult(h.renderSite(site))
 }
 
 // toolList renders every site as structured JSON.
-func (h *Handler) toolList(ctx context.Context) (map[string]any, error) {
+func (h *toolHandlers) toolList(ctx context.Context) (map[string]any, error) {
 	all, err := h.store.List(ctx)
 	if err != nil {
 		return nil, err
@@ -246,14 +194,14 @@ func (h *Handler) toolList(ctx context.Context) (map[string]any, error) {
 	for _, s := range all {
 		out = append(out, h.renderSite(s))
 	}
-	return toolResultJSON(map[string]any{"sites": out})
+	return appkitmcp.JSONResult(map[string]any{"sites": out})
 }
 
 // toolDelete runs Unpublish → RemoveAll(working) → Delete(row) in that exact
 // order: unpublish first so no dangling served symlink survives, then remove the
 // working tree, then drop the row. A not-found at unpublish is tolerated so the
 // teardown can still remove the directory and (attempt to) drop the row.
-func (h *Handler) toolDelete(ctx context.Context, raw json.RawMessage) (map[string]any, error) {
+func (h *toolHandlers) toolDelete(ctx context.Context, raw json.RawMessage) (map[string]any, error) {
 	var a struct {
 		Name string `json:"name"`
 	}
@@ -269,13 +217,13 @@ func (h *Handler) toolDelete(ctx context.Context, raw json.RawMessage) (map[stri
 	if err := h.store.Delete(ctx, a.Name); err != nil {
 		return errResult(err), nil
 	}
-	return toolResultJSON(map[string]any{"deleted": a.Name})
+	return appkitmcp.JSONResult(map[string]any{"deleted": a.Name})
 }
 
 // toolMkdir creates a directory (and parents) confined to the site's working
 // tree. The path is attacker-controlled, so confinement is delegated to
 // internal/files.
-func (h *Handler) toolMkdir(raw json.RawMessage) (map[string]any, error) {
+func (h *toolHandlers) toolMkdir(raw json.RawMessage) (map[string]any, error) {
 	var a struct {
 		Name string `json:"name"`
 		Path string `json:"path"`
@@ -290,12 +238,12 @@ func (h *Handler) toolMkdir(raw json.RawMessage) (map[string]any, error) {
 		}
 		return errResultMsg("mkdir", err.Error()), nil
 	}
-	return toolResultJSON(map[string]any{"created": a.Path, "site": a.Name})
+	return appkitmcp.JSONResult(map[string]any{"created": a.Path, "site": a.Name})
 }
 
 // toolPublish delegates to Store.Publish, mapping the domain sentinels to clean
 // MCP error results.
-func (h *Handler) toolPublish(ctx context.Context, raw json.RawMessage) (map[string]any, error) {
+func (h *toolHandlers) toolPublish(ctx context.Context, raw json.RawMessage) (map[string]any, error) {
 	var a struct {
 		Name string `json:"name"`
 		Tier string `json:"tier"`
@@ -310,11 +258,11 @@ func (h *Handler) toolPublish(ctx context.Context, raw json.RawMessage) (map[str
 	if err != nil {
 		return nil, err
 	}
-	return toolResultJSON(h.renderSite(site))
+	return appkitmcp.JSONResult(h.renderSite(site))
 }
 
 // toolUnpublish delegates to Store.Unpublish.
-func (h *Handler) toolUnpublish(ctx context.Context, raw json.RawMessage) (map[string]any, error) {
+func (h *toolHandlers) toolUnpublish(ctx context.Context, raw json.RawMessage) (map[string]any, error) {
 	var a struct {
 		Name string `json:"name"`
 	}
@@ -328,7 +276,7 @@ func (h *Handler) toolUnpublish(ctx context.Context, raw json.RawMessage) (map[s
 	if err != nil {
 		return nil, err
 	}
-	return toolResultJSON(h.renderSite(site))
+	return appkitmcp.JSONResult(h.renderSite(site))
 }
 
 // ── shared helpers ──────────────────────────────────────────────────────────
@@ -343,7 +291,7 @@ func unmarshalArgs(raw json.RawMessage, v any) error {
 
 // siteURL is the front-door URL a site is (or would be) served at under a tier:
 // <baseURL><tier>/<name>/. baseURL already carries the trailing slash.
-func (h *Handler) siteURL(tier, name string) string {
+func (h *toolHandlers) siteURL(tier, name string) string {
 	return h.baseURL + tier + "/" + name + "/"
 }
 
@@ -351,7 +299,7 @@ func (h *Handler) siteURL(tier, name string) string {
 // including "url" — the front-door URL the site is served at. The tier defaults to
 // public unless the site is set to private, so an unpublished site still reports a
 // concrete would-be URL rather than leaving an agent to guess the host.
-func (h *Handler) renderSite(s sites.Site) map[string]any {
+func (h *toolHandlers) renderSite(s sites.Site) map[string]any {
 	tier := sites.PublicSeg
 	if s.Tier == sites.PrivateSeg {
 		tier = sites.PrivateSeg
@@ -393,13 +341,5 @@ func errResult(err error) map[string]any {
 // isError tool result.
 func errResultMsg(code, msg string) map[string]any {
 	b, _ := json.Marshal(map[string]any{"error": map[string]any{"code": code, "message": msg}})
-	return toolResultErr(string(b))
-}
-
-func toolResultJSON(v any) (map[string]any, error) {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return nil, err
-	}
-	return toolResultText(string(b)), nil
+	return appkitmcp.ErrorResult(string(b))
 }

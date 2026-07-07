@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 
+	appkitmcp "appkit/mcp"
+
 	sitefiles "sites/internal/files"
 )
 
@@ -12,7 +14,7 @@ import (
 // its path (relative to the working root), size, and md5. An optional "path"
 // scopes the walk to a subdirectory, confined to the working root; a missing
 // scope dir yields an empty list rather than an error.
-func (h *Handler) toolFileList(ctx context.Context, raw json.RawMessage) (map[string]any, error) {
+func (h *toolHandlers) toolFileList(ctx context.Context, raw json.RawMessage) (map[string]any, error) {
 	var a struct {
 		Site string `json:"site"`
 		Path string `json:"path"`
@@ -52,12 +54,12 @@ func (h *Handler) toolFileList(ctx context.Context, raw json.RawMessage) (map[st
 		files = append(files, map[string]any{"path": f.Path, "size": f.Size, "md5": f.Md5})
 	}
 
-	return toolResultJSON(map[string]any{"site": a.Site, "files": files})
+	return appkitmcp.JSONResult(map[string]any{"site": a.Site, "files": files})
 }
 
 // toolFileWrite writes content to a confined path in the site's working dir,
 // truncating by default or appending when append:true.
-func (h *Handler) toolFileWrite(ctx context.Context, raw json.RawMessage) (map[string]any, error) {
+func (h *toolHandlers) toolFileWrite(ctx context.Context, raw json.RawMessage) (map[string]any, error) {
 	var a struct {
 		Site     string `json:"site"`
 		FilePath string `json:"file_path"`
@@ -81,10 +83,10 @@ func (h *Handler) toolFileWrite(ctx context.Context, raw json.RawMessage) (map[s
 		return errResultMsg("write", err.Error()), nil
 	}
 
-	return toolResultJSON(map[string]any{"written": a.FilePath, "site": a.Site, "appended": a.Append})
+	return appkitmcp.JSONResult(map[string]any{"written": a.FilePath, "site": a.Site, "appended": a.Append})
 }
 
-func (h *Handler) toolFileRead(ctx context.Context, raw json.RawMessage) (map[string]any, error) {
+func (h *toolHandlers) toolFileRead(ctx context.Context, raw json.RawMessage) (map[string]any, error) {
 	var a struct {
 		Site     string `json:"site"`
 		FilePath string `json:"file_path"`
@@ -107,10 +109,10 @@ func (h *Handler) toolFileRead(ctx context.Context, raw json.RawMessage) (map[st
 		}
 		return errResultMsg("read", err.Error()), nil
 	}
-	return toolResultText(content), nil
+	return appkitmcp.TextResult(content), nil
 }
 
-func (h *Handler) toolFileEdit(ctx context.Context, raw json.RawMessage) (map[string]any, error) {
+func (h *toolHandlers) toolFileEdit(ctx context.Context, raw json.RawMessage) (map[string]any, error) {
 	var a struct {
 		Site       string `json:"site"`
 		FilePath   string `json:"file_path"`
@@ -134,10 +136,10 @@ func (h *Handler) toolFileEdit(ctx context.Context, raw json.RawMessage) (map[st
 		}
 		return errResultMsg("edit", err.Error()), nil
 	}
-	return toolResultJSON(map[string]any{"edited": a.FilePath, "site": a.Site, "replaced": replaced})
+	return appkitmcp.JSONResult(map[string]any{"edited": a.FilePath, "site": a.Site, "replaced": replaced})
 }
 
-func (h *Handler) toolFileGlob(ctx context.Context, raw json.RawMessage) (map[string]any, error) {
+func (h *toolHandlers) toolFileGlob(ctx context.Context, raw json.RawMessage) (map[string]any, error) {
 	var a struct {
 		Site    string `json:"site"`
 		Pattern string `json:"pattern"`
@@ -159,10 +161,10 @@ func (h *Handler) toolFileGlob(ctx context.Context, raw json.RawMessage) (map[st
 		}
 		return errResultMsg("glob", err.Error()), nil
 	}
-	return toolResultJSON(map[string]any{"site": a.Site, "matches": matches})
+	return appkitmcp.JSONResult(map[string]any{"site": a.Site, "matches": matches})
 }
 
-func (h *Handler) toolFileGrep(ctx context.Context, raw json.RawMessage) (map[string]any, error) {
+func (h *toolHandlers) toolFileGrep(ctx context.Context, raw json.RawMessage) (map[string]any, error) {
 	var a struct {
 		Site    string `json:"site"`
 		Pattern string `json:"pattern"`
@@ -189,5 +191,5 @@ func (h *Handler) toolFileGrep(ctx context.Context, raw json.RawMessage) (map[st
 	for _, m := range matches {
 		out = append(out, map[string]any{"path": m.Path, "line": m.Line, "text": m.Text})
 	}
-	return toolResultJSON(map[string]any{"site": a.Site, "matches": out})
+	return appkitmcp.JSONResult(map[string]any{"site": a.Site, "matches": out})
 }

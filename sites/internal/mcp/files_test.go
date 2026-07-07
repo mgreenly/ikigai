@@ -15,7 +15,7 @@ import (
 // dir exists, returning the handler and the SITES_ROOT for filesystem
 // assertions. It drives site creation through the same tools/call entry point
 // the other tests use.
-func fileToolsHandler(t *testing.T) (*Handler, string) {
+func fileToolsHandler(t *testing.T) (*testHandler, string) {
 	t.Helper()
 	h, root := newTestHandler(t)
 	callOK(t, h, "create", map[string]any{"name": "demo"})

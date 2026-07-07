@@ -20,6 +20,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	appkitmcp "appkit/mcp"
+
 	"sites/internal/sites"
 )
 
@@ -30,7 +32,7 @@ import (
 // then dir, matching toolCreate) → stamp source_path → enumerate upstream →
 // fetch each file's bytes keyed by its path relative to source_path → walk the
 // working tree for the existing path set → Reconcile. No publish.
-func (h *Handler) toolSync(ctx context.Context, raw json.RawMessage) (map[string]any, error) {
+func (h *toolHandlers) toolSync(ctx context.Context, raw json.RawMessage) (map[string]any, error) {
 	var a struct {
 		SourcePath string `json:"source_path"`
 		Slug       string `json:"slug"`
@@ -38,7 +40,7 @@ func (h *Handler) toolSync(ctx context.Context, raw json.RawMessage) (map[string
 	if err := unmarshalArgs(raw, &a); err != nil {
 		return nil, err
 	}
-	if h.client == nil {
+	if h.mirror == nil {
 		return errResultMsg("sync_unconfigured", "sync is not wired: no dropbox mirror client (DROPBOX_BASE_URL)"), nil
 	}
 	if a.SourcePath == "" {
@@ -87,14 +89,14 @@ func (h *Handler) toolSync(ctx context.Context, raw json.RawMessage) (map[string
 	// Enumerate the subtree upstream and fetch each file's current bytes, keyed by
 	// its path RELATIVE to source_path (that relative key is the in-working-tree
 	// path Reconcile writes to). The client follows /list's cursor to completion.
-	files, err := h.client.List(ctx, a.SourcePath)
+	files, err := h.mirror.List(ctx, a.SourcePath)
 	if err != nil {
 		return errResultMsg("list_upstream", err.Error()), nil
 	}
 	desired := make(map[string][]byte, len(files))
 	for _, f := range files {
 		rel := relUnder(a.SourcePath, f.Path)
-		data, ferr := h.client.Fetch(ctx, f.Path)
+		data, ferr := h.mirror.Fetch(ctx, f.Path)
 		if ferr != nil {
 			return errResultMsg("fetch_upstream", ferr.Error()), nil
 		}
@@ -129,7 +131,7 @@ func (h *Handler) toolSync(ctx context.Context, raw json.RawMessage) (map[string
 		return errResultMsg("reconcile", rerr.Error()), nil
 	}
 
-	return toolResultJSON(map[string]any{"slug": slug, "written": written, "deleted": deleted})
+	return appkitmcp.JSONResult(map[string]any{"slug": slug, "written": written, "deleted": deleted})
 }
 
 // relUnder returns child's path relative to prefix (both mirror paths, slash-
