@@ -367,6 +367,36 @@ func TestGlobRecursiveDoubleStarDoesNotFollowSymlinks(t *testing.T) {
 	}
 }
 
+func TestGlobLiteralSymlinkPatternIsNotFollowed(t *testing.T) {
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, "real"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "real", "style.css"), []byte("body{}"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(filepath.Join(root, "real"), filepath.Join(root, "linked")); err != nil {
+		t.Fatal(err)
+	}
+
+	// R-3ZP8-T0GP
+	got, err := Glob(root, "linked/*.css", "")
+	if err != nil {
+		t.Fatalf("Glob literal symlink css: %v", err)
+	}
+	if got == nil || len(got) != 0 {
+		t.Fatalf("Glob literal symlink css = %#v, want empty non-nil slice", got)
+	}
+
+	recursive, err := Glob(root, "**/*.css", "")
+	if err != nil {
+		t.Fatalf("Glob recursive css: %v", err)
+	}
+	if !reflect.DeepEqual(recursive, []string{"real/style.css"}) {
+		t.Fatalf("Glob recursive css = %#v", recursive)
+	}
+}
+
 func TestGlobRejectsEscapingPatterns(t *testing.T) {
 	root := globRecursiveFixture(t)
 

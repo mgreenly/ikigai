@@ -128,22 +128,10 @@ func Glob(root, pattern, path string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	absPattern := pattern
-	if !filepath.IsAbs(absPattern) {
-		absPattern = filepath.Join(base, absPattern)
-	}
-	absPattern, err = ConfinePath(root, absPattern)
+	relPattern, err := confinedGlobPattern(base, pattern)
 	if err != nil {
 		return nil, err
 	}
-	if !inside(base, absPattern) {
-		return nil, fmt.Errorf("%w: %q", ErrEscapes, pattern)
-	}
-	relPattern, err := filepath.Rel(base, absPattern)
-	if err != nil {
-		return nil, err
-	}
-	relPattern = filepath.ToSlash(relPattern)
 	if err := validateSlashPattern(relPattern); err != nil {
 		return nil, err
 	}
@@ -175,6 +163,48 @@ func Glob(root, pattern, path string) ([]string, error) {
 	}
 	sort.Strings(out)
 	return out, nil
+}
+
+func confinedGlobPattern(base, pattern string) (string, error) {
+	absPattern := pattern
+	if !filepath.IsAbs(absPattern) {
+		absPattern = filepath.Join(base, absPattern)
+	}
+	absPattern = filepath.Clean(absPattern)
+	if !inside(base, absPattern) {
+		return "", fmt.Errorf("%w: %q", ErrEscapes, pattern)
+	}
+	literalPrefix := globLiteralPrefix(base, absPattern)
+	if !inside(base, resolveExisting(literalPrefix)) {
+		return "", fmt.Errorf("%w: %q", ErrEscapes, pattern)
+	}
+	relPattern, err := filepath.Rel(base, absPattern)
+	if err != nil {
+		return "", err
+	}
+	return filepath.ToSlash(relPattern), nil
+}
+
+func globLiteralPrefix(base, absPattern string) string {
+	rel, err := filepath.Rel(base, absPattern)
+	if err != nil || rel == "." {
+		return absPattern
+	}
+	prefix := base
+	for _, segment := range strings.Split(rel, string(os.PathSeparator)) {
+		if segment == "" || segment == "." {
+			continue
+		}
+		if segment == ".." || segment == "**" || hasGlobMeta(segment) {
+			break
+		}
+		prefix = filepath.Join(prefix, segment)
+	}
+	return prefix
+}
+
+func hasGlobMeta(segment string) bool {
+	return strings.ContainsAny(segment, "*?[")
 }
 
 func matchSlashPattern(pattern, path string) (bool, error) {
