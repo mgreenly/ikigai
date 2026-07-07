@@ -34,38 +34,7 @@ import (
 )
 
 func main() {
-	spec := sitesSpec()
-	spec.Handlers = func(rt *appkit.Router) error {
-		layout := sites.NewLayout(os.Getenv("SITES_ROOT"))
-		store := sites.NewStoreWithLayout(rt.DB(), layout)
-		// The front-door base under which nginx serves published sites is the
-		// service's ResourceID minus its trailing "mcp" — RESOURCE_ID is
-		// "https://<domain>/srv/sites/mcp", so this yields
-		// "https://<domain>/srv/sites/" and the tools append "<tier>/<name>/".
-		baseURL := strings.TrimSuffix(rt.ResourceID(), "mcp")
-		// Wire the dropbox loopback mirror client the `sync` verb enumerates and
-		// fetches through. DROPBOX_BASE_URL is env-only (not a manifest extra),
-		// defaulting to the standard loopback layout, exactly the shape notify uses
-		// for its peer *_FEED_URL (ADR dropbox-import-sync; plan cross-cutting
-		// decision 2). The client derives <base>/list and <base>/content.
-		base := config.EnvOr(os.Getenv, "DROPBOX_BASE_URL", registry.BaseURL("dropbox"))
-		mirror := sites.NewMirrorClient(base)
-		handler, err := mcp.NewHandler(store, layout, baseURL, mirror, rt)
-		if err != nil {
-			return err
-		}
-		rt.Handle("GET /{$}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path != "/" {
-				http.NotFound(w, r)
-				return
-			}
-			_ = rt.WWW().Render(w, "landing.html",
-				struct{ Service, Version string }{rt.Service(), rt.Version()})
-		}))
-		rt.Handle("POST /mcp", rt.RequireIdentity(handler))
-		return nil
-	}
-	appkit.Main(spec)
+	appkit.Main(sitesSpec())
 }
 
 func sitesSpec() appkit.Spec {
@@ -76,5 +45,35 @@ func sitesSpec() appkit.Spec {
 		MCP:        true,
 		WWW:        true,
 		Migrations: db.FS,
+		Handlers: func(rt *appkit.Router) error {
+			layout := sites.NewLayout(os.Getenv("SITES_ROOT"))
+			store := sites.NewStoreWithLayout(rt.DB(), layout)
+			// The front-door base under which nginx serves published sites is the
+			// service's ResourceID minus its trailing "mcp" — RESOURCE_ID is
+			// "https://<domain>/srv/sites/mcp", so this yields
+			// "https://<domain>/srv/sites/" and the tools append "<tier>/<name>/".
+			baseURL := strings.TrimSuffix(rt.ResourceID(), "mcp")
+			// Wire the dropbox loopback mirror client the `sync` verb enumerates and
+			// fetches through. DROPBOX_BASE_URL is env-only (not a manifest extra),
+			// defaulting to the standard loopback layout, exactly the shape notify uses
+			// for its peer *_FEED_URL (ADR dropbox-import-sync; plan cross-cutting
+			// decision 2). The client derives <base>/list and <base>/content.
+			base := config.EnvOr(os.Getenv, "DROPBOX_BASE_URL", registry.BaseURL("dropbox"))
+			mirror := sites.NewMirrorClient(base)
+			handler, err := mcp.NewHandler(store, layout, baseURL, mirror, rt)
+			if err != nil {
+				return err
+			}
+			rt.Handle("GET /{$}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path != "/" {
+					http.NotFound(w, r)
+					return
+				}
+				_ = rt.WWW().Render(w, "landing.html",
+					struct{ Service, Version string }{rt.Service(), rt.Version()})
+			}))
+			rt.Handle("POST /mcp", rt.RequireIdentity(handler))
+			return nil
+		},
 	}
 }

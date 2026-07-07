@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	sqlkit "appkit/db"
+
 	"sites/internal/db"
 )
 
@@ -17,12 +19,16 @@ func newTestPublisher(t *testing.T) (*Store, Layout) {
 	t.Helper()
 	root := t.TempDir()
 	path := filepath.Join(t.TempDir(), "sites_test.db")
-	conn, err := db.Open(path)
+	conn, err := sqlkit.Open(path)
 	if err != nil {
 		t.Fatalf("open test db: %v", err)
 	}
 	t.Cleanup(func() { conn.Close() })
-	if err := db.Migrate(context.Background(), conn); err != nil {
+	migs, err := sqlkit.LoadMigrations(db.FS, "migrations")
+	if err != nil {
+		t.Fatalf("load migrations: %v", err)
+	}
+	if err := sqlkit.Migrate(context.Background(), conn, migs); err != nil {
 		t.Fatalf("migrate test db: %v", err)
 	}
 	layout := NewLayout(root)

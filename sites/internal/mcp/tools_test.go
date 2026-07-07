@@ -15,6 +15,7 @@ import (
 	"strings"
 	"testing"
 
+	sqlkit "appkit/db"
 	appkitmcp "appkit/mcp"
 
 	"sites/internal/db"
@@ -41,12 +42,16 @@ func newTestHandler(t *testing.T, mirror ...sites.MirrorClient) (*testHandler, s
 	t.Helper()
 	root := t.TempDir()
 	dbPath := filepath.Join(t.TempDir(), "sites.db")
-	conn, err := db.Open(dbPath)
+	conn, err := sqlkit.Open(dbPath)
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
 	t.Cleanup(func() { conn.Close() })
-	if err := db.Migrate(context.Background(), conn); err != nil {
+	migs, err := sqlkit.LoadMigrations(db.FS, "migrations")
+	if err != nil {
+		t.Fatalf("load migrations: %v", err)
+	}
+	if err := sqlkit.Migrate(context.Background(), conn, migs); err != nil {
 		t.Fatalf("migrate: %v", err)
 	}
 	layout := sites.NewLayout(root)
