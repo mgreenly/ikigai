@@ -311,6 +311,40 @@ func TestGlobDoubleStarMatchesZeroSegmentsAfterPrefix(t *testing.T) {
 	}
 }
 
+func TestGlobTrailingDoubleStarIncludesDirectFilesUnderPrefix(t *testing.T) {
+	root := t.TempDir()
+	for _, path := range []string{
+		"assets/app.css",
+		"assets/css/style.css",
+		"index.css",
+	} {
+		if err := os.MkdirAll(filepath.Dir(filepath.Join(root, path)), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(root, path), []byte(path), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// R-3ZP8-T0GP
+	recursive, err := Glob(root, "assets/**", "")
+	if err != nil {
+		t.Fatalf("Glob trailing recursive prefix: %v", err)
+	}
+	if !reflect.DeepEqual(recursive, []string{"assets/app.css", "assets/css/style.css"}) {
+		t.Fatalf("Glob trailing recursive prefix = %#v", recursive)
+	}
+
+	// R-40X5-6S7E
+	direct, err := Glob(root, "assets/*", "")
+	if err != nil {
+		t.Fatalf("Glob direct prefix: %v", err)
+	}
+	if !reflect.DeepEqual(direct, []string{"assets/app.css"}) {
+		t.Fatalf("Glob direct prefix = %#v", direct)
+	}
+}
+
 func TestGlobDoubleStarMatchesZeroSegmentsBetweenLiterals(t *testing.T) {
 	root := t.TempDir()
 	for _, path := range []string{
