@@ -1,8 +1,10 @@
-# cron — Design (landing page)
+# cron — Design
 
 **Authority: shape and its proof.** This document and the `project/design/`
-directory it heads own *how* the cron landing page is built and *how each
-behavior is proven*. The product (`project/product/product.md`) owns the *why*,
+directory it heads own *how* cron's web landing page is built **and how cron
+conforms to the appkit chassis reference shape** (the `share/www` web surface,
+the `appkit/mcp` tool table, `registry` ports, the inline composition root, the
+`internal/db` shim deletion) — and *how each behavior is proven*. The product (`project/product/product.md`) owns the *why*,
 *for whom*, and the user-facing promises; design states the **exact, checkable
 form** of those promises and never re-declares the why. Design *uses* the
 product's contractual constants by value (the page lives at the mount root only;
@@ -12,12 +14,16 @@ current statement of the landing-page architecture — it is rewritten in place 
 stay true (stale decisions are removed, not stacked); the history of how it got
 here lives in the plan.
 
-> **Scope.** This design covers **only** cron's web landing page and the seam it
-> establishes. The existing cron scheduling domain (the crontab CRUD MCP surface,
-> the minute-aligned tick worker that Appends `cron.<name>` events to the outbox,
-> the LIVE Publishes provider, the migrations) is owned elsewhere
-> (`cron/cmd/cron/main.go`, `cron/internal/`) and is untouched. No schema
-> changes: the landing page adds **no migration**.
+> **Scope.** This design covers cron's web landing page **and cron's conformance
+> to the appkit chassis reference shape** — the on-disk `share/www` web surface
+> (D9), the `appkit/mcp` tool-table MCP surface (D10), `registry`-resolved
+> ports (D11), the inline composition root in `cmd/cron/main.go` (D8), and the
+> `internal/db` shim deletion + doctrine truth-up (D12). The crontab scheduling
+> **domain behavior** — the CRUD tool semantics, the minute-aligned tick worker
+> that Appends `cron.<name>` events to the outbox, the LIVE `Publishes` provider,
+> and the migration SQL — is **unchanged** by any of this; the chassis conversion
+> moves *where* and *how* those surfaces are wired, never *what* they do. No schema
+> changes: the conversion adds **no migration**.
 
 ## Requirement ids
 
@@ -46,20 +52,27 @@ Shared facts every Decision leans on:
   `cd cron && go build ./...`, `cd cron && go vet ./...`, `cd cron && gofmt -l .`
   (no output), and `cd cron && go test ./...` all succeed with zero failures.
 - **Formatting:** `gofmt`-clean; `gofmt -l .` must print nothing.
-- **Module wiring:** `appkit` and `eventplane` are committed in-repo
+- **Module wiring:** `appkit`, `eventplane`, and `registry` are committed in-repo
   replace-siblings (`replace appkit => ../appkit`,
-  `replace eventplane => ../eventplane`). The landing page adds **no new
-  dependency** — it uses only the standard library (`net/http`, `embed`,
-  `html/template` or `text/template`) and the appkit chassis.
-- **The chassis owns the server.** cron is `appkit.Main(appkit.Spec{…})`:
-  `App:"cron"`, `Mount:"/srv/cron/"`, `Port:3005`, `MCP:true`, `Feed:"/feed"`
-  (event-plane producer). The fixed verbs (`serve`/`version`/`manifest`/`migrate`
-  /`schema`), config-from-env, the loopback HTTP server + PRM +
-  identity gate, and the `/feed` producer mount are appkit's. main.go declares
-  cron's identity (the Spec) and wires its surface through the Spec hooks (the
-  crontab `Store`, the `POST /mcp` mount, the LIVE `Publishes` provider, and the
-  tick `Producer`/`Workers`). The landing route is wired through the existing
-  **`Spec.Handlers`** hook, beside the `POST /mcp` mount.
+  `replace eventplane => ../eventplane`, `replace registry => ../registry` — the
+  last added by D11). The web surface adds **no third-party dependency** — the
+  landing page renders through the chassis `appkit/web` site, the MCP surface
+  assembles through `appkit/mcp`, and the port resolves through `registry`; the
+  service code uses only the standard library plus the appkit/eventplane/registry
+  siblings.
+- **The chassis owns the server.** cron is `appkit.Main(cronSpec())`, where
+  `cronSpec()` is a `func cronSpec() appkit.Spec` declared **inline in
+  `cmd/cron/main.go`** (D8 — there is no `internal/cronapp` package):
+  `App:"cron"`, `Mount:"/srv/cron/"`, `Port: registry.MustPort("cron")` (D11),
+  `MCP:true`, `WWW:true` (D9), `Feed:"/feed"` (event-plane producer). The fixed
+  verbs (`serve`/`version`/`manifest`/`migrate`/`schema`), config-from-env, the
+  loopback HTTP server + PRM + identity gate, the `Spec.WWW` site load + auto
+  `GET /static/` mount, and the `/feed` producer mount are appkit's. `main.go`
+  declares cron's identity (the Spec) and wires its surface through the Spec hooks
+  (the crontab `Store`, the assembled `appkit/mcp` `POST /mcp` handler, the LIVE
+  `Publishes` provider, and the tick `Producer`/`Workers`). The landing route is
+  wired through the **`Spec.Handlers`** hook, rendering `share/www/landing.html`
+  through `rt.WWW()`, beside the `POST /mcp` mount.
 - **nginx is the sole trust boundary.** cron runs no token logic. nginx
   introspects every `/srv/cron/` request against the dashboard and forwards to the
   loopback service. The landing page's gate is therefore an **nginx** concern
@@ -77,35 +90,47 @@ Shared facts every Decision leans on:
 Testing is part of the architecture, not an afterthought. The cross-cutting
 approach every Decision's Verification list assumes:
 
-- **The landing handler is tested in-process with `net/http/httptest`.** The
-  handler is a plain `http.HandlerFunc` built from the service name and version
-  strings the chassis already exposes (`rt.Service()`, `rt.Version()`); its tests
-  construct it directly with fixed name/version values and drive it with
-  `httptest.NewRequest` / `httptest.NewRecorder`, asserting status, body
-  substrings (name, version), and `Content-Type`. **No test makes a network call
-  and no test needs a running suite** — the handler is pure over its two string
-  inputs and its embedded assets.
+- **The landing handler is tested over the repo-real `share/www` tree.** The
+  composition-root handler renders `landing.html` through an `appkit/web` Site
+  loaded from `cron/share/www` (resolved relative to the `cmd/cron` test package,
+  so tests exercise the exact files that ship). Its tests build the Site over the
+  real tree, drive the handler with `httptest.NewRequest` / `httptest.NewRecorder`
+  over fixed name/version values, and assert status, body substrings (name,
+  version), and `Content-Type`. **No test makes a network call and no test needs a
+  running suite** — the handler is pure over its two string inputs and the loaded
+  on-disk site (D9's `R-LPMQ-FKBR`).
 - **The route mux is tested as wired.** The `GET /{$}` exact-root pattern is
   proven against an `http.ServeMux` configured the way the composition root
   configures it, asserting that the bare root path is served by the landing
   handler while a non-root path under the mux is **not** captured by `{$}`
   (Go 1.22+ pattern semantics: `{$}` matches only the exact path).
-- **Embedded assets are real bytes.** The Carbon `tokens.css` and the woff2 fonts
-  are embedded via `//go:embed` and served by the same handler/mux; tests assert
-  the embedded `tokens.css` is served with a CSS content type and that the
-  template references the app's **own** embedded asset path (not a cross-service
-  URL).
+- **On-disk assets are real bytes.** The Carbon `tokens.css` and the woff2 fonts
+  live on disk in `cron/share/www/static/` and are served by the **chassis** static
+  mount (`Spec.WWW`); tests configure the chassis static mount over the real
+  `share/www` tree and assert `tokens.css` is served with a CSS content type and
+  the fonts with `font/woff2` real `wOF2` payloads, and that the template
+  references the app's **own** service-local asset path (not a cross-service URL)
+  (D9's `R-LQUM-TC2G`).
+- **The MCP surface is tested over the assembled `appkit/mcp` handler.** The MCP
+  tests build the handler `mcp.NewHandler(store, rt)` produces (over a crontab
+  store on a temp DB, threading the live `Publishes` provider through a real
+  `server.Router`) and drive `tools/list` and `tools/call`, asserting the
+  exactly-seven-tool partition and the crontab behaviors (expr validation, CRUD
+  round-trip, live `cron.<name>` reflection) unchanged (D10's `R-LS2J-73T5`).
 - **The nginx fragment is proven by content assertion.** The session-gate
-  fragment is config, not Go, so its behavior is pinned by a test that reads
-  `cron/etc/nginx.conf` from disk and asserts the exact-match `= /srv/cron/`
-  location exists, uses `auth_request /_session-authn` (not `/_authn`), and
-  proxies to the loopback upstream root — while the pre-existing bearer-gated
-  `/srv/cron/` prefix, the `= /srv/cron/feed` 404, and the PRM well-known location
-  remain. This is a genuine assertion over the shipped artifact, runnable in the
-  same `go test ./...`.
-- **Determinism.** The handler takes its name/version as plain string arguments
-  (injected at the composition root from `rt.Service()`/`rt.Version()`), so its
-  output is fully determined by its inputs — no clock, no network, no DB.
+  fragment is config, not Go, so its behavior is pinned by a test (relocated to
+  `cmd/cron` by D9) that reads `cron/etc/nginx.conf` from disk and asserts the
+  exact-match `= /srv/cron/` location exists, uses `auth_request /_session-authn`
+  (not `/_authn`), and proxies to the loopback upstream root — while the
+  pre-existing bearer-gated `/srv/cron/` prefix, the `= /srv/cron/feed` 404, and
+  the PRM well-known location remain. Its `proxy_pass` origins are derived from
+  `registry.BaseURL("cron")` (D11), so a registry renumber fails the test. This is
+  a genuine assertion over the shipped artifact, runnable in the same
+  `go test ./...`.
+- **Determinism.** The landing handler takes its name/version as plain string
+  arguments (injected at the composition root from `rt.Service()`/`rt.Version()`),
+  so its output is fully determined by its inputs and the on-disk template — no
+  clock, no network, no DB.
 
 ## Layout
 
@@ -120,12 +145,18 @@ Decision it realizes:
   sorted `R-id → Decision/file` reverse map. It is the grep target for resolving
   an id.
 
-**New package.** The landing page introduces one new package,
-`cron/internal/web/` — the handler, the embedded `*.html` template, and the
-embedded `static/` design assets (`tokens.css` + the woff2 fonts). This keeps the
-web surface in one place, parallel to the existing `internal/crontab`,
-`internal/cron`, `internal/db`, `internal/event`, `internal/mcp`, `internal/tick`
-packages, and is the seam every later cron web page grows from.
+**Package layout (post-conversion).** cron's web surface is **not** a Go package:
+the landing template and Carbon assets live on disk under `cron/share/www/`
+(`landing.html` + `static/tokens.css` + the woff2 fonts), served through the
+chassis `appkit/web` mechanism (D9); the former `cron/internal/web/` package is
+**deleted**. The composition root — the `appkit.Spec` and the `landingHandler`
+render helper — lives **inline in `cmd/cron/main.go`** (D8; there is no
+`internal/cronapp`). `cron/internal/mcp` is the MCP **tool table**
+(`Instructions` + `Tools(store)` + `NewHandler`) over the shared `appkit/mcp`
+transport (D10), not a hand-rolled JSON-RPC handler. `cron/internal/db` holds
+**only** the embedded migration set (`FS`) and its app-side guard tests — appkit
+owns DB opening and the migration run (D12). The domain packages `internal/crontab`,
+`internal/cron`, `internal/event`, and `internal/tick` are unchanged.
 
 Design is **rewritten in place**, not append-only (history lives in the plan): a
 changed Decision is rewritten in its `DNN.md` and `INDEX.md` is regenerated; a
