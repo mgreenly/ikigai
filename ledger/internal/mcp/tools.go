@@ -3,18 +3,13 @@ package mcp
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"net/http"
-	"strings"
 	"time"
 
-	"appkit"
+	appkitmcp "appkit/mcp"
+	"appkit/server"
 
 	"ledger/internal/ledger"
-
-	"eventplane/consumer"
-	"eventplane/outbox"
 )
 
 // timeFormat renders RFC3339Nano with fixed fractional width, matching crm's
@@ -29,15 +24,17 @@ const toolPrefix = ""
 // toolDescriptors and dispatchTool so the two sites cannot drift.
 func tool(verb string) string { return toolPrefix + verb }
 
-// toolDescriptors returns the fixed eight-verb ledger surface (PLAN.md §2). Tool
-// count is a function of verbs, not entities: there is one write entity (the
-// balanced transaction) and an emergent, typed account tree. Schemas are
-// hand-coded with per-field docs to improve LLM hinting.
-func toolDescriptors() []map[string]any {
-	return []map[string]any{
-		desc(tool("record"),
-			"Post one balanced double-entry transaction. Provide 2+ postings whose signed amount_cents sum to zero (debit +, credit −). Exactly one posting MAY omit amount_cents to receive the balancing residual. Accounts are colon-paths whose root must be a known type; sub-accounts spring into existence on first posting. Returns the full transaction with the resolved residual and assigned ids.",
-			obj(map[string]any{
+// Tools returns ledger's service-owned MCP tool declarations. The shared appkit
+// MCP transport appends the chassis health and reflection tools.
+func Tools(svc *ledger.Service) []appkitmcp.Tool {
+	if svc == nil {
+		panic("mcp: ledger service is required")
+	}
+	return []appkitmcp.Tool{
+		{
+			Name:        tool("record"),
+			Description: "Post one balanced double-entry transaction. Provide 2+ postings whose signed amount_cents sum to zero (debit +, credit −). Exactly one posting MAY omit amount_cents to receive the balancing residual. Accounts are colon-paths whose root must be a known type; sub-accounts spring into existence on first posting. Returns the full transaction with the resolved residual and assigned ids.",
+			InputSchema: obj(map[string]any{
 				"date":        typd("string", "calendar day YYYY-MM-DD (a business day, not a timestamp)"),
 				"description": typd("string", "payee / memo"),
 				"status":      enumd("default reconciliation status for postings that omit their own (defaults to pending)", ledger.StatusPending, ledger.StatusCleared, ledger.StatusReconciled),
@@ -46,61 +43,79 @@ func toolDescriptors() []map[string]any {
 					"amount_cents": typd("integer", "signed minor units in USD cents (debit +, credit −); omit on at most one posting to receive the balancing residual"),
 					"status":       enumd("this posting's reconciliation status; overrides the transaction default", ledger.StatusPending, ledger.StatusCleared, ledger.StatusReconciled),
 				}, "account")),
-			}, "date", "description", "postings")),
-
-		desc(tool("reverse"),
-			"The correction primitive. Posts the sign-flipped mirror of an existing transaction (whole-transaction only) and links the two both ways. The journal is immutable — there is no edit or delete; corrections are compensating facts. Blocked if the transaction is already reversed (reverse its mirror instead). Returns the new mirror transaction.",
-			obj(map[string]any{
+			}, "date", "description", "postings"),
+			Handler: func(ctx context.Context, args json.RawMessage, _ server.Identity) (map[string]any, error) {
+				return toolRecord(ctx, svc, args)
+			},
+		},
+		{
+			Name:        tool("reverse"),
+			Description: "The correction primitive. Posts the sign-flipped mirror of an existing transaction (whole-transaction only) and links the two both ways. The journal is immutable — there is no edit or delete; corrections are compensating facts. Blocked if the transaction is already reversed (reverse its mirror instead). Returns the new mirror transaction.",
+			InputSchema: obj(map[string]any{
 				"id":   typd("string", "id of the transaction to reverse"),
 				"date": typd("string", "optional YYYY-MM-DD for the mirror (defaults to the original's date)"),
 				"memo": typd("string", "optional description for the mirror (defaults to 'Reversal of: <original>')"),
-			}, "id")),
-
-		desc(tool("reconcile"),
-			"Transition the reconciliation status of one or more postings — the ONLY permitted mutation of existing journal rows. It can never touch an amount, account, or date. Transitions among pending/cleared/reconciled are free (including backward). All-or-nothing: an unknown posting_id fails the whole call. Returns the affected transactions in full.",
-			obj(map[string]any{
+			}, "id"),
+			Handler: func(ctx context.Context, args json.RawMessage, _ server.Identity) (map[string]any, error) {
+				return toolReverse(ctx, svc, args)
+			},
+		},
+		{
+			Name:        tool("reconcile"),
+			Description: "Transition the reconciliation status of one or more postings — the ONLY permitted mutation of existing journal rows. It can never touch an amount, account, or date. Transitions among pending/cleared/reconciled are free (including backward). All-or-nothing: an unknown posting_id fails the whole call. Returns the affected transactions in full.",
+			InputSchema: obj(map[string]any{
 				"posting_ids": array(typ("string")),
 				"status":      enumd("the status to set on every listed posting", ledger.StatusPending, ledger.StatusCleared, ledger.StatusReconciled),
-			}, "posting_ids", "status")),
-
-		desc(tool("balance"),
-			"The `bal` report and the live chart of accounts. With no arguments returns the whole emergent account tree with raw signed balances (Assets/Expenses positive, Liabilities/Equity/Income negative; the whole-ledger total is 0). Filter by account substring, period, depth, and reconciliation status.",
-			obj(map[string]any{
+			}, "posting_ids", "status"),
+			Handler: func(ctx context.Context, args json.RawMessage, _ server.Identity) (map[string]any, error) {
+				return toolReconcile(ctx, svc, args)
+			},
+		},
+		{
+			Name:        tool("balance"),
+			Description: "The `bal` report and the live chart of accounts. With no arguments returns the whole emergent account tree with raw signed balances (Assets/Expenses positive, Liabilities/Equity/Income negative; the whole-ledger total is 0). Filter by account substring, period, depth, and reconciliation status.",
+			InputSchema: obj(map[string]any{
 				"query":  typd("string", "case-insensitive substring matched against the full account path; omit for every account"),
 				"period": periodSchema(),
 				"depth":  typd("integer", "roll accounts up to this many colon-levels (1 = roots); omit or 0 for leaf accounts as posted"),
 				"status": enumd("restrict to postings in this reconciliation state — e.g. cleared for a bank-reconciliation view", ledger.StatusPending, ledger.StatusCleared, ledger.StatusReconciled),
-			})),
-
-		desc(tool("register"),
-			"The `reg` report — matched postings in chronological order with a running total; the list verb. Raw signed amounts like balance.",
-			obj(map[string]any{
+			}),
+			Handler: func(ctx context.Context, args json.RawMessage, _ server.Identity) (map[string]any, error) {
+				return toolBalance(ctx, svc, args)
+			},
+		},
+		{
+			Name:        tool("register"),
+			Description: "The `reg` report — matched postings in chronological order with a running total; the list verb. Raw signed amounts like balance.",
+			InputSchema: obj(map[string]any{
 				"query":  typd("string", "case-insensitive substring matched against the full account path; omit for every posting"),
 				"period": periodSchema(),
 				"status": enumd("restrict to postings in this reconciliation state", ledger.StatusPending, ledger.StatusCleared, ledger.StatusReconciled),
-			})),
-
-		desc(tool("get"), "Fetch one transaction in full: all postings, per-posting status, ord, and reversal links.", obj(map[string]any{"id": typd("string", "the transaction id")}, "id")),
-
-		desc(tool("describe"),
-			"Discovery — the first call any agent should make. Returns the five typed roots (with normal balance and which statement they feed), the money unit (USD cents), the reconciliation states and their meaning, the live emergent account tree, and recipes for producing a balance sheet / P&L / customer statement from balance + register. Takes no inputs.",
-			obj(map[string]any{})),
-
-		desc(tool("health"), "Health + diagnostics for the ledger service. Returns the fixed envelope (status, version, service, details) plus the authenticated caller's identity (owner_email, client_id). Takes no inputs.", obj(map[string]any{})),
-
-		desc(tool("reflection"),
-			"Self-describe ledger's edges in the event graph. With no arguments, returns the index {publishes:[{type,description}], subscribes:[{source,filter,description}]} — ledger is a producer, so subscribes is empty. Pass 'event_type' (a published type) for its detail {type, description, schema, example}.",
-			obj(map[string]any{
-				"event_type": typd("string", "optional; a published event type to fetch the schema+example detail for"),
-			})),
+			}),
+			Handler: func(ctx context.Context, args json.RawMessage, _ server.Identity) (map[string]any, error) {
+				return toolRegister(ctx, svc, args)
+			},
+		},
+		{
+			Name:        tool("get"),
+			Description: "Fetch one transaction in full: all postings, per-posting status, ord, and reversal links.",
+			InputSchema: obj(map[string]any{"id": typd("string", "the transaction id")}, "id"),
+			Handler: func(ctx context.Context, args json.RawMessage, _ server.Identity) (map[string]any, error) {
+				return toolGet(ctx, svc, args)
+			},
+		},
+		{
+			Name:        tool("describe"),
+			Description: "Discovery — the first call any agent should make. Returns the five typed roots (with normal balance and which statement they feed), the money unit (USD cents), the reconciliation states and their meaning, the live emergent account tree, and recipes for producing a balance sheet / P&L / customer statement from balance + register. Takes no inputs.",
+			InputSchema: obj(map[string]any{}),
+			Handler: func(ctx context.Context, _ json.RawMessage, _ server.Identity) (map[string]any, error) {
+				return toolDescribe(ctx, svc)
+			},
+		},
 	}
 }
 
 // ── schema helpers ──────────────────────────────────────────────────────────
-
-func desc(name, description string, schema map[string]any) map[string]any {
-	return map[string]any{"name": name, "description": description, "inputSchema": schema}
-}
 
 func obj(props map[string]any, required ...string) map[string]any {
 	o := map[string]any{"type": "object", "properties": props}
@@ -137,136 +152,7 @@ func periodSchema() map[string]any {
 	}
 }
 
-// ── dispatch ──────────────────────────────────────────────────────────────
-
-type toolCallParams struct {
-	Name      string          `json:"name"`
-	Arguments json.RawMessage `json:"arguments"`
-}
-
-func (h *Handler) handleToolCall(ctx context.Context, w http.ResponseWriter, req jsonRPCRequest, id Identity) {
-	var p toolCallParams
-	if err := json.Unmarshal(req.Params, &p); err != nil {
-		writeJSONRPCError(w, req.ID, -32602, "invalid params")
-		return
-	}
-	res, err := h.dispatchTool(ctx, p.Name, p.Arguments, id)
-	if err != nil {
-		writeJSONRPCResult(w, req.ID, toolResultErr(err.Error()))
-		return
-	}
-	writeJSONRPCResult(w, req.ID, res)
-}
-
-func (h *Handler) dispatchTool(ctx context.Context, name string, argsRaw json.RawMessage, id Identity) (map[string]any, error) {
-	svc := h.ledger
-	switch name {
-	case tool("record"):
-		return toolRecord(ctx, svc, argsRaw)
-	case tool("reverse"):
-		return toolReverse(ctx, svc, argsRaw)
-	case tool("reconcile"):
-		return toolReconcile(ctx, svc, argsRaw)
-	case tool("balance"):
-		return toolBalance(ctx, svc, argsRaw)
-	case tool("register"):
-		return toolRegister(ctx, svc, argsRaw)
-	case tool("get"):
-		return toolGet(ctx, svc, argsRaw)
-	case tool("describe"):
-		return toolDescribe(ctx, svc)
-	case tool("health"):
-		return h.toolHealth(ctx, id)
-	case tool("reflection"):
-		return h.toolReflection(argsRaw)
-	default:
-		return nil, errors.New("unknown tool: " + name)
-	}
-}
-
 // ── tool implementations ─────────────────────────────────────────────────
-
-// toolHealth renders the shared health envelope (status/version/service/details)
-// via appkit.Envelope and then adds the authenticated caller's identity — the
-// end-to-end auth-chain proof (DECISIONS §6). ledger supplies no reporter, so
-// details renders as {}.
-func (h *Handler) toolHealth(ctx context.Context, id Identity) (map[string]any, error) {
-	details := map[string]any{}
-	if h.health != nil {
-		d, err := h.health(ctx)
-		if err != nil {
-			details = map[string]any{"error": err.Error()}
-		} else if d != nil {
-			details = d
-		}
-	}
-	env := appkit.Envelope(h.version, h.service, details) // status/version/service/details
-	env["owner_email"] = id.OwnerEmail
-	env["client_id"] = id.ClientID
-	return toolResultJSON(env)
-}
-
-// toolReflection self-describes ledger's edges in the event graph (the
-// ikigenba_<svc>_reflection tool). No event_type → the index {publishes,
-// subscribes}; with event_type → that published type's {type, description,
-// schema, example}. An unknown event_type returns a corrective error listing the
-// valid types (the same bad_root pattern), not an empty result.
-func (h *Handler) toolReflection(raw json.RawMessage) (map[string]any, error) {
-	var a struct {
-		EventType string `json:"event_type,omitempty"`
-	}
-	if len(raw) > 0 {
-		if err := json.Unmarshal(raw, &a); err != nil {
-			return nil, err
-		}
-	}
-	if a.EventType != "" {
-		detail, err := h.events.Detail(a.EventType)
-		if err != nil {
-			var unknown *outbox.UnknownEventTypeError
-			if errors.As(err, &unknown) {
-				return toolResultErr(reflectionUnknownTypeError(unknown)), nil
-			}
-			return nil, err
-		}
-		return toolResultJSON(detail)
-	}
-	return toolResultJSON(map[string]any{
-		"publishes":  h.events.Index(),
-		"subscribes": renderSubscriptions(h.subscriptions),
-	})
-}
-
-// renderSubscriptions flattens the live subscription provider to the reflection
-// in-edges: one {source, filter, description} per Subscription. The Handler is
-// dropped — only the declared graph edge is reported. A nil provider (or nil
-// result) renders as an empty list.
-func renderSubscriptions(provider func() []consumer.Subscription) []map[string]any {
-	out := []map[string]any{}
-	if provider == nil {
-		return out
-	}
-	for _, s := range provider() {
-		out = append(out, map[string]any{
-			"source":      s.Source,
-			"filter":      s.Filter,
-			"description": s.Description,
-		})
-	}
-	return out
-}
-
-// reflectionUnknownTypeError renders the corrective error envelope for an unknown
-// event_type, listing the valid types so the agent can self-correct (mirrors the
-// bad_root corrective message).
-func reflectionUnknownTypeError(e *outbox.UnknownEventTypeError) string {
-	env := map[string]any{"error": map[string]any{
-		"code":    "unknown_event_type",
-		"message": "unknown event_type " + e.Type + "; valid types: " + strings.Join(e.Valid, ", "),
-	}}
-	b, _ := json.Marshal(env)
-	return string(b)
-}
 
 type postingArg struct {
 	Account     string `json:"account"`
@@ -286,28 +172,28 @@ func toolRecord(ctx context.Context, svc *ledger.Service, raw json.RawMessage) (
 	}
 	date, err := parseDay(a.Date)
 	if err != nil {
-		return toolResultErr(translateLedgerError(err)), nil
+		return appkitmcp.ErrorResult(translateLedgerError(err)), nil
 	}
 	if a.Status != "" && !ledger.ValidStatus(a.Status) {
-		return toolResultErr(translateLedgerError(fmt.Errorf("%w: unknown status %q", ledger.ErrValidation, a.Status))), nil
+		return appkitmcp.ErrorResult(translateLedgerError(fmt.Errorf("%w: unknown status %q", ledger.ErrValidation, a.Status))), nil
 	}
 	// Well-formedness validated at this boundary (re-asserted in the service):
 	// ≥2 postings, ≤1 elided amount.
 	if len(a.Postings) < 2 {
-		return toolResultErr(translateLedgerError(fmt.Errorf("%w: a transaction needs at least two postings", ledger.ErrValidation))), nil
+		return appkitmcp.ErrorResult(translateLedgerError(fmt.Errorf("%w: a transaction needs at least two postings", ledger.ErrValidation))), nil
 	}
 	elisions := 0
 	postings := make([]ledger.PostingInput, len(a.Postings))
 	for i, p := range a.Postings {
 		account, err := ledger.CanonicalizeAccount(p.Account)
 		if err != nil {
-			return toolResultErr(translateLedgerError(err)), nil
+			return appkitmcp.ErrorResult(translateLedgerError(err)), nil
 		}
 		status := p.Status
 		if status == "" {
 			status = a.Status // inherit the transaction default ("" → service defaults to pending)
 		} else if !ledger.ValidStatus(status) {
-			return toolResultErr(translateLedgerError(fmt.Errorf("%w: unknown posting status %q", ledger.ErrValidation, status))), nil
+			return appkitmcp.ErrorResult(translateLedgerError(fmt.Errorf("%w: unknown posting status %q", ledger.ErrValidation, status))), nil
 		}
 		if p.AmountCents == nil {
 			elisions++
@@ -315,13 +201,13 @@ func toolRecord(ctx context.Context, svc *ledger.Service, raw json.RawMessage) (
 		postings[i] = ledger.PostingInput{Account: account, AmountCents: p.AmountCents, Status: status}
 	}
 	if elisions > 1 {
-		return toolResultErr(translateLedgerError(fmt.Errorf("%w: at most one posting may elide its amount", ledger.ErrValidation))), nil
+		return appkitmcp.ErrorResult(translateLedgerError(fmt.Errorf("%w: at most one posting may elide its amount", ledger.ErrValidation))), nil
 	}
 	out, err := svc.Record(ctx, ledger.RecordInput{Date: date, Description: a.Description, Postings: postings})
 	if err != nil {
-		return toolResultErr(translateLedgerError(err)), nil
+		return appkitmcp.ErrorResult(translateLedgerError(err)), nil
 	}
-	return toolResultJSON(transactionJSON(out))
+	return appkitmcp.JSONResult(transactionJSON(out))
 }
 
 func toolReverse(ctx context.Context, svc *ledger.Service, raw json.RawMessage) (map[string]any, error) {
@@ -335,14 +221,14 @@ func toolReverse(ctx context.Context, svc *ledger.Service, raw json.RawMessage) 
 	}
 	if a.Date != nil && *a.Date != "" {
 		if _, err := parseDay(*a.Date); err != nil {
-			return toolResultErr(translateLedgerError(err)), nil
+			return appkitmcp.ErrorResult(translateLedgerError(err)), nil
 		}
 	}
 	out, err := svc.Reverse(ctx, a.ID, a.Date, a.Memo)
 	if err != nil {
-		return toolResultErr(translateLedgerError(err)), nil
+		return appkitmcp.ErrorResult(translateLedgerError(err)), nil
 	}
-	return toolResultJSON(transactionJSON(out))
+	return appkitmcp.JSONResult(transactionJSON(out))
 }
 
 func toolReconcile(ctx context.Context, svc *ledger.Service, raw json.RawMessage) (map[string]any, error) {
@@ -355,13 +241,13 @@ func toolReconcile(ctx context.Context, svc *ledger.Service, raw json.RawMessage
 	}
 	out, err := svc.Reconcile(ctx, a.PostingIDs, a.Status)
 	if err != nil {
-		return toolResultErr(translateLedgerError(err)), nil
+		return appkitmcp.ErrorResult(translateLedgerError(err)), nil
 	}
 	txns := make([]map[string]any, len(out))
 	for i, t := range out {
 		txns[i] = transactionJSON(t)
 	}
-	return toolResultJSON(map[string]any{"transactions": txns})
+	return appkitmcp.JSONResult(map[string]any{"transactions": txns})
 }
 
 func toolBalance(ctx context.Context, svc *ledger.Service, raw json.RawMessage) (map[string]any, error) {
@@ -378,17 +264,17 @@ func toolBalance(ctx context.Context, svc *ledger.Service, raw json.RawMessage) 
 	}
 	f, err := buildFilter(a.Query, a.Period, a.Status)
 	if err != nil {
-		return toolResultErr(translateLedgerError(err)), nil
+		return appkitmcp.ErrorResult(translateLedgerError(err)), nil
 	}
 	rep, err := svc.Balance(ctx, f, a.Depth)
 	if err != nil {
-		return toolResultErr(translateLedgerError(err)), nil
+		return appkitmcp.ErrorResult(translateLedgerError(err)), nil
 	}
 	lines := make([]map[string]any, len(rep.Lines))
 	for i, l := range rep.Lines {
 		lines[i] = map[string]any{"account": l.Account, "amount_cents": l.Sum}
 	}
-	return toolResultJSON(map[string]any{"lines": lines, "total": rep.Total, "unit": ledger.Unit})
+	return appkitmcp.JSONResult(map[string]any{"lines": lines, "total": rep.Total, "unit": ledger.Unit})
 }
 
 func toolRegister(ctx context.Context, svc *ledger.Service, raw json.RawMessage) (map[string]any, error) {
@@ -404,11 +290,11 @@ func toolRegister(ctx context.Context, svc *ledger.Service, raw json.RawMessage)
 	}
 	f, err := buildFilter(a.Query, a.Period, a.Status)
 	if err != nil {
-		return toolResultErr(translateLedgerError(err)), nil
+		return appkitmcp.ErrorResult(translateLedgerError(err)), nil
 	}
 	rep, err := svc.Register(ctx, f)
 	if err != nil {
-		return toolResultErr(translateLedgerError(err)), nil
+		return appkitmcp.ErrorResult(translateLedgerError(err)), nil
 	}
 	lines := make([]map[string]any, len(rep.Lines))
 	for i, l := range rep.Lines {
@@ -423,7 +309,7 @@ func toolRegister(ctx context.Context, svc *ledger.Service, raw json.RawMessage)
 			"running_total": l.RunningTotal,
 		}
 	}
-	return toolResultJSON(map[string]any{"lines": lines, "unit": ledger.Unit})
+	return appkitmcp.JSONResult(map[string]any{"lines": lines, "unit": ledger.Unit})
 }
 
 func toolGet(ctx context.Context, svc *ledger.Service, raw json.RawMessage) (map[string]any, error) {
@@ -435,15 +321,15 @@ func toolGet(ctx context.Context, svc *ledger.Service, raw json.RawMessage) (map
 	}
 	out, err := svc.Get(ctx, a.ID)
 	if err != nil {
-		return toolResultErr(translateLedgerError(err)), nil
+		return appkitmcp.ErrorResult(translateLedgerError(err)), nil
 	}
-	return toolResultJSON(transactionJSON(out))
+	return appkitmcp.JSONResult(transactionJSON(out))
 }
 
 func toolDescribe(ctx context.Context, svc *ledger.Service) (map[string]any, error) {
 	rep, err := svc.Describe(ctx)
 	if err != nil {
-		return toolResultErr(translateLedgerError(err)), nil
+		return appkitmcp.ErrorResult(translateLedgerError(err)), nil
 	}
 	roots := make([]map[string]any, len(rep.Roots))
 	for i, r := range rep.Roots {
@@ -457,23 +343,13 @@ func toolDescribe(ctx context.Context, svc *ledger.Service) (map[string]any, err
 	for i, rc := range rep.Recipes {
 		recipes[i] = map[string]any{"name": rc.Name, "how": rc.How}
 	}
-	return toolResultJSON(map[string]any{
+	return appkitmcp.JSONResult(map[string]any{
 		"unit":                  rep.Unit,
 		"roots":                 roots,
 		"reconciliation_states": states,
 		"accounts":              rep.Accounts,
 		"recipes":               recipes,
 	})
-}
-
-// ── shared helpers ──────────────────────────────────────────────────────
-
-func toolResultJSON(v any) (map[string]any, error) {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return nil, err
-	}
-	return toolResultText(string(b)), nil
 }
 
 // transactionJSON renders the rich transaction shape returned by

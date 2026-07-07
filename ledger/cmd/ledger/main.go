@@ -75,9 +75,11 @@ func ledgerSpec() appkit.Spec {
 
 			rt.Handle("GET /{$}", landingHandler(rt.WWW(), rt.Service(), rt.Version()))
 
-			rt.Handle("POST /mcp", rt.RequireIdentity(
-				mcp.NewHandler(svc, rt.Version(), rt.Service(), rt.Health(),
-					rt.Events(), rt.Subscriptions())))
+			handler, err := mcp.NewHandler(svc, rt)
+			if err != nil {
+				return err
+			}
+			rt.Handle("POST /mcp", rt.RequireIdentity(handler))
 			return nil
 		},
 	}

@@ -2,43 +2,81 @@ package mcp
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
+	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strings"
 	"testing"
 
+	appkitdb "appkit/db"
+	"appkit/server"
+
 	"ledger/internal/db"
 	"ledger/internal/ledger"
-
-	_ "modernc.org/sqlite"
 )
 
-func newHandler(t *testing.T) *Handler {
+const (
+	testOwner    = "owner@example.com"
+	testClientID = "client-123"
+	testVersion  = "test-1.2.3"
+	testService  = "ledger"
+)
+
+func newTestHandler(t *testing.T) http.Handler {
 	t.Helper()
-	conn, err := sql.Open("sqlite", ":memory:")
+	path := filepath.Join(t.TempDir(), "ledger_test.db")
+	conn, err := appkitdb.Open(path)
 	if err != nil {
-		t.Fatalf("open: %v", err)
-	}
-	if _, err := conn.Exec(`PRAGMA foreign_keys = ON`); err != nil {
-		t.Fatalf("fk: %v", err)
+		t.Fatalf("open test db: %v", err)
 	}
 	t.Cleanup(func() { conn.Close() })
-	if err := db.Migrate(context.Background(), conn); err != nil {
-		t.Fatalf("migrate: %v", err)
+	migs, err := appkitdb.LoadMigrations(db.FS, "migrations")
+	if err != nil {
+		t.Fatalf("load migrations: %v", err)
 	}
-	return NewHandler(ledger.NewService(conn), "test-version", "ledger", nil, ledger.Events, nil)
+	if err := appkitdb.Migrate(context.Background(), conn, migs); err != nil {
+		t.Fatalf("migrate test db: %v", err)
+	}
+	svc := ledger.NewService(conn)
+	var captured *server.Router
+	_, err = server.New(server.Options{
+		Addr:       "127.0.0.1:0",
+		Logger:     slog.New(slog.NewTextHandler(io.Discard, nil)),
+		ResourceID: "https://example.test/srv/ledger",
+		AuthServer: "https://auth.example.test",
+		Version:    testVersion,
+		Service:    testService,
+		Events:     ledger.Events,
+		DB:         conn,
+		Register: func(rt *server.Router) error {
+			captured = rt
+			return nil
+		},
+	})
+	if err != nil {
+		t.Fatalf("build test router: %v", err)
+	}
+	if captured == nil {
+		t.Fatalf("server.New did not invoke Register")
+	}
+	h, err := NewHandler(svc, captured)
+	if err != nil {
+		t.Fatalf("build mcp handler: %v", err)
+	}
+	return h
 }
 
 // rpc drives one JSON-RPC call through ServeHTTP and returns the decoded result
 // object. params is the raw JSON for "params".
-func rpc(t *testing.T, h *Handler, method, params string) map[string]any {
+func rpc(t *testing.T, h http.Handler, method, params string) map[string]any {
 	t.Helper()
 	body := `{"jsonrpc":"2.0","id":1,"method":"` + method + `","params":` + params + `}`
 	req := httptest.NewRequest(http.MethodPost, "/mcp", strings.NewReader(body))
-	req.Header.Set("X-Owner-Email", "me@example.com")
-	req.Header.Set("X-Client-Id", "client-123")
+	req.Header.Set("X-Owner-Email", testOwner)
+	req.Header.Set("X-Client-Id", testClientID)
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
@@ -59,7 +97,17 @@ func rpc(t *testing.T, h *Handler, method, params string) map[string]any {
 
 // callTool invokes tools/call and returns the decoded text payload plus the
 // isError flag.
-func callTool(t *testing.T, h *Handler, name, args string) (map[string]any, bool) {
+func callTool(t *testing.T, h http.Handler, name, args string) (map[string]any, bool) {
+	t.Helper()
+	text, isErr := callToolText(t, h, name, args)
+	var payload map[string]any
+	if err := json.Unmarshal([]byte(text), &payload); err != nil {
+		t.Fatalf("%s: decode payload %q: %v", name, text, err)
+	}
+	return payload, isErr
+}
+
+func callToolText(t *testing.T, h http.Handler, name, args string) (string, bool) {
 	t.Helper()
 	res := rpc(t, h, "tools/call", `{"name":"`+name+`","arguments":`+args+`}`)
 	isErr, _ := res["isError"].(bool)
@@ -68,17 +116,14 @@ func callTool(t *testing.T, h *Handler, name, args string) (map[string]any, bool
 		t.Fatalf("%s: no content: %v", name, res)
 	}
 	text := content[0].(map[string]any)["text"].(string)
-	var payload map[string]any
-	if err := json.Unmarshal([]byte(text), &payload); err != nil {
-		t.Fatalf("%s: decode payload %q: %v", name, text, err)
-	}
-	return payload, isErr
+	return text, isErr
 }
 
-func TestToolsList_HasNine(t *testing.T) {
-	h := newHandler(t)
+func TestToolsListIncludesDomainAndChassisTools(t *testing.T) {
+	h := newTestHandler(t)
 	res := rpc(t, h, "tools/list", `{}`)
 	tools, _ := res["tools"].([]any)
+	// R-52PA-OE6N
 	if len(tools) != 9 {
 		t.Fatalf("tools/list returned %d tools, want 9", len(tools))
 	}
@@ -102,7 +147,7 @@ func TestToolsList_HasNine(t *testing.T) {
 // event_type detail (schema + example), and the corrective error for an unknown
 // type.
 func TestReflection(t *testing.T) {
-	h := newHandler(t)
+	h := newTestHandler(t)
 
 	// No-arg → the index {publishes, subscribes}.
 	idx, isErr := callTool(t, h, "reflection", `{}`)
@@ -156,30 +201,26 @@ func TestReflection(t *testing.T) {
 	}
 
 	// Unknown event_type → corrective error listing valid types.
-	badErr, isErr := callTool(t, h, "reflection", `{"event_type":"transaction.nope"}`)
+	badErr, isErr := callToolText(t, h, "reflection", `{"event_type":"transaction.nope"}`)
 	if !isErr {
 		t.Fatalf("expected error for unknown event_type, got %v", badErr)
 	}
-	em, _ := badErr["error"].(map[string]any)
-	if em == nil || em["code"] != "unknown_event_type" {
-		t.Fatalf("expected unknown_event_type code, got %v", badErr)
-	}
-	msg, _ := em["message"].(string)
-	if !strings.Contains(msg, "transaction.recorded") {
-		t.Errorf("corrective message missing valid type: %q", msg)
+	if !strings.Contains(badErr, "unknown event_type") ||
+		!strings.Contains(badErr, "transaction.recorded") {
+		t.Errorf("corrective message missing valid type: %q", badErr)
 	}
 }
 
 func TestHealth(t *testing.T) {
-	h := newHandler(t)
+	h := newTestHandler(t)
 	p, isErr := callTool(t, h, "health", `{}`)
 	if isErr {
 		t.Fatal("health isError")
 	}
-	if p["status"] != "ok" || p["version"] != "test-version" || p["service"] != "ledger" {
+	if p["status"] != "ok" || p["version"] != testVersion || p["service"] != testService {
 		t.Errorf("health envelope = %v", p)
 	}
-	if p["owner_email"] != "me@example.com" || p["client_id"] != "client-123" {
+	if p["owner_email"] != testOwner || p["client_id"] != testClientID {
 		t.Errorf("health identity = %v", p)
 	}
 	details, ok := p["details"].(map[string]any)
@@ -189,7 +230,7 @@ func TestHealth(t *testing.T) {
 }
 
 func TestRecordGetReverseReconcile_EndToEnd(t *testing.T) {
-	h := newHandler(t)
+	h := newTestHandler(t)
 
 	// describe first (the recommended first call).
 	d, _ := callTool(t, h, "describe", `{}`)
@@ -266,7 +307,7 @@ func TestRecordGetReverseReconcile_EndToEnd(t *testing.T) {
 }
 
 func TestRecord_ErrorsSurfaceAsToolErrors(t *testing.T) {
-	h := newHandler(t)
+	h := newTestHandler(t)
 
 	// Unknown root → bad_root.
 	p, isErr := callTool(t, h, "record", `{"date":"2026-06-01","description":"x","postings":[{"account":"Bogus:Acct","amount_cents":1},{"account":"Assets:Bank","amount_cents":-1}]}`)
@@ -300,7 +341,7 @@ func TestRecord_ErrorsSurfaceAsToolErrors(t *testing.T) {
 }
 
 func TestBalance_PeriodBucketAndRange(t *testing.T) {
-	h := newHandler(t)
+	h := newTestHandler(t)
 	mustRecord(t, h, `{"date":"2026-06-15","description":"june","postings":[{"account":"Expenses:Office","amount_cents":1000},{"account":"Assets:Bank","amount_cents":-1000}]}`)
 	mustRecord(t, h, `{"date":"2026-07-15","description":"july","postings":[{"account":"Expenses:Office","amount_cents":2000},{"account":"Assets:Bank","amount_cents":-2000}]}`)
 
@@ -316,7 +357,7 @@ func TestBalance_PeriodBucketAndRange(t *testing.T) {
 	}
 }
 
-func mustRecord(t *testing.T, h *Handler, args string) {
+func mustRecord(t *testing.T, h http.Handler, args string) {
 	t.Helper()
 	if _, isErr := callTool(t, h, "record", args); isErr {
 		t.Fatalf("record failed: %s", args)
