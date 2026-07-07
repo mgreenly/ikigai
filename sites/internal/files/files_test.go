@@ -243,6 +243,33 @@ func TestGlobDoubleStarKeepsSegmentAndBaseBoundaries(t *testing.T) {
 	}
 }
 
+func TestGlobSegmentPatternsUseFilepathMatchSemantics(t *testing.T) {
+	root := globRecursiveFixture(t)
+
+	// R-40X5-6S7E
+	question, err := Glob(root, "assets/??/*.js", "")
+	if err != nil {
+		t.Fatalf("Glob question segment: %v", err)
+	}
+	if !reflect.DeepEqual(question, []string{"assets/js/app.js"}) {
+		t.Fatalf("Glob question segment = %#v", question)
+	}
+	class, err := Glob(root, "[ai]*.html", "")
+	if err != nil {
+		t.Fatalf("Glob class segment: %v", err)
+	}
+	if !reflect.DeepEqual(class, []string{"index.html"}) {
+		t.Fatalf("Glob class segment = %#v", class)
+	}
+	noCross, err := Glob(root, "assets/?/*.js", "")
+	if err != nil {
+		t.Fatalf("Glob non-crossing question segment: %v", err)
+	}
+	if noCross == nil || len(noCross) != 0 {
+		t.Fatalf("Glob non-crossing question segment = %#v, want empty non-nil slice", noCross)
+	}
+}
+
 func TestGlobRecursiveDoubleStarDoesNotFollowSymlinks(t *testing.T) {
 	root := globRecursiveFixture(t)
 	outside := t.TempDir()
