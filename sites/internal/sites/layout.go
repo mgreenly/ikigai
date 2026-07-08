@@ -71,3 +71,19 @@ func (l Layout) ServedBase() string {
 func (l Layout) ServedTierBase(tier string) string {
 	return filepath.Join(l.root(), tier)
 }
+
+// SiteDir is a site's on-disk directory for its visibility:
+//
+//	public  -> <root>/public/<slug>
+//	private -> <root>/private/<slug>
+func (l Layout) SiteDir(public bool, slug string) string {
+	return filepath.Join(l.SiteBase(public), slug)
+}
+
+// SiteBase is <root>/<public|private> — the parent of a visibility's site dirs.
+func (l Layout) SiteBase(public bool) string {
+	if public {
+		return filepath.Join(l.root(), PublicSeg)
+	}
+	return filepath.Join(l.root(), PrivateSeg)
+}

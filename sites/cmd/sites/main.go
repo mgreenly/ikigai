@@ -30,6 +30,7 @@ import (
 
 	"sites/internal/db"
 	"sites/internal/mcp"
+	"sites/internal/serve"
 	"sites/internal/sites"
 )
 
@@ -72,6 +73,8 @@ func sitesSpec() appkit.Spec {
 				_ = rt.WWW().Render(w, "landing.html",
 					struct{ Service, Version string }{rt.Service(), rt.Version()})
 			}))
+			rt.Handle("GET /public/", serve.Handler(layout.SiteBase(true), "/public/"))
+			rt.Handle("GET /private/", serve.Handler(layout.SiteBase(false), "/private/"))
 			rt.Handle("POST /mcp", rt.RequireIdentity(handler))
 			return nil
 		},
