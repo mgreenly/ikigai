@@ -72,7 +72,7 @@ func (h *toolHandlers) toolSync(ctx context.Context, raw json.RawMessage) (map[s
 		if !errors.Is(err, sites.ErrNotFound) {
 			return errResult(err), nil
 		}
-		if _, cerr := h.store.Create(ctx, slug); cerr != nil {
+		if _, cerr := h.store.Create(ctx, slug, ""); cerr != nil {
 			return errResult(cerr), nil
 		}
 		if mderr := os.MkdirAll(h.layout.WorkingDir(slug), 0o755); mderr != nil {

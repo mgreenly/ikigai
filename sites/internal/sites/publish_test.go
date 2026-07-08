@@ -60,7 +60,7 @@ func TestPublishCreatesResolvingSymlink(t *testing.T) {
 	s, l := newTestPublisher(t)
 	ctx := context.Background()
 	makeWorking(t, l, "demo")
-	if _, err := s.Create(ctx, "demo"); err != nil {
+	if _, err := s.Create(ctx, "demo", ""); err != nil {
 		t.Fatalf("create: %v", err)
 	}
 
@@ -115,7 +115,7 @@ func TestRepublishSwitchesTierLeavingOnlyOne(t *testing.T) {
 	s, l := newTestPublisher(t)
 	ctx := context.Background()
 	makeWorking(t, l, "demo")
-	if _, err := s.Create(ctx, "demo"); err != nil {
+	if _, err := s.Create(ctx, "demo", ""); err != nil {
 		t.Fatalf("create: %v", err)
 	}
 
@@ -152,7 +152,7 @@ func TestRepublishSameTierIdempotent(t *testing.T) {
 	s, l := newTestPublisher(t)
 	ctx := context.Background()
 	makeWorking(t, l, "demo")
-	if _, err := s.Create(ctx, "demo"); err != nil {
+	if _, err := s.Create(ctx, "demo", ""); err != nil {
 		t.Fatalf("create: %v", err)
 	}
 	if err := s.Publish(ctx, "demo", PublicSeg); err != nil {
@@ -175,7 +175,7 @@ func TestPublishUsesStateWWWPublicPrivateTrees(t *testing.T) {
 	s, l := newTestPublisher(t)
 	ctx := context.Background()
 	makeWorking(t, l, "demo")
-	if _, err := s.Create(ctx, "demo"); err != nil {
+	if _, err := s.Create(ctx, "demo", ""); err != nil {
 		t.Fatalf("create: %v", err)
 	}
 
@@ -229,7 +229,7 @@ func TestUnpublishRemovesLink(t *testing.T) {
 	s, l := newTestPublisher(t)
 	ctx := context.Background()
 	makeWorking(t, l, "demo")
-	if _, err := s.Create(ctx, "demo"); err != nil {
+	if _, err := s.Create(ctx, "demo", ""); err != nil {
 		t.Fatalf("create: %v", err)
 	}
 	if err := s.Publish(ctx, "demo", PublicSeg); err != nil {
@@ -259,7 +259,7 @@ func TestUnpublishAlreadyUnpublishedIsNil(t *testing.T) {
 	s, l := newTestPublisher(t)
 	ctx := context.Background()
 	makeWorking(t, l, "demo")
-	if _, err := s.Create(ctx, "demo"); err != nil {
+	if _, err := s.Create(ctx, "demo", ""); err != nil {
 		t.Fatalf("create: %v", err)
 	}
 	// Never published — unpublish must be a no-op without error.
@@ -282,7 +282,7 @@ func TestDeleteOrderSafety(t *testing.T) {
 	s, l := newTestPublisher(t)
 	ctx := context.Background()
 	makeWorking(t, l, "demo")
-	if _, err := s.Create(ctx, "demo"); err != nil {
+	if _, err := s.Create(ctx, "demo", ""); err != nil {
 		t.Fatalf("create: %v", err)
 	}
 	if err := s.Publish(ctx, "demo", PublicSeg); err != nil {
@@ -305,7 +305,7 @@ func TestPublishInvalidTier(t *testing.T) {
 	s, l := newTestPublisher(t)
 	ctx := context.Background()
 	makeWorking(t, l, "demo")
-	if _, err := s.Create(ctx, "demo"); err != nil {
+	if _, err := s.Create(ctx, "demo", ""); err != nil {
 		t.Fatalf("create: %v", err)
 	}
 	for _, tier := range []string{"", "foo"} {

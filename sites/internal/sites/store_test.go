@@ -45,7 +45,7 @@ func TestCRUDRoundtrip(t *testing.T) {
 	s := newTestStore(t)
 	ctx := context.Background()
 
-	a, err := s.Create(ctx, "alpha")
+	a, err := s.Create(ctx, "alpha", "")
 	if err != nil {
 		t.Fatalf("create alpha: %v", err)
 	}
@@ -59,7 +59,7 @@ func TestCRUDRoundtrip(t *testing.T) {
 		t.Fatalf("create alpha: timestamps unset %+v", a)
 	}
 
-	if _, err := s.Create(ctx, "bravo"); err != nil {
+	if _, err := s.Create(ctx, "bravo", ""); err != nil {
 		t.Fatalf("create bravo: %v", err)
 	}
 
@@ -118,7 +118,7 @@ func TestSlugReject(t *testing.T) {
 	}
 	for _, tc := range bad {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := s.Create(ctx, tc.slug)
+			_, err := s.Create(ctx, tc.slug, "")
 			if !errors.Is(err, ErrInvalidSlug) {
 				t.Fatalf("create %q: want ErrInvalidSlug, got %v", tc.slug, err)
 			}
@@ -132,7 +132,7 @@ func TestReservedNameReject(t *testing.T) {
 
 	for _, name := range []string{"mcp", ".well-known"} {
 		t.Run(name, func(t *testing.T) {
-			_, err := s.Create(ctx, name)
+			_, err := s.Create(ctx, name, "")
 			if !errors.Is(err, ErrReservedName) {
 				t.Fatalf("create %q: want ErrReservedName, got %v", name, err)
 			}
@@ -144,10 +144,10 @@ func TestCreateDuplicate(t *testing.T) {
 	s := newTestStore(t)
 	ctx := context.Background()
 
-	if _, err := s.Create(ctx, "dup"); err != nil {
+	if _, err := s.Create(ctx, "dup", ""); err != nil {
 		t.Fatalf("first create: %v", err)
 	}
-	_, err := s.Create(ctx, "dup")
+	_, err := s.Create(ctx, "dup", "")
 	if !errors.Is(err, ErrExists) {
 		t.Fatalf("duplicate create: want ErrExists, got %v", err)
 	}
@@ -162,6 +162,105 @@ func TestGetDeleteNotFound(t *testing.T) {
 	}
 	if err := s.Delete(ctx, "ghost"); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("delete missing: want ErrNotFound, got %v", err)
+	}
+}
+
+func TestCreatePersistsCreatedByAndDefaultsPrivate(t *testing.T) {
+	s := newTestStore(t)
+	ctx := context.Background()
+
+	created, err := s.Create(ctx, "creator-site", "user-123")
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	// R-QSLO-SAIQ
+	if created.Public {
+		t.Fatalf("Create Public = true, want false")
+	}
+	// R-QRDS-EIS1
+	if created.CreatedBy != "user-123" {
+		t.Fatalf("Create CreatedBy = %q, want %q", created.CreatedBy, "user-123")
+	}
+
+	got, err := s.Get(ctx, "creator-site")
+	if err != nil {
+		t.Fatalf("get: %v", err)
+	}
+	if got.CreatedBy != "user-123" {
+		t.Fatalf("Get CreatedBy = %q, want %q", got.CreatedBy, "user-123")
+	}
+	if got.Public {
+		t.Fatalf("Get Public = true, want false")
+	}
+
+	list, err := s.List(ctx)
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	if len(list) != 1 {
+		t.Fatalf("list len = %d, want 1", len(list))
+	}
+	if list[0].CreatedBy != "user-123" {
+		t.Fatalf("List CreatedBy = %q, want %q", list[0].CreatedBy, "user-123")
+	}
+	if list[0].Public {
+		t.Fatalf("List Public = true, want false")
+	}
+
+	for _, column := range []string{"tier", "published", "published_at", "public", "created_by"} {
+		var found int
+		if err := s.db.QueryRowContext(ctx, `SELECT count(*) FROM pragma_table_info('sites') WHERE name = ?`, column).Scan(&found); err != nil {
+			t.Fatalf("query schema column %q: %v", column, err)
+		}
+		if found != 1 {
+			t.Fatalf("schema column %q count = %d, want 1", column, found)
+		}
+	}
+}
+
+func TestSetVisibilityPersistsAndAdvancesUpdatedAt(t *testing.T) {
+	s := newTestStore(t)
+	ctx := context.Background()
+
+	site, err := s.Create(ctx, "visibility", "")
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	if site.Public {
+		t.Fatalf("initial Public = true, want false")
+	}
+
+	// R-QTTL-629F
+	if err := s.SetVisibility(ctx, "visibility", true); err != nil {
+		t.Fatalf("set public: %v", err)
+	}
+	public, err := s.Get(ctx, "visibility")
+	if err != nil {
+		t.Fatalf("get public: %v", err)
+	}
+	if !public.Public {
+		t.Fatalf("after SetVisibility true Public = false, want true")
+	}
+	if !public.UpdatedAt.After(site.UpdatedAt) {
+		t.Fatalf("after SetVisibility true UpdatedAt = %v, want after %v", public.UpdatedAt, site.UpdatedAt)
+	}
+
+	if err := s.SetVisibility(ctx, "visibility", false); err != nil {
+		t.Fatalf("set private: %v", err)
+	}
+	private, err := s.Get(ctx, "visibility")
+	if err != nil {
+		t.Fatalf("get private: %v", err)
+	}
+	if private.Public {
+		t.Fatalf("after SetVisibility false Public = true, want false")
+	}
+	if !private.UpdatedAt.After(public.UpdatedAt) {
+		t.Fatalf("after SetVisibility false UpdatedAt = %v, want after %v", private.UpdatedAt, public.UpdatedAt)
+	}
+
+	if err := s.SetVisibility(ctx, "missing", true); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("missing SetVisibility: want ErrNotFound, got %v", err)
 	}
 }
 

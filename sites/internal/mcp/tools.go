@@ -174,7 +174,7 @@ func (h *toolHandlers) toolCreate(ctx context.Context, raw json.RawMessage) (map
 	if err := unmarshalArgs(raw, &a); err != nil {
 		return nil, err
 	}
-	site, err := h.store.Create(ctx, a.Name)
+	site, err := h.store.Create(ctx, a.Name, "")
 	if err != nil {
 		return errResult(err), nil
 	}

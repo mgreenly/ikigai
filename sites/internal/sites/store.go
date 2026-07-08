@@ -55,6 +55,8 @@ type Site struct {
 	Published   bool
 	PublishedAt *time.Time
 	SourcePath  string
+	Public      bool
+	CreatedBy   string
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }
@@ -117,10 +119,10 @@ func parseTime(s string) time.Time {
 	return t
 }
 
-// Create validates the slug + reserved guard, then inserts a fresh row with
-// tier=” and published=0. created_at/updated_at are set to now (UTC). Returns
-// ErrExists if the name is already taken.
-func (s *Store) Create(ctx context.Context, name string) (Site, error) {
+// Create validates the slug + reserved guard, then inserts a fresh private row
+// with tier=” and published=0. created_at/updated_at are set to now (UTC).
+// Returns ErrExists if the name is already taken.
+func (s *Store) Create(ctx context.Context, name, createdBy string) (Site, error) {
 	if err := validateName(name); err != nil {
 		return Site{}, err
 	}
@@ -129,9 +131,9 @@ func (s *Store) Create(ctx context.Context, name string) (Site, error) {
 	// source_path is inserted NULL: a freshly created site is hand-authored until
 	// a sync stamps it via SetSourcePath.
 	_, err := s.db.ExecContext(ctx,
-		`INSERT INTO sites (name, tier, published, published_at, source_path, created_at, updated_at)
-		 VALUES (?, '', 0, NULL, NULL, ?, ?)`,
-		name, ts, ts)
+		`INSERT INTO sites (name, tier, published, published_at, source_path, public, created_by, created_at, updated_at)
+		 VALUES (?, '', 0, NULL, NULL, 0, ?, ?, ?)`,
+		name, createdBy, ts, ts)
 	if err != nil {
 		if strings.Contains(err.Error(), "UNIQUE constraint failed") ||
 			strings.Contains(err.Error(), "PRIMARY KEY") {
@@ -143,6 +145,8 @@ func (s *Store) Create(ctx context.Context, name string) (Site, error) {
 		Name:      name,
 		Tier:      "",
 		Published: false,
+		Public:    false,
+		CreatedBy: createdBy,
 		CreatedAt: parseTime(ts),
 		UpdatedAt: parseTime(ts),
 	}, nil
@@ -151,7 +155,7 @@ func (s *Store) Create(ctx context.Context, name string) (Site, error) {
 // Get fetches one site by name. Returns ErrNotFound when absent.
 func (s *Store) Get(ctx context.Context, name string) (Site, error) {
 	row := s.db.QueryRowContext(ctx,
-		`SELECT name, tier, published, published_at, source_path, created_at, updated_at
+		`SELECT name, tier, published, published_at, source_path, public, created_by, created_at, updated_at
 		 FROM sites WHERE name = ?`, name)
 	site, err := scanSite(row)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -166,7 +170,7 @@ func (s *Store) Get(ctx context.Context, name string) (Site, error) {
 // List returns every site ordered by name (deterministic).
 func (s *Store) List(ctx context.Context) ([]Site, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT name, tier, published, published_at, source_path, created_at, updated_at
+		`SELECT name, tier, published, published_at, source_path, public, created_by, created_at, updated_at
 		 FROM sites ORDER BY name`)
 	if err != nil {
 		return nil, fmt.Errorf("list sites: %w", err)
@@ -225,6 +229,31 @@ func (s *Store) SetSourcePath(ctx context.Context, name, sourcePath string) erro
 	return nil
 }
 
+// SetVisibility flips the public visibility bit for an existing site row and
+// bumps updated_at. Moving files between visibility directories is handled by
+// Layout.Move at the caller boundary.
+func (s *Store) SetVisibility(ctx context.Context, name string, public bool) error {
+	ts := fmtTime(s.Now().UTC())
+	publicInt := 0
+	if public {
+		publicInt = 1
+	}
+	res, err := s.db.ExecContext(ctx,
+		`UPDATE sites SET public = ?, updated_at = ? WHERE name = ?`,
+		publicInt, ts, name)
+	if err != nil {
+		return fmt.Errorf("set visibility %q: %w", name, err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("set visibility %q: %w", name, err)
+	}
+	if n == 0 {
+		return fmt.Errorf("%w: %q", ErrNotFound, name)
+	}
+	return nil
+}
+
 // rowScanner is satisfied by both *sql.Row and *sql.Rows.
 type rowScanner interface {
 	Scan(dest ...any) error
@@ -236,16 +265,20 @@ func scanSite(sc rowScanner) (Site, error) {
 	var (
 		name, tier, createdAt, updatedAt string
 		published                        int64
+		public                           int64
 		publishedAt                      sql.NullString
 		sourcePath                       sql.NullString
+		createdBy                        string
 	)
-	if err := sc.Scan(&name, &tier, &published, &publishedAt, &sourcePath, &createdAt, &updatedAt); err != nil {
+	if err := sc.Scan(&name, &tier, &published, &publishedAt, &sourcePath, &public, &createdBy, &createdAt, &updatedAt); err != nil {
 		return Site{}, err
 	}
 	site := Site{
 		Name:      name,
 		Tier:      tier,
 		Published: published != 0,
+		Public:    public != 0,
+		CreatedBy: createdBy,
 		CreatedAt: parseTime(createdAt),
 		UpdatedAt: parseTime(updatedAt),
 	}

@@ -1,6 +1,10 @@
 package sites
 
-import "path/filepath"
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+)
 
 // SITES_ROOT layout. Every path in the served tree is constructed here so that
 // the publish phase and the on-box opsctl tooling agree byte-for-byte on where a
@@ -86,4 +90,37 @@ func (l Layout) SiteBase(public bool) string {
 		return filepath.Join(l.root(), PublicSeg)
 	}
 	return filepath.Join(l.root(), PrivateSeg)
+}
+
+// Move relocates a site's directory between private and public visibility
+// parents. Missing source directories are tolerated so an empty site can be
+// made public/private before it has files.
+func (l Layout) Move(slug string, toPublic bool) error {
+	src := l.SiteDir(!toPublic, slug)
+	dst := l.SiteDir(toPublic, slug)
+
+	if _, err := os.Stat(dst); err == nil {
+		if _, srcErr := os.Stat(src); os.IsNotExist(srcErr) {
+			return nil
+		} else if srcErr != nil {
+			return fmt.Errorf("move site %q: stat source: %w", slug, srcErr)
+		}
+		return fmt.Errorf("move site %q: destination already exists: %s", slug, dst)
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("move site %q: stat destination: %w", slug, err)
+	}
+
+	if _, err := os.Stat(src); err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("move site %q: stat source: %w", slug, err)
+	}
+	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
+		return fmt.Errorf("move site %q: ensure destination parent: %w", slug, err)
+	}
+	if err := os.Rename(src, dst); err != nil {
+		return fmt.Errorf("move site %q: rename: %w", slug, err)
+	}
+	return nil
 }
