@@ -43,9 +43,14 @@ type landingView struct {
 
 type siteRow struct {
 	Slug      string
+	URL       string
 	Public    bool
 	CreatedBy string
 	CreatedAt string
+}
+
+type landingRenderer interface {
+	Render(http.ResponseWriter, string, any) error
 }
 
 func main() {
@@ -79,35 +84,44 @@ func sitesSpec() appkit.Spec {
 			if err != nil {
 				return err
 			}
-			rt.Handle("GET /{$}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if r.URL.Path != "/" {
-					http.NotFound(w, r)
-					return
-				}
-				list, err := store.List(r.Context())
-				if err != nil {
-					http.Error(w, "list sites", http.StatusInternalServerError)
-					return
-				}
-				view := landingView{
-					Service: rt.Service(),
-					Version: rt.Version(),
-					Sites:   make([]siteRow, 0, len(list)),
-				}
-				for _, s := range list {
-					view.Sites = append(view.Sites, siteRow{
-						Slug:      s.Name,
-						Public:    s.Public,
-						CreatedBy: s.CreatedBy,
-						CreatedAt: s.CreatedAt.UTC().Format(time.RFC3339),
-					})
-				}
-				_ = rt.WWW().Render(w, "landing.html", view)
-			}))
+			rt.Handle("GET /{$}", landingHandler(store, rt.WWW(), rt.Service(), rt.Version(), baseURL))
 			rt.Handle("GET /public/", serve.Handler(layout.SiteBase(true), "/public/"))
 			rt.Handle("GET /private/", serve.Handler(layout.SiteBase(false), "/private/"))
 			rt.Handle("POST /mcp", rt.RequireIdentity(handler))
 			return nil
 		},
 	}
+}
+
+func landingHandler(store *sites.Store, renderer landingRenderer, service, version, baseURL string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" {
+			http.NotFound(w, r)
+			return
+		}
+		list, err := store.List(r.Context())
+		if err != nil {
+			http.Error(w, "list sites", http.StatusInternalServerError)
+			return
+		}
+		view := landingView{
+			Service: service,
+			Version: version,
+			Sites:   make([]siteRow, 0, len(list)),
+		}
+		for _, s := range list {
+			tier := sites.PublicSeg
+			if !s.Public {
+				tier = sites.PrivateSeg
+			}
+			view.Sites = append(view.Sites, siteRow{
+				Slug:      s.Name,
+				URL:       baseURL + tier + "/" + s.Name + "/",
+				Public:    s.Public,
+				CreatedBy: s.CreatedBy,
+				CreatedAt: s.CreatedAt.UTC().Format(time.RFC3339),
+			})
+		}
+		_ = renderer.Render(w, "landing.html", view)
+	})
 }

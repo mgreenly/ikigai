@@ -19,9 +19,13 @@ import (
 	"time"
 
 	"appkit"
+	sqlkit "appkit/db"
 	"appkit/manifest"
 	appweb "appkit/web"
 	"registry"
+
+	sitedb "sites/internal/db"
+	sitesdomain "sites/internal/sites"
 )
 
 // R-8DF1-W89F
@@ -149,10 +153,9 @@ func TestSitesSpecEnablesChassisWWWAndKeepsMCPWiring(t *testing.T) {
 		`WWW:        true,`,
 		`list, err := store.List(r.Context())`,
 		`landingView{`,
-		`Service: rt.Service(),`,
-		`Version: rt.Version(),`,
+		`landingHandler(store, rt.WWW(), rt.Service(), rt.Version(), baseURL)`,
 		`CreatedAt: s.CreatedAt.UTC().Format(time.RFC3339),`,
-		`rt.WWW().Render(w, "landing.html", view)`,
+		`renderer.Render(w, "landing.html", view)`,
 		`mirror := sites.NewMirrorClient(base)`,
 		`handler, err := mcp.NewHandler(store, layout, baseURL, mirror, rt)`,
 		`if err != nil {`,
@@ -280,6 +283,74 @@ func TestWWWLandingRendersEmptySitesWithVersion(t *testing.T) {
 	}
 	if !strings.Contains(body, "No sites have been created yet.") {
 		t.Fatalf("landing HTML missing explicit empty state:\n%s", body)
+	}
+}
+
+func TestWWWLandingRendersServiceAndVersionInOneHeading(t *testing.T) {
+	rec := renderLanding(t, "sites", "v20-test")
+	body := rec.Body.String()
+	headingRe := regexp.MustCompile(`(?s)<h1 id="page-title">(.+?)</h1>`)
+	match := headingRe.FindStringSubmatch(body)
+	if len(match) != 2 {
+		t.Fatalf("landing HTML missing page-title h1:\n%s", body)
+	}
+	heading := match[1]
+
+	// R-WKGI-FVFJ
+	if !strings.Contains(heading, "sites") || !strings.Contains(heading, `<span class="version">v20-test</span>`) {
+		t.Fatalf("h1 does not contain service and version on one heading line: %q", heading)
+	}
+	for _, forbidden := range []string{
+		"POST /mcp",
+		`aria-label="Service details"`,
+		"<dt>Service</dt>",
+		"<dt>Version</dt>",
+		"<dt>API</dt>",
+	} {
+		if strings.Contains(body, forbidden) {
+			t.Fatalf("landing HTML still contains removed service detail markup %q in:\n%s", forbidden, body)
+		}
+	}
+}
+
+func TestWWWLandingRendersStaticWebsiteHostCopy(t *testing.T) {
+	rec := renderLanding(t, "sites", "v20-copy")
+	body := rec.Body.String()
+
+	// R-WLOE-TN68
+	for _, want := range []string{
+		"Static website host",
+		"Hosts file-backed static websites and serves them through the suite gateway.",
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("landing HTML missing copy %q in:\n%s", want, body)
+		}
+	}
+	if strings.Contains(body, "Sites hosts file-backed") {
+		t.Fatalf("landing HTML still contains old lead copy:\n%s", body)
+	}
+}
+
+func TestLandingHandlerLinksSlugsToVisibilityURLs(t *testing.T) {
+	store := newLandingTestStore(t, landingSeed{name: "X", public: true}, landingSeed{name: "Y", public: false})
+	baseURL := "https://suite.example/srv/sites/"
+	rec := httptest.NewRecorder()
+
+	landingHandler(store, loadWWW(t), "sites", "phase20", baseURL).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+	body := rec.Body.String()
+
+	// R-WMWB-7EWX
+	for _, want := range []string{
+		`<td data-label="Slug"><a href="https://suite.example/srv/sites/public/X/">X</a></td>`,
+		`<td data-label="Slug"><a href="https://suite.example/srv/sites/private/Y/">Y</a></td>`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("landing HTML missing slug link %q in:\n%s", want, body)
+		}
+	}
+	if strings.Contains(body, `href="https://suite.example/srv/sites/public/Y/"`) ||
+		strings.Contains(body, `href="https://suite.example/srv/sites/private/X/"`) {
+		t.Fatalf("landing HTML mixed visibility tiers between rows:\n%s", body)
 	}
 }
 
@@ -433,7 +504,7 @@ func TestLandingTemplateConformsToCronCanonicalWithSitesCopy(t *testing.T) {
 	}{
 		{`<title>{{.Service}} · cron</title>`, `<title>{{.Service}} · sites</title>`},
 		{`<div class="eyebrow">Scheduled event emitter</div>`, `<div class="eyebrow">Static website host</div>`},
-		{`<p>Cron keeps named schedules in SQLite and emits typed event-plane messages at minute boundaries.</p>`, `<p>Sites hosts file-backed static websites and serves them through the suite gateway.</p>`},
+		{`<p>Cron keeps named schedules in SQLite and emits typed event-plane messages at minute boundaries.</p>`, `<p>Hosts file-backed static websites and serves them through the suite gateway.</p>`},
 	} {
 		if !strings.Contains(cronLanding, replacement.old) {
 			t.Fatalf("cron canonical landing template missing %q", replacement.old)
@@ -766,6 +837,47 @@ func landingData(service, version string) landingView {
 		Service: service,
 		Version: version,
 	}
+}
+
+type landingSeed struct {
+	name   string
+	public bool
+}
+
+func newLandingTestStore(t *testing.T, seeds ...landingSeed) *sitesdomain.Store {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "sites_test.db")
+	conn, err := sqlkit.Open(path)
+	if err != nil {
+		t.Fatalf("open test db: %v", err)
+	}
+	t.Cleanup(func() { conn.Close() })
+	migs, err := sqlkit.LoadMigrations(sitedb.FS, "migrations")
+	if err != nil {
+		t.Fatalf("load migrations: %v", err)
+	}
+	if err := sqlkit.Migrate(context.Background(), conn, migs); err != nil {
+		t.Fatalf("migrate test db: %v", err)
+	}
+	for _, seed := range seeds {
+		public := 0
+		if seed.public {
+			public = 1
+		}
+		_, err := conn.ExecContext(context.Background(),
+			`INSERT INTO sites (name, source_path, public, created_by, created_at, updated_at)
+			 VALUES (?, NULL, ?, ?, ?, ?)`,
+			seed.name,
+			public,
+			seed.name+"@example.com",
+			"2026-07-08T12:00:00.000000000Z",
+			"2026-07-08T12:00:00.000000000Z",
+		)
+		if err != nil {
+			t.Fatalf("seed site %q: %v", seed.name, err)
+		}
+	}
+	return sitesdomain.NewStore(conn)
 }
 
 func composedMux(t *testing.T, mcp http.Handler) *http.ServeMux {
