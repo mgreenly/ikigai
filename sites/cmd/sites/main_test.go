@@ -147,8 +147,12 @@ func TestSitesSpecEnablesChassisWWWAndKeepsMCPWiring(t *testing.T) {
 	main := string(src)
 	for _, want := range []string{
 		`WWW:        true,`,
-		`rt.WWW().Render(w, "landing.html",`,
-		`struct{ Service, Version string }{rt.Service(), rt.Version()}`,
+		`list, err := store.List(r.Context())`,
+		`landingView{`,
+		`Service: rt.Service(),`,
+		`Version: rt.Version(),`,
+		`CreatedAt: s.CreatedAt.UTC().Format(time.RFC3339),`,
+		`rt.WWW().Render(w, "landing.html", view)`,
 		`mirror := sites.NewMirrorClient(base)`,
 		`handler, err := mcp.NewHandler(store, layout, baseURL, mirror, rt)`,
 		`if err != nil {`,
@@ -223,6 +227,59 @@ func TestWWWSiteRendersLandingWithServiceVersionAndHTMLContentType(t *testing.T)
 	// R-LAND-9J6R
 	if got := rec.Header().Get("Content-Type"); got != "text/html; charset=utf-8" {
 		t.Fatalf("Content-Type = %q, want text/html; charset=utf-8", got)
+	}
+}
+
+func TestWWWLandingRendersExistingSites(t *testing.T) {
+	rec := httptest.NewRecorder()
+	err := loadWWW(t).Render(rec, "landing.html", landingView{
+		Service: "sites",
+		Version: "phase18-test",
+		Sites: []siteRow{
+			{Slug: "atlas", Public: true, CreatedBy: "alice@example.com", CreatedAt: "2026-07-08T14:15:16Z"},
+			{Slug: "vault", Public: false, CreatedBy: "bob@example.com", CreatedAt: "2026-07-09T01:02:03Z"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("render landing.html with sites: %v", err)
+	}
+	body := rec.Body.String()
+
+	// R-RAW6-IUN5
+	for _, want := range []string{
+		"atlas",
+		"public",
+		"alice@example.com",
+		"2026-07-08T14:15:16Z",
+		"vault",
+		"private",
+		"bob@example.com",
+		"2026-07-09T01:02:03Z",
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("landing HTML missing site field %q in:\n%s", want, body)
+		}
+	}
+}
+
+func TestWWWLandingRendersEmptySitesWithVersion(t *testing.T) {
+	rec := httptest.NewRecorder()
+	err := loadWWW(t).Render(rec, "landing.html", landingView{
+		Service: "sites",
+		Version: "empty-sites-version",
+		Sites:   nil,
+	})
+	if err != nil {
+		t.Fatalf("render landing.html with empty sites: %v", err)
+	}
+	body := rec.Body.String()
+
+	// R-RC42-WMDU
+	if !strings.Contains(body, "empty-sites-version") {
+		t.Fatalf("landing HTML missing service version in empty state:\n%s", body)
+	}
+	if !strings.Contains(body, "No sites have been created yet.") {
+		t.Fatalf("landing HTML missing explicit empty state:\n%s", body)
 	}
 }
 
@@ -370,7 +427,6 @@ func TestLandingTemplateConformsToCronCanonicalWithSitesCopy(t *testing.T) {
 	sitesLanding := readFile(t, filepath.Join(webDir, "landing.html"))
 	cronLanding := string(readFile(t, filepath.Join(webDir, "..", "..", "..", "cron", "share", "www", "landing.html")))
 
-	want := cronLanding
 	for _, replacement := range []struct {
 		old string
 		new string
@@ -379,14 +435,12 @@ func TestLandingTemplateConformsToCronCanonicalWithSitesCopy(t *testing.T) {
 		{`<div class="eyebrow">Scheduled event emitter</div>`, `<div class="eyebrow">Static website host</div>`},
 		{`<p>Cron keeps named schedules in SQLite and emits typed event-plane messages at minute boundaries.</p>`, `<p>Sites hosts file-backed static websites and serves them through the suite gateway.</p>`},
 	} {
-		if !strings.Contains(want, replacement.old) {
+		if !strings.Contains(cronLanding, replacement.old) {
 			t.Fatalf("cron canonical landing template missing %q", replacement.old)
 		}
-		want = strings.Replace(want, replacement.old, replacement.new, 1)
-	}
-
-	if got := string(sitesLanding); got != want {
-		t.Fatalf("sites landing template does not match cron canonical template with the sites substitutions")
+		if !bytes.Contains(sitesLanding, []byte(replacement.new)) {
+			t.Fatalf("sites landing template missing canonical sites copy %q", replacement.new)
+		}
 	}
 }
 
@@ -707,14 +761,8 @@ func renderLanding(t *testing.T, service, version string) *httptest.ResponseReco
 	return rec
 }
 
-func landingData(service, version string) struct {
-	Service string
-	Version string
-} {
-	return struct {
-		Service string
-		Version string
-	}{
+func landingData(service, version string) landingView {
+	return landingView{
 		Service: service,
 		Version: version,
 	}

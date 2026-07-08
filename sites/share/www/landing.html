@@ -111,6 +111,65 @@
       font-size: 0.95em;
     }
 
+    .sites {
+      display: grid;
+      gap: var(--space-4);
+    }
+
+    .sites h2 {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: 28px;
+      line-height: 1.15;
+      font-weight: var(--text-display-weight);
+      letter-spacing: 0;
+    }
+
+    .site-table {
+      width: 100%;
+      border-collapse: collapse;
+      border-top: var(--border-width) solid var(--color-border);
+      border-bottom: var(--border-width) solid var(--color-border);
+    }
+
+    .site-table th,
+    .site-table td {
+      padding: var(--space-4);
+      border-top: var(--border-width) solid var(--color-border);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .site-table thead th {
+      border-top: 0;
+      font-family: var(--font-mono);
+      font-size: var(--text-label-size);
+      line-height: var(--text-label-lh);
+      font-weight: var(--text-label-weight);
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+    }
+
+    .site-table td {
+      overflow-wrap: anywhere;
+    }
+
+    .visibility {
+      font-family: var(--font-mono);
+      font-size: var(--text-label-size);
+      line-height: var(--text-label-lh);
+      font-weight: var(--text-label-weight);
+      text-transform: uppercase;
+    }
+
+    .empty {
+      max-width: none;
+      margin: 0;
+      padding: var(--space-6) 0;
+      border-top: var(--border-width) solid var(--color-border);
+      border-bottom: var(--border-width) solid var(--color-border);
+    }
+
     @media (max-width: 720px) {
       main {
         padding: var(--space-12) 0;
@@ -127,6 +186,44 @@
 
       dl > div:first-child {
         border-top: 0;
+      }
+
+      .site-table,
+      .site-table thead,
+      .site-table tbody,
+      .site-table tr,
+      .site-table th,
+      .site-table td {
+        display: block;
+      }
+
+      .site-table thead {
+        display: none;
+      }
+
+      .site-table tr {
+        border-top: var(--border-width) solid var(--color-border);
+      }
+
+      .site-table tr:first-child {
+        border-top: 0;
+      }
+
+      .site-table td {
+        border-top: 0;
+        padding: var(--space-3) 0;
+      }
+
+      .site-table td::before {
+        content: attr(data-label);
+        display: block;
+        margin-bottom: var(--space-1);
+        font-family: var(--font-mono);
+        font-size: var(--text-label-size);
+        line-height: var(--text-label-lh);
+        font-weight: var(--text-label-weight);
+        text-transform: uppercase;
+        color: var(--color-text-muted);
       }
     }
   </style>
@@ -154,6 +251,34 @@
         <dd><code>POST /mcp</code></dd>
       </div>
     </dl>
+
+    <section class="sites" aria-labelledby="sites-title">
+      <h2 id="sites-title">Sites</h2>
+      {{if .Sites}}
+      <table class="site-table">
+        <thead>
+          <tr>
+            <th scope="col">Slug</th>
+            <th scope="col">Visibility</th>
+            <th scope="col">Creator</th>
+            <th scope="col">Created</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{range .Sites}}
+          <tr>
+            <td data-label="Slug">{{.Slug}}</td>
+            <td data-label="Visibility"><span class="visibility">{{if .Public}}public{{else}}private{{end}}</span></td>
+            <td data-label="Creator">{{.CreatedBy}}</td>
+            <td data-label="Created">{{.CreatedAt}}</td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+      {{else}}
+      <p class="empty">No sites have been created yet.</p>
+      {{end}}
+    </section>
   </main>
 </body>
 </html>

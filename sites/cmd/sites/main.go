@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"appkit"
 	"appkit/config"
@@ -33,6 +34,19 @@ import (
 	"sites/internal/serve"
 	"sites/internal/sites"
 )
+
+type landingView struct {
+	Service string
+	Version string
+	Sites   []siteRow
+}
+
+type siteRow struct {
+	Slug      string
+	Public    bool
+	CreatedBy string
+	CreatedAt string
+}
 
 func main() {
 	appkit.Main(sitesSpec())
@@ -70,8 +84,25 @@ func sitesSpec() appkit.Spec {
 					http.NotFound(w, r)
 					return
 				}
-				_ = rt.WWW().Render(w, "landing.html",
-					struct{ Service, Version string }{rt.Service(), rt.Version()})
+				list, err := store.List(r.Context())
+				if err != nil {
+					http.Error(w, "list sites", http.StatusInternalServerError)
+					return
+				}
+				view := landingView{
+					Service: rt.Service(),
+					Version: rt.Version(),
+					Sites:   make([]siteRow, 0, len(list)),
+				}
+				for _, s := range list {
+					view.Sites = append(view.Sites, siteRow{
+						Slug:      s.Name,
+						Public:    s.Public,
+						CreatedBy: s.CreatedBy,
+						CreatedAt: s.CreatedAt.UTC().Format(time.RFC3339),
+					})
+				}
+				_ = rt.WWW().Render(w, "landing.html", view)
 			}))
 			rt.Handle("GET /public/", serve.Handler(layout.SiteBase(true), "/public/"))
 			rt.Handle("GET /private/", serve.Handler(layout.SiteBase(false), "/private/"))
