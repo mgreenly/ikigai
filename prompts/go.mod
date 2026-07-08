@@ -5,7 +5,7 @@ go 1.26
 require (
 	appkit v0.0.0
 	eventplane v0.0.0
-	github.com/ikigenba/agentkit v0.1.1
+	github.com/ikigenba/agentkit v0.2.0
 	golang.org/x/mod v0.34.0
 	modernc.org/sqlite v1.50.1
 	registry v0.0.0

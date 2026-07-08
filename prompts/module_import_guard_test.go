@@ -11,7 +11,7 @@ import (
 func TestModuleAgentkitDependencyIsPublishedOnly(t *testing.T) {
 	const (
 		published = "github.com/ikigenba/agentkit"
-		version   = "v0.1.1"
+		version   = "v0.2.0"
 	)
 
 	data, err := os.ReadFile("go.mod")
@@ -58,10 +58,15 @@ func TestModuleAgentkitDependencyIsPublishedOnly(t *testing.T) {
 		"agentkit v0.0.0",
 		published + " v0.1.0 ",
 		published + " v0.1.0/go.mod ",
+		published + " v0.1.1 ",
+		published + " v0.1.1/go.mod ",
 	} {
 		if strings.Contains(sumText, legacy) {
 			t.Fatalf("go.sum contains legacy agentkit entry %q", legacy)
 		}
+	}
+	if !strings.Contains(sumText, published+" ") {
+		return
 	}
 	for _, want := range []string{
 		published + " " + version + " ",

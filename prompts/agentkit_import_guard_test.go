@@ -23,7 +23,7 @@ func TestAgentkitDependencyUsesPublishedModule(t *testing.T) {
 	}
 
 	const published = "github.com/ikigenba/agentkit"
-	const wantVersion = "v0.1.1"
+	const wantVersion = "v0.2.0"
 
 	var found bool
 	for _, req := range mod.Require {

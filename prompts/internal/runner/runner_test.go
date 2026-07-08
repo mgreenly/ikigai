@@ -3,6 +3,7 @@ package runner
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -24,10 +25,12 @@ import (
 // response. If block is true, RoundTrip waits for the context to finish before
 // returning, modelling a hung provider call without any network dependency.
 type fakeProvider struct {
-	block bool
+	block      bool
+	roundTrips []*agentkit.RoundTrip
 
 	mu       sync.Mutex
 	requests []*agentkit.Request
+	next     int
 }
 
 func (f *fakeProvider) Name() string { return "fake" }
@@ -39,12 +42,22 @@ func (f *fakeProvider) Pricing(model string) (agentkit.Pricing, bool) {
 func (f *fakeProvider) RoundTrip(ctx context.Context, req *agentkit.Request) *agentkit.RoundTrip {
 	f.mu.Lock()
 	f.requests = append(f.requests, req)
-	f.mu.Unlock()
-
 	if f.block {
+		f.mu.Unlock()
 		<-ctx.Done()
 		return agentkit.NewRoundTrip(agentkit.Message{}, agentkit.FinishOther, agentkit.Usage{}, nil, ctx.Err())
 	}
+	if len(f.roundTrips) > 0 {
+		next := f.next
+		f.next++
+		f.mu.Unlock()
+		if next >= len(f.roundTrips) {
+			return agentkit.NewRoundTrip(agentkit.Message{}, agentkit.FinishOther, agentkit.Usage{}, nil, errors.New("fake provider script exhausted"))
+		}
+		return f.roundTrips[next]
+	}
+	f.mu.Unlock()
+
 	return agentkit.NewRoundTrip(
 		agentkit.Message{Role: agentkit.RoleAssistant, Blocks: []agentkit.Block{agentkit.TextBlock{Text: "all done"}}},
 		agentkit.FinishStop,
@@ -60,6 +73,15 @@ func (f *fakeProvider) requestCount() int {
 	return len(f.requests)
 }
 
+func (f *fakeProvider) request(i int) *agentkit.Request {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if i < 0 || i >= len(f.requests) {
+		return nil
+	}
+	return f.requests[i]
+}
+
 func (f *fakeProvider) lastRequest() *agentkit.Request {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -67,6 +89,26 @@ func (f *fakeProvider) lastRequest() *agentkit.Request {
 		return nil
 	}
 	return f.requests[len(f.requests)-1]
+}
+
+func scriptedRoundTrip(blocks ...agentkit.Block) *agentkit.RoundTrip {
+	return agentkit.NewRoundTrip(
+		agentkit.Message{Role: agentkit.RoleAssistant, Blocks: blocks},
+		agentkit.FinishToolUse,
+		agentkit.Usage{InputUncached: 1, Output: 1, Total: 2},
+		nil,
+		nil,
+	)
+}
+
+func scriptedTextRoundTrip(text string) *agentkit.RoundTrip {
+	return agentkit.NewRoundTrip(
+		agentkit.Message{Role: agentkit.RoleAssistant, Blocks: []agentkit.Block{agentkit.TextBlock{Text: text}}},
+		agentkit.FinishStop,
+		agentkit.Usage{InputUncached: 1, Output: 1, Total: 2},
+		nil,
+		nil,
+	)
 }
 
 func TestBuildProviderUsesInjectedEnvironment(t *testing.T) {
@@ -281,6 +323,159 @@ func TestSpawn_UsesInjectedProviderFactoryWithoutLiveEnvironment(t *testing.T) {
 	}
 }
 
+func TestSpawn_RequestAdvertisesSandboxAndLoaderOnlyForDeferredTools(t *testing.T) {
+	// R-9NBD-XAU5
+	withDeferred := &fakeProvider{}
+	runsDir := t.TempDir()
+	r, store := newTestRunner(t, time.Minute, withDeferred)
+	_, run := seedRunning(t, store, r.sandbox, runsDir)
+	r.discover = func(context.Context, string, string) []agentkit.DeferredToolGroup {
+		return []agentkit.DeferredToolGroup{{
+			Name:  "crm",
+			Blurb: "CRM tools",
+			Tools: []agentkit.Tool{
+				agentkit.RawTool("ikigenba_crm_lookup", "Lookup CRM records.", json.RawMessage(`{"type":"object"}`), func(context.Context, json.RawMessage) (string, error) {
+					return "ok", nil
+				}),
+			},
+		}}
+	}
+
+	r.execute(run)
+
+	req := withDeferred.request(0)
+	if req == nil {
+		t.Fatalf("fake provider saw no first request")
+	}
+	names := requestToolNames(req)
+	for _, want := range []string{"Bash", "Read", "Write", "Edit", "Glob", "Grep"} {
+		if !names[want] {
+			t.Fatalf("first request tools = %v, missing sandbox tool %q", sortedToolNames(req.Tools), want)
+		}
+	}
+	if !names["load_tools"] {
+		t.Fatalf("first request tools = %v, want load_tools for non-empty deferred groups", sortedToolNames(req.Tools))
+	}
+	for name := range names {
+		if strings.HasPrefix(name, "ikigenba_") {
+			t.Fatalf("first request included eager suite tool %q; want only sandbox tools plus load_tools", name)
+		}
+	}
+
+	withoutDeferred := &fakeProvider{}
+	runsDir = t.TempDir()
+	r, store = newTestRunner(t, time.Minute, withoutDeferred)
+	_, run = seedRunning(t, store, r.sandbox, runsDir)
+	r.discover = func(context.Context, string, string) []agentkit.DeferredToolGroup {
+		return []agentkit.DeferredToolGroup{}
+	}
+
+	r.execute(run)
+
+	req = withoutDeferred.request(0)
+	if req == nil {
+		t.Fatalf("empty-deferred fake provider saw no first request")
+	}
+	names = requestToolNames(req)
+	if names["load_tools"] {
+		t.Fatalf("first request tools = %v, want no load_tools when deferred groups are empty", sortedToolNames(req.Tools))
+	}
+	for _, want := range []string{"Bash", "Read", "Write", "Edit", "Glob", "Grep"} {
+		if !names[want] {
+			t.Fatalf("empty-deferred first request tools = %v, missing sandbox tool %q", sortedToolNames(req.Tools), want)
+		}
+	}
+}
+
+func TestSpawn_SystemFramesDeferredToolsWithoutServiceEnumeration(t *testing.T) {
+	// R-9OJA-B2KU
+	fp := &fakeProvider{}
+	runsDir := t.TempDir()
+	r, store := newTestRunner(t, time.Minute, fp)
+	_, run := seedRunning(t, store, r.sandbox, runsDir)
+	r.discover = func(context.Context, string, string) []agentkit.DeferredToolGroup {
+		return []agentkit.DeferredToolGroup{{
+			Name: "crm",
+			Tools: []agentkit.Tool{
+				agentkit.RawTool("ikigenba_crm_lookup", "Lookup CRM records.", json.RawMessage(`{"type":"object"}`), func(context.Context, json.RawMessage) (string, error) {
+					return "ok", nil
+				}),
+			},
+		}}
+	}
+
+	r.execute(run)
+
+	req := fp.request(0)
+	if req == nil {
+		t.Fatalf("fake provider saw no first request")
+	}
+	if !strings.Contains(req.System, "deferred tools") || !strings.Contains(req.System, "load_tools") {
+		t.Fatalf("system prompt = %q, want deferred-tools guidance naming load_tools", req.System)
+	}
+	if strings.Contains(req.System, "ikigenba_") {
+		t.Fatalf("system prompt enumerates suite tool names: %q", req.System)
+	}
+}
+
+func TestExecute_LoadsAndCallsDeferredSuiteTool(t *testing.T) {
+	// R-9PR6-OUBJ
+	const toolName = "ikigenba_crm_lookup"
+	fp := &fakeProvider{roundTrips: []*agentkit.RoundTrip{
+		scriptedRoundTrip(agentkit.ToolUseBlock{ID: "toolu_load", Name: "load_tools", Input: json.RawMessage(`{"tools":["` + toolName + `"]}`)}),
+		scriptedRoundTrip(agentkit.ToolUseBlock{ID: "toolu_crm", Name: toolName, Input: json.RawMessage(`{"id":"contact_123"}`)}),
+		scriptedTextRoundTrip("done"),
+	}}
+	runsDir := t.TempDir()
+	r, store := newTestRunner(t, time.Minute, fp)
+	sess, run := seedRunning(t, store, r.sandbox, runsDir)
+
+	var calledWith json.RawMessage
+	r.discover = func(context.Context, string, string) []agentkit.DeferredToolGroup {
+		return []agentkit.DeferredToolGroup{{
+			Name:  "crm",
+			Blurb: "CRM tools",
+			Tools: []agentkit.Tool{
+				agentkit.RawTool(toolName, "Lookup CRM records.", json.RawMessage(`{"type":"object","properties":{"id":{"type":"string"}}}`), func(_ context.Context, input json.RawMessage) (string, error) {
+					calledWith = append(json.RawMessage(nil), input...)
+					return `{"name":"Ada Lovelace"}`, nil
+				}),
+			},
+		}}
+	}
+
+	r.execute(run)
+
+	got, err := store.GetLatestRun(context.Background(), sess.ID)
+	if err != nil {
+		t.Fatalf("GetLatestRun: %v", err)
+	}
+	if got == nil || got.Status != prompt.RunSucceeded {
+		t.Fatalf("run = %#v, want succeeded", got)
+	}
+	if string(calledWith) != `{"id":"contact_123"}` {
+		t.Fatalf("deferred tool input = %s, want contact id payload", calledWith)
+	}
+	if fp.requestCount() != 3 {
+		t.Fatalf("provider RoundTrip calls = %d, want load, native call, final", fp.requestCount())
+	}
+	second := fp.request(1)
+	if second == nil {
+		t.Fatalf("fake provider saw no second request")
+	}
+	if !requestToolNames(second)[toolName] {
+		t.Fatalf("second request tools = %v, want loaded deferred tool", sortedToolNames(second.Tools))
+	}
+
+	records := readRunnerLogRecords(t, run.LogPath)
+	if !hasToolUse(records, "load_tools") || !hasToolResult(records, "load_tools") {
+		t.Fatalf("log records missing load_tools tool_use/tool_result: %v", logToolEvents(records))
+	}
+	if !hasToolUse(records, toolName) || !hasToolResult(records, toolName) {
+		t.Fatalf("log records missing deferred tool_use/tool_result: %v", logToolEvents(records))
+	}
+}
+
 // TestSpawn_DiscoversSuiteTools asserts the runner builds in-run suite deferred
 // tool groups at spawn via the injectable discover seam, calling it with the
 // run's OwnerEmail/PromptID, and that the resulting catalog is threaded into the
@@ -356,6 +551,79 @@ func TestSpawn_DiscoversSuiteTools(t *testing.T) {
 	if foundSuiteLookup {
 		t.Fatalf("provider request included deferred suite_lookup eagerly")
 	}
+}
+
+func requestToolNames(req *agentkit.Request) map[string]bool {
+	names := make(map[string]bool, len(req.Tools))
+	for _, tool := range req.Tools {
+		names[tool.Name()] = true
+	}
+	return names
+}
+
+func sortedToolNames(tools []agentkit.Tool) []string {
+	names := make([]string, 0, len(tools))
+	for _, tool := range tools {
+		names = append(names, tool.Name())
+	}
+	return names
+}
+
+type runnerLogRecord struct {
+	Type    string               `json:"type"`
+	ToolUse *agentkit.ToolUse    `json:"tool_use"`
+	Result  *agentkit.ToolResult `json:"tool_result"`
+}
+
+func readRunnerLogRecords(t *testing.T, path string) []runnerLogRecord {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read log: %v", err)
+	}
+	var records []runnerLogRecord
+	for _, line := range strings.Split(strings.TrimSpace(string(data)), "\n") {
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		var record runnerLogRecord
+		if err := json.Unmarshal([]byte(line), &record); err != nil {
+			t.Fatalf("parse log line %q: %v", line, err)
+		}
+		records = append(records, record)
+	}
+	return records
+}
+
+func hasToolUse(records []runnerLogRecord, name string) bool {
+	for _, record := range records {
+		if record.Type == "tool_use" && record.ToolUse != nil && record.ToolUse.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+func hasToolResult(records []runnerLogRecord, name string) bool {
+	for _, record := range records {
+		if record.Type == "tool_result" && record.Result != nil && record.Result.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+func logToolEvents(records []runnerLogRecord) []string {
+	var events []string
+	for _, record := range records {
+		switch {
+		case record.Type == "tool_use" && record.ToolUse != nil:
+			events = append(events, "use:"+record.ToolUse.Name)
+		case record.Type == "tool_result" && record.Result != nil:
+			events = append(events, "result:"+record.Result.Name)
+		}
+	}
+	return events
 }
 
 // TestNew_DefaultDiscoverWired confirms the default construction (no seam
