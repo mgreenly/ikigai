@@ -498,26 +498,49 @@ func TestNginxFragmentGatesAndProxiesLandingStaticAssets(t *testing.T) {
 	}
 }
 
-// R-4LKF-FB23
-func TestNginxFragmentServesStateWWWPublicAndSessionGatesPrivate(t *testing.T) {
+func TestNginxFragmentProxiesPublicAndSessionGatesPrivateTiers(t *testing.T) {
 	conf := readNginxConfig(t)
 	public := nginxLocationBlock(t, conf, "location /srv/sites/public/")
 	private := nginxLocationBlock(t, conf, "location /srv/sites/private/")
 
-	if !strings.Contains(public, "alias /opt/sites/state/www/public/;") {
-		t.Fatalf("public tier is not served from state/www/public:\n%s", public)
+	// R-R78H-DJF2
+	if !strings.Contains(public, "proxy_pass http://127.0.0.1:3004/public/;") {
+		t.Fatalf("public tier does not proxy to the public upstream:\n%s", public)
 	}
 	if strings.Contains(public, "auth_request") {
 		t.Fatalf("public tier unexpectedly requires auth:\n%s", public)
 	}
+
+	// R-R8GD-RB5R
 	if !strings.Contains(private, "auth_request /_session-authn;") {
 		t.Fatalf("private tier does not use dashboard session auth:\n%s", private)
 	}
-	if !strings.Contains(private, "alias /opt/sites/state/www/private/;") {
-		t.Fatalf("private tier is not served from state/www/private:\n%s", private)
+	if !strings.Contains(private, "proxy_pass http://127.0.0.1:3004/private/;") {
+		t.Fatalf("private tier does not proxy to the private upstream:\n%s", private)
 	}
-	if strings.Contains(conf, "/opt/sites/www/served/") {
-		t.Fatalf("nginx fragment still references legacy /opt/sites/www/served path:\n%s", conf)
+
+	// R-R9OA-52WG
+	if strings.Contains(public, "alias ") {
+		t.Fatalf("public tier still contains an alias directive:\n%s", public)
+	}
+	if strings.Contains(private, "alias ") {
+		t.Fatalf("private tier still contains an alias directive:\n%s", private)
+	}
+	if strings.Contains(conf, "alias") {
+		t.Fatalf("nginx fragment still contains an alias directive:\n%s", conf)
+	}
+	if match := regexp.MustCompile(`/opt/sites/[^ \t\n]*www[^ \t\n]*`).FindString(conf); match != "" {
+		t.Fatalf("nginx fragment still references an on-disk www path %q:\n%s", match, conf)
+	}
+	for _, prefix := range []string{
+		"location = /srv/sites/",
+		"location = /srv/sites/mcp",
+		"location = /srv/sites/.well-known/oauth-protected-resource",
+		"location @sites_authn_500",
+	} {
+		if !strings.Contains(conf, prefix) {
+			t.Fatalf("nginx fragment is missing %s:\n%s", prefix, conf)
+		}
 	}
 }
 
