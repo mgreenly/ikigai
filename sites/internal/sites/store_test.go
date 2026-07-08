@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
@@ -49,11 +48,8 @@ func TestCRUDRoundtrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create alpha: %v", err)
 	}
-	if a.Name != "alpha" || a.Tier != "" || a.Published {
+	if a.Name != "alpha" || a.Public {
 		t.Fatalf("create alpha: unexpected row %+v", a)
-	}
-	if a.PublishedAt != nil {
-		t.Fatalf("create alpha: published_at should be nil, got %v", a.PublishedAt)
 	}
 	if a.CreatedAt.IsZero() || a.UpdatedAt.IsZero() {
 		t.Fatalf("create alpha: timestamps unset %+v", a)
@@ -207,13 +203,48 @@ func TestCreatePersistsCreatedByAndDefaultsPrivate(t *testing.T) {
 		t.Fatalf("List Public = true, want false")
 	}
 
-	for _, column := range []string{"tier", "published", "published_at", "public", "created_by"} {
+	for _, column := range []string{"public", "created_by"} {
 		var found int
 		if err := s.db.QueryRowContext(ctx, `SELECT count(*) FROM pragma_table_info('sites') WHERE name = ?`, column).Scan(&found); err != nil {
 			t.Fatalf("query schema column %q: %v", column, err)
 		}
 		if found != 1 {
 			t.Fatalf("schema column %q count = %d, want 1", column, found)
+		}
+	}
+}
+
+func TestSitesSchemaDropsPublishLifecycleColumns(t *testing.T) {
+	s := newTestStore(t)
+	ctx := context.Background()
+
+	rows, err := s.db.QueryContext(ctx, `SELECT name FROM pragma_table_info('sites')`)
+	if err != nil {
+		t.Fatalf("query schema columns: %v", err)
+	}
+	defer rows.Close()
+
+	columns := map[string]bool{}
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			t.Fatalf("scan schema column: %v", err)
+		}
+		columns[name] = true
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatalf("schema rows: %v", err)
+	}
+
+	// R-QQ5W-0R1C
+	for _, name := range []string{"public", "created_by"} {
+		if !columns[name] {
+			t.Fatalf("schema missing %q column; columns=%v", name, columns)
+		}
+	}
+	for _, name := range []string{"tier", "published", "published_at"} {
+		if columns[name] {
+			t.Fatalf("schema still has %q column; columns=%v", name, columns)
 		}
 	}
 }
@@ -261,58 +292,5 @@ func TestSetVisibilityPersistsAndAdvancesUpdatedAt(t *testing.T) {
 
 	if err := s.SetVisibility(ctx, "missing", true); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("missing SetVisibility: want ErrNotFound, got %v", err)
-	}
-}
-
-func TestLayout(t *testing.T) {
-	l := NewLayout("/srv/x")
-	if got := l.WorkingDir("a"); got != "/srv/x/working/a" {
-		t.Fatalf("WorkingDir: %q", got)
-	}
-	if got := l.ServedDir(PublicSeg, "a"); got != "/srv/x/public/a" {
-		t.Fatalf("ServedDir public: %q", got)
-	}
-	if got := l.ServedDir(PrivateSeg, "a"); got != "/srv/x/private/a" {
-		t.Fatalf("ServedDir private: %q", got)
-	}
-	// Empty root falls back to DefaultRoot.
-	def := NewLayout("")
-	if got := def.WorkingDir("a"); got != DefaultRoot+"/working/a" {
-		t.Fatalf("default WorkingDir: %q", got)
-	}
-	// Zero-value Layout tolerates the missing root.
-	var z Layout
-	if got := z.ServedBase(); got != DefaultRoot {
-		t.Fatalf("zero ServedBase: %q", got)
-	}
-}
-
-// R-4LKF-FB23
-func TestLayoutDefaultsToStateWWWWithoutLegacyServedTree(t *testing.T) {
-	l := NewLayout("")
-	wantRoot := "/opt/sites/state/www"
-	if l.Root != wantRoot {
-		t.Fatalf("default root = %q, want %q", l.Root, wantRoot)
-	}
-	for name, got := range map[string]string{
-		"working":      l.WorkingDir("demo"),
-		"served-base":  l.ServedBase(),
-		"public-tier":  l.ServedTierBase(PublicSeg),
-		"private-tier": l.ServedTierBase(PrivateSeg),
-		"public-site":  l.ServedDir(PublicSeg, "demo"),
-		"private-site": l.ServedDir(PrivateSeg, "demo"),
-	} {
-		if strings.Contains(got, "/opt/sites/www/") || strings.Contains(got, "/served") {
-			t.Fatalf("%s path keeps legacy served layout: %q", name, got)
-		}
-	}
-	if got := l.WorkingDir("demo"); got != "/opt/sites/state/www/working/demo" {
-		t.Fatalf("working path = %q", got)
-	}
-	if got := l.ServedDir(PublicSeg, "demo"); got != "/opt/sites/state/www/public/demo" {
-		t.Fatalf("public path = %q", got)
-	}
-	if got := l.ServedDir(PrivateSeg, "demo"); got != "/opt/sites/state/www/private/demo" {
-		t.Fatalf("private path = %q", got)
 	}
 }

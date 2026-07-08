@@ -3,6 +3,8 @@ package sites
 import (
 	"os"
 	"path/filepath"
+	"runtime"
+	"strings"
 	"testing"
 )
 
@@ -74,5 +76,50 @@ func TestLayoutMoveRelocatesVisibilityDirectories(t *testing.T) {
 	}
 	if err := layout.Move("empty", true); err != nil {
 		t.Fatalf("move missing source: %v", err)
+	}
+}
+
+func TestCleanupRemovesLegacyPublishMechanics(t *testing.T) {
+	_, file, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("locate test file")
+	}
+	packageDir := filepath.Dir(file)
+	if _, err := os.Stat(filepath.Join(packageDir, "publish.go")); !os.IsNotExist(err) {
+		t.Fatalf("publish.go exists or stat failed with non-missing error: %v", err)
+	}
+
+	internalDir := filepath.Dir(packageDir)
+	forbidden := []string{
+		"symlink" + "Target",
+		"os." + "Symlink",
+		"Working" + "Dir",
+		"Served" + "Dir",
+		"Served" + "Tier" + "Base",
+		"Served" + "Base",
+	}
+	// R-QYP6-P587
+	err := filepath.WalkDir(internalDir, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() || filepath.Ext(path) != ".go" {
+			return nil
+		}
+		b, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		src := string(b)
+		for _, term := range forbidden {
+			if strings.Contains(src, term) {
+				rel, _ := filepath.Rel(internalDir, path)
+				t.Fatalf("legacy cleanup token %q remains in internal/%s", term, rel)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("scan internal package tree: %v", err)
 	}
 }

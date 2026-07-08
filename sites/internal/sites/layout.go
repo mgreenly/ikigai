@@ -7,8 +7,8 @@ import (
 )
 
 // SITES_ROOT layout. Every path in the served tree is constructed here so that
-// the publish phase and the on-box opsctl tooling agree byte-for-byte on where a
-// site's working copy and its served (symlinked) tree live.
+// the app and the on-box opsctl tooling agree byte-for-byte on where a site's
+// public or private directory lives.
 //
 // The root is *injected* (a Layout value), not read from the environment here:
 // that keeps these helpers pure and testable without touching os.Getenv, and it
@@ -18,10 +18,8 @@ const (
 	// DefaultRoot is the production SITES_ROOT when the env var is unset.
 	DefaultRoot = "/opt/sites/state/www"
 
-	// Path segments under the root. Exported so the publish phase and opsctl
-	// reference the same names rather than re-spelling string literals.
-	WorkingSeg = "working" // <root>/working/<name> — editable source tree
-	ServedSeg  = ""        // compatibility: served tiers now live directly under <root>
+	// Path segments under the root. Exported so callers and opsctl reference the
+	// same names rather than re-spelling string literals.
 	PublicSeg  = "public"  // <root>/public/<name>  — public tier
 	PrivateSeg = "private" // <root>/private/<name> — private tier
 )
@@ -48,32 +46,6 @@ func (l Layout) root() string {
 		return DefaultRoot
 	}
 	return l.Root
-}
-
-// WorkingDir is a site's editable working tree: <root>/working/<name>.
-func (l Layout) WorkingDir(name string) string {
-	return filepath.Join(l.root(), WorkingSeg, name)
-}
-
-// ServedDir is a site's served (front-door) tree for a tier:
-// <root>/<tier>/<name>. tier is one of PublicSeg / PrivateSeg.
-func (l Layout) ServedDir(tier, name string) string {
-	return filepath.Join(l.root(), tier, name)
-}
-
-// WorkingBase is <root>/working — the parent of every working tree.
-func (l Layout) WorkingBase() string {
-	return filepath.Join(l.root(), WorkingSeg)
-}
-
-// ServedBase is <root> — the parent of the public/private tier dirs.
-func (l Layout) ServedBase() string {
-	return l.root()
-}
-
-// ServedTierBase is <root>/<tier> — the parent of a tier's site dirs.
-func (l Layout) ServedTierBase(tier string) string {
-	return filepath.Join(l.root(), tier)
 }
 
 // SiteDir is a site's on-disk directory for its visibility:

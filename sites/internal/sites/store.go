@@ -1,8 +1,6 @@
 // Package sites is the slug/registry domain: CRUD over the `sites` table plus
 // the path helpers (layout.go) that pin where each site lives under SITES_ROOT.
-// Each row is one hosted static website keyed by its slug `name`. This package
-// does no filesystem mutation beyond what plain CRUD needs — the symlink/publish
-// machinery (the served-tier swap) is a later phase and lives elsewhere.
+// Each row is one hosted static website keyed by its slug `name`.
 package sites
 
 import (
@@ -46,25 +44,21 @@ var (
 	ErrNotFound = errors.New("sites: not found")
 )
 
-// Site mirrors one `sites` row. PublishedAt is nil until first published.
-// SourcePath records the originating Dropbox subtree for a sync-managed site
-// (empty ⇒ SQL NULL ⇒ hand-authored / not import-managed; ADR Decision 2).
+// Site mirrors one `sites` row. SourcePath records the originating Dropbox
+// subtree for a sync-managed site (empty ⇒ SQL NULL ⇒ hand-authored / not
+// import-managed; ADR Decision 2).
 type Site struct {
-	Name        string
-	Tier        string
-	Published   bool
-	PublishedAt *time.Time
-	SourcePath  string
-	Public      bool
-	CreatedBy   string
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	Name       string
+	Public     bool
+	CreatedBy  string
+	SourcePath string
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
 }
 
 // Store is the registry's data-access boundary over the `sites` table. Now is
-// injected so tests can pin time; it defaults to time.Now. Layout pins the
-// SITES_ROOT the publish phase (publish.go) symlinks under — a zero Layout falls
-// back to DefaultRoot, so the plain CRUD path (Phase 2) needs no layout wiring.
+// injected so tests can pin time; it defaults to time.Now. Layout is retained
+// for composition sites that construct the store alongside filesystem layout.
 type Store struct {
 	db     *sql.DB
 	Layout Layout
@@ -77,9 +71,8 @@ func NewStore(db *sql.DB) *Store {
 	return &Store{db: db, Now: time.Now}
 }
 
-// NewStoreWithLayout wraps an open *sql.DB and pins the Layout used by the
-// publish/unpublish symlink machinery. Use this at process wiring (cmd/sites)
-// once the SITES_ROOT-derived Layout is available.
+// NewStoreWithLayout wraps an open *sql.DB and pins the Layout used at process
+// wiring once the SITES_ROOT-derived Layout is available.
 func NewStoreWithLayout(db *sql.DB, layout Layout) *Store {
 	return &Store{db: db, Layout: layout, Now: time.Now}
 }
@@ -119,8 +112,8 @@ func parseTime(s string) time.Time {
 	return t
 }
 
-// Create validates the slug + reserved guard, then inserts a fresh private row
-// with tier=” and published=0. created_at/updated_at are set to now (UTC).
+// Create validates the slug + reserved guard, then inserts a fresh private row.
+// created_at/updated_at are set to now (UTC).
 // Returns ErrExists if the name is already taken.
 func (s *Store) Create(ctx context.Context, name, createdBy string) (Site, error) {
 	if err := validateName(name); err != nil {
@@ -131,8 +124,8 @@ func (s *Store) Create(ctx context.Context, name, createdBy string) (Site, error
 	// source_path is inserted NULL: a freshly created site is hand-authored until
 	// a sync stamps it via SetSourcePath.
 	_, err := s.db.ExecContext(ctx,
-		`INSERT INTO sites (name, tier, published, published_at, source_path, public, created_by, created_at, updated_at)
-		 VALUES (?, '', 0, NULL, NULL, 0, ?, ?, ?)`,
+		`INSERT INTO sites (name, source_path, public, created_by, created_at, updated_at)
+		 VALUES (?, NULL, 0, ?, ?, ?)`,
 		name, createdBy, ts, ts)
 	if err != nil {
 		if strings.Contains(err.Error(), "UNIQUE constraint failed") ||
@@ -143,8 +136,6 @@ func (s *Store) Create(ctx context.Context, name, createdBy string) (Site, error
 	}
 	return Site{
 		Name:      name,
-		Tier:      "",
-		Published: false,
 		Public:    false,
 		CreatedBy: createdBy,
 		CreatedAt: parseTime(ts),
@@ -155,7 +146,7 @@ func (s *Store) Create(ctx context.Context, name, createdBy string) (Site, error
 // Get fetches one site by name. Returns ErrNotFound when absent.
 func (s *Store) Get(ctx context.Context, name string) (Site, error) {
 	row := s.db.QueryRowContext(ctx,
-		`SELECT name, tier, published, published_at, source_path, public, created_by, created_at, updated_at
+		`SELECT name, public, created_by, source_path, created_at, updated_at
 		 FROM sites WHERE name = ?`, name)
 	site, err := scanSite(row)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -170,7 +161,7 @@ func (s *Store) Get(ctx context.Context, name string) (Site, error) {
 // List returns every site ordered by name (deterministic).
 func (s *Store) List(ctx context.Context) ([]Site, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT name, tier, published, published_at, source_path, public, created_by, created_at, updated_at
+		`SELECT name, public, created_by, source_path, created_at, updated_at
 		 FROM sites ORDER BY name`)
 	if err != nil {
 		return nil, fmt.Errorf("list sites: %w", err)
@@ -259,32 +250,23 @@ type rowScanner interface {
 	Scan(dest ...any) error
 }
 
-// scanSite maps a sites row into a Site, translating the nullable published_at
-// and the integer published flag.
+// scanSite maps a sites row into a Site, translating the nullable source_path.
 func scanSite(sc rowScanner) (Site, error) {
 	var (
-		name, tier, createdAt, updatedAt string
-		published                        int64
-		public                           int64
-		publishedAt                      sql.NullString
-		sourcePath                       sql.NullString
-		createdBy                        string
+		name, createdAt, updatedAt string
+		public                     int64
+		sourcePath                 sql.NullString
+		createdBy                  string
 	)
-	if err := sc.Scan(&name, &tier, &published, &publishedAt, &sourcePath, &public, &createdBy, &createdAt, &updatedAt); err != nil {
+	if err := sc.Scan(&name, &public, &createdBy, &sourcePath, &createdAt, &updatedAt); err != nil {
 		return Site{}, err
 	}
 	site := Site{
 		Name:      name,
-		Tier:      tier,
-		Published: published != 0,
 		Public:    public != 0,
 		CreatedBy: createdBy,
 		CreatedAt: parseTime(createdAt),
 		UpdatedAt: parseTime(updatedAt),
-	}
-	if publishedAt.Valid {
-		t := parseTime(publishedAt.String)
-		site.PublishedAt = &t
 	}
 	// NULL source_path (hand-authored) reads back as the empty string.
 	if sourcePath.Valid {

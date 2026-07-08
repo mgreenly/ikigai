@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"slices"
+	"syscall"
 	"testing"
 )
 
@@ -17,11 +18,11 @@ func TestConfinePathResolvesAndRejectsEscapes(t *testing.T) {
 	if err := os.Mkdir(insideDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Symlink(insideDir, filepath.Join(root, "inside-link")); err != nil {
+	if err := syscall.Symlink(insideDir, filepath.Join(root, "inside-link")); err != nil {
 		t.Fatal(err)
 	}
 	outside := t.TempDir()
-	if err := os.Symlink(outside, filepath.Join(root, "outside-link")); err != nil {
+	if err := syscall.Symlink(outside, filepath.Join(root, "outside-link")); err != nil {
 		t.Fatal(err)
 	}
 
@@ -161,7 +162,7 @@ func TestGlobReturnsSearchBaseRelativeMatches(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if err := os.Symlink(t.TempDir(), filepath.Join(root, "assets", "outside")); err != nil {
+	if err := syscall.Symlink(t.TempDir(), filepath.Join(root, "assets", "outside")); err != nil {
 		t.Fatal(err)
 	}
 
@@ -612,10 +613,10 @@ func TestGlobRecursiveDoubleStarDoesNotFollowSymlinks(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(outside, "outside.css"), []byte("outside"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Symlink(filepath.Join(outside, "outside.css"), filepath.Join(root, "assets", "css", "linked.css")); err != nil {
+	if err := syscall.Symlink(filepath.Join(outside, "outside.css"), filepath.Join(root, "assets", "css", "linked.css")); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Symlink(outside, filepath.Join(root, "assets", "linked-dir")); err != nil {
+	if err := syscall.Symlink(outside, filepath.Join(root, "assets", "linked-dir")); err != nil {
 		t.Fatal(err)
 	}
 
@@ -680,7 +681,7 @@ func TestGlobLiteralSymlinkPatternIsNotFollowed(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "real", "style.css"), []byte("body{}"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Symlink(filepath.Join(root, "real"), filepath.Join(root, "linked")); err != nil {
+	if err := syscall.Symlink(filepath.Join(root, "real"), filepath.Join(root, "linked")); err != nil {
 		t.Fatal(err)
 	}
 
@@ -720,7 +721,7 @@ func TestGlobRejectsEscapingPatterns(t *testing.T) {
 func TestGlobRejectsEscapingSearchBasePath(t *testing.T) {
 	root := globRecursiveFixture(t)
 	outside := t.TempDir()
-	if err := os.Symlink(outside, filepath.Join(root, "outside")); err != nil {
+	if err := syscall.Symlink(outside, filepath.Join(root, "outside")); err != nil {
 		t.Fatal(err)
 	}
 
@@ -778,7 +779,7 @@ func TestGlobRejectsPatternsResolvingOutsideSearchBase(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(outside, "leak.css"), []byte("leak"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Symlink(outside, filepath.Join(root, "assets", "outside")); err != nil {
+	if err := syscall.Symlink(outside, filepath.Join(root, "assets", "outside")); err != nil {
 		t.Fatal(err)
 	}
 
@@ -972,7 +973,7 @@ func TestOperationsShareErrEscapesConfinement(t *testing.T) {
 		t.Fatal(err)
 	}
 	escape := t.TempDir()
-	if err := os.Symlink(escape, filepath.Join(root, "escape")); err != nil {
+	if err := syscall.Symlink(escape, filepath.Join(root, "escape")); err != nil {
 		t.Fatal(err)
 	}
 
