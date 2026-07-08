@@ -18,6 +18,12 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - D12 → `project/design/D12.md` — Web surface from `share/www` through the chassis (de-embed via `Spec.WWW`): move `landing.html` + `static/` to `sites/share/www`, render at `GET /{$}` via `rt.WWW()`, delete `internal/web` and the service-side `/static/` mount (chassis auto-mounts it); rewrites the mechanism of D1/D2/D3/D6/D7/D8 — owns R-0SF5-VPQF, R-0TN2-9HH4
 - D13 → `project/design/D13.md` — MCP surface over `appkit/mcp`: `internal/mcp` becomes the fourteen-domain-tool table; delete the local JSON-RPC transport + local `health`; chassis supplies `health`/`reflection` (sites gains `reflection`, empty graph); mirror client becomes a constructor param; supersedes D11's R-0KIG-2A5X (16-tool set) — owns R-0UUY-N97T, R-P21E-0285
 - D14 → `project/design/D14.md` — Delete the `internal/db` `Open`/`Migrate` shim (keep only the embedded `FS` + load guard; test harnesses call `appkit/db` directly), normalize the composition root (relocate the `Handlers` closure inside `sitesSpec()`; no post-construction `.Handlers` mutation; keep the builder), and true up `AGENTS.md` if present — none (structural; shim deletion + composition-root normalization + doc truth)
+- D15 → `project/design/D15.md` — Data model: a `public` boolean and `created_by`, retiring the publish lifecycle (`tier`/`published`/`published_at` dropped; two immutable migrations; `Store.Create(name, createdBy)` + `SetVisibility`) — owns R-QRDS-EIS1, R-QSLO-SAIQ, R-QTTL-629F, R-QQ5W-0R1C
+- D16 → `project/design/D16.md` — Filesystem layout: files live at the served path `SITES_ROOT/<public|private>/<slug>`; delete the working tree and symlink indirection (`Layout.SiteDir`/`SiteBase`/`Move`; `publish.go` removed) — owns R-QV1H-JU04, R-QW9D-XLQT, R-QYP6-P587
+- D17 → `project/design/D17.md` — In-process static serving of hosted sites (`internal/serve`): index-mapping, no-listing, confined, trailing-slash redirect; mounted ungated at `GET /public/` and `GET /private/` — owns R-QZX3-2WYW, R-R14Z-GOPL, R-R2CV-UGGA, R-R3KS-886Z, R-R4SO-LZXO, R-R60K-ZROD
+- D18 → `project/design/D18.md` — nginx fragment proxies the public/private tiers to the process (no `alias`; private keeps `/_session-authn`; nginx reads no state off disk) — owns R-R78H-DJF2, R-R8GD-RB5R, R-R9OA-52WG
+- D19 → `project/design/D19.md` — The landing page lists the sites that exist (live-rendered from `store.List`; slug/public-private/creator/created-at; empty-state safe) — owns R-RAW6-IUN5, R-RC42-WMDU
+- D20 → `project/design/D20.md` — MCP surface: drop publish/unpublish, add `set_visibility`, thread `created_by` from Identity, serve the live folder via `SiteDir` (file tools/sync/delete retargeted) — owns R-RDBZ-AE4J, R-RFRS-1XLX, R-RGZO-FPCM, R-RI7K-TH3B, R-RJFH-78U0
 
 ## Verification ids → Decision
 
@@ -66,3 +72,26 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - R-ROUT-6S1D → D2 → `project/design/D02.md`
 - R-ROUT-8U3F → D2 → `project/design/D02.md`
 - R-HOME-9S3W → D7 → `project/design/D07.md`
+- R-QQ5W-0R1C → D15 → `project/design/D15.md`
+- R-QRDS-EIS1 → D15 → `project/design/D15.md`
+- R-QSLO-SAIQ → D15 → `project/design/D15.md`
+- R-QTTL-629F → D15 → `project/design/D15.md`
+- R-QV1H-JU04 → D16 → `project/design/D16.md`
+- R-QW9D-XLQT → D16 → `project/design/D16.md`
+- R-QYP6-P587 → D16 → `project/design/D16.md`
+- R-QZX3-2WYW → D17 → `project/design/D17.md`
+- R-R14Z-GOPL → D17 → `project/design/D17.md`
+- R-R2CV-UGGA → D17 → `project/design/D17.md`
+- R-R3KS-886Z → D17 → `project/design/D17.md`
+- R-R4SO-LZXO → D17 → `project/design/D17.md`
+- R-R60K-ZROD → D17 → `project/design/D17.md`
+- R-R78H-DJF2 → D18 → `project/design/D18.md`
+- R-R8GD-RB5R → D18 → `project/design/D18.md`
+- R-R9OA-52WG → D18 → `project/design/D18.md`
+- R-RAW6-IUN5 → D19 → `project/design/D19.md`
+- R-RC42-WMDU → D19 → `project/design/D19.md`
+- R-RDBZ-AE4J → D20 → `project/design/D20.md`
+- R-RFRS-1XLX → D20 → `project/design/D20.md`
+- R-RGZO-FPCM → D20 → `project/design/D20.md`
+- R-RI7K-TH3B → D20 → `project/design/D20.md`
+- R-RJFH-78U0 → D20 → `project/design/D20.md`

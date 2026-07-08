@@ -1,24 +1,25 @@
-# sites — Design (landing page)
+# sites — Design
 
 **Authority: shape and its proof.** This document and the `project/design/`
-directory it heads own *how* the sites landing page is built and *how each
-behavior is proven*. The product (`project/product/product.md`) owns the *why*,
-*for whom*, and the user-facing promises; design states the **exact, checkable
-form** of those promises and never re-declares the why. Design *uses* the
-product's contractual constants by value (the page lives at the bare mount root
-only; v1 content is service name + version; the gate is `/_session-authn` and
-coarse — and **already present** on sites; the visual system is Carbon) but does
-**not** own them. This is the single, current statement of the landing-page
+directory it heads own *how* sites is built and *how each behavior is proven*.
+The product (`project/product/product.md`) owns the *why*, *for whom*, and the
+user-facing promises; design states the **exact, checkable form** of those
+promises and never re-declares the why. Design *uses* the product's contractual
+constants by value (a site is public-or-private; a site that exists is served;
+sites serves every byte under its mount; the visibility gate is nginx's; the
+landing page is session-gated and shows version + site list; the visual system is
+Carbon) but does **not** own them. This is the single, current statement of the
 architecture — it is rewritten in place to stay true (stale decisions are
 removed, not stacked); the history of how it got here lives in the plan.
 
-> **Scope.** This design covers **only** sites' standardized web landing page
-> and the seam it establishes. The existing sites domain (the
-> `ikigenba_sites_*` MCP surface that publishes static websites, the
-> public/private static tiers served from disk, the dropbox mirror sync, the
-> migrations) is owned elsewhere (`sites/cmd/sites/main.go`,
-> `sites/internal/sites`, `sites/internal/mcp`) and is untouched. No schema
-> changes: the landing page adds **no migration**.
+> **Scope.** This design covers sites' whole current surface: the slug/visibility
+> domain (`internal/sites`), the in-process static server (`internal/serve`), the
+> confined file tools (`internal/files`), the MCP tool table (`internal/mcp`), the
+> embedded landing page (`share/www`), the migration set (`internal/db`), and the
+> nginx fragment (`sites/etc/nginx.conf`). All of these live under `sites/`;
+> nothing outside `sites/` is named or changed. Cross-service facts (the dashboard
+> session validator `/_session-authn`, the dropbox mirror, the shared `registry`)
+> are fixed external contracts this design consumes.
 
 ## Requirement ids
 
@@ -37,8 +38,7 @@ removed, not stacked); the history of how it got here lives in the plan.
 Shared facts every Decision leans on:
 
 - **Language / toolchain:** Go **1.26**, single module `module sites` rooted at
-  `sites/`. Pure-Go SQLite driver `modernc.org/sqlite` (no cgo). The landing page
-  itself touches no SQLite, but the module/build facts are unchanged.
+  `sites/`. Pure-Go SQLite driver `modernc.org/sqlite` (no cgo).
 - **Build / typecheck command:** `cd sites && go build ./...` and
   `cd sites && go vet ./...`. The production build adds
   `CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GOWORK=off -buildvcs=false` (driven by
@@ -47,119 +47,134 @@ Shared facts every Decision leans on:
   `cd sites && go build ./...`, `cd sites && go vet ./...`, `cd sites && gofmt -l .`
   (no output), and `cd sites && go test ./...` all succeed with zero failures.
 - **Formatting:** `gofmt`-clean; `gofmt -l .` must print nothing.
-- **Module wiring:** `appkit` and `eventplane` are committed in-repo
-  replace-siblings. The landing page adds **no new dependency** — its template is
-  loaded and rendered by the chassis (`appkit/web`, via `Spec.WWW`; the
-  page/assets ship on disk in `share/www`, **D12** — no sites-side `//go:embed`
-  or `html/template`), and the route handler uses only `net/http`. **D9** adds one
-  further committed replace-sibling,
-  `registry` (`replace registry => ../registry`), the suite's zero-dependency
-  leaf `name → port` table — used at the composition root to resolve sites's own
-  port and the dropbox mirror address by name instead of by literal. **D10/D11**
-  *remove* the `agentkit` replace-sibling entirely: sites was the local `agentkit`
-  module's only consumer, and the confined file-tool logic it borrowed moves into
-  the native `internal/files` package, so `require agentkit` and
-  `replace agentkit => ../agentkit` are dropped from `go.mod` and no agentkit
-  (local or remote) is imported anywhere in sites. (The orphaned repo-root
-  `agentkit/` tree is left on disk — deleting it is suite-level work outside this
-  `project/`.)
+- **Migrations are timestamped and immutable.** Schema lives under
+  `sites/internal/db/migrations/`, applied forward-only by the appkit runner and
+  keyed per file. A committed migration is **frozen** — a schema change is a
+  **new** migration created with `bin/create-migration sites <name>` (which stamps
+  a UTC `YYYYMMDDHHMMSS_<slug>.sql` version); never hand-name or edit one. The
+  hosting-model change adds new migrations; `002_sites.sql` and
+  `20260609135943_add_source_path.sql` stay frozen.
+- **Module wiring:** `appkit`, `eventplane`, and `registry` are committed in-repo
+  replace-siblings. sites resolves its own port and the dropbox mirror address by
+  name through `registry` (D9). No `agentkit` dependency (D10/D11): confined
+  file-tool logic lives in the native `internal/files` package.
 - **The chassis owns the server.** sites is `appkit.Main(appkit.Spec{…})`:
-  `App:"sites"`, `Mount:"/srv/sites/"`, `Port:registry.MustPort("sites")` (== 3004,
-  resolved by name through the shared `registry` — D9, no longer a literal),
-  `MCP:true`, `WWW:true` (**D12** — the chassis loads and serves the `share/www`
-  landing template and `/static/` assets), `Migrations:db.FS`. sites is **not** an
-  event-plane producer — the `Feed`/`Producer`/`Workers`/`Events` hooks are
-  deliberately omitted (no `/feed`); its MCP `reflection` therefore reports an
-  empty event graph (D13). The fixed verbs
-  (`serve`/`version`/`manifest`/`migrate`/`schema`), config-from-env, the loopback
-  HTTP server + PRM + identity gate, the `appkit/mcp` transport, and the
-  `appkit/web` render/static mechanism are appkit's. main.go declares sites's
-  identity (the Spec) and wires its surface through the Spec hooks. The landing
-  route (`GET /{$}` rendering through `rt.WWW()`) and the `POST /mcp` mount (the
-  `appkit/mcp` handler over sites's declared tool table, D13) are wired through
-  the existing **`Spec.Handlers`** hook, beside the layout/store/mirror-client
-  wiring.
-- **nginx is the sole trust boundary.** sites runs no token logic. nginx
-  introspects every `/srv/sites/` request against the dashboard and forwards to
-  the loopback service (or serves static tiers from disk directly). The landing
-  page's gate is therefore an **nginx** concern (the `sites/etc/nginx.conf`
-  fragment), not a Go concern: the Go handler is mounted **ungated in-process**,
-  exactly as `POST /mcp` relies on nginx for its bearer gate. sites binds
-  `127.0.0.1` only.
+  `App:"sites"`, `Mount:"/srv/sites/"`, `Port:registry.MustPort("sites")` (== 3004),
+  `MCP:true`, `WWW:true` (chassis loads/serves the `share/www` landing template and
+  `/static/` assets), `Migrations:db.FS`. sites is **not** an event-plane producer
+  (no `/feed`); its MCP `reflection` reports an empty event graph (D13). The fixed
+  verbs, config-from-env, the loopback server + PRM + identity gate, the
+  `appkit/mcp` transport, and the `appkit/web` render/static mechanism are
+  appkit's. main.go declares sites's identity (the Spec) and wires its surface
+  through the `Spec.Handlers` hook: the landing route (`GET /{$}`), the site-serving
+  routes (`GET /public/`, `GET /private/`), and the `POST /mcp` mount.
+- **nginx is the sole trust boundary.** sites runs no token/session logic and
+  binds `127.0.0.1` only. Every `/srv/sites/` request is gated (or not) at nginx,
+  which forwards to the loopback service. **nginx serves no site bytes off disk** —
+  it `proxy_pass`es both the public and private site paths to the sites process
+  (there is no `alias`); this is the core change from the earlier disk-served
+  design. The site-serving Go routes are therefore mounted **ungated in-process**,
+  exactly as `POST /mcp` relies on nginx for its bearer gate.
 - **Two front doors, two audiences.** Humans in a browser are gated by the
   dashboard login-session cookie (`auth_request /_session-authn`); agents/MCP
-  clients are gated by an opaque bearer (`auth_request /_authn`). The landing
-  page is the **cookie-gated human** door; the existing `/mcp` is the
-  **bearer-gated agent** door, unchanged. sites is the one service whose
-  `/_session-authn` gate is **already wired** (its private static tier uses it),
-  so the landing page introduces no new suite dependency.
+  clients by an opaque bearer (`auth_request /_authn`). The landing page and the
+  **private** site tier are cookie-gated; the **public** site tier is
+  unauthenticated; the `/mcp` endpoint is bearer-gated.
+
+## Data model
+
+`sites` is one row per hosted site, keyed by slug `name`. After the hosting-model
+change the row is: `name` (slug PK), `public` (INTEGER 0/1 — the visibility
+boolean), `created_by` (TEXT — the owner email that created it), `source_path`
+(TEXT, nullable — dropbox-sync provenance, unchanged), `created_at`, `updated_at`.
+The retired columns `tier`, `published`, and `published_at` are **gone** (a site's
+visibility is the `public` boolean; there is no lifecycle flag). The database is
+the single source of truth for which sites exist and their visibility; the
+on-disk folder location mirrors it in lockstep (the MCP tools are the only
+writer). See D15.
+
+## Filesystem layout
+
+A site's files live **directly** at its served location — there is no working
+tree and no symlink indirection:
+
+- `SITES_ROOT/public/<slug>/**` — a public site's files.
+- `SITES_ROOT/private/<slug>/**` — a private site's files.
+
+`SITES_ROOT` defaults to `/opt/sites/state/www`. `Layout.SiteDir(public, slug)`
+is the single path helper. Flipping visibility renames the directory between the
+two parents in lockstep with the `public` flag. See D16.
+
+## In-process static serving
+
+`internal/serve` is a sites-owned `http.Handler` that serves the two site trees
+from `SITES_ROOT` over the loopback server, mounted at `GET /public/` and
+`GET /private/`. It serves real files (no symlink layer), maps a directory to its
+`index.html`, returns `404` (never a listing, never `403`) for a directory with
+no index or a missing path, confines every path under the site dir via
+`internal/files.ConfinePath` (an escape is `404`), and 301-redirects a directory
+request that lacks a trailing slash. It is distinct from the chassis `/static/`
+mount (which serves the service's *own* Carbon UI assets from `share/www`). See
+D17.
 
 ## Testing strategy
 
-Testing is part of the architecture, not an afterthought. The cross-cutting
-approach every Decision's Verification list assumes:
+Testing is part of the architecture. The cross-cutting approach:
 
-- **The landing surface is tested over the repo-real `share/www` tree with
-  `net/http/httptest`.** The tests (in `cmd/sites` after D12) load the shipped
-  tree with `appkit/web.Load` relative to the package dir, render `landing.html`
-  with fixed name/version values, and drive it with `httptest.NewRequest` /
-  `httptest.NewRecorder`, asserting status, body substrings (name, version), and
-  `Content-Type`. **No test makes a network call and no test needs a running
-  suite** — the render is pure over its two string inputs and the shipped template
-  file.
-- **The route mux is tested as wired.** The `GET /{$}` exact-root pattern is
-  proven against an `http.ServeMux` configured the way the composition root
-  configures it, asserting that the bare root path is served by the landing
-  handler while a non-root path under the mux is **not** captured by `{$}`
-  (Go 1.22+ pattern semantics: `{$}` matches only the exact path), and a sibling
-  `POST /mcp` is not shadowed.
-- **Shipped assets are real bytes.** The Carbon `tokens.css` and the woff2 fonts
-  ship on disk in `share/www/static` and are served by the **chassis static
-  mount** (D3/D12); tests drive that mount over the real tree and assert
-  `tokens.css` is served with a CSS content type and that the template references
-  the app's **own** `/static/` asset path (not a cross-service URL).
-- **The nginx fragment is proven by content assertion.** The session-gate
-  fragment is config, not Go, so its behavior is pinned by a test that reads
-  `sites/etc/nginx.conf` from disk and asserts the exact-match `= /srv/sites/`
-  location exists, uses `auth_request /_session-authn` (not `/_authn`), and
-  proxies to the loopback upstream root — while sites' **five** pre-existing
-  locations (the PRM well-known, the bearer-gated `= /srv/sites/mcp`, the public
-  static tier, the private session-gated static tier, and the `@sites_authn_500`
-  named re-emit) remain. This is a genuine assertion over the shipped artifact,
-  runnable in the same `go test ./...`.
-- **Determinism.** The handler takes its name/version as plain string arguments
-  (injected at the composition root from `rt.Service()`/`rt.Version()`), so its
-  output is fully determined by its inputs — no clock, no network, no DB.
+- **The static server is tested over a temp `SITES_ROOT` with
+  `net/http/httptest`.** Tests build a real directory tree under a `t.TempDir()`
+  root, construct the `internal/serve` handler over it, and drive it with
+  `httptest` requests, asserting status, body, `Content-Type`, the index.html
+  mapping, the missing-index `404`, the traversal `404`, and the trailing-slash
+  redirect. No network, no running suite.
+- **The domain store is tested over a real migrated SQLite DB.** `internal/sites`
+  tests open an in-memory/temp DB via `appkit/db`, run the migration set, and
+  assert `Create` persists `created_by` and defaults `public` false, `SetVisibility`
+  flips the flag and moves the directory, and the final schema has `public` +
+  `created_by` and lacks `tier`/`published`/`published_at` (via `pragma
+  table_info`). The migration assertions run against the **real** SQLite the
+  runner uses, not a fake — the substrate that actually enforces the column set.
+- **The MCP tool table is tested at the handler boundary.** Tests assert the tool
+  set contains no `publish`/`unpublish`, that `create` records the request
+  Identity's owner as `created_by`, that `set_visibility` moves the folder and the
+  returned `url` reflects the new tier, and that the file tools/`sync`/`delete`
+  operate on `SiteDir(site.Public, slug)`.
+- **The landing surface is tested over the repo-real `share/www` tree.** Tests
+  load the shipped tree with `appkit/web.Load`, render `landing.html` with a fixed
+  version and a fixed slice of sites, and assert the version card plus one row per
+  site (slug, public/private, creator, created-at), and that an empty slice still
+  renders.
+- **The nginx fragment is proven by content assertion.** A test reads
+  `sites/etc/nginx.conf` and asserts the public tier `proxy_pass`es to
+  `…/public/` with no `auth_request`, the private tier gates with
+  `auth_request /_session-authn` and `proxy_pass`es to `…/private/`, neither
+  contains `alias` nor references the on-disk state path, and the pre-existing
+  landing/PRM/mcp/`@sites_authn_500` locations remain (D4's ids).
+- **Determinism.** Handlers take their inputs explicitly (name/version strings,
+  the site slice, the `SITES_ROOT`), so output is determined by inputs — no clock,
+  no network.
 
 ## Layout
 
 The design is split for addressability so a build phase reads only the one
 Decision it realizes:
 
-- `project/design/design.md` — this spine: static cross-cutting facts only, no
-  per-Decision detail.
-- `project/design/DNN.md` — one self-contained file per Decision (zero-padded:
-  `D01.md`, `D02.md`, …; referenced in prose and the plan as `D<N>`).
+- `project/design/design.md` — this spine: static cross-cutting facts only.
+- `project/design/DNN.md` — one self-contained file per Decision (zero-padded;
+  referenced in prose and the plan as `D<N>`).
 - `project/design/INDEX.md` — the manifest: each Decision → its file, plus a
-  sorted `R-id → Decision/file` reverse map. It is the grep target for resolving
-  an id.
+  sorted `R-id → Decision/file` reverse map; the grep target for resolving an id.
 
-**Web surface (no service package).** The landing page and its Carbon assets
-live on disk in `sites/share/www/` (`landing.html` + `static/tokens.css` + the
-woff2 fonts), shipped in the release `share` tier and loaded/served by the
-chassis (`appkit/web`, via `Spec.WWW`) — there is **no** `sites/internal/web`
-package (**D12** deleted it; the landing route is a few-line handler at the
-composition root over `rt.WWW().Render`). The remaining service packages are
-`internal/sites` (domain store/layout/publish/sync), `internal/files` (confined
-filesystem ops, D10), `internal/mcp` (the domain **tool table** over the
-`appkit/mcp` transport, D13 — no local JSON-RPC transport, no local
-`health`/`reflection`), and `internal/db` (the embedded migration set + its load
-guard only, D14 — no `Open`/`Migrate` wrappers). (sites already serves *static*
-user pages off disk via nginx from `state/www`; the `share/www` design assets are
-the service's **own** UI, a distinct concern.)
+**Service packages.** `internal/sites` (slug/visibility store + `Layout.SiteDir`),
+`internal/serve` (the in-process static server, D17), `internal/files` (confined
+filesystem ops, D10), `internal/mcp` (the domain tool table over the `appkit/mcp`
+transport, D13/D20), `internal/db` (the embedded migration set + load guard). The
+landing page and Carbon assets live on disk in `sites/share/www/` served by the
+chassis. There is **no** working tree, no served-symlink tree, and no
+`internal/web` package.
 
 Design is **rewritten in place**, not append-only (history lives in the plan): a
-changed Decision is rewritten in its `DNN.md` and `INDEX.md` is regenerated; a
-new Decision adds a `DNN.md` and an INDEX entry. Existing `R-XXXX-XXXX` ids are
-stable handles — never renumbered; a newly added behavior gets a freshly minted
-id, and a removed behavior's id is deleted with it.
+changed Decision is rewritten in its `DNN.md` and `INDEX.md` is regenerated; a new
+Decision adds a `DNN.md` and an INDEX entry. Existing `R-XXXX-XXXX` ids are stable
+handles — never renumbered; a newly added behavior gets a freshly minted id, and a
+removed behavior's id is deleted with it.
