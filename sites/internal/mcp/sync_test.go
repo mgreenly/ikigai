@@ -41,20 +41,20 @@ func (f *fakeMirror) Fetch(_ context.Context, path string) ([]byte, error) {
 	return data, nil
 }
 
-// readWorking reads a file relative to a site's working dir, failing the test if
-// it is absent.
+// readWorking reads a file relative to a private site's directory, failing the
+// test if it is absent.
 func readWorking(t *testing.T, h *testHandler, slug, rel string) string {
 	t.Helper()
-	b, err := os.ReadFile(filepath.Join(h.layout.WorkingDir(slug), filepath.FromSlash(rel)))
+	b, err := os.ReadFile(filepath.Join(h.layout.SiteDir(false, slug), filepath.FromSlash(rel)))
 	if err != nil {
-		t.Fatalf("read working %s/%s: %v", slug, rel, err)
+		t.Fatalf("read private site %s/%s: %v", slug, rel, err)
 	}
 	return string(b)
 }
 
-// TestSyncNewSlug: syncing to an absent slug creates the row + working tree,
-// writes every upstream file (keyed relative to source_path), reports the right
-// counts, and does NOT publish.
+// TestSyncNewSlug: syncing to an absent slug creates the row + private site
+// directory, writes every upstream file (keyed relative to source_path), reports
+// the right counts, and keeps the site private.
 func TestSyncNewSlug(t *testing.T) {
 	h, _ := newTestHandler(t, &fakeMirror{files: map[string][]byte{
 		"/sites/marketing/index.html":   []byte("<h1>home</h1>"),
@@ -81,7 +81,7 @@ func TestSyncNewSlug(t *testing.T) {
 		t.Fatal("css/app.css content mismatch")
 	}
 
-	// Row exists and is stamped with the source path, and is NOT published.
+	// Row exists and is stamped with the source path, and remains private.
 	site, err := h.store.Get(context.Background(), "marketing")
 	if err != nil {
 		t.Fatalf("get marketing: %v", err)
@@ -89,8 +89,8 @@ func TestSyncNewSlug(t *testing.T) {
 	if site.SourcePath != "/sites/marketing" {
 		t.Fatalf("source_path = %q, want /sites/marketing", site.SourcePath)
 	}
-	if site.Published {
-		t.Fatal("sync must not publish: site is published")
+	if site.Public {
+		t.Fatal("sync must not make a new site public")
 	}
 }
 
@@ -125,7 +125,7 @@ func TestSyncExistingReconciles(t *testing.T) {
 	if readWorking(t, h, "blog", "c.html") != "c" {
 		t.Fatal("c.html not written")
 	}
-	if _, err := os.Stat(filepath.Join(h.layout.WorkingDir("blog"), "b.html")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(h.layout.SiteDir(false, "blog"), "b.html")); !os.IsNotExist(err) {
 		t.Fatalf("b.html should be deleted, stat err = %v", err)
 	}
 }
@@ -162,46 +162,32 @@ func TestSyncMissingSourcePath(t *testing.T) {
 	}
 }
 
-// TestSyncPublishedUpdatesLiveNoRepublish: an already-published site's working
-// tree is updated by a re-sync (the served symlink reflects it instantly) and
-// the site stays published without a republish — sync still does not publish.
-func TestSyncPublishedUpdatesLiveNoRepublish(t *testing.T) {
+func TestSyncPublicSiteUsesPublicDirectory(t *testing.T) {
 	mirror := &fakeMirror{files: map[string][]byte{
 		"/feed/index.html": []byte("v1"),
 	}}
 	h, _ := newTestHandler(t, mirror)
 
 	callOK(t, h, tool("sync"), map[string]any{"source_path": "/feed", "slug": "live"})
+	callOK(t, h, tool("set_visibility"), map[string]any{"name": "live", "public": true})
 
-	// Publish once (the explicit exposure step). served/<tier>/live is a symlink
-	// into working/live.
-	if err := h.store.Publish(context.Background(), "live", sites.PublicSeg); err != nil {
-		t.Fatalf("publish: %v", err)
-	}
-	before, err := h.store.Get(context.Background(), "live")
-	if err != nil || !before.Published {
-		t.Fatalf("expected published site, got %+v err=%v", before, err)
-	}
-
-	// Re-sync with new bytes; the served symlink must reflect the update live.
+	// Re-sync with new bytes; a public site must reconcile in its public dir.
 	mirror.files = map[string][]byte{"/feed/index.html": []byte("v2")}
 	callOK(t, h, tool("sync"), map[string]any{"source_path": "/feed", "slug": "live"})
 
-	served := filepath.Join(h.layout.ServedDir(sites.PublicSeg, "live"), "index.html")
-	b, err := os.ReadFile(served)
+	publicPath := filepath.Join(h.layout.SiteDir(true, "live"), "index.html")
+	b, err := os.ReadFile(publicPath)
 	if err != nil {
-		t.Fatalf("read served file (through symlink): %v", err)
+		t.Fatalf("read public file: %v", err)
 	}
 	if string(b) != "v2" {
-		t.Fatalf("served content = %q, want v2 (symlink should reflect working)", b)
+		t.Fatalf("public content = %q, want v2", b)
 	}
-
-	// Still published, no republish needed/triggered by sync.
 	after, err := h.store.Get(context.Background(), "live")
 	if err != nil {
 		t.Fatalf("get live: %v", err)
 	}
-	if !after.Published {
-		t.Fatal("site should remain published after sync")
+	if !after.Public {
+		t.Fatal("site should remain public after sync")
 	}
 }

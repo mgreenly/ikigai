@@ -34,11 +34,11 @@ func TestFileWriteReadRoundtrip(t *testing.T) {
 	if w.IsError {
 		t.Fatalf("write returned error: %s", payloadText(w))
 	}
-	// The file actually lands under the working dir, not elsewhere.
-	onDisk := filepath.Join(root, sites.WorkingSeg, "demo", "index.html")
+	// The file actually lands under the private site dir, not elsewhere.
+	onDisk := filepath.Join(root, sites.PrivateSeg, "demo", "index.html")
 	b, err := os.ReadFile(onDisk)
 	if err != nil || string(b) != "<h1>hello</h1>" {
-		t.Fatalf("file not written under working dir: %v (%q)", err, string(b))
+		t.Fatalf("file not written under private dir: %v (%q)", err, string(b))
 	}
 
 	r := call(t, h, "file_read", map[string]any{
@@ -50,6 +50,26 @@ func TestFileWriteReadRoundtrip(t *testing.T) {
 	}
 	if !strings.Contains(payloadText(r), "<h1>hello</h1>") {
 		t.Fatalf("read content mismatch: %q", payloadText(r))
+	}
+}
+
+func TestFileWriteUsesPublicSiteDir(t *testing.T) {
+	h, _ := fileToolsHandler(t)
+	callOK(t, h, "set_visibility", map[string]any{"name": "demo", "public": true})
+
+	callOK(t, h, "file_write", map[string]any{
+		"site":      "demo",
+		"file_path": "index.html",
+		"content":   "<h1>public</h1>",
+	})
+
+	// R-RI7K-TH3B
+	b, err := os.ReadFile(filepath.Join(h.layout.SiteDir(true, "demo"), "index.html"))
+	if err != nil || string(b) != "<h1>public</h1>" {
+		t.Fatalf("file not written under public dir: %v (%q)", err, string(b))
+	}
+	if _, err := os.Stat(filepath.Join(h.layout.Root, "working", "demo", "index.html")); !os.IsNotExist(err) {
+		t.Fatalf("file_write should not create a separate working-tree copy: %v", err)
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"go/parser"
 	"go/token"
 	"net/http"
@@ -270,8 +271,7 @@ func TestToolsList(t *testing.T) {
 		"list",
 		"delete",
 		"mkdir",
-		"publish",
-		"unpublish",
+		"set_visibility",
 		"sync",
 		"file_write",
 		"file_read",
@@ -296,6 +296,10 @@ func TestToolsList(t *testing.T) {
 	// R-0UUY-N97T
 	if len(result.Tools) != len(want) {
 		t.Errorf("tools/list returned %d tools, want %d: %+v", len(result.Tools), len(want), result.Tools)
+	}
+	// R-RDBZ-AE4J
+	if got["publish"] || got["unpublish"] {
+		t.Fatalf("tools/list must not expose publish/unpublish after the visibility switch: %+v", result.Tools)
 	}
 }
 
@@ -345,17 +349,18 @@ func TestCreateThenList(t *testing.T) {
 	if created["name"] != "demo" {
 		t.Fatalf("create returned %+v", created)
 	}
-	if created["published"] != false {
-		t.Errorf("new site should be unpublished: %+v", created)
+	if created["public"] != false {
+		t.Errorf("new site should be private: %+v", created)
 	}
-	// An unpublished site still reports a concrete would-be URL, defaulting to
-	// the public tier — never left for an agent to guess.
-	if want := testBaseURL + "public/demo/"; created["url"] != want {
+	if want := testBaseURL + "private/demo/"; created["url"] != want {
 		t.Errorf("create url = %v, want %v", created["url"], want)
 	}
-	wd := filepath.Join(root, sites.WorkingSeg, "demo")
-	if fi, err := os.Stat(wd); err != nil || !fi.IsDir() {
-		t.Fatalf("working dir not created at %s: %v", wd, err)
+	if created["created_by"] != testOwner {
+		t.Errorf("create created_by = %v, want %v", created["created_by"], testOwner)
+	}
+	privateDir := filepath.Join(root, sites.PrivateSeg, "demo")
+	if fi, err := os.Stat(privateDir); err != nil || !fi.IsDir() {
+		t.Fatalf("private dir not created at %s: %v", privateDir, err)
 	}
 
 	listed := callOK(t, h, "list", map[string]any{})
@@ -365,6 +370,10 @@ func TestCreateThenList(t *testing.T) {
 	}
 	if arr[0].(map[string]any)["name"] != "demo" {
 		t.Errorf("list entry = %+v", arr[0])
+	}
+	// R-RFRS-1XLX
+	if arr[0].(map[string]any)["created_by"] != testOwner {
+		t.Fatalf("list created_by = %v, want %v", arr[0].(map[string]any)["created_by"], testOwner)
 	}
 }
 
@@ -378,66 +387,76 @@ func TestCreateBadSlug(t *testing.T) {
 	}
 }
 
-// TestPublishUnpublish covers the publish/unpublish happy path and the served
-// symlink lifecycle.
-func TestPublishUnpublish(t *testing.T) {
-	h, root := newTestHandler(t)
+func TestSetVisibilityMovesBetweenPublicAndPrivate(t *testing.T) {
+	h, _ := newTestHandler(t)
 	callOK(t, h, "create", map[string]any{"name": "demo"})
-
-	pub := callOK(t, h, "publish", map[string]any{"name": "demo", "tier": "public"})
-	if pub["tier"] != "public" {
-		t.Fatalf("publish returned %+v", pub)
+	if err := os.WriteFile(filepath.Join(h.layout.SiteDir(false, "demo"), "index.html"), []byte("hello"), 0o644); err != nil {
+		t.Fatalf("seed private file: %v", err)
 	}
+
+	pub := callOK(t, h, "set_visibility", map[string]any{"name": "demo", "public": true})
 	if want := testBaseURL + "public/demo/"; pub["url"] != want {
-		t.Errorf("publish url = %v, want %v", pub["url"], want)
+		t.Errorf("public visibility url = %v, want %v", pub["url"], want)
 	}
-	link := filepath.Join(root, sites.ServedSeg, sites.PublicSeg, "demo")
-	if _, err := os.Lstat(link); err != nil {
-		t.Fatalf("served link not created at %s: %v", link, err)
+	site, err := h.store.Get(context.Background(), "demo")
+	if err != nil {
+		t.Fatalf("get public site: %v", err)
+	}
+	if !site.Public {
+		t.Fatalf("stored Public = false, want true")
+	}
+	if _, err := os.Stat(filepath.Join(h.layout.SiteDir(true, "demo"), "index.html")); err != nil {
+		t.Fatalf("public dir should contain moved file: %v", err)
+	}
+	if _, err := os.Stat(h.layout.SiteDir(false, "demo")); !os.IsNotExist(err) {
+		t.Fatalf("private dir should be gone after public move: %v", err)
 	}
 
-	// Re-publishing to the private tier switches the url to the private tier.
-	pvt := callOK(t, h, "publish", map[string]any{"name": "demo", "tier": "private"})
+	pvt := callOK(t, h, "set_visibility", map[string]any{"name": "demo", "public": false})
 	if want := testBaseURL + "private/demo/"; pvt["url"] != want {
-		t.Errorf("private publish url = %v, want %v", pvt["url"], want)
+		t.Errorf("private visibility url = %v, want %v", pvt["url"], want)
+	}
+	site, err = h.store.Get(context.Background(), "demo")
+	if err != nil {
+		t.Fatalf("get private site: %v", err)
+	}
+	if site.Public {
+		t.Fatalf("stored Public = true, want false")
+	}
+	if _, err := os.Stat(filepath.Join(h.layout.SiteDir(false, "demo"), "index.html")); err != nil {
+		t.Fatalf("private dir should contain moved file: %v", err)
+	}
+	if _, err := os.Stat(h.layout.SiteDir(true, "demo")); !os.IsNotExist(err) {
+		t.Fatalf("public dir should be gone after private move: %v", err)
 	}
 
-	unpub := callOK(t, h, "unpublish", map[string]any{"name": "demo"})
-	// Unpublish clears the tier, so the would-be url falls back to public.
-	if want := testBaseURL + "public/demo/"; unpub["url"] != want {
-		t.Errorf("unpublish url = %v, want %v", unpub["url"], want)
-	}
-	if _, err := os.Lstat(link); !os.IsNotExist(err) {
-		t.Fatalf("served link should be gone after unpublish: %v", err)
-	}
-
-	// invalid tier → clean error.
-	e := callErr(t, h, "publish", map[string]any{"name": "demo", "tier": "secret"})
-	if e["code"] != "invalid_tier" {
-		t.Fatalf("expected invalid_tier, got %+v", e)
-	}
+	// R-RGZO-FPCM
 }
 
-// TestDelete covers the unpublish → remove working tree → drop row ordering.
+// TestDelete covers deleting the current visibility directory and row.
 func TestDelete(t *testing.T) {
-	h, root := newTestHandler(t)
+	h, _ := newTestHandler(t)
 	callOK(t, h, "create", map[string]any{"name": "demo"})
-	callOK(t, h, "publish", map[string]any{"name": "demo", "tier": "private"})
+	callOK(t, h, "set_visibility", map[string]any{"name": "demo", "public": true})
+	if err := os.WriteFile(filepath.Join(h.layout.SiteDir(true, "demo"), "index.html"), []byte("hello"), 0o644); err != nil {
+		t.Fatalf("seed public file: %v", err)
+	}
 
 	del := callOK(t, h, "delete", map[string]any{"name": "demo"})
 	if del["deleted"] != "demo" {
 		t.Fatalf("delete returned %+v", del)
 	}
-	if _, err := os.Stat(filepath.Join(root, sites.WorkingSeg, "demo")); !os.IsNotExist(err) {
-		t.Errorf("working dir should be removed: %v", err)
+	if _, err := h.store.Get(context.Background(), "demo"); !errors.Is(err, sites.ErrNotFound) {
+		t.Fatalf("store.Get after delete err = %v, want ErrNotFound", err)
 	}
-	if _, err := os.Lstat(filepath.Join(root, sites.ServedSeg, sites.PrivateSeg, "demo")); !os.IsNotExist(err) {
-		t.Errorf("served link should be removed: %v", err)
+	if _, err := os.Stat(h.layout.SiteDir(true, "demo")); !os.IsNotExist(err) {
+		t.Errorf("public dir should be removed: %v", err)
 	}
 	listed := callOK(t, h, "list", map[string]any{})
 	if arr, _ := listed["sites"].([]any); len(arr) != 0 {
 		t.Errorf("list should be empty after delete: %+v", listed)
 	}
+	// R-RJFH-78U0
 }
 
 // TestMkdirConfinement covers a valid nested mkdir and rejects an escape.
@@ -446,7 +465,7 @@ func TestMkdirConfinement(t *testing.T) {
 	callOK(t, h, "create", map[string]any{"name": "demo"})
 
 	callOK(t, h, "mkdir", map[string]any{"name": "demo", "path": "a/b/c"})
-	if fi, err := os.Stat(filepath.Join(root, sites.WorkingSeg, "demo", "a", "b", "c")); err != nil || !fi.IsDir() {
+	if fi, err := os.Stat(filepath.Join(root, sites.PrivateSeg, "demo", "a", "b", "c")); err != nil || !fi.IsDir() {
 		t.Fatalf("nested dir not created: %v", err)
 	}
 

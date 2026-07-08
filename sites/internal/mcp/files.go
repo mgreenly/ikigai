@@ -10,9 +10,9 @@ import (
 	sitefiles "sites/internal/files"
 )
 
-// toolFileList walks a site's working tree and returns every regular file with
-// its path (relative to the working root), size, and md5. An optional "path"
-// scopes the walk to a subdirectory, confined to the working root; a missing
+// toolFileList walks a site's current public/private directory and returns every
+// regular file with its path (relative to the site root), size, and md5. An
+// optional "path" scopes the walk to a subdirectory, confined to the site root; a missing
 // scope dir yields an empty list rather than an error.
 func (h *toolHandlers) toolFileList(ctx context.Context, raw json.RawMessage) (map[string]any, error) {
 	var a struct {
@@ -25,11 +25,11 @@ func (h *toolHandlers) toolFileList(ctx context.Context, raw json.RawMessage) (m
 	if a.Site == "" {
 		return errResultMsg("invalid_site", "missing required \"site\" argument"), nil
 	}
-	if _, err := h.store.Get(ctx, a.Site); err != nil {
-		return errResult(err), nil
+	root, env := h.siteRoot(ctx, a.Site)
+	if env != nil {
+		return env, nil
 	}
 
-	root := h.layout.WorkingDir(a.Site)
 	scope := root
 	if a.Path != "" {
 		s, err := sitefiles.ConfinePath(root, a.Path)
@@ -57,8 +57,8 @@ func (h *toolHandlers) toolFileList(ctx context.Context, raw json.RawMessage) (m
 	return appkitmcp.JSONResult(map[string]any{"site": a.Site, "files": files})
 }
 
-// toolFileWrite writes content to a confined path in the site's working dir,
-// truncating by default or appending when append:true.
+// toolFileWrite writes content to a confined path in the site's current
+// public/private directory, truncating by default or appending when append:true.
 func (h *toolHandlers) toolFileWrite(ctx context.Context, raw json.RawMessage) (map[string]any, error) {
 	var a struct {
 		Site     string `json:"site"`
@@ -72,11 +72,12 @@ func (h *toolHandlers) toolFileWrite(ctx context.Context, raw json.RawMessage) (
 	if a.Site == "" {
 		return errResultMsg("invalid_site", "missing required \"site\" argument"), nil
 	}
-	if _, err := h.store.Get(ctx, a.Site); err != nil {
-		return errResult(err), nil
+	root, env := h.siteRoot(ctx, a.Site)
+	if env != nil {
+		return env, nil
 	}
 
-	if err := sitefiles.Write(h.layout.WorkingDir(a.Site), a.FilePath, a.Content, a.Append); err != nil {
+	if err := sitefiles.Write(root, a.FilePath, a.Content, a.Append); err != nil {
 		if errors.Is(err, sitefiles.ErrEscapes) {
 			return errResultMsg("path_escapes_working_dir", err.Error()), nil
 		}
@@ -99,10 +100,11 @@ func (h *toolHandlers) toolFileRead(ctx context.Context, raw json.RawMessage) (m
 	if a.Site == "" {
 		return errResultMsg("invalid_site", "missing required \"site\" argument"), nil
 	}
-	if _, err := h.store.Get(ctx, a.Site); err != nil {
-		return errResult(err), nil
+	root, env := h.siteRoot(ctx, a.Site)
+	if env != nil {
+		return env, nil
 	}
-	content, err := sitefiles.Read(h.layout.WorkingDir(a.Site), a.FilePath, a.Offset, a.Limit)
+	content, err := sitefiles.Read(root, a.FilePath, a.Offset, a.Limit)
 	if err != nil {
 		if errors.Is(err, sitefiles.ErrEscapes) {
 			return errResultMsg("path_escapes_working_dir", err.Error()), nil
@@ -126,10 +128,11 @@ func (h *toolHandlers) toolFileEdit(ctx context.Context, raw json.RawMessage) (m
 	if a.Site == "" {
 		return errResultMsg("invalid_site", "missing required \"site\" argument"), nil
 	}
-	if _, err := h.store.Get(ctx, a.Site); err != nil {
-		return errResult(err), nil
+	root, env := h.siteRoot(ctx, a.Site)
+	if env != nil {
+		return env, nil
 	}
-	replaced, err := sitefiles.Edit(h.layout.WorkingDir(a.Site), a.FilePath, a.OldString, a.NewString, a.ReplaceAll)
+	replaced, err := sitefiles.Edit(root, a.FilePath, a.OldString, a.NewString, a.ReplaceAll)
 	if err != nil {
 		if errors.Is(err, sitefiles.ErrEscapes) {
 			return errResultMsg("path_escapes_working_dir", err.Error()), nil
@@ -151,10 +154,11 @@ func (h *toolHandlers) toolFileGlob(ctx context.Context, raw json.RawMessage) (m
 	if a.Site == "" {
 		return errResultMsg("invalid_site", "missing required \"site\" argument"), nil
 	}
-	if _, err := h.store.Get(ctx, a.Site); err != nil {
-		return errResult(err), nil
+	root, env := h.siteRoot(ctx, a.Site)
+	if env != nil {
+		return env, nil
 	}
-	matches, err := sitefiles.Glob(h.layout.WorkingDir(a.Site), a.Pattern, a.Path)
+	matches, err := sitefiles.Glob(root, a.Pattern, a.Path)
 	if err != nil {
 		if errors.Is(err, sitefiles.ErrEscapes) {
 			return errResultMsg("path_escapes_working_dir", err.Error()), nil
@@ -177,10 +181,11 @@ func (h *toolHandlers) toolFileGrep(ctx context.Context, raw json.RawMessage) (m
 	if a.Site == "" {
 		return errResultMsg("invalid_site", "missing required \"site\" argument"), nil
 	}
-	if _, err := h.store.Get(ctx, a.Site); err != nil {
-		return errResult(err), nil
+	root, env := h.siteRoot(ctx, a.Site)
+	if env != nil {
+		return env, nil
 	}
-	matches, err := sitefiles.Grep(h.layout.WorkingDir(a.Site), a.Pattern, a.Path, a.Glob)
+	matches, err := sitefiles.Grep(root, a.Pattern, a.Path, a.Glob)
 	if err != nil {
 		if errors.Is(err, sitefiles.ErrEscapes) {
 			return errResultMsg("path_escapes_working_dir", err.Error()), nil
@@ -192,4 +197,12 @@ func (h *toolHandlers) toolFileGrep(ctx context.Context, raw json.RawMessage) (m
 		out = append(out, map[string]any{"path": m.Path, "line": m.Line, "text": m.Text})
 	}
 	return appkitmcp.JSONResult(map[string]any{"site": a.Site, "matches": out})
+}
+
+func (h *toolHandlers) siteRoot(ctx context.Context, slug string) (string, map[string]any) {
+	site, err := h.store.Get(ctx, slug)
+	if err != nil {
+		return "", errResult(err)
+	}
+	return h.layout.SiteDir(site.Public, slug), nil
 }

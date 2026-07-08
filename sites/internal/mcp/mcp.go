@@ -14,7 +14,7 @@ import (
 
 // Instructions describes sites's MCP surface to clients during initialize.
 const Instructions = "Host static websites behind the front door. Call describe " +
-	"first for the create→edit→publish lifecycle."
+	"first for the create→edit→set_visibility lifecycle."
 
 // NewHandler builds the POST /mcp handler from the appkit Router seam. The
 // shared transport owns JSON-RPC, health, and reflection; sites declares only

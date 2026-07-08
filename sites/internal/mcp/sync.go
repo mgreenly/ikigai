@@ -3,12 +3,10 @@ package mcp
 // sync.go wires the `sync` verb: it ties together the pieces Phase 6 built —
 // the dropbox loopback MirrorClient (enumerate /list + fetch /content) and the
 // pure sites.Reconcile routine — behind the MCP surface. sync adopts a Dropbox
-// mirror subtree as a site's working tree: create-or-reuse the site row + tree,
-// enumerate the subtree, overwrite every upstream file and delete every working
-// file absent upstream (the subtree owns the tree). It does NOT publish (ADR
-// Decision 7): tier is an exposure decision and must not be implied by a content
-// sync; an already-published site updates live because `published` is a symlink
-// into working/.
+// mirror subtree as a site's current public/private directory: create-or-reuse
+// the site row + tree, enumerate the subtree, overwrite every upstream file and
+// delete every site file absent upstream (the subtree owns the tree). It leaves
+// visibility unchanged.
 
 import (
 	"context"
@@ -25,13 +23,13 @@ import (
 	"sites/internal/sites"
 )
 
-// toolSync reconciles a dropbox mirror subtree into a site's working tree. It
+// toolSync reconciles a dropbox mirror subtree into a site's current directory. It
 // requires source_path; slug defaults to the source_path basename (and must be
 // a valid slug, else the caller must pass slug explicitly — ADR "Slug
 // derivation"). The flow: validate → create-or-reuse the row + tree (row first,
 // then dir, matching toolCreate) → stamp source_path → enumerate upstream →
 // fetch each file's bytes keyed by its path relative to source_path → walk the
-// working tree for the existing path set → Reconcile. No publish.
+// current site directory for the existing path set → Reconcile.
 func (h *toolHandlers) toolSync(ctx context.Context, raw json.RawMessage) (map[string]any, error) {
 	var a struct {
 		SourcePath string `json:"source_path"`
@@ -66,17 +64,20 @@ func (h *toolHandlers) toolSync(ctx context.Context, raw json.RawMessage) (map[s
 		return errResult(err), nil
 	}
 
-	// Create-or-reuse: if the site is absent, create the row then its working dir
+	// Create-or-reuse: if the site is absent, create the row then its private dir
 	// (row-then-dir order, matching toolCreate). A present site is reused as-is.
-	if _, err := h.store.Get(ctx, slug); err != nil {
+	site, err := h.store.Get(ctx, slug)
+	if err != nil {
 		if !errors.Is(err, sites.ErrNotFound) {
 			return errResult(err), nil
 		}
-		if _, cerr := h.store.Create(ctx, slug, ""); cerr != nil {
+		created, cerr := h.store.Create(ctx, slug, "")
+		if cerr != nil {
 			return errResult(cerr), nil
 		}
-		if mderr := os.MkdirAll(h.layout.WorkingDir(slug), 0o755); mderr != nil {
-			return errResultMsg("create_working_dir", mderr.Error()), nil
+		site = created
+		if mderr := os.MkdirAll(h.layout.SiteDir(false, slug), 0o755); mderr != nil {
+			return errResultMsg("create_site_dir", mderr.Error()), nil
 		}
 	}
 	// Stamp the originating subtree on the row (marks the site import-managed and
@@ -103,10 +104,10 @@ func (h *toolHandlers) toolSync(ctx context.Context, raw json.RawMessage) (map[s
 		desired[rel] = data
 	}
 
-	// Walk the working tree for its current relative file set (the path set is all
+	// Walk the site directory for its current relative file set (the path set is all
 	// Reconcile needs for delete-absent — overwrite-all means no md5 compare; same
 	// WalkDir + Rel/ToSlash pattern as toolFileList).
-	workingDir := h.layout.WorkingDir(slug)
+	workingDir := h.layout.SiteDir(site.Public, slug)
 	var existingRel []string
 	walkErr := filepath.WalkDir(workingDir, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
