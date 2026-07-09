@@ -1,0 +1,6 @@
+interface:
+  display_name: "Open Spec"
+  short_description: "Open a spec-authoring session scoped to project/*."
+  default_prompt: "$open-spec"
+policy:
+  allow_implicit_invocation: false

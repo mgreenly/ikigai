@@ -1,0 +1,6 @@
+interface:
+  display_name: "Seal Spec"
+  short_description: "Seal a settled goal into the project/ spec in one pass."
+  default_prompt: "$seal-spec"
+policy:
+  allow_implicit_invocation: false

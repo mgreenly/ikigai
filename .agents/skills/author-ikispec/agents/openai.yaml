@@ -1,6 +1,0 @@
-interface:
-  display_name: "Author ikispec"
-  short_description: "Write a settled goal into the project/ spec."
-  default_prompt: "$author-ikispec"
-policy:
-  allow_implicit_invocation: false

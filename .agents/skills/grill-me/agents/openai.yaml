@@ -1,6 +1,6 @@
 interface:
   display_name: "Grill Me"
   short_description: "Interrogate a goal one question at a time before writing the spec."
-  default_prompt: "$grillme"
+  default_prompt: "$grill-me"
 policy:
   allow_implicit_invocation: false

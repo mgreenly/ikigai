@@ -1,6 +1,6 @@
 ---
-name: grillme
-description: Explicit workflow for interrogating a proposed goal or plan one question at a time until shared understanding. Use when the user explicitly says grillme, invokes $grillme, or asks to be grilled before writing a project/ spec change.
+name: grill-me
+description: Explicit workflow for interrogating a proposed goal or plan one question at a time until shared understanding — the middle move of an open-spec session, before seal-spec writes the result. Use when the user explicitly says grill-me, invokes $grill-me, or asks to be grilled before writing a project/ spec change.
 ---
 
 # Grill Me
