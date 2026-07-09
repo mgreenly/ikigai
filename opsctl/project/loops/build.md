@@ -1,6 +1,6 @@
 ---
 harness: codex
-model: gpt-5.6-sol
+model: gpt-5.6-terra
 ---
 # build — implement the current phase's brief
 
