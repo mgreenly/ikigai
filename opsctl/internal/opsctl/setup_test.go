@@ -248,6 +248,7 @@ func TestSetupWorkerNoFragmentStillCreatesFragmentSymlinkWithoutWebGroup(t *test
 }
 
 func TestSetupCreatesOnlyPublicAndPrivateServedTiers(t *testing.T) {
+	// R-3K9X-IPJZ
 	const app = "sites"
 	o, sys, l := newSetupTestOpsctl(t, app)
 
@@ -275,10 +276,7 @@ func TestSetupCreatesOnlyPublicAndPrivateServedTiers(t *testing.T) {
 	}
 	wantOps := []string{
 		"ensure-user:" + app + ":" + l.AppDir(),
-		"chown:" + app + ":web:" + l.WWWRoot(),
-		"chmod:2750:" + l.WWWRoot(),
-		"chmod:2750:" + l.WWWPublicDir(),
-		"chmod:2750:" + l.WWWPrivateDir(),
+		"chown:" + app + ":" + app + ":" + l.StateDir(),
 		"daemon-reload",
 		"enable:" + app + ".service",
 		"nginx-test",
@@ -288,8 +286,8 @@ func TestSetupCreatesOnlyPublicAndPrivateServedTiers(t *testing.T) {
 		t.Fatalf("served-tree setup ops = %v, want %v", got, wantOps)
 	}
 	for _, op := range sys.opSeq() {
-		if op == "ensure-group:web" || op == "chown:"+app+":"+app+":"+l.WWWRoot() {
-			t.Fatalf("served-tree setup requested legacy op %q; ops = %v", op, sys.opSeq())
+		if op == "ensure-group:web" || strings.Contains(op, ":web:") || strings.HasPrefix(op, "chmod:") {
+			t.Fatalf("served-tree setup requested retired permission op %q; ops = %v", op, sys.opSeq())
 		}
 	}
 }
@@ -316,37 +314,6 @@ func TestSetupCreatesStableNginxSymlinkToActiveConfig(t *testing.T) {
 	}
 	if target != l.ActiveNginxConf() {
 		t.Fatalf("fragment symlink target = %q, want %q", target, l.ActiveNginxConf())
-	}
-}
-
-// R-VB77-BU5O
-func TestSetupPermissionModelAllowsWebGroupOnlyForWWW(t *testing.T) {
-	const app = "sites"
-	o, sys, l := newSetupTestOpsctl(t, app)
-
-	if err := o.Setup(context.Background(), SetupOptions{
-		App: app,
-		Fragment: "location /srv/sites/ {\n" +
-			"    proxy_pass http://127.0.0.1:3005;\n" +
-			"}\n",
-		WWWDirs: WWWDirsFor(l.Root, app),
-	}); err != nil {
-		t.Fatalf("setup: %v", err)
-	}
-
-	owners := ownershipPlan(sys.opSeq())
-	web := unixSubject{user: "nginx", groups: map[string]bool{"web": true}}
-
-	if !web.canRead(statMode(t, l.WWWPublicDir()), ownerForPath(owners, l.WWWPublicDir())) ||
-		!web.canList(statMode(t, l.WWWPublicDir()), ownerForPath(owners, l.WWWPublicDir())) {
-		t.Fatalf("web group cannot read/list public www dir under modeled Unix mode/owner semantics")
-	}
-	if !web.canRead(statMode(t, l.WWWPrivateDir()), ownerForPath(owners, l.WWWPrivateDir())) ||
-		!web.canList(statMode(t, l.WWWPrivateDir()), ownerForPath(owners, l.WWWPrivateDir())) {
-		t.Fatalf("web group cannot read/list private www dir under modeled Unix mode/owner semantics")
-	}
-	if web.canList(statMode(t, l.StateDir()), ownerForPath(owners, l.StateDir())) {
-		t.Fatalf("web group can list %s; want state dir listing denied by mode/owner model", l.StateDir())
 	}
 }
 

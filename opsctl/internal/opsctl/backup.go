@@ -179,8 +179,12 @@ func (o *Opsctl) Restore(ctx context.Context, app, key string, confirm io.Reader
 	if err := o.System.ChownTree(ctx, app, app, l.CacheDir()); err != nil {
 		return fmt.Errorf("restore: chown cache: %w", err)
 	}
-	if err := o.ensureWWWPerms(ctx, app, l); err != nil {
-		return fmt.Errorf("restore: restore www perms: %w", err)
+	if _, err := os.Stat(l.WWWDir()); err == nil {
+		if err := o.System.ChownTree(ctx, app, app, l.WWWDir()); err != nil {
+			return fmt.Errorf("restore: chown served tree: %w", err)
+		}
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("restore: stat served tree: %w", err)
 	}
 	if app == "dashboard" {
 		if err := restoreLatestCert(ctx, store, l, work); err != nil {

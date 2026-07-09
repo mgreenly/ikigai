@@ -844,7 +844,8 @@ func TestInstall_ChownsStateDirToAppUser(t *testing.T) {
 	}
 }
 
-func TestDeployRestoresServedTreePermsAfterStateChown(t *testing.T) {
+func TestDeployStateChownOwnsServedTree(t *testing.T) {
+	// R-3MPQ-A91D
 	root := t.TempDir()
 	app := "sites"
 	version := "v1.0.0"
@@ -862,53 +863,18 @@ func TestDeployRestoresServedTreePermsAfterStateChown(t *testing.T) {
 		t.Fatalf("deploy served app: %v", err)
 	}
 
-	// R-AVIE-SOYW
 	ops := sys.opSeq()
 	stateChown := "chown:" + app + ":" + app + ":" + l.StateDir()
-	stateIdx := eventIndex(ops, stateChown)
-	if stateIdx == -1 {
+	if eventIndex(ops, stateChown) == -1 {
 		t.Fatalf("deploy ops = %v, missing state chown %q", ops, stateChown)
 	}
-	wwwChown := "chown:" + app + ":web:" + l.WWWDir()
-	wwwIdx := eventIndex(ops, wwwChown)
-	if wwwIdx == -1 {
-		t.Fatalf("deploy ops = %v, missing served-tree chown %q", ops, wwwChown)
-	}
-	if wwwIdx <= stateIdx {
-		t.Fatalf("served-tree chown index %d must be after state chown index %d in %v", wwwIdx, stateIdx, ops)
-	}
-	for _, dir := range []string{l.WWWRoot(), l.WWWPublicDir(), l.WWWPrivateDir()} {
-		chmod := "chmod:2750:" + dir
-		chmodIdx := eventIndex(ops, chmod)
-		if chmodIdx == -1 {
-			t.Fatalf("deploy ops = %v, missing served-tree chmod %q", ops, chmod)
+	for _, op := range ops {
+		if strings.Contains(op, ":web:") || strings.HasPrefix(op, "chmod:") {
+			t.Fatalf("deploy requested retired served-tree permission op %q; ops = %v", op, ops)
 		}
-		if chmodIdx <= stateIdx {
-			t.Fatalf("served-tree chmod %q index %d must be after state chown index %d in %v", chmod, chmodIdx, stateIdx, ops)
+		if strings.HasPrefix(op, "chown:") && strings.HasSuffix(op, ":"+l.WWWDir()) {
+			t.Fatalf("deploy requested redundant www chown %q; state chown must own the tree", op)
 		}
-	}
-}
-
-func TestEnsureWWWPermsSkipsAbsentTiersAndLegacyWorking(t *testing.T) {
-	// R-QEPF-HJ11
-	root := t.TempDir()
-	l := NewLayout(root, "sites")
-	if err := os.MkdirAll(filepath.Join(l.WWWRoot(), "working"), 0o750); err != nil {
-		t.Fatalf("create legacy working dir: %v", err)
-	}
-	sys := &stubSystem{}
-	o := newOpsctl(t, root, "sites", sys, nil)
-
-	if err := o.ensureWWWPerms(context.Background(), "sites", l); err != nil {
-		t.Fatalf("ensureWWWPerms with absent tiers: %v", err)
-	}
-
-	want := []string{
-		"chown:sites:web:" + l.WWWRoot(),
-		"chmod:2750:" + l.WWWRoot(),
-	}
-	if got := sys.opSeq(); strings.Join(got, "|") != strings.Join(want, "|") {
-		t.Fatalf("ensureWWWPerms ops = %v, want only existing non-legacy dirs %v", got, want)
 	}
 }
 
@@ -931,7 +897,6 @@ func TestDeploySkipsServedTreePermsWhenWWWDirAbsent(t *testing.T) {
 		t.Fatalf("deploy default app: %v", err)
 	}
 
-	// R-AWQB-6GPL
 	if _, err := os.Stat(l.WWWDir()); !os.IsNotExist(err) {
 		t.Fatalf("default deploy has www dir stat err = %v, want absent", err)
 	}

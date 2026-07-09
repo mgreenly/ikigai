@@ -722,7 +722,7 @@ func TestRestoreChownsCacheToServiceUser(t *testing.T) {
 }
 
 func TestRestoreReassertsServedTreeInvariantBeforeRestart(t *testing.T) {
-	// R-AZ63-Y06Z
+	// R-3NXM-O0S2
 	root := t.TempDir()
 	l := NewLayout(root, "sites")
 	writeStateFile(t, l, "old.txt", "old")
@@ -744,9 +744,7 @@ func TestRestoreReassertsServedTreeInvariantBeforeRestart(t *testing.T) {
 	wantOps := []string{
 		"systemctl:stop sites",
 		"chown:sites:sites:" + l.CacheDir(),
-		"chown:sites:web:" + l.WWWRoot(),
-		"chmod:2750:" + l.WWWRoot(),
-		"chmod:2750:" + l.WWWPublicDir(),
+		"chown:sites:sites:" + l.WWWDir(),
 		"systemctl:start sites",
 	}
 	if got := sys.opSeq(); strings.Join(got, "|") != strings.Join(wantOps, "|") {

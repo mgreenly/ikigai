@@ -137,8 +137,6 @@ func TestInitBox_WritesApexSubstrate(t *testing.T) {
 	// and nginx cannot validate without it.
 	wantOps := []string{
 		"install-packages:nginx,certbot",
-		"ensure-group:web",
-		"add-user-to-group:nginx:web",
 		"obtain-cert-standalone:int.ikigenba.com",
 		"nginx-test",
 		"enable-now:nginx",
@@ -220,8 +218,6 @@ func TestInitBox_SkipCert(t *testing.T) {
 	// no nginx validate/start and no cert — those wait for the cert to exist.
 	wantOps := []string{
 		"install-packages:nginx,certbot",
-		"ensure-group:web",
-		"add-user-to-group:nginx:web",
 		"daemon-reload",
 		"enable-now:ikigenba-certbot-renew.timer",
 		"enable-now:ikigenba-backup.timer",
@@ -257,8 +253,6 @@ func TestInitBox_CertExists(t *testing.T) {
 	// obtain-cert that reconciles the renewal config (no re-issue, cert is live).
 	wantOps := []string{
 		"install-packages:nginx,certbot",
-		"ensure-group:web",
-		"add-user-to-group:nginx:web",
 		"nginx-test",
 		"enable-now:nginx",
 		"nginx-reload",
@@ -346,9 +340,8 @@ func TestSetup_PathRoutedService(t *testing.T) {
 }
 
 // TestSetup_WWWTree provisions the sites service: in addition to the standard
-// tree, setup must create the SEPARATE web-group www/ tree (public/, private/,
-// and the www/ root) at mode 0750, `chown -R sites:web` the www root,
-// and setgid the tier dirs. The WWWDirs are derived per-app via WWWDirsFor, so
+// tree, setup must create the service-owned www/ tree (public/, private/, and
+// the www/ root) at mode 0750. The WWWDirs are derived per-app via WWWDirsFor, so
 // `opsctl setup sites` provisions them with no operator flag.
 func TestSetup_WWWTree(t *testing.T) {
 	// R-4LKF-FB23
@@ -386,14 +379,10 @@ func TestSetup_WWWTree(t *testing.T) {
 		t.Fatalf("legacy working dir was created: %v", err)
 	}
 
-	// The www ROOT was handed to the sites user and web group via a recursive
-	// chown through the seam, then each tier dir was setgid.
+	// The state tree, including www/, was handed to the sites service user.
 	wantOps := []string{
 		"ensure-user:sites:" + l.AppDir(),
-		"chown:sites:web:" + l.WWWRoot(),
-		"chmod:2750:" + l.WWWRoot(),
-		"chmod:2750:" + l.WWWPublicDir(),
-		"chmod:2750:" + l.WWWPrivateDir(),
+		"chown:sites:sites:" + l.StateDir(),
 		"daemon-reload",
 		"enable:sites.service",
 		"nginx-test",

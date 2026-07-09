@@ -20,11 +20,9 @@ type SetupOptions struct {
 	// fragment is dropped.
 	IsDefault bool // true for the apex/DEFAULT app whose nginx block is init-box/deploy-owned.
 
-	// WWWDirs are extra directories (absolute paths) to create at mode 0750 and
-	// hand to the app user plus web group via `chown -R <app>:web` on the www
-	// ROOT. They back the sites service's SEPARATE state/www tree (public/ and
-	// private/): the stock per-app state/ is 0750 <app>:<app> so nginx
-	// cannot traverse it, so sites serves from this web-group tree instead.
+	// WWWDirs are extra directories (absolute paths) to create at mode 0750.
+	// They back the sites service's state/www tree (public/ and private/), which
+	// is owned with the rest of state by the service user.
 	// Apps that need no static tree (every app but sites) pass none — and
 	// then setup creates no www dir at all, leaving their behavior unchanged. The
 	// command layer derives this list per-app (see wwwDirsFor); it is not an
@@ -147,18 +145,16 @@ func (o *Opsctl) Setup(ctx context.Context, opts SetupOptions) error {
 			return fmt.Errorf("setup: create state dir: %w", err)
 		}
 
-		// 2b. The OPTIONAL served www/ tree (sites only). state/ is 0750 so
-		//     nginx cannot traverse it; sites serves from this web-group subtree
-		//     instead. Create each requested dir at 0750, then hand the www ROOT
-		//     to <app>:web and setgid the tier dirs so future entries inherit web.
+		// 2b. The OPTIONAL served www/ tree (sites only). Create each requested
+		//     dir at 0750, then hand state/ (including www/) to the service user.
 		//     Apps that request none skip this entirely — behavior unchanged.
 		if len(opts.WWWDirs) > 0 {
 			o.logf("create served www tree for %s", app)
 			if err := mkdirAllMode(0o750, opts.WWWDirs...); err != nil {
 				return fmt.Errorf("setup: create www tree: %w", err)
 			}
-			if err := o.ensureWWWPerms(ctx, app, l); err != nil {
-				return fmt.Errorf("setup: ensure www perms: %w", err)
+			if err := o.System.ChownTree(ctx, app, app, l.StateDir()); err != nil {
+				return fmt.Errorf("setup: chown state dir: %w", err)
 			}
 		}
 	}

@@ -57,12 +57,6 @@ func (o *Opsctl) InitBox(ctx context.Context, opts InitBoxOptions) error {
 	if err := o.System.InstallPackages(ctx, "nginx", "certbot"); err != nil {
 		return fmt.Errorf("init-box: install packages: %w", err)
 	}
-	if err := o.System.EnsureSystemGroup(ctx, "web"); err != nil {
-		return fmt.Errorf("init-box: ensure web group: %w", err)
-	}
-	if err := o.System.AddUserToGroup(ctx, "nginx", "web"); err != nil {
-		return fmt.Errorf("init-box: add nginx to web group: %w", err)
-	}
 
 	// 2. The box-global include dir + the HTTP-01 webroot.
 	o.logf("create %s + %s", l.LocationsDir(), l.LetsEncryptWebroot())
