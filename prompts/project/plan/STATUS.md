@@ -25,3 +25,4 @@ Phase 20 ✅ realizes D17 — MCP surface over `appkit/mcp`: `internal/mcp` beco
 Phase 21 ✅ realizes D18 — delete the `internal/db` `Open`/`Migrate` wrappers (migrations embed + guard tests remain; harnesses call `appkit/db` directly) and true up the `cmd/prompts/main.go` package doc comment to the converted service (producer + `Spec.Consumers`, `appkit/mcp` tool table, `share/www` web surface) (structural)
 Phase 22 ✅ realizes D6 (rewritten: deferred groups) — Suite discovery returns deferred tool groups (mcpclient Initialize + per-peer DeferredToolGroup)
 Phase 23 ✅ realizes D19, D7 (assembly) — Runner wires DeferredTools, framing-prompt guidance, agentkit bump to v0.2.0
+Phase 24 ⬜ realizes D19 (amended) — agentkit v0.2.1: framing prompt states group-name loading (a service's name loads all its tools), go.mod pin bumps to v0.2.1; covers R-A69O-ATWI

@@ -24,7 +24,7 @@ Each Decision maps to its `DNN.md` file. Every `R-XXXX-XXXX` id maps to its Deci
 | D16 | project/design/D16.md | Web surface from `share/www` through the chassis (de-embed) | R-DIAW-ZFMC, R-DJIT-D7D1 |
 | D17 | project/design/D17.md | MCP surface over `appkit/mcp`: `internal/mcp` becomes the tool table | R-DKQP-QZ3Q, R-DLYM-4QUF |
 | D18 | project/design/D18.md | Delete the chassis shims (`internal/db` wrappers) and true up the doctrine doc | none — structural |
-| D19 | project/design/D19.md | Progressive suite-tool discovery (deferred suite tools) | R-9NBD-XAU5, R-9OJA-B2KU, R-9PR6-OUBJ |
+| D19 | project/design/D19.md | Progressive suite-tool discovery (deferred suite tools) | R-9NBD-XAU5, R-9OJA-B2KU, R-9PR6-OUBJ, R-A69O-ATWI |
 
 ## Verification ids → Decision
 
@@ -36,6 +36,7 @@ Each Decision maps to its `DNN.md` file. Every `R-XXXX-XXXX` id maps to its Deci
 | R-9NBD-XAU5 | D19 | project/design/D19.md |
 | R-9OJA-B2KU | D19 | project/design/D19.md |
 | R-9PR6-OUBJ | D19 | project/design/D19.md |
+| R-A69O-ATWI | D19 | project/design/D19.md |
 | R-JTBA-4RDB | D2 | project/design/D02.md |
 | R-JUJ6-IJ40 | D2 | project/design/D02.md |
 | R-JVR2-WAUP | D3 | project/design/D03.md |
