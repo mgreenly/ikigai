@@ -179,6 +179,7 @@ launch_prompts() {
 	source "$repo/prompts/.envrc"
 	export PROMPTS_DB_PATH="$RUN_DIR/prompts.db"
 	export PROMPTS_WWW_PATH="$repo/prompts/share/www"
+	export PROMPTS_MANIFEST_ROOT="$MANIFEST_ROOT"
 	export_feed_urls PROMPTS cron crm ledger dropbox scripts prompts
 	exec "$RUN_DIR/bin/prompts" serve --port "$(port 3002)"
 }
