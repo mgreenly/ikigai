@@ -19,3 +19,5 @@ grep matches only phase lines.
 - Phase 09 ✅ realizes R-AVIE-SOYW, R-AWQB-6GPL (R-AXY7-K8GA live-box, operator-verified out-of-loop) — deploy re-asserts the served-tree `web` invariant after the state chown
 - Phase 10 ✅ realizes R-AZ63-Y06Z (R-B0E0-BRXO live-box, operator-verified out-of-loop) — restore re-asserts the served-tree `web` invariant after replacing state
 - Phase 11 ✅ realizes R-QFXB-VARQ, R-QEPF-HJ11 (retires R-AT2M-15HI) — retire the `working/` segment from opsctl's served-tree model
+- Phase 12 ⬜ realizes R-3K9X-IPJZ, R-3MPQ-A91D, R-3NXM-O0S2 (retires R-AQMT-9M04, R-ARUP-NDQT, R-QEPF-HJ11, R-AVIE-SOYW, R-AWQB-6GPL, R-AZ63-Y06Z) — replace the web-group served-tree model with service-user ownership across setup/deploy/restore
+- Phase 13 ⬜ realizes R-3LHT-WHAO — remove the orphaned served-tree seams (`Chmod`/`EnsureSystemGroup`/`AddUserToGroup`) and the dead `stateWWWFragment`
