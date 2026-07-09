@@ -535,6 +535,7 @@ func (s *webhooksBootSystem) IsActive(ctx context.Context, app string) error {
 	cmd.Env = append(os.Environ(), manifestEnv(s.layout.ActiveManifest())...)
 	cmd.Env = append(cmd.Env, dbEnvForLayout(s.layout)...)
 	cmd.Env = append(cmd.Env,
+		"IKIGENBA_ROOT="+s.layout.Root,
 		fmt.Sprintf("WEBHOOKS_PORT=%d", s.port),
 		"WEBHOOKS_IP=127.0.0.1",
 		"WEBHOOKS_RESOURCE_ID=http://127.0.0.1/srv/webhooks/mcp",
@@ -547,7 +548,10 @@ func (s *webhooksBootSystem) IsActive(ctx context.Context, app string) error {
 		return fmt.Errorf("start webhooks serve: %w", err)
 	}
 	done := make(chan error, 1)
-	go func() { done <- cmd.Wait() }()
+	go func() {
+		done <- cmd.Wait()
+		close(done)
+	}()
 	s.started = true
 	s.t.Cleanup(func() {
 		cancel()
@@ -604,5 +608,5 @@ func buildWebhooksArtifact(t *testing.T, version string) string {
 	if b, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("build webhooks artifact: %v\n%s", err, b)
 	}
-	return bundleArtifactFromBinary(t, "webhooks", version, "webhooks-"+version, out)
+	return bundleArtifactFromBinary(t, "webhooks", version, "webhooks-"+version, out, filepath.Join(webhooksDir, "share", "www"))
 }

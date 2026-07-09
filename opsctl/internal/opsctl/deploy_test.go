@@ -1589,6 +1589,7 @@ func (s *notifyBootSystem) IsActive(ctx context.Context, app string) error {
 	cmd.Env = append(os.Environ(), manifestEnv(s.layout.ActiveManifest())...)
 	cmd.Env = append(cmd.Env, dbEnvForLayout(s.layout)...)
 	cmd.Env = append(cmd.Env,
+		"IKIGENBA_ROOT="+s.layout.Root,
 		fmt.Sprintf("NOTIFY_PORT=%d", s.port),
 		"NOTIFY_IP=127.0.0.1",
 		"NTFY_TOPIC=test-topic",
@@ -1603,8 +1604,12 @@ func (s *notifyBootSystem) IsActive(ctx context.Context, app string) error {
 		cancel()
 		return fmt.Errorf("start notify serve: %w", err)
 	}
-	done := make(chan error, 1)
-	go func() { done <- cmd.Wait() }()
+	done := make(chan struct{})
+	var waitErr error
+	go func() {
+		waitErr = cmd.Wait()
+		close(done)
+	}()
 	s.started = true
 	s.t.Cleanup(func() {
 		cancel()
@@ -1627,9 +1632,9 @@ func (s *notifyBootSystem) IsActive(ctx context.Context, app string) error {
 		case <-ctx.Done():
 			cancel()
 			return ctx.Err()
-		case err := <-done:
+		case <-done:
 			cancel()
-			return fmt.Errorf("notify serve exited before health: %w\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+			return fmt.Errorf("notify serve exited before health: %w\nstdout:\n%s\nstderr:\n%s", waitErr, stdout.String(), stderr.String())
 		case <-deadline:
 			cancel()
 			return fmt.Errorf("notify did not reach /health\nstdout:\n%s\nstderr:\n%s", stdout.String(), stderr.String())
@@ -1667,6 +1672,7 @@ func (s *dropboxBootSystem) IsActive(ctx context.Context, app string) error {
 	cmd.Env = append(os.Environ(), manifestEnv(s.layout.ActiveManifest())...)
 	cmd.Env = append(cmd.Env, dbEnvForLayout(s.layout)...)
 	cmd.Env = append(cmd.Env,
+		"IKIGENBA_ROOT="+s.layout.Root,
 		fmt.Sprintf("DROPBOX_PORT=%d", s.port),
 		"DROPBOX_IP=127.0.0.1",
 		"DROPBOX_APP_KEY=test-key",
@@ -1683,7 +1689,10 @@ func (s *dropboxBootSystem) IsActive(ctx context.Context, app string) error {
 		return fmt.Errorf("start dropbox serve: %w", err)
 	}
 	done := make(chan error, 1)
-	go func() { done <- cmd.Wait() }()
+	go func() {
+		done <- cmd.Wait()
+		close(done)
+	}()
 	s.started = true
 	s.t.Cleanup(func() {
 		cancel()
@@ -1746,6 +1755,7 @@ func (s *promptsBootSystem) IsActive(ctx context.Context, app string) error {
 	cmd.Env = append(os.Environ(), manifestEnv(s.layout.ActiveManifest())...)
 	cmd.Env = append(cmd.Env, dbEnvForLayout(s.layout)...)
 	cmd.Env = append(cmd.Env,
+		"IKIGENBA_ROOT="+s.layout.Root,
 		fmt.Sprintf("PROMPTS_PORT=%d", s.port),
 		"PROMPTS_IP=127.0.0.1",
 		"PROMPTS_CRON_FEED_URL=http://127.0.0.1:1/feed",
@@ -1766,7 +1776,10 @@ func (s *promptsBootSystem) IsActive(ctx context.Context, app string) error {
 		return fmt.Errorf("start prompts serve: %w", err)
 	}
 	done := make(chan error, 1)
-	go func() { done <- cmd.Wait() }()
+	go func() {
+		done <- cmd.Wait()
+		close(done)
+	}()
 	s.started = true
 	s.t.Cleanup(func() {
 		cancel()
@@ -1829,6 +1842,7 @@ func (s *wikiBootSystem) IsActive(ctx context.Context, app string) error {
 	cmd.Env = append(os.Environ(), manifestEnv(s.layout.ActiveManifest())...)
 	cmd.Env = append(cmd.Env, dbEnvForLayout(s.layout)...)
 	cmd.Env = append(cmd.Env,
+		"IKIGENBA_ROOT="+s.layout.Root,
 		fmt.Sprintf("WIKI_PORT=%d", s.port),
 		"WIKI_IP=127.0.0.1",
 		"ANTHROPIC_API_KEY=sk-test",
@@ -1841,7 +1855,10 @@ func (s *wikiBootSystem) IsActive(ctx context.Context, app string) error {
 		return fmt.Errorf("start wiki serve: %w", err)
 	}
 	done := make(chan error, 1)
-	go func() { done <- cmd.Wait() }()
+	go func() {
+		done <- cmd.Wait()
+		close(done)
+	}()
 	s.started = true
 	s.t.Cleanup(func() {
 		cancel()
@@ -1904,6 +1921,7 @@ func (s *cronBootSystem) IsActive(ctx context.Context, app string) error {
 	cmd.Env = append(os.Environ(), manifestEnv(s.layout.ActiveManifest())...)
 	cmd.Env = append(cmd.Env, dbEnvForLayout(s.layout)...)
 	cmd.Env = append(cmd.Env,
+		"IKIGENBA_ROOT="+s.layout.Root,
 		fmt.Sprintf("CRON_PORT=%d", s.port),
 		"CRON_IP=127.0.0.1",
 	)
@@ -1914,7 +1932,10 @@ func (s *cronBootSystem) IsActive(ctx context.Context, app string) error {
 		return fmt.Errorf("start cron serve: %w", err)
 	}
 	done := make(chan error, 1)
-	go func() { done <- cmd.Wait() }()
+	go func() {
+		done <- cmd.Wait()
+		close(done)
+	}()
 	s.started = true
 	s.t.Cleanup(func() {
 		cancel()
@@ -1977,6 +1998,7 @@ func (s *gmailBootSystem) IsActive(ctx context.Context, app string) error {
 	cmd.Env = append(os.Environ(), manifestEnv(s.layout.ActiveManifest())...)
 	cmd.Env = append(cmd.Env, dbEnvForLayout(s.layout)...)
 	cmd.Env = append(cmd.Env,
+		"IKIGENBA_ROOT="+s.layout.Root,
 		fmt.Sprintf("GMAIL_PORT=%d", s.port),
 		"GMAIL_IP=127.0.0.1",
 		"GMAIL_CLIENT_ID=test-client-id",
@@ -1993,7 +2015,10 @@ func (s *gmailBootSystem) IsActive(ctx context.Context, app string) error {
 		return fmt.Errorf("start gmail serve: %w", err)
 	}
 	done := make(chan error, 1)
-	go func() { done <- cmd.Wait() }()
+	go func() {
+		done <- cmd.Wait()
+		close(done)
+	}()
 	s.started = true
 	s.t.Cleanup(func() {
 		cancel()
@@ -2056,6 +2081,7 @@ func (s *sitesBootSystem) IsActive(ctx context.Context, app string) error {
 	cmd.Env = append(os.Environ(), manifestEnv(s.layout.ActiveManifest())...)
 	cmd.Env = append(cmd.Env, dbEnvForLayout(s.layout)...)
 	cmd.Env = append(cmd.Env,
+		"IKIGENBA_ROOT="+s.layout.Root,
 		fmt.Sprintf("SITES_PORT=%d", s.port),
 		"SITES_IP=127.0.0.1",
 		"SITES_ROOT="+s.layout.WWWRoot(),
@@ -2067,7 +2093,10 @@ func (s *sitesBootSystem) IsActive(ctx context.Context, app string) error {
 		return fmt.Errorf("start sites serve: %w", err)
 	}
 	done := make(chan error, 1)
-	go func() { done <- cmd.Wait() }()
+	go func() {
+		done <- cmd.Wait()
+		close(done)
+	}()
 	s.started = true
 	s.t.Cleanup(func() {
 		cancel()
@@ -2124,7 +2153,7 @@ func buildNotifyArtifact(t *testing.T, version string) string {
 	if b, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("build notify artifact: %v\n%s", err, b)
 	}
-	return bundleArtifactFromBinary(t, "notify", version, "notify-"+version, out)
+	return bundleArtifactFromBinary(t, "notify", version, "notify-"+version, out, filepath.Join(notifyDir, "share", "www"))
 }
 
 func buildWikiArtifact(t *testing.T, version string) string {
@@ -2140,7 +2169,7 @@ func buildWikiArtifact(t *testing.T, version string) string {
 	if b, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("build wiki artifact: %v\n%s", err, b)
 	}
-	return bundleArtifactFromBinary(t, "wiki", version, "wiki-"+version, out)
+	return bundleArtifactFromBinary(t, "wiki", version, "wiki-"+version, out, filepath.Join(wikiDir, "share", "www"))
 }
 
 func buildPromptsArtifact(t *testing.T, version string) string {
@@ -2156,7 +2185,7 @@ func buildPromptsArtifact(t *testing.T, version string) string {
 	if b, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("build prompts artifact: %v\n%s", err, b)
 	}
-	return bundleArtifactFromBinary(t, "prompts", version, "prompts-"+version, out)
+	return bundleArtifactFromBinary(t, "prompts", version, "prompts-"+version, out, filepath.Join(promptsDir, "share", "www"))
 }
 
 func buildDropboxArtifact(t *testing.T, version string) string {
@@ -2172,7 +2201,7 @@ func buildDropboxArtifact(t *testing.T, version string) string {
 	if b, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("build dropbox artifact: %v\n%s", err, b)
 	}
-	return bundleArtifactFromBinary(t, "dropbox", version, "dropbox-"+version, out)
+	return bundleArtifactFromBinary(t, "dropbox", version, "dropbox-"+version, out, filepath.Join(dropboxDir, "share", "www"))
 }
 
 func buildGmailArtifact(t *testing.T, version string) string {
@@ -2188,7 +2217,7 @@ func buildGmailArtifact(t *testing.T, version string) string {
 	if b, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("build gmail artifact: %v\n%s", err, b)
 	}
-	return bundleArtifactFromBinary(t, "gmail", version, "gmail-"+version, out)
+	return bundleArtifactFromBinary(t, "gmail", version, "gmail-"+version, out, filepath.Join(gmailDir, "share", "www"))
 }
 
 func buildCronArtifact(t *testing.T, version string) string {
@@ -2204,7 +2233,7 @@ func buildCronArtifact(t *testing.T, version string) string {
 	if b, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("build cron artifact: %v\n%s", err, b)
 	}
-	return bundleArtifactFromBinary(t, "cron", version, "cron-"+version, out)
+	return bundleArtifactFromBinary(t, "cron", version, "cron-"+version, out, filepath.Join(cronDir, "share", "www"))
 }
 
 func buildSitesArtifact(t *testing.T, version string) string {
@@ -2220,7 +2249,7 @@ func buildSitesArtifact(t *testing.T, version string) string {
 	if b, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("build sites artifact: %v\n%s", err, b)
 	}
-	return bundleArtifactFromBinary(t, "sites", version, "sites-"+version, out)
+	return bundleArtifactFromBinary(t, "sites", version, "sites-"+version, out, filepath.Join(sitesDir, "share", "www"))
 }
 
 func manifestEnv(path string) []string {

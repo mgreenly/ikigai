@@ -308,7 +308,7 @@ func stageBundleArtifact(t *testing.T, app, version, name string) string {
 	return bundleArtifactFromBinary(t, app, version, name, stageArtifact(t, name+"-bin"))
 }
 
-func bundleArtifactFromBinary(t *testing.T, app, version, name, bin string) string {
+func bundleArtifactFromBinary(t *testing.T, app, version, name, bin string, wwwRoot ...string) string {
 	t.Helper()
 	dst := filepath.Join(t.TempDir(), name+".tar.gz")
 	f, err := os.Create(dst)
@@ -365,6 +365,26 @@ func bundleArtifactFromBinary(t *testing.T, app, version, name, bin string) stri
 	addBytes("etc/"+version+"/nginx.conf", []byte("location /srv/"+app+"/ {\n    proxy_pass http://127.0.0.1:3000;\n}\n"), 0o644)
 	addBytes("etc/"+version+"/manifest.env", []byte("APP="+app+"\n"), 0o644)
 	addBytes("share/"+version+"/assets/resource.txt", []byte(app+" "+version+"\n"), 0o644)
+	if len(wwwRoot) > 0 {
+		if err := filepath.Walk(wwwRoot[0], func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			rel, err := filepath.Rel(wwwRoot[0], path)
+			if err != nil {
+				return err
+			}
+			name := filepath.ToSlash(filepath.Join("share", version, "www", rel))
+			if info.IsDir() {
+				addDir(name)
+				return nil
+			}
+			addFile(name, path, int64(info.Mode().Perm()))
+			return nil
+		}); err != nil {
+			t.Fatalf("add bundle www tree: %v", err)
+		}
+	}
 
 	if err := tw.Close(); err != nil {
 		t.Fatalf("close bundle tar: %v", err)
