@@ -644,6 +644,7 @@ func TestSubjectHandlerWithRealPathPageServiceResolvesAliasInboundLinks(t *testi
 	pageService := pathPageService{
 		resolver: wiki.NewResolver(conn),
 		service:  wiki.NewService(conn, nil, nil, time.Now),
+		webBase:  "https://int.ikigenba.com/srv/wiki/subject/",
 	}
 	site, err := appkitweb.Load(testWWWRoot(t))
 	if err != nil {
@@ -669,11 +670,67 @@ func TestSubjectHandlerWithRealPathPageServiceResolvesAliasInboundLinks(t *testi
 		"<h1>Giorgio Vasari</h1>",
 		"<p>Giorgio Vasari documented Renaissance artists.</p>",
 		`<nav aria-label="Mentioned by">`,
-		`<a href="subject/entity/florence-workshop">Florence Workshop</a>`,
+		`<a href="https://int.ikigenba.com/srv/wiki/subject/entity/florence-workshop">Florence Workshop</a>`,
 	} {
 		if !strings.Contains(body, want) {
 			t.Fatalf("folded subject page missing %q: %s", want, body)
 		}
+	}
+}
+
+func TestWebSubjectLinksUseAbsoluteAuthServerBase(t *testing.T) {
+	// R-8I6N-DL0I
+	for _, tc := range []struct {
+		name       string
+		authServer string
+	}{
+		{name: "production", authServer: "https://acct.ikigenba.com"},
+		{name: "local", authServer: "http://localhost:8080"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := context.Background()
+			conn := migratedDB(t, ctx)
+			defer conn.Close()
+			if err := wiki.NewSubjectStore(conn).Save(ctx, wiki.Subject{
+				ID:   "subject-tsr",
+				Name: "TSR",
+				Type: "entity",
+			}); err != nil {
+				t.Fatalf("Save subject: %v", err)
+			}
+			site, err := appkitweb.Load(testWWWRoot(t))
+			if err != nil {
+				t.Fatalf("load test site: %v", err)
+			}
+			spec := newSpec(staticConfig(wiki.Config{}))
+			srv, err := server.New(server.Options{
+				Addr:       "127.0.0.1:0",
+				Logger:     slog.New(slog.NewJSONHandler(io.Discard, nil)),
+				ResourceID: tc.authServer + "/srv/wiki/mcp",
+				AuthServer: tc.authServer,
+				Version:    "test-version",
+				Service:    "wiki",
+				Register:   spec.Handlers,
+				WWW:        site,
+				DB:         conn,
+			})
+			if err != nil {
+				t.Fatalf("server.New: %v", err)
+			}
+
+			rec := httptest.NewRecorder()
+			srv.Handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+			if rec.Code != http.StatusOK {
+				t.Fatalf("status = %d, want 200; body=%s", rec.Code, rec.Body.String())
+			}
+			want := `<a href="` + tc.authServer + `/srv/wiki/subject/entity/tsr">TSR</a>`
+			if !strings.Contains(rec.Body.String(), want) {
+				t.Fatalf("home page missing absolute subject link %q: %s", want, rec.Body.String())
+			}
+			if strings.Contains(rec.Body.String(), `href="subject/entity/tsr"`) || strings.Contains(rec.Body.String(), `//srv/wiki/subject/`) {
+				t.Fatalf("home page rendered malformed subject base: %s", rec.Body.String())
+			}
+		})
 	}
 }
 

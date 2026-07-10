@@ -109,9 +109,11 @@ func newSpec(loadConfig configLoader) appkit.Spec {
 				cfg.CallSites.AskSubject,
 				cfg.CallSites.AskSynthesis,
 			)
+			webBase := strings.TrimRight(rt.AuthServer(), "/") + wiki.Mount + "subject/"
 			webPageService := pathPageService{
 				resolver: wiki.NewResolver(read),
 				service:  svc,
+				webBase:  webBase,
 			}
 			pageService := pathPageService{
 				resolver:     wiki.NewResolver(read),
@@ -132,9 +134,9 @@ func newSpec(loadConfig configLoader) appkit.Spec {
 			aliases := wiki.NewAliasStore(read)
 			statusService := publicStatusService{service: svc}
 			rt.Handle("/", web.NewHandler(rt.Service(), rt.Version(), wiki.Mount, rt.WWW(),
-				web.WithOrphanLister(orphanAdapter{svc: svc}),
+				web.WithOrphanLister(orphanAdapter{svc: svc, webBase: webBase}),
 				web.WithAsker(asker),
-				web.WithMentioner(mentionAdapter{svc: svc}),
+				web.WithMentioner(mentionAdapter{svc: svc, webBase: webBase}),
 				web.WithPageFinder(webPageService),
 			))
 			mcpHandler, err := mcp.NewHandler(rt,
@@ -283,7 +285,8 @@ func (r mergePathResolver) GetByPath(ctx context.Context, path string) (wiki.Sub
 }
 
 type orphanAdapter struct {
-	svc *wiki.Service
+	svc     *wiki.Service
+	webBase string
 }
 
 func (a orphanAdapter) Orphans(ctx context.Context) ([]web.Ref, error) {
@@ -294,7 +297,7 @@ func (a orphanAdapter) Orphans(ctx context.Context) ([]web.Ref, error) {
 	refs := make([]web.Ref, 0, len(subjects))
 	for _, subject := range subjects {
 		refs = append(refs, web.Ref{
-			Href: "subject/" + wiki.Path(subject),
+			Href: a.webBase + wiki.Path(subject),
 			Name: subject.Name,
 		})
 	}
@@ -302,7 +305,8 @@ func (a orphanAdapter) Orphans(ctx context.Context) ([]web.Ref, error) {
 }
 
 type mentionAdapter struct {
-	svc *wiki.Service
+	svc     *wiki.Service
+	webBase string
 }
 
 func (a mentionAdapter) MentionsIn(ctx context.Context, text string) ([]web.Ref, error) {
@@ -313,7 +317,7 @@ func (a mentionAdapter) MentionsIn(ctx context.Context, text string) ([]web.Ref,
 	refs := make([]web.Ref, 0, len(mentions))
 	for _, mention := range mentions {
 		refs = append(refs, web.Ref{
-			Href: "subject/" + mention.Path,
+			Href: a.webBase + mention.Path,
 			Name: mention.Name,
 		})
 	}
@@ -411,6 +415,7 @@ func (s publicStatusService) JobStatus(ctx context.Context, jobID string) (publi
 type pathPageService struct {
 	resolver     *wiki.Resolver
 	service      *wiki.Service
+	webBase      string
 	renderFooter bool
 	notFound     error
 }
@@ -440,8 +445,8 @@ func (s pathPageService) PageByPath(ctx context.Context, path string) (web.Subje
 		Title:     page.Title,
 		Body:      body,
 		Footer:    footer,
-		Outbound:  webRefs(page.Mentions),
-		Inbound:   webRefs(page.MentionedBy),
+		Outbound:  webRefs(s.webBase, page.Mentions),
+		Inbound:   webRefs(s.webBase, page.MentionedBy),
 	}, nil
 }
 
@@ -452,11 +457,11 @@ func (s pathPageService) notFoundErr() error {
 	return web.ErrNotFound
 }
 
-func webRefs(refs []wiki.Ref) []web.Ref {
+func webRefs(webBase string, refs []wiki.Ref) []web.Ref {
 	out := make([]web.Ref, 0, len(refs))
 	for _, ref := range refs {
 		out = append(out, web.Ref{
-			Href: "subject/" + ref.Path,
+			Href: webBase + ref.Path,
 			Name: ref.Name,
 		})
 	}

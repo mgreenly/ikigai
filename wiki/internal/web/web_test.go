@@ -247,8 +247,8 @@ func TestAskHandlerRendersMentionedSubjectsFromAnswerText(t *testing.T) {
 		Text:  "Acme Corp uses the Widget.",
 	}}
 	mentioner := &stubMentioner{refs: []Ref{
-		{Href: "subject/entity/acme-corp", Name: "Acme Corp"},
-		{Href: "subject/concept/widget", Name: "Widget"},
+		{Href: "https://acct.ikigenba.com/srv/wiki/subject/entity/acme-corp", Name: "Acme Corp"},
+		{Href: "https://acct.ikigenba.com/srv/wiki/subject/concept/widget", Name: "Widget"},
 	}}
 	req := httptest.NewRequest(http.MethodGet, "/?q=tools", nil)
 	rec := httptest.NewRecorder()
@@ -260,8 +260,8 @@ func TestAskHandlerRendersMentionedSubjectsFromAnswerText(t *testing.T) {
 		t.Fatalf("MentionsIn called %d with %q, want answer text", mentioner.called, mentioner.text)
 	}
 	for _, want := range []string{
-		`<a href="subject/entity/acme-corp">Acme Corp</a>`,
-		`<a href="subject/concept/widget">Widget</a>`,
+		`<a href="https://acct.ikigenba.com/srv/wiki/subject/entity/acme-corp">Acme Corp</a>`,
+		`<a href="https://acct.ikigenba.com/srv/wiki/subject/concept/widget">Widget</a>`,
 	} {
 		if !strings.Contains(body, want) {
 			t.Fatalf("ask page missing mention link %q: %s", want, body)
@@ -726,10 +726,10 @@ func TestSubjectHandlerRendersMentionsBeforeMentionedBy(t *testing.T) {
 		Title: "Acme Corp",
 		Body:  "Acme makes widgets.",
 		Outbound: []Ref{
-			{Href: "subject/entity/beta", Name: "Beta"},
+			{Href: "https://acct.ikigenba.com/srv/wiki/subject/entity/beta", Name: "Beta"},
 		},
 		Inbound: []Ref{
-			{Href: "subject/event/deal-q3", Name: "Deal Q3"},
+			{Href: "https://acct.ikigenba.com/srv/wiki/subject/event/deal-q3", Name: "Deal Q3"},
 		},
 	}}
 	req := httptest.NewRequest(http.MethodGet, "/subject/entity/acme-corp", nil)
@@ -744,13 +744,54 @@ func TestSubjectHandlerRendersMentionsBeforeMentionedBy(t *testing.T) {
 		t.Fatalf("subject page did not render Mentions before Mentioned by: %s", body)
 	}
 	for _, want := range []string{
-		`<a href="subject/entity/beta">Beta</a>`,
-		`<a href="subject/event/deal-q3">Deal Q3</a>`,
+		`<a href="https://acct.ikigenba.com/srv/wiki/subject/entity/beta">Beta</a>`,
+		`<a href="https://acct.ikigenba.com/srv/wiki/subject/event/deal-q3">Deal Q3</a>`,
 	} {
 		if !strings.Contains(body, want) {
 			t.Fatalf("subject page missing link %q: %s", want, body)
 		}
 	}
+}
+
+func TestWebNavigationStaysRelativeBesideAbsoluteSubjectLinks(t *testing.T) {
+	// R-8JEJ-RCR7
+	base := "https://acct.ikigenba.com/srv/wiki/subject/"
+
+	t.Run("answer", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		newTestHandler(t, "wiki", "v-test", "/srv/wiki/",
+			WithAsker(&stubAsker{answer: ask.Answer{Found: true, Text: "TSR is ready."}}),
+			WithMentioner(&stubMentioner{refs: []Ref{{Href: base + "entity/tsr", Name: "TSR"}}}),
+		).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/?q=tsr", nil))
+
+		body := rec.Body.String()
+		if !strings.Contains(body, `<a href="https://acct.ikigenba.com/srv/wiki/subject/entity/tsr">TSR</a>`) {
+			t.Fatalf("answer page missing absolute subject link: %s", body)
+		}
+		if !strings.Contains(body, `<form action="" method="get" role="search">`) || strings.Contains(body, `action="https://acct.ikigenba.com/srv/wiki/"`) {
+			t.Fatalf("answer navigation was absolutized: %s", body)
+		}
+	})
+
+	t.Run("subject", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		newTestHandler(t, "wiki", "v-test", "/srv/wiki/", WithPageFinder(&stubPageFinder{view: SubjectView{
+			Title: "Acme Corp",
+			Body:  "Acme uses TSR.",
+			Outbound: []Ref{{
+				Href: base + "entity/tsr",
+				Name: "TSR",
+			}},
+		}})).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/subject/entity/acme-corp", nil))
+
+		body := rec.Body.String()
+		if !strings.Contains(body, `<a href="https://acct.ikigenba.com/srv/wiki/subject/entity/tsr">TSR</a>`) {
+			t.Fatalf("subject page missing absolute subject link: %s", body)
+		}
+		if !strings.Contains(body, `<a href="">Ask another question</a>`) || strings.Contains(body, `href="https://acct.ikigenba.com/srv/wiki/">Ask another question</a>`) {
+			t.Fatalf("subject navigation was absolutized: %s", body)
+		}
+	})
 }
 
 func TestSubjectHandlerOmitsEmptyLinkSections(t *testing.T) {
