@@ -783,7 +783,7 @@ func TestAskToolUsesAuthenticatedIdentity(t *testing.T) {
 	if !body.Found || body.Answer != "Ada wrote the note." {
 		t.Fatalf("answer = %#v, want found Ada answer", body)
 	}
-	if len(body.Citations) != 1 || body.Citations[0].URL != "https://int.ikigenba.com/srv/wiki/entity/ada" {
+	if len(body.Citations) != 1 || body.Citations[0].URL != "https://int.ikigenba.com/srv/wiki/subject/entity/ada" {
 		t.Fatalf("citations = %#v, want front-door Ada citation", body.Citations)
 	}
 }
@@ -822,7 +822,7 @@ func TestAskToolReturnsURLTitleCitations(t *testing.T) {
 	if !body.Found || body.Answer != "Ada wrote the note." {
 		t.Fatalf("ask body = %#v, want found answer text", body)
 	}
-	if len(body.Citations) != 1 || body.Citations[0].URL != "https://int.ikigenba.com/srv/wiki/person/ada-lovelace" || body.Citations[0].Title != "Ada Lovelace" {
+	if len(body.Citations) != 1 || body.Citations[0].URL != "https://int.ikigenba.com/srv/wiki/subject/person/ada-lovelace" || body.Citations[0].Title != "Ada Lovelace" {
 		t.Fatalf("ask citations = %#v, want URL/title citation", body.Citations)
 	}
 	if body.Citations[0].Subject != "" {
@@ -898,7 +898,7 @@ func TestAskToolUsesPhase17InputAndResultShape(t *testing.T) {
 	if !body.Found || body.Answer != "Ada wrote the note." {
 		t.Fatalf("ask body = %#v, want found answer text", body)
 	}
-	if len(body.Citations) != 1 || body.Citations[0].URL != "https://int.ikigenba.com/srv/wiki/person/ada" || body.Citations[0].Title != "Ada" {
+	if len(body.Citations) != 1 || body.Citations[0].URL != "https://int.ikigenba.com/srv/wiki/subject/person/ada" || body.Citations[0].Title != "Ada" {
 		t.Fatalf("ask citations = %#v, want URL/title citation", body.Citations)
 	}
 }
@@ -930,15 +930,15 @@ func TestAskToolCitationContainsURLAndTitleWithoutPath(t *testing.T) {
 	}
 }
 
-func TestAskToolCitationUsesConfiguredFrontDoorOrigin(t *testing.T) {
-	// R-Y8WO-38S7
+func TestAskToolCitationURLUsesFrontDoorSubjectRoute(t *testing.T) {
+	// R-HOJB-ZR3T
 	tests := []struct {
 		name       string
 		authServer string
 		wantURL    string
 	}{
-		{name: "production", authServer: "https://acct.ikigenba.com", wantURL: "https://acct.ikigenba.com/srv/wiki/entity/tsr"},
-		{name: "local", authServer: "http://localhost:8080", wantURL: "http://localhost:8080/srv/wiki/entity/tsr"},
+		{name: "production", authServer: "https://acct.ikigenba.com", wantURL: "https://acct.ikigenba.com/srv/wiki/subject/entity/tsr"},
+		{name: "local", authServer: "http://localhost:8080", wantURL: "http://localhost:8080/srv/wiki/subject/entity/tsr"},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

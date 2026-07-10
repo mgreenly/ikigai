@@ -372,7 +372,7 @@ func Tools(opts ...Option) []appkitmcp.Tool {
 
 // NewHandler builds the MCP handler from appkit's route-time service metadata.
 func NewHandler(rt *appkit.Router, opts ...Option) (http.Handler, error) {
-	pageBase := strings.TrimRight(rt.AuthServer(), "/") + wiki.Mount
+	pageBase := strings.TrimRight(rt.AuthServer(), "/") + wiki.Mount + "subject/"
 	handlerOpts := append([]Option{}, opts...)
 	handlerOpts = append(handlerOpts, func(h *Handler) {
 		h.pageBase = pageBase
