@@ -80,7 +80,11 @@ sites does this and only this:
   there are no anonymously-imported sites.
 - **Serve a landing page at the bare mount root.** A dynamic, session-gated page
   showing the service version and the list of existing sites (slug, visibility,
-  creator, created-at), styled with the suite's Carbon design system.
+  creator, created-at), styled with the suite's Carbon design system. The list is
+  **browsable in the page**: a fuzzy search box filters by slug, the name /
+  created / creator columns sort (click a header to change direction), results
+  **paginate past ten** rows, and a single control clears the filter and ordering
+  back to the default view.
 - **Describe itself to a connecting agent.** The MCP surface is self-describing:
   its connection instructions name what sites is for in everyday words and point
   at a `guide` tool that returns the site model and worked examples, so an agent
@@ -155,6 +159,15 @@ Promised values the design must honor verbatim and never re-declare:
   `describe`.
 - **The version on the page is the version actually running** — so the operator
   can confirm a deploy in a browser.
+- **The landing list is browsable in place.** A logged-in user can **type in a
+  search box to fuzzily filter the sites by slug** (partial, out-of-order letters
+  still match), **sort by name, created-at, or creator by clicking a column
+  header** (clicking again reverses the direction), and **page through the
+  results ten at a time** once there are more than ten. A single **Clear** action
+  returns to the default view (no filter, newest-first, first page). Filtering,
+  sorting, and paging happen **instantly in the browser** with no page reload;
+  the default view is newest-first. This is a convenience for the human viewer —
+  it changes nothing an agent sees over MCP.
 
 ## Success criteria (outcomes)
 
@@ -184,6 +197,20 @@ service:
   opens that site.
 - As a browser with no dashboard session I open `/srv/sites/` and am refused with
   `401`.
+- As a logged-in user on the landing page I type part of a slug into the search
+  box — including letters that are non-adjacent in the name — and the list narrows
+  to just the matching sites as I type, with no page reload.
+- As a logged-in user I click the Name, Created, or Creator column header and the
+  list reorders by that column; clicking the same header again reverses the
+  direction. The list opens sorted newest-first by default.
+- As a logged-in user with more than ten sites (or more than ten matches after
+  filtering) I see a Prev/Next pager with a "Page X of Y" readout and can page
+  through ten at a time; with ten or fewer, no pager appears.
+- As a logged-in user I click **Clear** and the search box empties, the ordering
+  returns to newest-first, and I am back on the first page.
+- As a logged-in user with JavaScript disabled I still see the complete list of
+  sites (unfiltered, unsorted controls absent) — the page degrades to the plain
+  listing rather than showing a broken search box.
 - Every path served under `/srv/sites/…` is served by the sites process — nginx
   holds no `alias` and reads no site files off disk.
 - An MCP client still discovers the AS via the PRM well-known and calls the

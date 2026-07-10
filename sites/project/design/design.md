@@ -57,7 +57,11 @@ Shared facts every Decision leans on:
 - **Module wiring:** `appkit`, `eventplane`, and `registry` are committed in-repo
   replace-siblings. sites resolves its own port and the dropbox mirror address by
   name through `registry` (D9). No `agentkit` dependency (D10/D11): confined
-  file-tool logic lives in the native `internal/files` package.
+  file-tool logic lives in the native `internal/files` package. `github.com/dop251/goja`
+  is a **test-only** dependency (pure Go, no cgo): the landing page's client
+  JavaScript (`share/www/static/landing.js`, D22) is written as pure functions and
+  exercised by loading the real shipped file into goja from a Go test — so
+  `go test ./...` stays the whole green bar with no node/browser toolchain.
 - **The chassis owns the server.** sites is `appkit.Main(appkit.Spec{…})`:
   `App:"sites"`, `Mount:"/srv/sites/"`, `Port:registry.MustPort("sites")` (== 3004),
   `MCP:true`, `WWW:true` (chassis loads/serves the `share/www` landing template and
@@ -143,7 +147,21 @@ Testing is part of the architecture. The cross-cutting approach:
   load the shipped tree with `appkit/web.Load`, render `landing.html` with a fixed
   version and a fixed slice of sites, and assert the version card plus one row per
   site (slug, public/private, creator, created-at), and that an empty slice still
-  renders.
+  renders. The same substrate proves the D22 additions structurally: the JSON
+  data island's shape and URL-parity (D19), and that the search / sort / pager /
+  clear controls render hidden-until-JS with the sort hooks on the data headers
+  (D6).
+- **The landing page's client JavaScript is tested in goja over the real shipped
+  file.** A Go test reads `share/www/static/landing.js`, evaluates it in
+  `github.com/dop251/goja` (which has no `document`, so only the pure definitions
+  run and the DOM controller stays inert), and calls the exposed
+  `SitesLanding.{filterSites,sortRows,paginate,nextSort,defaultState,reduce,computeView}`
+  against fixed inputs — proving fuzzy-filter semantics, sort order and the
+  toggle rule, pagination arithmetic, the state reducer, and the view-model
+  derivations against the code that actually ships (D22). The DOM controller's
+  runtime wiring is the one part not driven end-to-end here (structural assertion
+  only); a headless-browser smoke could close that later but is not in the green
+  bar.
 - **The nginx fragment is proven by content assertion.** A test reads
   `sites/etc/nginx.conf` and asserts the public tier `proxy_pass`es to
   `…/public/` with no `auth_request`, the private tier gates with
@@ -170,8 +188,9 @@ Decision it realizes:
 filesystem ops, D10), `internal/mcp` (the domain tool table over the `appkit/mcp`
 transport, D13/D20), `internal/db` (the embedded migration set + load guard). The
 landing page and Carbon assets live on disk in `sites/share/www/` served by the
-chassis. There is **no** working tree, no served-symlink tree, and no
-`internal/web` package.
+chassis, including the landing page's client script `share/www/static/landing.js`
+(D22, filter/sort/paginate). There is **no** working tree, no served-symlink
+tree, and no `internal/web` package.
 
 Design is **rewritten in place**, not append-only (history lives in the plan): a
 changed Decision is rewritten in its `DNN.md` and `INDEX.md` is regenerated; a new
