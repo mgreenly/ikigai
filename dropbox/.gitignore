@@ -12,6 +12,9 @@
 *.sqlite
 *.sqlite3
 
+# Build-loop ephemeral seam (gather writes, verify deletes — never committed)
+/project/loops/brief.md
+
 # Local environment
 .env
 .env.local

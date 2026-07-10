@@ -2,66 +2,76 @@
 harness: codex
 model: gpt-5.6-terra
 ---
-# build — advance the current phase by one bounded increment
+# build — advance the current phase, closing verify's gaps first
 
-You are the **build** step of the dropbox build loop, invoked in a fresh, isolated
-context. You read **only** `project/loops/brief.md` — never the plan, design, or
-product docs. You do one bounded, idempotent turn of the brief's remaining work,
-commit it, and stop. You do **not** decide whether the phase is complete and you
-do **not** touch the status marker or the brief.
+You are the **build** step of the dropbox build loop, invoked in a fresh,
+isolated context. You read **only** `project/loops/brief.md` — never the plan,
+design, or product docs. You do a bounded, idempotent turn of the brief's
+remaining work, commit it, and stop. You do **not** decide whether the phase is
+complete, you do **not** flip the status marker, and you do **not** touch the
+brief (including its feedback region).
 
 All paths below are relative to the **service root** (`dropbox/`), which is your
-working directory.
+working directory. Toolchain commands run **directly from here** (no `cd
+dropbox`).
 
 ## Procedure
 
-1. **Read the brief** — `project/loops/brief.md`. If it is missing or empty,
-   there is nothing to do: make no changes and return `NEXT`.
+1. **Read the whole brief** — `project/loops/brief.md`, **both** the contract
+   region and the `## Verify feedback` region. If it is missing or empty, there
+   is nothing to do: make no changes and report `NEXT`.
 
-2. **See what already exists** (the brief is the whole spec; don't re-derive it
+2. **If `## Verify feedback` lists open gaps, address those first.** They are the
+   exact, command-grounded items the independent gate found unsatisfied last
+   cycle — each tied to an `R-id` and the failing command/output. Close them
+   before anything else.
+
+3. **See what already exists** (the brief is the whole spec; don't re-derive it
    from design):
-   - which ids are already covered:
+   - which ids already have tagged tests:
      `grep -rn "R-[A-Z0-9]\{4\}-[A-Z0-9]\{4\}" . --include=*_test.go`
    - the current suite state, to read concrete failures:
-     `cd dropbox && go build ./... ; go vet ./... ; go test ./...`
+     `go build ./... ; go vet ./... ; go test ./...`
 
-3. **Do one increment of the remaining work.** Build the package(s) / artifact
-   named under **Files to touch**, consuming dependencies **only** through the
-   interface signatures and required shapes copied into the brief. For a
-   **code** phase, write id-tagged, genuinely-asserting tests: each Verification
-   id under **Ids to cover** gets a test carrying a `// R-XXXX-XXXX` comment that
-   actually exercises the behavior the brief describes (never a bare id literal
-   with no assertion). Place each test in the package it exercises —
-   `dropbox/internal/web/web_test.go`, `package web`, named for the behavior —
-   never in a root-level or `phaseNN_test.go` file. The nginx-fragment test reads
-   `dropbox/etc/nginx.conf` from disk and asserts over its content; keep it in a
-   focused package (e.g. `dropbox/internal/web`). For a **docs/structural** phase,
-   make the doc edit and satisfy the named content check instead of writing
-   id-tagged tests. It is fine to land a subset this turn — the loop re-enters
-   until the phase is fully green; favor a correct, committed increment over
-   attempting everything at once.
+4. **Do as much of the brief as cleanly fits this turn — ideally the whole
+   phase.** Prefer fewer, fuller turns over many thin increments (an incomplete
+   phase is simply re-attacked next cycle, so there is no benefit to stopping
+   short). Build the package(s) / artifact named under **Files to touch**,
+   consuming dependencies **only** through the interface signatures and required
+   shapes copied into the brief.
+   - **Code phase:** write id-tagged, genuinely-asserting tests — each
+     Verification id under **Ids to cover** gets a test carrying a
+     `// R-XXXX-XXXX` comment that actually exercises the behavior the brief
+     describes (never a bare id literal, never an always-pass test, never a test
+     gated behind a skip/flag nothing sets). **Co-locate every test with the code
+     it exercises**, `package <pkg>`, named for the behavior — landing-page /
+     `share/www` and nginx-fragment content tests in `cmd/dropbox` (driven over
+     the shipped tree), MCP tool tests in `internal/mcp`, sync-engine tests in
+     `internal/dropbox`, cross-package integration in `cmd/dropbox` — **never** a
+     per-phase (`phaseNN_test.go`) or root-level test file.
+   - **Docs / structural phase:** make the doc edit and satisfy the named content
+     check instead of writing id-tagged tests.
+   - **Composition root.** `cmd/dropbox/main.go` is grown incrementally (wiring a
+     new route or Spec hook) — that is wiring growth, not a domain rewrite. Leave
+     the `POST /mcp` mount, the loopback `GET /content` / `GET /list` byte routes,
+     and the Service/Producer/Workers (sync engine) wiring intact.
+   - **CLAUDE.md.** dropbox has **no `AGENTS.md` symlink** — `CLAUDE.md` is a
+     single regular file; edit it directly for the docs phase.
 
-   - **Composition root.** `cmd/dropbox/main.go` is grown incrementally (e.g.
-     adding the `GET /{$}` landing route to the existing `Handlers` hook) — that
-     is wiring growth, not a domain rewrite. Leave the `POST /mcp` mount, the
-     loopback `GET /content` / `GET /list` byte routes, and the
-     Service/Producer/Workers (sync engine) wiring intact.
-   - **CLAUDE.md.** dropbox has **no `AGENTS.md` symlink** — `dropbox/CLAUDE.md`
-     is a single regular file; edit it directly for the docs phase.
-
-4. **Keep the suite green for what you've written** and format:
+5. **Format and confirm the suite is green** for what you've written (run
+   directly from the service root):
 
    ```
-   cd dropbox && gofmt -w .
-   cd dropbox && go build ./...
-   cd dropbox && go vet ./...
-   cd dropbox && go test ./...
+   gofmt -w .
+   go build ./...
+   go vet ./...
+   go test ./...
    ```
 
    Plus any phase-specific check the brief's **Done bar** names (e.g. the docs
-   purge's `grep -i "no UI" dropbox/CLAUDE.md` finding nothing).
+   purge's `grep -i "no UI" CLAUDE.md` finding nothing).
 
-5. **Commit this turn's increment** (never an empty commit) with a message naming
+6. **Commit this turn's increment** (never an empty commit) with a message naming
    the phase, and the repo trailer:
 
    ```
@@ -72,43 +82,55 @@ working directory.
    ```
 
    Do **not** stage or commit `project/loops/brief.md` (it is the ephemeral seam
-   between prompts; do not commit it). Then return `NEXT`.
+   and is git-ignored). Then report `NEXT`.
 
 ## Project conventions (inlined — do not open design to recover these)
 
-- **Toolchain:** Go 1.26, single `module dropbox` rooted at `dropbox/`; pure-Go
-  SQLite driver `modernc.org/sqlite` (no cgo). The in-repo `appkit` and
-  `eventplane` are replace-siblings. The landing page adds **no new dependency** —
-  standard library (`net/http`, `embed`, `html/template`) + the appkit chassis
-  only.
-- **"The suite is green"** means all of: `cd dropbox && go build ./...`,
-  `cd dropbox && go vet ./...`, `cd dropbox && gofmt -l .` (prints nothing),
-  and `cd dropbox && go test ./...` succeed with zero failures.
-- **No schema change for the landing page.** It touches no SQLite and adds **no**
-  migration. (Never hand-author a migration version anyway — `bin/create-migration
-  dropbox <name>` — but this work needs none.)
-- **Determinism / seams:** the landing handler is pure over its two string inputs
-  (`service`, `version`), injected at the composition root from
-  `rt.Service()`/`rt.Version()`; tests construct it directly with fixed values and
-  drive it with `net/http/httptest` — **no test makes a network call and no test
-  needs a running suite**. Embedded assets (`tokens.css`, woff2 fonts) are real
-  bytes via `//go:embed`.
-- **Test layout:** co-locate every test with the code it exercises
-  (`internal/web/web_test.go`, `package web`), named for the behavior asserted.
-  A phase is one package, so its tests live in that package — never a root-level or
-  `phaseNN_test.go` file.
+- **Toolchain:** Go 1.26, single `module dropbox` rooted at the service root;
+  pure-Go SQLite driver `modernc.org/sqlite` (no cgo). `appkit`, `eventplane`,
+  and `registry` are in-repo replace-siblings. The chassis owns the server
+  (`appkit.Main(appkit.Spec{…})`); consume its surfaces (`appkit/web`,
+  `appkit/mcp`, `rt.WWW()`, `Spec.Handlers`) only through the signatures copied
+  into the brief.
+- **"The suite is green"** means all of, run directly from the service root:
+  `go build ./...`, `go vet ./...`, `gofmt -l .` (prints nothing), and
+  `go test ./...` succeed with zero failures.
+- **No schema change** unless the brief says so. Never hand-author a migration
+  version — `bin/create-migration dropbox <name>` stamps one — but the
+  landing-page / conversion work needs none.
+- **Determinism / seams:** handlers are pure over injected inputs (e.g. the
+  landing handler over `service`/`version` strings from `rt.Service()` /
+  `rt.Version()`; MCP tools over an injected `dropbox.Service`); tests drive them
+  with `net/http/httptest` and fixed values — **no test makes a network call and
+  no test needs a running suite**. Shipped `share/www` assets are exercised as
+  the real files that ship.
+- **Test layout:** co-locate every test with the code it exercises, `package
+  <pkg>`, named for the behavior asserted — never a per-phase or root-level test
+  file.
 
 ## Boundaries
 
-- Never read `project/plan/*`, `project/design/*`, or `project/product/product.md`.
+- Never read `project/plan/*`, `project/design/*`, or `project/product/README.md`.
   The brief is your only source.
 - Never edit `project/plan/STATUS.md` or flip a `⬜`/`✅` marker — that is
   verify's job alone.
-- Never delete or edit `project/loops/brief.md`.
-- Never return `DONE` or `CONTINUE`. You always return `NEXT`.
+- Never delete or edit `project/loops/brief.md`, including its `## Verify
+  feedback` region — you **read** the feedback but never write it.
+- You hand off every turn; ending the run is never yours.
 
-End your final message with exactly one JSON object and nothing after it:
+## Reporting the result
 
-```json
-{"status": "NEXT", "message": "<one short sentence on what this increment landed>"}
-```
+Report this run's result as a `status` and a one-sentence `message`:
+
+- `CONTINUE` — **non-terminal**: any progress message you stream *before* the
+  turn's final message. You are still working; this never advances the loop.
+- `NEXT` — **terminal**: this turn's work is done; hand off to the next prompt.
+- `DONE` — **terminal — never yours to report**: ending the run is never yours —
+  finishing this phase completely, green suite and all open gaps closed, is still
+  `NEXT`; only gather, finding no `⬜` phase left, ever reports `DONE`.
+- `message` — one short, plain sentence describing what happened, e.g.
+  `built internal/mcp list+get tool table and tagged tests for Phase 12`.
+
+You always report `NEXT` (even when you believe the phase is now fully done —
+that call is verify's, not yours). Keep `message` a single plain sentence — not a
+JSON object or code block.

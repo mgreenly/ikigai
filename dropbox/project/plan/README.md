@@ -5,7 +5,7 @@
 page and the **record of what has been built**. The plan is **append-only**:
 completed phases are never rewritten or deleted, so the plan doubles as the
 construction history. To extend the work, update the product
-(`project/product/product.md`) and design (`project/design/design.md` +
+(`project/product/README.md`) and design (`project/design/README.md` +
 `project/design/`) **in place** to stay authoritative for the current state, then
 **append** a new phase here — a new `project/plan/phase-NN.md` body file plus a
 new line in `project/plan/STATUS.md`. Never edit a finished phase except to flip
@@ -43,7 +43,7 @@ The plan is physically split so the build loop reads only what it needs:
 - `project/plan/phase-NN.md` — one body file per phase (zero-padded: `phase-01.md`,
   `phase-02.md`, …). A phase body carries **no** status token — status lives only
   in `STATUS.md`.
-- `project/plan/plan.md` — this file: the static, invariant rules above. It lists
+- `project/plan/README.md` — this file: the static, invariant rules above. It lists
   no phases and carries no status, so it never grows with the project.
 
 **Append-only, restated for this layout:** never rewrite or delete a

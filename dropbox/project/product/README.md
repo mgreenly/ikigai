@@ -4,7 +4,7 @@
 page, *for whom*, what is in and out of scope, and what we **promise** the viewer
 — in outcome terms only. Mechanism (the handler, the embedded template, the
 Carbon tokens, the nginx fragment, the route pattern) and its checkable proof
-live in `project/design/design.md`. Where the two touch observable behavior,
+live in `project/design/README.md`. Where the two touch observable behavior,
 product states the *promise* and design states the *exact, checkable form*; that
 boundary keeps product, design, and plan from overlapping.
 
