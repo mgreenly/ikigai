@@ -368,6 +368,42 @@ func TestWWWLandingRendersProgressiveControlMarkup(t *testing.T) {
 	}
 }
 
+func TestWWWLandingPlacesEnhancementsAfterTheTable(t *testing.T) {
+	rec := httptest.NewRecorder()
+	if err := loadWWW(t).Render(rec, "landing.html", landingView{Sites: []siteRow{{Slug: "atlas"}}}); err != nil {
+		t.Fatalf("render landing.html with a site: %v", err)
+	}
+	body := rec.Body.String()
+
+	// R-83NK-DUW1
+	controls := strings.Index(body, `class="controls js-only" hidden`)
+	table := strings.Index(body, `<table class="site-table">`)
+	noMatch := strings.Index(body, `class="no-match js-only" hidden`)
+	pager := strings.Index(body, `class="pager js-only" hidden`)
+	if controls < 0 || table < 0 || noMatch < 0 || pager < 0 || !(controls < table && table < noMatch && noMatch < pager) {
+		t.Fatalf("progressive controls are not ordered lead < controls < table < no-match < pager:\n%s", body)
+	}
+
+	// R-84VG-RMMQ
+	for _, want := range []string{
+		`[hidden] {`,
+		`display: none !important;`,
+		`.site-table th[data-sort-key] {`,
+		`cursor: pointer;`,
+		`.site-table th[aria-sort="ascending"]::after`,
+		`content: " ▲";`,
+		`.site-table th[aria-sort="descending"]::after`,
+		`content: " ▼";`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("landing HTML missing enhanced-control style %q:\n%s", want, body)
+		}
+	}
+	if regexp.MustCompile(`<th[^>]+aria-sort=`).MatchString(body) {
+		t.Fatalf("server-rendered landing HTML must not pre-stamp aria-sort:\n%s", body)
+	}
+}
+
 func TestWWWLandingRendersServiceAndVersionInOneHeading(t *testing.T) {
 	rec := renderLanding(t, "sites", "v20-test")
 	body := rec.Body.String()

@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/dop251/goja"
@@ -28,6 +29,55 @@ func landingEval(t *testing.T, expression string, out any) {
 	}
 	runtime := goja.New()
 	if _, err := runtime.RunString(string(source)); err != nil {
+		t.Fatal(err)
+	}
+	value, err := runtime.RunString("JSON.stringify(" + expression + ")")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal([]byte(value.String()), out); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func landingControllerEval(t *testing.T, rows []landingRow, expression string, out any) {
+	t.Helper()
+	source, err := os.ReadFile(filepath.Join("..", "..", "share", "www", "static", "landing.js"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	runtime := goja.New()
+	prelude := strings.Replace(`
+function node() {
+  return {
+    children: [], dataset: {}, attributes: {}, listeners: {},
+    appendChild: function(child) { this.children.push(child); },
+    append: function() { for (var i = 0; i < arguments.length; i++) this.children.push(arguments[i]); },
+    replaceChildren: function() { this.children = []; },
+    toggleAttribute: function(name, present) { if (present && !Object.prototype.hasOwnProperty.call(this.attributes, name)) this.attributes[name] = ""; else if (!present) delete this.attributes[name]; },
+    setAttribute: function(name, value) { this.attributes[name] = value; },
+    addEventListener: function(name, listener) { this.listeners[name] = listener; }
+  };
+}
+var nodes = {
+  data: node(), controls: node(), pager: node(), noMatch: node(), search: node(), clear: node(), previous: node(), next: node(), label: node(), body: node(),
+  name: node(), createdBy: node(), createdAt: node()
+};
+nodes.data.textContent = JSON.stringify(ROWS);
+nodes.name.dataset.sortKey = "name";
+nodes.createdBy.dataset.sortKey = "createdBy";
+nodes.createdAt.dataset.sortKey = "createdAt";
+var document = {
+  documentElement: { className: "no-js" },
+  createElement: node,
+  querySelector: function(selector) {
+    return {"#sites-data": nodes.data, ".controls": nodes.controls, ".pager": nodes.pager, ".no-match": nodes.noMatch, "#site-search": nodes.search, "#site-clear": nodes.clear, "#pager-prev": nodes.previous, "#pager-next": nodes.next, "#pager-label": nodes.label, ".site-table tbody": nodes.body}[selector];
+  },
+  querySelectorAll: function() { return [nodes.name, nodes.createdBy, nodes.createdAt]; },
+  addEventListener: function(name, listener) { if (name === "DOMContentLoaded") listener(); }
+};
+`, "ROWS", landingJSON(t, rows), 1)
+	if _, err := runtime.RunString(prelude + string(source)); err != nil {
 		t.Fatal(err)
 	}
 	value, err := runtime.RunString("JSON.stringify(" + expression + ")")
@@ -240,5 +290,44 @@ func TestReduceResetsOnlyQueryAndSortPages(t *testing.T) {
 	landingEval(t, "SitesLanding.reduce({query:'old',sortKey:'createdAt',dir:'desc',page:3}, {type:'setPage',page:2})", &page)
 	if query.Page != 1 || query.Query != "x" || sort.Page != 1 || sort.SortKey != "name" || sort.Dir != "asc" || page.Page != 2 || page.Query != "old" || page.SortKey != "createdAt" || page.Dir != "desc" {
 		t.Fatalf("query=%#v sort=%#v page=%#v", query, sort, page)
+	}
+}
+
+func TestLandingControllerRendersAndWiresControls(t *testing.T) {
+	// R-863D-5EDF
+	input := []landingRow{
+		{Slug: "zebra", URL: "/zebra", Public: false, CreatedBy: "zoe", CreatedAt: "Yesterday", CreatedAtSort: "2026-01-02T00:00:00Z"},
+		{Slug: "alpha", URL: "/alpha", Public: true, CreatedBy: "amy", CreatedAt: "Today", CreatedAtSort: "2026-01-03T00:00:00Z"},
+	}
+	var got struct {
+		ClassName       string
+		ControlsHidden  bool
+		NoMatchHidden   bool
+		RowCount        int
+		FirstSlug       string
+		FirstURL        string
+		FirstVisibility string
+		Sort            string
+	}
+	landingControllerEval(t, input, `(function () {
+	  nodes.search.value = "missing";
+	  nodes.search.listeners.input();
+	  var noMatch = !Object.prototype.hasOwnProperty.call(nodes.noMatch.attributes, "hidden") && nodes.body.children.length === 0;
+	  nodes.clear.listeners.click();
+	  nodes.name.listeners.click();
+	  var first = nodes.body.children[0];
+	  return {
+	    ClassName: document.documentElement.className,
+	    ControlsHidden: Object.prototype.hasOwnProperty.call(nodes.controls.attributes, "hidden"),
+	    NoMatchHidden: noMatch,
+	    RowCount: nodes.body.children.length,
+	    FirstSlug: first.children[0].children[0].textContent,
+	    FirstURL: first.children[0].children[0].href,
+	    FirstVisibility: first.children[1].children[0].textContent,
+	    Sort: nodes.name.attributes["aria-sort"]
+	  };
+	}())`, &got)
+	if got.ClassName != "js" || got.ControlsHidden || !got.NoMatchHidden || got.RowCount != 2 || got.FirstSlug != "alpha" || got.FirstURL != "/alpha" || got.FirstVisibility != "public" || got.Sort != "ascending" {
+		t.Fatalf("controller view = %#v, want rendered, searchable, sortable DOM state", got)
 	}
 }

@@ -86,7 +86,78 @@
 
   globalThis.SitesLanding = { filterSites: filterSites, sortRows: sortRows, paginate: paginate, nextSort: nextSort, defaultState: defaultState, reduce: reduce, computeView: computeView };
 
-  function initController() {}
+  function initController() {
+    var data = document.querySelector("#sites-data");
+    var rows = JSON.parse(data.textContent);
+    var state = defaultState();
+    var controls = document.querySelector(".controls");
+    var pager = document.querySelector(".pager");
+    var noMatch = document.querySelector(".no-match");
+    var search = document.querySelector("#site-search");
+    var clear = document.querySelector("#site-clear");
+    var previous = document.querySelector("#pager-prev");
+    var next = document.querySelector("#pager-next");
+    var label = document.querySelector("#pager-label");
+    var body = document.querySelector(".site-table tbody");
+    var headers = document.querySelectorAll("th[data-sort-key]");
+
+    function render() {
+      var view = computeView(rows, state);
+      body.replaceChildren();
+      view.rows.forEach(function (row) {
+        var tr = document.createElement("tr");
+        var slug = document.createElement("td");
+        var anchor = document.createElement("a");
+        anchor.href = row.url;
+        anchor.textContent = row.slug;
+        slug.dataset.label = "Slug";
+        slug.appendChild(anchor);
+        var visibility = document.createElement("td");
+        var badge = document.createElement("span");
+        visibility.dataset.label = "Visibility";
+        badge.className = "visibility";
+        badge.textContent = row.public ? "public" : "private";
+        visibility.appendChild(badge);
+        var creator = document.createElement("td");
+        creator.dataset.label = "Creator";
+        creator.textContent = row.createdBy;
+        var created = document.createElement("td");
+        created.dataset.label = "Created";
+        created.textContent = row.createdAt;
+        tr.append(slug, visibility, creator, created);
+        body.appendChild(tr);
+      });
+      label.textContent = "Page " + view.page + " of " + view.pageCount;
+      pager.toggleAttribute("hidden", !view.showPager);
+      noMatch.toggleAttribute("hidden", !view.noMatch);
+      controls.toggleAttribute("hidden", !view.showControls);
+      headers.forEach(function (header) {
+        header.setAttribute("aria-sort", view.dir === "asc" ? "ascending" : "descending");
+        header.toggleAttribute("aria-sort", header.dataset.sortKey === view.sortKey);
+      });
+    }
+
+    function dispatch(action) {
+      state = reduce(state, action);
+      render();
+    }
+
+    document.documentElement.className = "js";
+    render();
+    search.addEventListener("input", function () { dispatch({ type: "setQuery", query: search.value }); });
+    search.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") {
+        search.value = "";
+        dispatch({ type: "setQuery", query: "" });
+      }
+    });
+    headers.forEach(function (header) {
+      header.addEventListener("click", function () { dispatch({ type: "setSort", key: header.dataset.sortKey }); });
+    });
+    previous.addEventListener("click", function () { dispatch({ type: "setPage", page: state.page - 1 }); });
+    next.addEventListener("click", function () { dispatch({ type: "setPage", page: state.page + 1 }); });
+    clear.addEventListener("click", function () { dispatch({ type: "clear" }); });
+  }
   if (typeof document !== "undefined") {
     document.addEventListener("DOMContentLoaded", function () { initController(); });
   }

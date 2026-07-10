@@ -84,6 +84,10 @@
       line-height: var(--text-body-lg-lh);
     }
 
+    [hidden] {
+      display: none !important;
+    }
+
     code {
       font-family: var(--font-mono);
       font-size: 0.95em;
@@ -124,6 +128,22 @@
       font-weight: var(--text-label-weight);
       text-transform: uppercase;
       color: var(--color-text-muted);
+    }
+
+    .site-table th[data-sort-key] {
+      cursor: pointer;
+    }
+
+    .site-table th[data-sort-key]:hover {
+      color: var(--color-text);
+    }
+
+    .site-table th[aria-sort="ascending"]::after {
+      content: " ▲";
+    }
+
+    .site-table th[aria-sort="descending"]::after {
+      content: " ▼";
     }
 
     .site-table td {
@@ -204,12 +224,6 @@
       <input type="search" id="site-search" aria-label="Search sites">
       <button type="button" id="site-clear">Clear</button>
     </div>
-    <div class="pager js-only" hidden>
-      <button type="button" id="pager-prev">Prev</button>
-      <span id="pager-label">Page 1 of 1</span>
-      <button type="button" id="pager-next">Next</button>
-    </div>
-
     <section class="sites">
       <script type="application/json" id="sites-data">{{if .SitesData}}{{.SitesData}}{{else}}[]{{end}}</script>
       {{if .Sites}}
@@ -233,6 +247,12 @@
           {{end}}
         </tbody>
       </table>
+      <p class="no-match js-only" hidden>No sites match.</p>
+      <div class="pager js-only" hidden>
+        <button type="button" id="pager-prev">Prev</button>
+        <span id="pager-label">Page 1 of 1</span>
+        <button type="button" id="pager-next">Next</button>
+      </div>
       {{else}}
       <p class="empty">No sites have been created yet.</p>
       {{end}}
