@@ -156,7 +156,10 @@
     });
     previous.addEventListener("click", function () { dispatch({ type: "setPage", page: state.page - 1 }); });
     next.addEventListener("click", function () { dispatch({ type: "setPage", page: state.page + 1 }); });
-    clear.addEventListener("click", function () { dispatch({ type: "clear" }); });
+    clear.addEventListener("click", function () {
+      search.value = "";
+      dispatch({ type: "clear" });
+    });
   }
   if (typeof document !== "undefined") {
     document.addEventListener("DOMContentLoaded", function () { initController(); });

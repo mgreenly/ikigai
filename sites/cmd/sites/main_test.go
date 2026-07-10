@@ -22,6 +22,7 @@ import (
 	sqlkit "appkit/db"
 	"appkit/manifest"
 	appweb "appkit/web"
+	"github.com/chromedp/chromedp"
 	"registry"
 
 	sitedb "sites/internal/db"
@@ -923,6 +924,141 @@ func TestSitesBootsFromOpsctlLayoutAndServesHealth(t *testing.T) {
 	}
 }
 
+func TestLandingBrowserControlsWorkThroughRealDOMEvents(t *testing.T) {
+	seeds := []landingSeed{
+		{name: "docs", public: true, createdAt: "2026-07-04T08:00:00.000000000Z"},
+		{name: "dashboard", public: true, createdAt: "2026-07-12T08:00:00.000000000Z"},
+		{name: "blog", public: false, createdAt: "2026-07-01T08:00:00.000000000Z"},
+	}
+	for i := 1; i <= 9; i++ {
+		seeds = append(seeds, landingSeed{
+			name:      fmt.Sprintf("site-%02d", i),
+			public:    i%2 == 0,
+			createdAt: fmt.Sprintf("2026-07-%02dT08:00:00.000000000Z", i+2),
+		})
+	}
+	store := newLandingTestStore(t, seeds...)
+	mux := http.NewServeMux()
+	mux.Handle("GET /{$}", landingHandler(store, loadWWW(t), "sites", "phase26", "http://suite.test/srv/sites/"))
+	mux.Handle("/static/", loadWWW(t).Static())
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	session, cancel := landingBrowserSession(t)
+	defer cancel()
+
+	var slugs []string
+	readSlugs := chromedp.Evaluate(`Array.from(document.querySelectorAll("tbody tr td:first-child a"), function (a) { return a.textContent; })`, &slugs)
+	var ariaSort string
+	var searchValue string
+	var pagerLabel string
+	var rowCount int
+
+	// R-87B9-J644
+	if err := chromedp.Run(session, chromedp.Navigate(srv.URL), chromedp.WaitVisible(`#site-search`)); err != nil {
+		t.Fatalf("boot landing controller: %v", err)
+	}
+
+	// R-88J5-WXUT
+	if err := chromedp.Run(session, chromedp.SendKeys(`#site-search`, "dsb"), readSlugs); err != nil {
+		t.Fatalf("filter dashboard: %v", err)
+	}
+	if got, want := strings.Join(slugs, ","), "dashboard"; got != want {
+		t.Fatalf("filtered slugs = %q, want %q", got, want)
+	}
+
+	// R-89R2-APLI
+	if err := chromedp.Run(session,
+		chromedp.Click(`th[data-sort-key="name"]`),
+		chromedp.Evaluate(`document.querySelector('th[data-sort-key="name"]').getAttribute("aria-sort")`, &ariaSort),
+	); err != nil {
+		t.Fatalf("sort slugs ascending: %v", err)
+	}
+	if ariaSort != "ascending" {
+		t.Fatalf("slug ascending aria-sort = %q, want ascending", ariaSort)
+	}
+	if err := chromedp.Run(session,
+		chromedp.Click(`th[data-sort-key="name"]`),
+		chromedp.Evaluate(`document.querySelector('th[data-sort-key="name"]').getAttribute("aria-sort")`, &ariaSort),
+	); err != nil {
+		t.Fatalf("sort slugs descending: %v", err)
+	}
+	if ariaSort != "descending" {
+		t.Fatalf("slug descending aria-sort = %q, want descending", ariaSort)
+	}
+
+	// R-8AYY-OHC7
+	if err := chromedp.Run(session,
+		chromedp.Click(`#site-clear`),
+		chromedp.Evaluate(`document.querySelector("#site-search").value`, &searchValue),
+		readSlugs,
+		chromedp.Text(`#pager-label`, &pagerLabel),
+	); err != nil {
+		t.Fatalf("clear landing controls: %v", err)
+	}
+	if searchValue != "" || len(slugs) != 10 || pagerLabel != "Page 1 of 2" || slugs[0] != "dashboard" {
+		t.Fatalf("clear state = search %q, slugs %#v, pager %q; want default first page", searchValue, slugs, pagerLabel)
+	}
+
+	// R-8DER-G0TL
+	if err := chromedp.Run(session,
+		chromedp.Click(`#pager-next`),
+		chromedp.Text(`#pager-label`, &pagerLabel),
+		chromedp.Evaluate(`document.querySelectorAll("tbody tr").length`, &rowCount),
+	); err != nil {
+		t.Fatalf("go to second page: %v", err)
+	}
+	if pagerLabel != "Page 2 of 2" || rowCount != 2 {
+		t.Fatalf("second page = %q with %d rows, want Page 2 of 2 with 2 rows", pagerLabel, rowCount)
+	}
+	if err := chromedp.Run(session, chromedp.Click(`#pager-prev`), chromedp.Text(`#pager-label`, &pagerLabel)); err != nil {
+		t.Fatalf("return to first page: %v", err)
+	}
+	if pagerLabel != "Page 1 of 2" {
+		t.Fatalf("previous page label = %q, want Page 1 of 2", pagerLabel)
+	}
+}
+
+func TestProductionImportGraphExcludesBrowserTestDependencies(t *testing.T) {
+	// R-8EMN-TSKA
+	cmd := exec.Command("go", "list", "-deps", "./cmd/sites")
+	cmd.Dir = filepath.Join("..", "..")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("go list production dependencies: %v\n%s", err, output)
+	}
+	for _, forbidden := range []string{"github.com/chromedp/chromedp", "github.com/dop251/goja"} {
+		if strings.Contains(string(output), forbidden) {
+			t.Fatalf("production import graph contains test-only dependency %q:\n%s", forbidden, output)
+		}
+	}
+}
+
+func landingBrowserSession(t *testing.T) (context.Context, context.CancelFunc) {
+	t.Helper()
+	timeout, cancelTimeout := context.WithTimeout(context.Background(), 30*time.Second)
+	for attempt := 1; attempt <= 2; attempt++ {
+		allocator, cancelAllocator := chromedp.NewExecAllocator(timeout, chromedp.DefaultExecAllocatorOptions[:]...)
+		session, cancelSession := chromedp.NewContext(allocator)
+		if err := chromedp.Run(session); err == nil {
+			return session, func() {
+				cancelSession()
+				cancelAllocator()
+				cancelTimeout()
+			}
+		} else {
+			cancelSession()
+			cancelAllocator()
+			if attempt == 2 {
+				cancelTimeout()
+				t.Fatalf("launch Chrome after %d attempts: %v", attempt, err)
+			}
+		}
+	}
+	t.Fatal("unreachable Chrome launch state")
+	return nil, nil
+}
+
 func loadWWW(t *testing.T) *appweb.Site {
 	t.Helper()
 	site, err := appweb.Load(wwwRoot(t))
@@ -958,8 +1094,9 @@ func landingData(service, version string) landingView {
 }
 
 type landingSeed struct {
-	name   string
-	public bool
+	name      string
+	public    bool
+	createdAt string
 }
 
 func newLandingTestStore(t *testing.T, seeds ...landingSeed) *sitesdomain.Store {
@@ -982,14 +1119,18 @@ func newLandingTestStore(t *testing.T, seeds ...landingSeed) *sitesdomain.Store 
 		if seed.public {
 			public = 1
 		}
+		createdAt := seed.createdAt
+		if createdAt == "" {
+			createdAt = "2026-07-08T12:00:00.000000000Z"
+		}
 		_, err := conn.ExecContext(context.Background(),
 			`INSERT INTO sites (name, source_path, public, created_by, created_at, updated_at)
 			 VALUES (?, NULL, ?, ?, ?, ?)`,
 			seed.name,
 			public,
 			seed.name+"@example.com",
-			"2026-07-08T12:00:00.000000000Z",
-			"2026-07-08T12:00:00.000000000Z",
+			createdAt,
+			createdAt,
 		)
 		if err != nil {
 			t.Fatalf("seed site %q: %v", seed.name, err)
