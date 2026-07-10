@@ -2,16 +2,21 @@ package web
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
+	appdb "appkit/db"
 	appkitweb "appkit/web"
 
 	"wiki/internal/ask"
+	wikidb "wiki/internal/db"
+	wikidomain "wiki/internal/wiki"
 )
 
 type stubOrphanLister struct {
@@ -55,6 +60,47 @@ type stubPageFinder struct {
 	err    error
 	called int
 	paths  []string
+}
+
+type linkifiedPageFinder struct {
+	resolver *wikidomain.Resolver
+	service  *wikidomain.Service
+	base     string
+}
+
+func (f linkifiedPageFinder) PageByPath(ctx context.Context, path string) (SubjectView, error) {
+	subject, err := f.resolver.ResolveByPath(ctx, path)
+	if err != nil {
+		return SubjectView{}, err
+	}
+	page, err := f.service.PageWithLinks(ctx, subject.ID)
+	if err != nil {
+		return SubjectView{}, err
+	}
+	body, err := f.service.LinkifyMentions(ctx, page.Body, f.base, subject.ID)
+	if err != nil {
+		return SubjectView{}, err
+	}
+	return SubjectView{SubjectID: subject.ID, Path: wikidomain.Path(subject), Title: page.Title, Body: body}, nil
+}
+
+func migratedWebDB(t *testing.T, ctx context.Context) *sql.DB {
+	t.Helper()
+
+	conn, err := appdb.Open(t.TempDir() + "/wiki.db")
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	migrations, err := appdb.LoadMigrations(wikidb.FS, "migrations")
+	if err != nil {
+		conn.Close()
+		t.Fatalf("LoadMigrations: %v", err)
+	}
+	if err := appdb.Migrate(ctx, conn, migrations); err != nil {
+		conn.Close()
+		t.Fatalf("Migrate: %v", err)
+	}
+	return conn
 }
 
 func (s *stubPageFinder) PageByPath(_ context.Context, path string) (SubjectView, error) {
@@ -237,6 +283,40 @@ func TestAskHandlerRendersMarkdownAnswerHTML(t *testing.T) {
 	}
 	if strings.Contains(body, "**Acme**") {
 		t.Fatalf("ask page rendered literal markdown: %s", body)
+	}
+}
+
+func TestAskHandlerLinkifiesFirstMentionInAnswerProse(t *testing.T) {
+	// R-8FQU-M1J4
+	ctx := context.Background()
+	conn := migratedWebDB(t, ctx)
+	defer conn.Close()
+
+	if err := wikidomain.NewSubjectStore(conn).Save(ctx, wikidomain.Subject{
+		ID: "subject-acme", Name: "Acme Corp", Type: "entity",
+	}); err != nil {
+		t.Fatalf("Save subject: %v", err)
+	}
+	if err := wikidomain.NewPageStore(conn).Upsert(ctx, wikidomain.Page{
+		ID: "page-acme", SubjectID: "subject-acme", Title: "Acme Corp", Body: "Acme Corp makes widgets.",
+	}); err != nil {
+		t.Fatalf("Upsert page: %v", err)
+	}
+	service := wikidomain.NewService(conn, nil, nil, time.Now)
+	base := "https://acct.ikigenba.com/srv/wiki/subject/"
+	rec := httptest.NewRecorder()
+
+	newTestHandler(t, "wiki", "v-test", "/srv/wiki/",
+		WithAsker(&stubAsker{answer: ask.Answer{Found: true, Text: "Acme Corp makes widgets."}}),
+		WithLinkifier(service, base),
+	).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/?q=widgets", nil))
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200; body=%s", rec.Code, rec.Body.String())
+	}
+	want := `<a href="https://acct.ikigenba.com/srv/wiki/subject/entity/acme-corp" rel="nofollow">Acme Corp</a>`
+	if !strings.Contains(rec.Body.String(), want) {
+		t.Fatalf("answer prose missing first-mention link %q: %s", want, rec.Body.String())
 	}
 }
 
@@ -694,6 +774,55 @@ func TestSubjectHandlerRendersMarkdownBodyHTML(t *testing.T) {
 	}
 	if strings.Contains(body, "## Overview") || strings.Contains(body, "**widgets**") {
 		t.Fatalf("subject page rendered literal markdown: %s", body)
+	}
+}
+
+func TestSubjectHandlerLinkifiesOtherSubjectButNotOwnNameInProse(t *testing.T) {
+	// R-8GYQ-ZT9T
+	ctx := context.Background()
+	conn := migratedWebDB(t, ctx)
+	defer conn.Close()
+
+	subjects := wikidomain.NewSubjectStore(conn)
+	for _, subject := range []wikidomain.Subject{
+		{ID: "subject-acme", Name: "Acme Corp", Type: "entity"},
+		{ID: "subject-beta", Name: "Beta", Type: "entity"},
+	} {
+		if err := subjects.Save(ctx, subject); err != nil {
+			t.Fatalf("Save subject %s: %v", subject.ID, err)
+		}
+	}
+	pages := wikidomain.NewPageStore(conn)
+	for _, page := range []wikidomain.Page{
+		{ID: "page-acme", SubjectID: "subject-acme", Title: "Acme Corp", Body: "Acme Corp works with Beta."},
+		{ID: "page-beta", SubjectID: "subject-beta", Title: "Beta", Body: "Beta is a partner."},
+	} {
+		if err := pages.Upsert(ctx, page); err != nil {
+			t.Fatalf("Upsert page %s: %v", page.ID, err)
+		}
+	}
+	base := "https://acct.ikigenba.com/srv/wiki/subject/"
+	service := wikidomain.NewService(conn, nil, nil, time.Now)
+	finder := linkifiedPageFinder{
+		resolver: wikidomain.NewResolver(conn),
+		service:  service,
+		base:     base,
+	}
+	rec := httptest.NewRecorder()
+
+	newTestHandler(t, "wiki", "v-test", "/srv/wiki/", WithPageFinder(finder)).ServeHTTP(
+		rec, httptest.NewRequest(http.MethodGet, "/subject/entity/acme-corp", nil),
+	)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200; body=%s", rec.Code, rec.Body.String())
+	}
+	body := rec.Body.String()
+	if want := `<a href="https://acct.ikigenba.com/srv/wiki/subject/entity/beta" rel="nofollow">Beta</a>`; !strings.Contains(body, want) {
+		t.Fatalf("subject prose missing other-subject link %q: %s", want, body)
+	}
+	if strings.Contains(body, `href="https://acct.ikigenba.com/srv/wiki/subject/entity/acme-corp"`) {
+		t.Fatalf("subject prose linked its own name: %s", body)
 	}
 }
 

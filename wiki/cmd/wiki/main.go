@@ -137,6 +137,7 @@ func newSpec(loadConfig configLoader) appkit.Spec {
 				web.WithOrphanLister(orphanAdapter{svc: svc, webBase: webBase}),
 				web.WithAsker(asker),
 				web.WithMentioner(mentionAdapter{svc: svc, webBase: webBase}),
+				web.WithLinkifier(svc, webBase),
 				web.WithPageFinder(webPageService),
 			))
 			mcpHandler, err := mcp.NewHandler(rt,
@@ -435,7 +436,11 @@ func (s pathPageService) PageByPath(ctx context.Context, path string) (web.Subje
 	if err != nil {
 		return web.SubjectView{}, err
 	}
-	body, footer := page.Body, ""
+	body, err := s.service.LinkifyMentions(ctx, page.Body, s.webBase, subject.ID)
+	if err != nil {
+		return web.SubjectView{}, err
+	}
+	footer := ""
 	if s.renderFooter {
 		footer = strings.TrimPrefix(wiki.RenderFooter(body, page.Mentions, page.MentionedBy), body)
 	}

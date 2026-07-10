@@ -36,6 +36,11 @@ type Mentioner interface {
 	MentionsIn(ctx context.Context, text string) ([]Ref, error)
 }
 
+// Linkifier projects named subject mentions into markdown links.
+type Linkifier interface {
+	LinkifyMentions(ctx context.Context, text, base, excludeID string) (string, error)
+}
+
 // Ref is a mount-relative link target for the read surface.
 type Ref struct {
 	Href string
@@ -84,16 +89,26 @@ func WithMentioner(m Mentioner) Option {
 	}
 }
 
+// WithLinkifier injects the inline mention-link projection seam.
+func WithLinkifier(l Linkifier, base string) Option {
+	return func(h *handler) {
+		h.linkifier = l
+		h.linkBase = base
+	}
+}
+
 type handler struct {
 	service string
 	version string
 	mount   string
 	site    *appkitweb.Site
 
-	asker    Asker
-	pages    PageFinder
-	orphans  OrphanLister
-	mentions Mentioner
+	asker     Asker
+	pages     PageFinder
+	orphans   OrphanLister
+	mentions  Mentioner
+	linkifier Linkifier
+	linkBase  string
 }
 
 type pageData struct {
@@ -182,6 +197,15 @@ func (h *handler) ask(w http.ResponseWriter, r *http.Request, question string) {
 		}
 		mentions = refs
 	}
+	answerHTML := markdown.Render(answer.Text)
+	if h.linkifier != nil {
+		text, err := h.linkifier.LinkifyMentions(r.Context(), answer.Text, h.linkBase, "")
+		if err != nil {
+			http.Error(w, "link answer mentions", http.StatusInternalServerError)
+			return
+		}
+		answerHTML = markdown.Render(text)
+	}
 
 	if err := h.site.Render(w, "home", pageData{
 		Service:    h.service,
@@ -190,7 +214,7 @@ func (h *handler) ask(w http.ResponseWriter, r *http.Request, question string) {
 		Query:      question,
 		Asked:      true,
 		Answer:     answer,
-		AnswerHTML: markdown.Render(answer.Text),
+		AnswerHTML: answerHTML,
 		Cites:      cites,
 		Mentions:   mentions,
 	}); err != nil {
