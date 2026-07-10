@@ -46,6 +46,11 @@ Shared facts every Decision leans on:
 - **Test command:** `cd sites && go test ./...`. **"The suite is green"** means:
   `cd sites && go build ./...`, `cd sites && go vet ./...`, `cd sites && gofmt -l .`
   (no output), and `cd sites && go test ./...` all succeed with zero failures.
+  **Green includes the browser wiring test (D23) and therefore hard-requires a
+  `google-chrome` binary on `PATH`** of the box running the suite (present:
+  `/usr/bin/google-chrome`). No Chrome → the suite is red, never skipped. The
+  harness may retry the browser *launch* once; scenario assertions are never
+  retried.
 - **Formatting:** `gofmt`-clean; `gofmt -l .` must print nothing.
 - **Migrations are timestamped and immutable.** Schema lives under
   `sites/internal/db/migrations/`, applied forward-only by the appkit runner and
@@ -57,11 +62,15 @@ Shared facts every Decision leans on:
 - **Module wiring:** `appkit`, `eventplane`, and `registry` are committed in-repo
   replace-siblings. sites resolves its own port and the dropbox mirror address by
   name through `registry` (D9). No `agentkit` dependency (D10/D11): confined
-  file-tool logic lives in the native `internal/files` package. `github.com/dop251/goja`
-  is a **test-only** dependency (pure Go, no cgo): the landing page's client
-  JavaScript (`share/www/static/landing.js`, D22) is written as pure functions and
-  exercised by loading the real shipped file into goja from a Go test — so
-  `go test ./...` stays the whole green bar with no node/browser toolchain.
+  file-tool logic lives in the native `internal/files` package. Two **test-only**
+  dependencies (pure Go, no cgo, imported only from `*_test.go`, linked into no
+  shipped binary — enforced mechanically by D23's import-graph id):
+  `github.com/dop251/goja` (an ES engine: the landing page's client JavaScript
+  `share/www/static/landing.js`, D22, is written as pure functions and exercised
+  by loading the real shipped file into goja from a Go test) and
+  `github.com/chromedp/chromedp` (drives the headless Chrome for D23's single
+  browser wiring test over the DevTools protocol — no node/npm toolchain; see
+  `project/research/research.md`).
 - **The chassis owns the server.** sites is `appkit.Main(appkit.Spec{…})`:
   `App:"sites"`, `Mount:"/srv/sites/"`, `Port:registry.MustPort("sites")` (== 3004),
   `MCP:true`, `WWW:true` (chassis loads/serves the `share/www` landing template and
@@ -148,20 +157,25 @@ Testing is part of the architecture. The cross-cutting approach:
   version and a fixed slice of sites, and assert the version card plus one row per
   site (slug, public/private, creator, created-at), and that an empty slice still
   renders. The same substrate proves the D22 additions structurally: the JSON
-  data island's shape and URL-parity (D19), and that the search / sort / pager /
-  clear controls render hidden-until-JS with the sort hooks on the data headers
-  (D6).
-- **The landing page's client JavaScript is tested in goja over the real shipped
-  file.** A Go test reads `share/www/static/landing.js`, evaluates it in
-  `github.com/dop251/goja` (which has no `document`, so only the pure definitions
-  run and the DOM controller stays inert), and calls the exposed
+  data island's shape and URL-parity (D19), and the control layout — filter bar
+  above the table, pager below it, hidden-until-JS with a stylesheet that makes
+  `hidden` actually hide, sort hooks and `aria-sort` affordance CSS (D6).
+- **The landing page's client JavaScript is tested in two tiers, each covering
+  the other's blind spot.** **goja owns the logic (broad, cheap):** a Go test
+  reads `share/www/static/landing.js`, evaluates it in `github.com/dop251/goja`
+  (which has no `document`, so only the pure definitions run and the DOM
+  controller stays inert), and calls the exposed
   `SitesLanding.{filterSites,sortRows,paginate,nextSort,defaultState,reduce,computeView}`
   against fixed inputs — proving fuzzy-filter semantics, sort order and the
   toggle rule, pagination arithmetic, the state reducer, and the view-model
-  derivations against the code that actually ships (D22). The DOM controller's
-  runtime wiring is the one part not driven end-to-end here (structural assertion
-  only); a headless-browser smoke could close that later but is not in the green
-  bar.
+  derivations against the code that actually ships (D22). **A single headless
+  browser proves the wiring (narrow, minimal — D23):** one chromedp-driven
+  Chrome session loads a seeded, auth-free `httptest` render of the real landing
+  page and touches each interactive control exactly once — boot/unhide, type a
+  fuzzy query, click a sort header, Clear, page Next/Prev — proving
+  `initController` connects the goja-tested logic to a live DOM. Logic
+  boundaries are never re-proven in the browser; wiring is never "proven" by a
+  structural assert or a DOM mock.
 - **The nginx fragment is proven by content assertion.** A test reads
   `sites/etc/nginx.conf` and asserts the public tier `proxy_pass`es to
   `…/public/` with no `auth_request`, the private tier gates with

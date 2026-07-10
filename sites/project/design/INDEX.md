@@ -9,7 +9,7 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - D3 → `project/design/D03.md` — Embedded Carbon design assets (sites's own copy) — owns R-ASST-3H7N, R-ASST-5K9Q, R-ASST-7M2S
 - D4 → `project/design/D04.md` — nginx fragment: the exact-match session-gated `= /srv/sites/` landing root beside the existing static tiers — owns R-NGNX-3P6T, R-NGNX-5R8V, R-NGNX-7T1X, R-NGNX-9W4Z
 - D5 → `project/design/D05.md` — Docs state current truth: state the standardized landing card in sites's self-description (no "no UI" claim to purge) — none (structural; docs-only)
-- D6 → `project/design/D06.md` — Landing page layout (sites-specific; supersedes the cron-canonical conformance; adds the D22 control bar + sortable-header hooks, hidden-until-JS) — owns R-WKGI-FVFJ, R-WLOE-TN68, R-IG4E-HEOE, R-IHCA-V6F3
+- D6 → `project/design/D06.md` — Landing page layout (sites-specific; supersedes the cron-canonical conformance; filter bar above the table + pager below it, sortable-header hooks, `aria-sort` caret/pointer CSS, hidden-until-JS with `[hidden]` guaranteed to hide) — owns R-WKGI-FVFJ, R-WLOE-TN68, R-83NK-DUW1, R-84VG-RMMQ, R-863D-5EDF
 - D7 → `project/design/D07.md` — A top-left Home link to the dashboard landing page — owns R-HOME-9S3W
 - D8 → `project/design/D08.md` — Self-serve the landing page's fonts and eliminate the FOUT (relative stylesheet link + `font-display: optional` + self-served `src` + `<head>` preload + session-gated nginx `/srv/sites/static/`) — owns R-629P-84O5, R-63HL-LWEU, R-64PH-ZO5J, R-65XE-DFW8, R-675A-R7MX
 - D9 → `project/design/D09.md` — Resolve sites's own port and the dropbox mirror address by name through the shared `registry` (import + startup resolve at the composition root + committed `go.mod` replace; behavior-preserving) — owns R-7K2P-QN4D, R-7L9F-XW3H, R-7M4C-BV8J, R-7N6R-TZ2Q
@@ -25,7 +25,8 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - D19 → `project/design/D19.md` — The landing page lists the sites that exist (live-rendered from `store.List`; slug-as-link/public-private/creator/created-at; empty-state safe; also emits the JSON data island + `createdAtSort` for D22) — owns R-RAW6-IUN5, R-RC42-WMDU, R-WMWB-7EWX, R-IDOL-PV70, R-IEWI-3MXP
 - D20 → `project/design/D20.md` — MCP surface: drop publish/unpublish, add `set_visibility`, thread `created_by` from Identity, serve the live folder via `SiteDir` (file tools/sync/delete retargeted), `create(name, public?)` births at the chosen visibility in one insert (default private), and `sync` requires an already-created site (no create-or-reuse) — owns R-RDBZ-AE4J, R-RFRS-1XLX, R-RGZO-FPCM, R-RI7K-TH3B, R-RJFH-78U0, R-554R-3MBC, R-56CN-HE21
 - D21 → `project/design/D21.md` — MCP self-discovery convention: rewrite the Tier-0 `instructions` with routing vocabulary + a guide pointer, replace `describe` with a read-only embedded `guide` tool (worked examples), keyword-forward the `create`/`sync` descriptions (sync avoids publish/deploy wording); reference the guide in exactly two channels — owns R-57KJ-V5SQ, R-58SG-8XJF, R-5A0C-MPA4, R-5B89-0H0T, R-5CG5-E8RI
-- D22 → `project/design/D22.md` — Client-side filter/sort/pagination of the landing listing (fuzzy slug search, sortable name/created-at/created-by columns, page-size-10 pagination, one-click clear; pure JS functions tested in goja + structural render asserts; no handler/DB/nginx change) — owns R-HU67-LJBW, R-HVE3-ZB2L, R-HWM0-D2TA, R-HXTW-QUJZ, R-HZ1T-4MAO, R-I1HL-W5S2, R-I2PI-9XIR, R-I3XE-NP9G, R-I55B-1H05, R-I6D7-F8QU, R-I7L3-T0HJ, R-I8T0-6S88, R-IA0W-KJYX, R-IB8S-YBPM, R-7V8B-GA0T, R-ICGP-C3GB
+- D22 → `project/design/D22.md` — Client-side filter/sort/pagination of the landing listing (fuzzy slug search, sortable name/created-at/created-by columns, page-size-10 pagination, one-click clear; pure JS functions tested in goja + a real branchless `initController` transcribing `computeView` onto the DOM; runtime wiring proven by D23; no handler/DB/nginx change) — owns R-HU67-LJBW, R-HVE3-ZB2L, R-HWM0-D2TA, R-HXTW-QUJZ, R-HZ1T-4MAO, R-I1HL-W5S2, R-I2PI-9XIR, R-I3XE-NP9G, R-I55B-1H05, R-I6D7-F8QU, R-I7L3-T0HJ, R-I8T0-6S88, R-IA0W-KJYX, R-IB8S-YBPM, R-7V8B-GA0T, R-ICGP-C3GB
+- D23 → `project/design/D23.md` — Browser wiring proof: one minimal headless-Chrome test (chromedp, test-only dep; seeded auth-free `httptest` landing page; single session touching each control once — boot/filter/sort/clear/page; Chrome hard-required by the green bar, one launch retry, no scenario retries; import-graph boundary check) — owns R-87B9-J644, R-88J5-WXUT, R-89R2-APLI, R-8AYY-OHC7, R-8DER-G0TL, R-8EMN-TSKA
 
 ## Verification ids → Decision
 
@@ -106,8 +107,9 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - R-5CG5-E8RI → D21 → `project/design/D21.md`
 - R-WKGI-FVFJ → D6 → `project/design/D06.md`
 - R-WLOE-TN68 → D6 → `project/design/D06.md`
-- R-IG4E-HEOE → D6 → `project/design/D06.md`
-- R-IHCA-V6F3 → D6 → `project/design/D06.md`
+- R-83NK-DUW1 → D6 → `project/design/D06.md`
+- R-84VG-RMMQ → D6 → `project/design/D06.md`
+- R-863D-5EDF → D6 → `project/design/D06.md`
 - R-WMWB-7EWX → D19 → `project/design/D19.md`
 - R-IDOL-PV70 → D19 → `project/design/D19.md`
 - R-IEWI-3MXP → D19 → `project/design/D19.md`
@@ -127,3 +129,9 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - R-IB8S-YBPM → D22 → `project/design/D22.md`
 - R-7V8B-GA0T → D22 → `project/design/D22.md`
 - R-ICGP-C3GB → D22 → `project/design/D22.md`
+- R-87B9-J644 → D23 → `project/design/D23.md`
+- R-88J5-WXUT → D23 → `project/design/D23.md`
+- R-89R2-APLI → D23 → `project/design/D23.md`
+- R-8AYY-OHC7 → D23 → `project/design/D23.md`
+- R-8DER-G0TL → D23 → `project/design/D23.md`
+- R-8EMN-TSKA → D23 → `project/design/D23.md`
