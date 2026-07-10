@@ -269,7 +269,7 @@ func (e *Engine) applyEntry(ctx context.Context, entry DeltaEntry) error {
 		return err
 	case TagFolder:
 		// Structural only — mkdir, no event (PLAN.md §5).
-		return e.svc.Mirror.Mkdir(entry.PathDisplay)
+		return e.svc.applyMkdir(ctx, entry.PathDisplay)
 	case TagFile:
 		return e.applyFile(ctx, entry)
 	default:

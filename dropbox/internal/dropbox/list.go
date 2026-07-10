@@ -76,6 +76,7 @@ func (s *Service) ListHandler() http.Handler {
 		for _, row := range rows {
 			files = append(files, map[string]any{
 				"path":       row.Path,
+				"kind":       row.Kind,
 				"size":       row.Size,
 				"hash":       row.ContentHash, // FULL hash (ADR decision 4), not abbreviated
 				"rev":        row.Rev,

@@ -241,6 +241,58 @@ func TestRule1_FolderDeleteSubtreeFanout(t *testing.T) {
 	_ = c
 }
 
+func TestFolderMkdirIndexesEmptyDirectory(t *testing.T) {
+	// R-JZVV-Q0C3
+	fc := newFakeClient()
+	eng, svc, sink := newEngineHarness(t, fc)
+	if err := applyEntries(t, eng, DeltaEntry{Tag: TagFolder, PathDisplay: "/empty", PathLower: "/empty"}); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	entry, err := svc.Stat("/EMPTY")
+	if err != nil || entry.Kind != KindDir || entry.Path != "/empty" {
+		t.Fatalf("Stat empty directory = %+v, %v", entry, err)
+	}
+	entries, err := svc.List("", "", 10)
+	if err != nil || len(entries) != 1 || entries[0].Kind != KindDir || entries[0].Path != "/empty" {
+		t.Fatalf("List empty directory = %+v, %v", entries, err)
+	}
+	if len(sink.events) != 0 || sink.rings != 0 {
+		t.Fatalf("mkdir emitted lifecycle activity: events=%v rings=%d", sink.events, sink.rings)
+	}
+}
+
+func TestFolderDeleteRemovesDirectoryRowsAndFansOutFiles(t *testing.T) {
+	// R-K13S-3S2S
+	fc := newFakeClient()
+	eng, svc, sink := newEngineHarness(t, fc)
+	entries := []DeltaEntry{
+		{Tag: TagFolder, PathDisplay: "/a", PathLower: "/a"},
+		{Tag: TagFolder, PathDisplay: "/a/sub", PathLower: "/a/sub"},
+		fc.addFile("/a/x.md", "r1", ContentHash([]byte("x")), []byte("x")),
+		fc.addFile("/a/sub/y.md", "r2", ContentHash([]byte("y")), []byte("y")),
+	}
+	if err := applyEntries(t, eng, entries...); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+	sink.events, sink.rings = nil, 0
+	if err := applyEntries(t, eng, deletedEntry("/a")); err != nil {
+		t.Fatalf("delete: %v", err)
+	}
+	if len(sink.events) != 2 || sink.rings != 1 {
+		t.Fatalf("events/rings = %d/%d, want 2/1", len(sink.events), sink.rings)
+	}
+	for _, ev := range sink.events {
+		if ev.Type != EventFileDeleted {
+			t.Fatalf("event = %+v, want file.deleted", ev)
+		}
+	}
+	for _, p := range []string{"/a", "/a/sub", "/a/x.md", "/a/sub/y.md"} {
+		if _, err := svc.Stat(p); !errors.Is(err, ErrNotFound) {
+			t.Fatalf("%s remains after delete: %v", p, err)
+		}
+	}
+}
+
 // ── Rule 2: delete on an already-absent path emits nothing ────────────────────
 
 func TestRule2_AbsentPathDeleteEmitsNothing(t *testing.T) {

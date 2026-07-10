@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -87,7 +88,7 @@ func (s *Service) Content(path string, rev *string) (FileRow, error) {
 // it does NOT normalize slashes), so the caller scopes case-insensitively. Both
 // "" and "/" fold to a value the store treats as "no prefix" ("" stays "", and a
 // bare "/" never bounds a real subtree), so either means "list everything".
-func (s *Service) List(path, after string, limit int) ([]FileRow, error) {
+func (s *Service) List(path, after string, limit int) ([]Entry, error) {
 	prefix := foldPath(path)
 	if prefix == "/" {
 		prefix = ""
@@ -97,7 +98,39 @@ func (s *Service) List(path, after string, limit int) ([]FileRow, error) {
 		return nil, fmt.Errorf("list: begin tx: %w", err)
 	}
 	defer tx.Rollback()
-	return s.Store.ListFiles(tx, prefix, after, limit)
+	return s.Store.ListEntries(tx, prefix, after, limit)
+}
+
+// Stat resolves a path to either indexed entry kind.
+func (s *Service) Stat(path string) (Entry, error) {
+	tx, err := s.DB.BeginTx(context.Background(), &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		return Entry{}, fmt.Errorf("stat: begin tx: %w", err)
+	}
+	defer tx.Rollback()
+	if f, err := s.Store.GetFile(tx, path); err == nil {
+		return Entry{Path: f.Path, Kind: KindFile, Rev: f.Rev, ContentHash: f.ContentHash, Size: f.Size, UpdatedAt: f.UpdatedAt, PathLower: f.PathLower}, nil
+	} else if !errors.Is(err, ErrNotFound) {
+		return Entry{}, err
+	}
+	d, err := s.Store.GetDir(tx, path)
+	if err != nil {
+		return Entry{}, err
+	}
+	return Entry{Path: d.Path, Kind: KindDir, UpdatedAt: d.UpdatedAt, PathLower: d.PathLower}, nil
+}
+
+func (s *Service) upsertDirParents(tx *sql.Tx, path string) error {
+	parts := strings.Split(strings.Trim(path, "/"), "/")
+	if len(parts) < 2 {
+		return nil
+	}
+	for i := 1; i < len(parts); i++ {
+		if err := s.Store.UpsertDir(tx, "/"+strings.Join(parts[:i], "/")); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // ── apply helpers (the engine's tx boundary) ────────────────────────────────
@@ -127,6 +160,9 @@ func (s *Service) applyUpsert(ctx context.Context, path, rev, contentHash string
 		OccurredAt:  now,
 	}
 	err := s.inTx(ctx, func(tx *sql.Tx) error {
+		if err := s.upsertDirParents(tx, path); err != nil {
+			return err
+		}
 		if err := s.Store.UpsertFile(tx, path, rev, contentHash, size, now); err != nil {
 			return err
 		}
@@ -137,6 +173,20 @@ func (s *Service) applyUpsert(ctx context.Context, path, rev, contentHash string
 	}
 	s.ring()
 	return evType, nil
+}
+
+// applyMkdir indexes a structural directory after it exists on disk. It has no
+// file lifecycle event and intentionally does not ring the event feed.
+func (s *Service) applyMkdir(ctx context.Context, path string) error {
+	if err := s.Mirror.Mkdir(path); err != nil {
+		return err
+	}
+	return s.inTx(ctx, func(tx *sql.Tx) error {
+		if err := s.upsertDirParents(tx, path); err != nil {
+			return err
+		}
+		return s.Store.UpsertDir(tx, path)
+	})
 }
 
 // applyRename applies a case-only rename (PLAN.md §2/§6): the on-disk file has
@@ -192,12 +242,19 @@ func (s *Service) applyDelete(ctx context.Context, path string) (emitted int, er
 	var deleted []FileRow
 	now := s.now()
 	err = s.inTx(ctx, func(tx *sql.Tx) error {
-		rows, derr := s.Store.DeleteSubtree(tx, path)
+		rows, derr := s.Store.ListFiles(tx, foldPath(path), "", int(^uint(0)>>1))
 		if derr != nil {
 			return derr
 		}
+		filePaths, _, derr := s.Store.DeleteDirSubtree(tx, path)
+		if derr != nil {
+			return derr
+		}
+		if len(filePaths) != len(rows) {
+			return fmt.Errorf("delete directory subtree changed during transaction")
+		}
 		deleted = rows
-		for _, r := range rows {
+		for _, r := range deleted {
 			ev := FileEvent{
 				Type:        EventFileDeleted,
 				Path:        r.Path,
@@ -218,16 +275,8 @@ func (s *Service) applyDelete(ctx context.Context, path string) (emitted int, er
 	// AFTER commit: unlink each mirror file (idempotent). For an already-absent
 	// path `deleted` is empty → nothing emitted; we still unlink the raw path to
 	// remove any orphan from the crash window (PLAN.md §6).
-	if len(deleted) == 0 {
-		if _, uerr := s.Mirror.Delete(path); uerr != nil {
-			return 0, uerr
-		}
-		return 0, nil
-	}
-	for _, r := range deleted {
-		if _, uerr := s.Mirror.Delete(r.Path); uerr != nil {
-			return 0, uerr
-		}
+	if err := s.Mirror.RemoveTree(path); err != nil {
+		return 0, err
 	}
 	if len(deleted) > 0 {
 		s.ring()

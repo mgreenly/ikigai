@@ -12,6 +12,26 @@ package dropbox
 
 import "errors"
 
+// EntryKind identifies whether an indexed entry is a file or a directory.
+type EntryKind string
+
+const (
+	KindFile EntryKind = "file"
+	KindDir  EntryKind = "dir"
+)
+
+// Entry is the unified read shape for the index. Directory entries have no
+// revision, hash, size, or error because those attributes belong to files.
+type Entry struct {
+	Path        string
+	Kind        EntryKind
+	Rev         string
+	ContentHash string
+	Size        int64
+	UpdatedAt   string
+	PathLower   string
+}
+
 // Error sentinels — the structured error vocabulary translated to wire shape in
 // internal/mcp. The set is intentionally minimal in the scaffold and grows as
 // the domain lands (download/integrity/poison-entry failures, §2).

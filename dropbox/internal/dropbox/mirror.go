@@ -291,6 +291,19 @@ func (m *Mirror) Delete(rel string) (existed bool, err error) {
 	return true, nil
 }
 
+// RemoveTree removes a confined file or directory tree. It is idempotent and is
+// used after the index transaction for a Dropbox folder delete.
+func (m *Mirror) RemoveTree(rel string) error {
+	dst, err := m.resolve(rel)
+	if err != nil {
+		return err
+	}
+	if err := os.RemoveAll(dst); err != nil {
+		return fmt.Errorf("remove tree: %w", err)
+	}
+	return nil
+}
+
 // Mkdir creates a directory (and parents) at a confined relative path, 0750. Used
 // when Dropbox reports folder entries (PLAN.md §2: folders are structural —
 // mkdir on the mirror, no event). Idempotent: an existing directory is fine.

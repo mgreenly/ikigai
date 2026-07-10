@@ -40,7 +40,7 @@ func Tools(svc *dropbox.Service) []appkitmcp.Tool {
 	return []appkitmcp.Tool{
 		{
 			Name:        tool("list"),
-			Description: "List files in the local Dropbox mirror, recursively, ordered by path. Use this to browse what the mirror holds without a local mount. With no arguments it lists every file. Pass 'path' to scope to a folder prefix (e.g. \"/notes\" matches /notes and /notes/a.md but not /notesxyz; matching is case-insensitive). 'limit' bounds the page (default 1000, clamped to 1..1000). Pagination is cursor-based: when a full page is returned the result includes 'next_cursor'; pass it back as 'cursor' to fetch the next page, and stop when no next_cursor is returned. Each entry is {path, size, hash, rev, updated_at}, where 'hash' is the first 8 chars of the content hash (abbreviated) and 'updated_at' is the last time the index row changed. Only files are listed (the mirror index does not track directories). Read-only.",
+			Description: "List entries in the local Dropbox mirror, recursively, ordered by path. Use this to browse what the mirror holds without a local mount. With no arguments it lists every entry. Pass 'path' to scope to a folder prefix (e.g. \"/notes\" matches /notes and /notes/a.md but not /notesxyz; matching is case-insensitive). 'limit' bounds the page (default 1000, clamped to 1..1000). Pagination is cursor-based: when a full page is returned the result includes 'next_cursor'; pass it back as 'cursor' to fetch the next page, and stop when no next_cursor is returned. Each entry has a `kind` of `file` or `dir`; file entries additionally carry {size, hash, rev, updated_at}. Read-only.",
 			InputSchema: obj(map[string]any{
 				"path":   descTyp("string", "optional; a folder prefix to scope the listing (e.g. \"/notes\"). Empty, absent, or \"/\" lists everything. Case-insensitive."),
 				"cursor": descTyp("string", "optional; the opaque next_cursor from a previous page. Omit for the first page."),
@@ -113,6 +113,7 @@ func (h *toolHandlers) toolList(ctx context.Context, raw json.RawMessage) (map[s
 	for _, r := range rows {
 		files = append(files, map[string]any{
 			"path":       r.Path,
+			"kind":       r.Kind,
 			"size":       r.Size,
 			"hash":       firstN(r.ContentHash, 8),
 			"rev":        r.Rev,

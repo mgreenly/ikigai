@@ -43,6 +43,13 @@ type FileRow struct {
 	Error       sql.NullString
 }
 
+// DirRow is one row of the first-class directory index.
+type DirRow struct {
+	Path      string
+	PathLower string
+	UpdatedAt string
+}
+
 // ── sync_state (singleton cursor) ───────────────────────────────────────────
 
 // GetCursor returns the persisted Dropbox list_folder cursor and whether a
@@ -83,7 +90,15 @@ func (Store) SetCursor(tx *sql.Tx, cursor, updatedAt string) error {
 // An upsert clears any prior poison-entry error: a successful (re)index means the
 // path is no longer failed.
 func (Store) UpsertFile(tx *sql.Tx, path, rev, contentHash string, size int64, updatedAt string) error {
-	_, err := tx.Exec(`
+	var dir string
+	err := tx.QueryRow(`SELECT path FROM directories WHERE path_lower = ?`, foldPath(path)).Scan(&dir)
+	if err == nil {
+		return fmt.Errorf("upsert file %q conflicts with directory %q: %w", path, dir, ErrValidation)
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("check file directory collision: %w", err)
+	}
+	_, err = tx.Exec(`
 		INSERT INTO files (path, rev, content_hash, size, updated_at, path_lower, error)
 		VALUES (?, ?, ?, ?, ?, ?, NULL)
 		ON CONFLICT(path) DO UPDATE SET
@@ -96,6 +111,137 @@ func (Store) UpsertFile(tx *sql.Tx, path, rev, contentHash string, size int64, u
 	`, path, rev, contentHash, size, updatedAt, foldPath(path))
 	if err != nil {
 		return fmt.Errorf("upsert file: %w", err)
+	}
+	return nil
+}
+
+// UpsertDir records a directory by its display path. Files and directories
+// share Dropbox's case-insensitive namespace, so a folded collision is rejected.
+func (Store) UpsertDir(tx *sql.Tx, path string) error {
+	var file string
+	err := tx.QueryRow(`SELECT path FROM files WHERE path_lower = ?`, foldPath(path)).Scan(&file)
+	if err == nil {
+		return fmt.Errorf("upsert directory %q conflicts with file %q: %w", path, file, ErrValidation)
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("check directory file collision: %w", err)
+	}
+	_, err = tx.Exec(`
+		INSERT INTO directories (path, path_lower, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)
+		ON CONFLICT(path_lower) DO UPDATE SET path = excluded.path, updated_at = excluded.updated_at
+	`, path, foldPath(path))
+	if err != nil {
+		return fmt.Errorf("upsert directory: %w", err)
+	}
+	return nil
+}
+
+// GetDir resolves a directory by its case-folded display path.
+func (Store) GetDir(tx *sql.Tx, displayPath string) (DirRow, error) {
+	var row DirRow
+	err := tx.QueryRow(`SELECT path, path_lower, updated_at FROM directories WHERE path_lower = ?`, foldPath(displayPath)).Scan(&row.Path, &row.PathLower, &row.UpdatedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return DirRow{}, ErrNotFound
+	}
+	if err != nil {
+		return DirRow{}, fmt.Errorf("get directory: %w", err)
+	}
+	return row, nil
+}
+
+// DeleteDirSubtree removes both index kinds under a directory path using the
+// same folded, slash-boundary prefix semantics as DeleteSubtree.
+func (Store) DeleteDirSubtree(tx *sql.Tx, path string) (files, dirs []string, err error) {
+	prefix := foldPath(path)
+	like := escapeLike(prefix) + "/%"
+	fileRows, err := tx.Query(`SELECT path FROM files WHERE path_lower = ? OR path_lower LIKE ? ESCAPE '\' ORDER BY path_lower`, prefix, like)
+	if err != nil {
+		return nil, nil, fmt.Errorf("select directory subtree files: %w", err)
+	}
+	for fileRows.Next() {
+		var p string
+		if err := fileRows.Scan(&p); err != nil {
+			fileRows.Close()
+			return nil, nil, err
+		}
+		files = append(files, p)
+	}
+	if err := fileRows.Close(); err != nil {
+		return nil, nil, err
+	}
+	dirRows, err := tx.Query(`SELECT path FROM directories WHERE path_lower = ? OR path_lower LIKE ? ESCAPE '\' ORDER BY path_lower`, prefix, like)
+	if err != nil {
+		return nil, nil, fmt.Errorf("select directory subtree directories: %w", err)
+	}
+	for dirRows.Next() {
+		var p string
+		if err := dirRows.Scan(&p); err != nil {
+			dirRows.Close()
+			return nil, nil, err
+		}
+		dirs = append(dirs, p)
+	}
+	if err := dirRows.Close(); err != nil {
+		return nil, nil, err
+	}
+	if _, err := tx.Exec(`DELETE FROM files WHERE path_lower = ? OR path_lower LIKE ? ESCAPE '\'`, prefix, like); err != nil {
+		return nil, nil, fmt.Errorf("delete directory subtree files: %w", err)
+	}
+	if _, err := tx.Exec(`DELETE FROM directories WHERE path_lower = ? OR path_lower LIKE ? ESCAPE '\'`, prefix, like); err != nil {
+		return nil, nil, fmt.Errorf("delete directory subtree directories: %w", err)
+	}
+	return files, dirs, nil
+}
+
+// RenameDirSubtree reparents a directory and all indexed descendants.
+func (Store) RenameDirSubtree(tx *sql.Tx, old, new string) error {
+	prefix, like := foldPath(old), escapeLike(foldPath(old))+"/%"
+	type renameRow struct{ path, lower string }
+	var rows []renameRow
+	for _, table := range []string{"directories", "files"} {
+		r, err := tx.Query(`SELECT path, path_lower FROM `+table+` WHERE path_lower = ? OR path_lower LIKE ? ESCAPE '\' ORDER BY LENGTH(path_lower) ASC`, prefix, like)
+		if err != nil {
+			return fmt.Errorf("select rename %s: %w", table, err)
+		}
+		for r.Next() {
+			var v renameRow
+			if err := r.Scan(&v.path, &v.lower); err != nil {
+				r.Close()
+				return err
+			}
+			rows = append(rows, v)
+		}
+		if err := r.Close(); err != nil {
+			return err
+		}
+	}
+	if len(rows) == 0 {
+		return ErrNotFound
+	}
+	replace := func(p string) string { return new + p[len(old):] }
+	for _, table := range []string{"directories", "files"} {
+		var updates []renameRow
+		r, err := tx.Query(`SELECT path, path_lower FROM `+table+` WHERE path_lower = ? OR path_lower LIKE ? ESCAPE '\' ORDER BY LENGTH(path_lower) DESC`, prefix, like)
+		if err != nil {
+			return fmt.Errorf("select rename %s: %w", table, err)
+		}
+		for r.Next() {
+			var v renameRow
+			if err := r.Scan(&v.path, &v.lower); err != nil {
+				r.Close()
+				return err
+			}
+			updates = append(updates, v)
+		}
+		if err := r.Close(); err != nil {
+			return err
+		}
+		for _, v := range updates {
+			np := replace(v.path)
+			if _, err := tx.Exec(`UPDATE `+table+` SET path = ?, path_lower = ? WHERE path_lower = ?`, np, foldPath(np), v.lower); err != nil {
+				return fmt.Errorf("rename %s: %w", table, err)
+			}
+		}
 	}
 	return nil
 }
@@ -226,6 +372,43 @@ func (Store) ListFiles(tx *sql.Tx, prefix, after string, limit int) ([]FileRow, 
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("scan files: %w", err)
+	}
+	return out, nil
+}
+
+// ListEntries returns files and directories interleaved in path order.
+func (Store) ListEntries(tx *sql.Tx, prefix, after string, limit int) ([]Entry, error) {
+	where, args := []string{}, []any{}
+	if prefix != "" {
+		where = append(where, "(path_lower = ? OR path_lower LIKE ? ESCAPE '\\')")
+		args = append(args, prefix, escapeLike(prefix)+"/%")
+	}
+	if after != "" {
+		where = append(where, "path_lower > ?")
+		args = append(args, after)
+	}
+	clause := ""
+	if len(where) > 0 {
+		clause = " WHERE " + strings.Join(where, " AND ")
+	}
+	q := `SELECT path, 'file', rev, content_hash, size, updated_at, path_lower FROM files` + clause + ` UNION ALL SELECT path, 'dir', '', '', 0, updated_at, path_lower FROM directories` + clause + ` ORDER BY 7 ASC LIMIT ?`
+	args = append(args, args...)
+	args = append(args, limit)
+	rows, err := tx.Query(q, args...)
+	if err != nil {
+		return nil, fmt.Errorf("list entries: %w", err)
+	}
+	defer rows.Close()
+	var out []Entry
+	for rows.Next() {
+		var e Entry
+		if err := rows.Scan(&e.Path, &e.Kind, &e.Rev, &e.ContentHash, &e.Size, &e.UpdatedAt, &e.PathLower); err != nil {
+			return nil, err
+		}
+		out = append(out, e)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("scan entries: %w", err)
 	}
 	return out, nil
 }

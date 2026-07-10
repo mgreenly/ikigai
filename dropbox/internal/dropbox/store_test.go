@@ -111,6 +111,75 @@ func TestUpsertGetRoundTripCaseInsensitive(t *testing.T) {
 	})
 }
 
+func TestRenameDirSubtreeReparentsFilesAndDirectories(t *testing.T) {
+	// R-K2BO-HJTH
+	conn := openStoreDB(t)
+	s := NewStore()
+	withTx(t, conn, func(tx *sql.Tx) {
+		for _, p := range []string{"/a", "/a/sub"} {
+			if err := s.UpsertDir(tx, p); err != nil {
+				t.Fatalf("dir %s: %v", p, err)
+			}
+		}
+		if err := s.UpsertFile(tx, "/a/x.md", "r", "h", 1, "t"); err != nil {
+			t.Fatal(err)
+		}
+		if err := s.UpsertFile(tx, "/a/sub/y.md", "r", "h", 1, "t"); err != nil {
+			t.Fatal(err)
+		}
+		if err := s.RenameDirSubtree(tx, "/a", "/b"); err != nil {
+			t.Fatalf("rename: %v", err)
+		}
+	})
+	withTx(t, conn, func(tx *sql.Tx) {
+		for _, p := range []string{"/a", "/a/x.md", "/a/sub/y.md"} {
+			if _, err := s.GetDir(tx, p); err == nil {
+				t.Fatalf("directory %s remains", p)
+			} else if !errors.Is(err, ErrNotFound) {
+				t.Fatal(err)
+			}
+			if _, err := s.GetFile(tx, p); err == nil {
+				t.Fatalf("file %s remains", p)
+			} else if !errors.Is(err, ErrNotFound) {
+				t.Fatal(err)
+			}
+		}
+		for _, p := range []string{"/b", "/b/sub"} {
+			d, err := s.GetDir(tx, p)
+			if err != nil || d.PathLower != foldPath(p) {
+				t.Fatalf("dir %s = %+v, %v", p, d, err)
+			}
+		}
+		for _, p := range []string{"/b/x.md", "/b/sub/y.md"} {
+			f, err := s.GetFile(tx, p)
+			if err != nil || f.PathLower != foldPath(p) {
+				t.Fatalf("file %s = %+v, %v", p, f, err)
+			}
+		}
+	})
+}
+
+func TestDirectoriesMigrationRecordsSchemaAndRejectsFileCollision(t *testing.T) {
+	// R-K3JK-VBK6
+	conn := openStoreDB(t)
+	var table, version string
+	if err := conn.QueryRow(`SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'directories'`).Scan(&table); err != nil || table != "directories" {
+		t.Fatalf("directories table = %q, %v", table, err)
+	}
+	if err := conn.QueryRow(`SELECT CAST(version AS TEXT) FROM schema_migrations ORDER BY version DESC LIMIT 1`).Scan(&version); err != nil || version != "20260710231450" {
+		t.Fatalf("migration version = %q, %v", version, err)
+	}
+	withTx(t, conn, func(tx *sql.Tx) {
+		s := NewStore()
+		if err := s.UpsertFile(tx, "/Report", "r", "h", 1, "t"); err != nil {
+			t.Fatal(err)
+		}
+		if err := s.UpsertDir(tx, "/report"); !errors.Is(err, ErrValidation) {
+			t.Fatalf("case-fold collision = %v, want validation", err)
+		}
+	})
+}
+
 func TestDeleteSubtreePrefixBoundary(t *testing.T) {
 	conn := openStoreDB(t)
 	s := NewStore()
