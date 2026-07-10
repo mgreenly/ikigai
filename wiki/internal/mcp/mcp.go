@@ -17,12 +17,14 @@ import (
 	"appkit/server"
 
 	paging "wiki/internal/page"
+	"wiki/internal/wiki"
 )
 
 const Instructions = "wiki is a knowledge base built from ingested source text. Call ingest to queue text for extraction; the pipeline distills subjects (entity/event/concept) and claims and compiles a cited page per subject. Use ask for a grounded, cited answer over the owner's wiki; subjects, claims, and page to read the compiled knowledge by type/slug path; jobs and status to track ingestion; and merge to fold a duplicate subject into another. health and reflection report service status and the event graph."
 
 // Handler holds configured wiki domain tool dependencies.
 type Handler struct {
+	pageBase  string
 	ingest    func(context.Context, string, string, string, []string) (string, error)
 	status    func(context.Context, string) (any, error)
 	abort     func(context.Context, string) (any, error)
@@ -368,11 +370,16 @@ func Tools(opts ...Option) []appkitmcp.Tool {
 
 // NewHandler builds the MCP handler from appkit's route-time service metadata.
 func NewHandler(rt *appkit.Router, opts ...Option) (http.Handler, error) {
+	pageBase := strings.TrimRight(rt.AuthServer(), "/") + wiki.Mount
+	handlerOpts := append([]Option{}, opts...)
+	handlerOpts = append(handlerOpts, func(h *Handler) {
+		h.pageBase = pageBase
+	})
 	return appkitmcp.New(appkitmcp.Options{
 		Service:       rt.Service(),
 		Version:       rt.Version(),
 		Instructions:  Instructions,
-		Tools:         Tools(opts...),
+		Tools:         Tools(handlerOpts...),
 		Health:        rt.Health(),
 		Events:        rt.Events(),
 		Publishes:     rt.Publishes(),
@@ -594,7 +601,7 @@ func (h *Handler) handleAskCall(ctx context.Context, raw json.RawMessage, id ser
 	if err != nil {
 		return toolError(err.Error()), nil
 	}
-	return appkitmcp.JSONResult(askToolResult(answer))
+	return appkitmcp.JSONResult(askToolResult(answer, h.pageBase))
 }
 
 func (h *Handler) handleSubjectsCall(ctx context.Context, raw json.RawMessage, _ server.Identity) (map[string]any, error) {
@@ -812,13 +819,13 @@ func askTool() map[string]any {
 	}
 }
 
-func askToolResult(answer any) map[string]any {
+func askToolResult(answer any, pageBase string) map[string]any {
 	found, text, sourceCitations := answerFields(answer)
 	citations := make([]map[string]string, 0, sourceCitations.Len())
 	for i := 0; i < sourceCitations.Len(); i++ {
 		citation := indirect(sourceCitations.Index(i))
 		citations = append(citations, map[string]string{
-			"path":  stringField(citation, "Path"),
+			"url":   pageBase + stringField(citation, "Path"),
 			"title": stringField(citation, "Title"),
 		})
 	}

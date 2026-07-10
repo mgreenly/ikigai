@@ -8,6 +8,7 @@ import (
 	"errors"
 	"io"
 	"log/slog"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -672,7 +673,7 @@ func TestAskToolUsesAuthenticatedIdentity(t *testing.T) {
 		Found     bool   `json:"found"`
 		Answer    string `json:"answer"`
 		Citations []struct {
-			Path  string `json:"path"`
+			URL   string `json:"url"`
 			Title string `json:"title"`
 		} `json:"citations"`
 	}
@@ -680,12 +681,12 @@ func TestAskToolUsesAuthenticatedIdentity(t *testing.T) {
 	if !body.Found || body.Answer != "Ada wrote the note." {
 		t.Fatalf("answer = %#v, want found Ada answer", body)
 	}
-	if len(body.Citations) != 1 || body.Citations[0].Path != "entity/ada" {
-		t.Fatalf("citations = %#v, want entity/ada citation", body.Citations)
+	if len(body.Citations) != 1 || body.Citations[0].URL != "https://int.ikigenba.com/srv/wiki/entity/ada" {
+		t.Fatalf("citations = %#v, want front-door Ada citation", body.Citations)
 	}
 }
 
-func TestAskToolReturnsPathTitleCitations(t *testing.T) {
+func TestAskToolReturnsURLTitleCitations(t *testing.T) {
 	// R-044J-PPG9
 	asker := &capturingAsker{answer: answer{
 		Found: true,
@@ -710,7 +711,7 @@ func TestAskToolReturnsPathTitleCitations(t *testing.T) {
 		Found     bool   `json:"found"`
 		Answer    string `json:"answer"`
 		Citations []struct {
-			Path    string `json:"path"`
+			URL     string `json:"url"`
 			Title   string `json:"title"`
 			Subject string `json:"subject"`
 		} `json:"citations"`
@@ -719,8 +720,8 @@ func TestAskToolReturnsPathTitleCitations(t *testing.T) {
 	if !body.Found || body.Answer != "Ada wrote the note." {
 		t.Fatalf("ask body = %#v, want found answer text", body)
 	}
-	if len(body.Citations) != 1 || body.Citations[0].Path != "person/ada-lovelace" || body.Citations[0].Title != "Ada Lovelace" {
-		t.Fatalf("ask citations = %#v, want path/title citation", body.Citations)
+	if len(body.Citations) != 1 || body.Citations[0].URL != "https://int.ikigenba.com/srv/wiki/person/ada-lovelace" || body.Citations[0].Title != "Ada Lovelace" {
+		t.Fatalf("ask citations = %#v, want URL/title citation", body.Citations)
 	}
 	if body.Citations[0].Subject != "" {
 		t.Fatalf("ask citation subject = %q, want omitted internal subject id", body.Citations[0].Subject)
@@ -787,7 +788,7 @@ func TestAskToolUsesPhase17InputAndResultShape(t *testing.T) {
 		Found     bool   `json:"found"`
 		Answer    string `json:"answer"`
 		Citations []struct {
-			Path  string `json:"path"`
+			URL   string `json:"url"`
 			Title string `json:"title"`
 		} `json:"citations"`
 	}
@@ -795,8 +796,93 @@ func TestAskToolUsesPhase17InputAndResultShape(t *testing.T) {
 	if !body.Found || body.Answer != "Ada wrote the note." {
 		t.Fatalf("ask body = %#v, want found answer text", body)
 	}
-	if len(body.Citations) != 1 || body.Citations[0].Path != "person/ada" || body.Citations[0].Title != "Ada" {
-		t.Fatalf("ask citations = %#v, want path/title citation", body.Citations)
+	if len(body.Citations) != 1 || body.Citations[0].URL != "https://int.ikigenba.com/srv/wiki/person/ada" || body.Citations[0].Title != "Ada" {
+		t.Fatalf("ask citations = %#v, want URL/title citation", body.Citations)
+	}
+}
+
+func TestAskToolCitationContainsURLAndTitleWithoutPath(t *testing.T) {
+	// R-Y7OR-PH1I
+	result := askToolResult(answer{
+		Found: true,
+		Text:  "The TSR is documented.",
+		Citations: []citation{{
+			Path:  "entity/tsr",
+			Title: "TSR",
+		}},
+	}, "https://acct.ikigenba.com/srv/wiki/")
+
+	citations, ok := result["citations"].([]map[string]string)
+	if !ok || len(citations) != 1 {
+		t.Fatalf("citations = %#v, want one citation", result["citations"])
+	}
+	want := map[string]string{
+		"url":   "https://acct.ikigenba.com/srv/wiki/entity/tsr",
+		"title": "TSR",
+	}
+	if !maps.Equal(citations[0], want) {
+		t.Fatalf("citation = %#v, want %#v", citations[0], want)
+	}
+	if _, exists := citations[0]["path"]; exists {
+		t.Fatalf("citation = %#v, path must not be emitted", citations[0])
+	}
+}
+
+func TestAskToolCitationUsesConfiguredFrontDoorOrigin(t *testing.T) {
+	// R-Y8WO-38S7
+	tests := []struct {
+		name       string
+		authServer string
+		wantURL    string
+	}{
+		{name: "production", authServer: "https://acct.ikigenba.com", wantURL: "https://acct.ikigenba.com/srv/wiki/entity/tsr"},
+		{name: "local", authServer: "http://localhost:8080", wantURL: "http://localhost:8080/srv/wiki/entity/tsr"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			asker := &capturingAsker{answer: answer{
+				Found:     true,
+				Text:      "The TSR is documented.",
+				Citations: []citation{{Path: "entity/tsr", Title: "TSR"}},
+			}}
+			h := gatedHandler(t, newTestHandlerWithAuthServer(t, tc.authServer, WithAskFunc(asker.Ask)))
+			rec := callMCP(t, h, `{
+				"jsonrpc":"2.0",
+				"id":"ask",
+				"method":"tools/call",
+				"params":{"name":"ask","arguments":{"question":"What is the TSR?"}}
+			}`, "owner@example.com")
+			if rec.Code != http.StatusOK {
+				t.Fatalf("ask status = %d, want 200", rec.Code)
+			}
+			var body struct {
+				Citations []struct {
+					URL string `json:"url"`
+				} `json:"citations"`
+			}
+			decodeToolText(t, rec.Body.Bytes(), &body)
+			if len(body.Citations) != 1 || body.Citations[0].URL != tc.wantURL {
+				t.Fatalf("citations = %#v, want URL %q", body.Citations, tc.wantURL)
+			}
+		})
+	}
+}
+
+func TestAskResultCompositionLeavesSourceCitationPathRelative(t *testing.T) {
+	// R-YA4K-H0IW
+	answer := answer{
+		Found:     true,
+		Text:      "The TSR is documented.",
+		Citations: []citation{{Path: "entity/tsr", Title: "TSR"}},
+	}
+
+	result := askToolResult(answer, "https://acct.ikigenba.com/srv/wiki/")
+	if got := answer.Citations[0].Path; got != "entity/tsr" {
+		t.Fatalf("source citation path = %q, want bare relative path", got)
+	}
+	citations := result["citations"].([]map[string]string)
+	if got := citations[0]["url"]; got != "https://acct.ikigenba.com/srv/wiki/entity/tsr" {
+		t.Fatalf("MCP citation URL = %q, want composed front-door URL", got)
 	}
 }
 
@@ -1635,12 +1721,17 @@ func (a *capturingAsker) Ask(_ context.Context, owner, question string) (answer,
 
 func newTestHandler(t *testing.T, opts ...Option) http.Handler {
 	t.Helper()
+	return newTestHandlerWithAuthServer(t, "https://int.ikigenba.com", opts...)
+}
+
+func newTestHandlerWithAuthServer(t *testing.T, authServer string, opts ...Option) http.Handler {
+	t.Helper()
 	var h http.Handler
 	_, err := server.New(server.Options{
 		Addr:       "127.0.0.1:0",
 		Logger:     slog.New(slog.NewJSONHandler(io.Discard, nil)),
 		ResourceID: "https://int.ikigenba.com/srv/wiki/mcp",
-		AuthServer: "https://int.ikigenba.com",
+		AuthServer: authServer,
 		Version:    "test-version",
 		Service:    "wiki",
 		Register: func(rt *appkit.Router) error {
