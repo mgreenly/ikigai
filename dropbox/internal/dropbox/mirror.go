@@ -1,8 +1,11 @@
 package dropbox
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -146,69 +149,126 @@ func evalExisting(p string) (string, error) {
 	}
 }
 
-// Write atomically writes data for a confined relative path. It creates parent
+// WriteFrom atomically streams src to a confined relative path. It creates parent
 // directories as needed (mkdir -p, 0750), writes to a temp file in the SAME
 // directory as the destination (so the final os.Rename is atomic on one
 // filesystem), syncs and closes it, then renames it over the final path. A
 // reader (or /content) therefore never observes a partial file: it sees either
 // the old bytes or the complete new bytes. Any error removes the temp file.
-func (m *Mirror) Write(rel string, data []byte) error {
+func (m *Mirror) WriteFrom(rel string, src io.Reader) (contentHash string, size int64, err error) {
 	dst, err := m.resolve(rel)
 	if err != nil {
-		return err
+		return "", 0, err
 	}
 	dir := filepath.Dir(dst)
 	if err := os.MkdirAll(dir, dirMode); err != nil {
-		return fmt.Errorf("mkdir parents: %w", err)
+		return "", 0, fmt.Errorf("mkdir parents: %w", err)
 	}
 	tmp, err := os.CreateTemp(dir, ".tmp-"+filepath.Base(dst)+"-*")
 	if err != nil {
-		return fmt.Errorf("create temp: %w", err)
+		return "", 0, fmt.Errorf("create temp: %w", err)
 	}
 	tmpName := tmp.Name()
 	cleanup := func() { _ = os.Remove(tmpName) }
 
-	if _, err := tmp.Write(data); err != nil {
+	hasher := newStreamingContentHash()
+	size, err = io.CopyBuffer(io.MultiWriter(tmp, hasher), src, make([]byte, 32*1024))
+	if err != nil {
 		_ = tmp.Close()
 		cleanup()
-		return fmt.Errorf("write temp: %w", err)
+		return "", 0, fmt.Errorf("write temp: %w", err)
 	}
 	if err := tmp.Sync(); err != nil {
 		_ = tmp.Close()
 		cleanup()
-		return fmt.Errorf("sync temp: %w", err)
+		return "", 0, fmt.Errorf("sync temp: %w", err)
 	}
 	if err := tmp.Close(); err != nil {
 		cleanup()
-		return fmt.Errorf("close temp: %w", err)
+		return "", 0, fmt.Errorf("close temp: %w", err)
 	}
 	// CreateTemp makes 0600; tighten to the private file mode before publishing.
 	if err := os.Chmod(tmpName, fileMode); err != nil {
 		cleanup()
-		return fmt.Errorf("chmod temp: %w", err)
+		return "", 0, fmt.Errorf("chmod temp: %w", err)
 	}
 	if err := os.Rename(tmpName, dst); err != nil {
 		cleanup()
-		return fmt.Errorf("rename into place: %w", err)
+		return "", 0, fmt.Errorf("rename into place: %w", err)
 	}
-	return nil
+	return hasher.Sum(), size, nil
 }
 
-// Read returns the bytes of the confined file at rel. Used by Service.Content to
-// serve the current mirror bytes for an index-resolved display path (PLAN.md §4;
-// Phase 5 wires the HTTP route). A missing file yields the underlying os error
-// (the caller resolves via the index first, so a miss here is a transient
-// disk/index skew, not the normal 404 path).
-func (m *Mirror) Read(rel string) ([]byte, error) {
+// Open returns a seekable handle and metadata for the confined file at rel.
+// Callers close the returned file.
+func (m *Mirror) Open(rel string) (*os.File, os.FileInfo, error) {
 	dst, err := m.resolve(rel)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	data, err := os.ReadFile(dst)
+	f, err := os.Open(dst)
 	if err != nil {
-		return nil, fmt.Errorf("read mirror file: %w", err)
+		return nil, nil, fmt.Errorf("open mirror file: %w", err)
 	}
-	return data, nil
+	info, err := f.Stat()
+	if err != nil {
+		_ = f.Close()
+		return nil, nil, fmt.Errorf("stat mirror file: %w", err)
+	}
+	return f, info, nil
+}
+
+// streamingContentHash calculates Dropbox's block-SHA256 tree without holding
+// a whole block (or file) in memory.
+type streamingContentHash struct {
+	overall io.Writer
+	block   hashWriter
+	inBlock int
+}
+
+type hashWriter interface {
+	io.Writer
+	Sum([]byte) []byte
+	Reset()
+}
+
+func newStreamingContentHash() *streamingContentHash {
+	return &streamingContentHash{overall: sha256.New(), block: sha256.New()}
+}
+
+func (h *streamingContentHash) Write(p []byte) (int, error) {
+	original := len(p)
+	for len(p) > 0 {
+		n := contentHashBlockSize - h.inBlock
+		if n > len(p) {
+			n = len(p)
+		}
+		if _, err := h.block.Write(p[:n]); err != nil {
+			return 0, err
+		}
+		h.inBlock += n
+		p = p[n:]
+		if h.inBlock == contentHashBlockSize {
+			if _, err := h.overall.Write(h.block.Sum(nil)); err != nil {
+				return 0, err
+			}
+			h.block.Reset()
+			h.inBlock = 0
+		}
+	}
+	return original, nil
+}
+
+func (h *streamingContentHash) Sum() string {
+	if h.inBlock != 0 {
+		_, _ = h.overall.Write(h.block.Sum(nil))
+		h.block.Reset()
+		h.inBlock = 0
+	}
+	if overall, ok := h.overall.(interface{ Sum([]byte) []byte }); ok {
+		return hex.EncodeToString(overall.Sum(nil))
+	}
+	return ""
 }
 
 // Delete unlinks the file at a confined relative path. Deleting an

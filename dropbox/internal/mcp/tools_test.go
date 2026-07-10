@@ -356,8 +356,8 @@ func newMirrorHandler(t *testing.T) (http.Handler, *dropbox.Service) {
 // own write tx (the same path the sync engine takes, minus the event).
 func seedFile(t *testing.T, svc *dropbox.Service, path, rev, hash string, data []byte) {
 	t.Helper()
-	if err := svc.Mirror.Write(path, data); err != nil {
-		t.Fatalf("mirror write %s: %v", path, err)
+	if _, _, err := svc.Mirror.WriteFrom(path, strings.NewReader(string(data))); err != nil {
+		t.Fatalf("mirror WriteFrom %s: %v", path, err)
 	}
 	tx, err := svc.DB.BeginTx(context.Background(), nil)
 	if err != nil {

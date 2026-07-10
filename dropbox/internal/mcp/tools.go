@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"io"
 
 	appkitmcp "appkit/mcp"
 	"appkit/server"
@@ -144,11 +145,24 @@ func (h *toolHandlers) toolGet(ctx context.Context, raw json.RawMessage) (map[st
 	if a.Path == "" {
 		return toolErr(dropbox.ErrValidation), nil
 	}
-	data, row, err := h.svc.Content(a.Path, a.Rev)
+	row, err := h.svc.Content(a.Path, a.Rev)
 	if err != nil {
 		return toolErr(err), nil
 	}
 	if row.Size > maxGetBytes {
+		return appkitmcp.ErrorResult(toolErrorJSON("too_large",
+			"file is larger than the 25 MiB get limit; fetch it via /content instead")), nil
+	}
+	f, _, err := h.svc.Mirror.Open(row.Path)
+	if err != nil {
+		return toolErr(err), nil
+	}
+	defer f.Close()
+	data, err := io.ReadAll(io.LimitReader(f, maxGetBytes+1))
+	if err != nil {
+		return toolErr(err), nil
+	}
+	if int64(len(data)) > maxGetBytes {
 		return appkitmcp.ErrorResult(toolErrorJSON("too_large",
 			"file is larger than the 25 MiB get limit; fetch it via /content instead")), nil
 	}

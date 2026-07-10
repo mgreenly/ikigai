@@ -1,11 +1,36 @@
 package dropbox
 
 import (
+	"bytes"
 	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
 )
+
+type gatedReader struct {
+	r       *bytes.Reader
+	started chan<- struct{}
+	release <-chan struct{}
+	once    bool
+}
+
+func (r *gatedReader) Read(p []byte) (int, error) {
+	if !r.once {
+		r.once = true
+		close(r.started)
+		<-r.release
+	}
+	return r.r.Read(p)
+}
+
+func writeMirror(t testing.TB, m *Mirror, path string, data []byte) {
+	t.Helper()
+	if _, _, err := m.WriteFrom(path, bytes.NewReader(data)); err != nil {
+		t.Fatalf("WriteFrom: %v", err)
+	}
+}
 
 // newTestMirror roots a Mirror at a fresh temp dir.
 func newTestMirror(t *testing.T) *Mirror {
@@ -21,9 +46,7 @@ func TestWriteAtomicAndModes(t *testing.T) {
 	m := newTestMirror(t)
 	want := []byte("hello dropbox")
 
-	if err := m.Write("/inbox/sub/report.pdf", want); err != nil {
-		t.Fatalf("Write: %v", err)
-	}
+	writeMirror(t, m, "/inbox/sub/report.pdf", want)
 
 	dst := filepath.Join(m.Root(), "inbox", "sub", "report.pdf")
 	got, err := os.ReadFile(dst)
@@ -66,18 +89,57 @@ func TestWriteAtomicAndModes(t *testing.T) {
 
 func TestWriteOverwriteIsAtomic(t *testing.T) {
 	m := newTestMirror(t)
-	if err := m.Write("/a.txt", []byte("v1")); err != nil {
-		t.Fatalf("write v1: %v", err)
-	}
-	if err := m.Write("/a.txt", []byte("v2-longer")); err != nil {
-		t.Fatalf("write v2: %v", err)
-	}
+	writeMirror(t, m, "/a.txt", []byte("v1"))
+	writeMirror(t, m, "/a.txt", []byte("v2-longer"))
 	got, err := os.ReadFile(filepath.Join(m.Root(), "a.txt"))
 	if err != nil {
 		t.Fatalf("read: %v", err)
 	}
 	if string(got) != "v2-longer" {
 		t.Fatalf("got %q want v2-longer", got)
+	}
+}
+
+func TestWriteFromStreamsMultiBlockAndPublishesAtomically(t *testing.T) {
+	// R-JV0A-6XDB
+	m := newTestMirror(t)
+	writeMirror(t, m, "/large.bin", []byte("old bytes"))
+	data := make([]byte, 8<<20+257)
+	for i := range data {
+		data[i] = byte(i % 251)
+	}
+	started := make(chan struct{})
+	release := make(chan struct{})
+	result := make(chan error, 1)
+	go func() {
+		hash, size, err := m.WriteFrom("/large.bin", &gatedReader{r: bytes.NewReader(data), started: started, release: release})
+		if err == nil && (hash != ContentHash(data) || size != int64(len(data))) {
+			err = errors.New("streamed hash or size mismatch")
+		}
+		result <- err
+	}()
+	<-started
+	f, _, err := m.Open("/large.bin")
+	if err != nil {
+		t.Fatalf("Open during write: %v", err)
+	}
+	old, err := io.ReadAll(f)
+	f.Close()
+	if err != nil || string(old) != "old bytes" {
+		t.Fatalf("Open during write returned partial/new data %q, err=%v", old, err)
+	}
+	close(release)
+	if err := <-result; err != nil {
+		t.Fatalf("WriteFrom: %v", err)
+	}
+	f, _, err = m.Open("/large.bin")
+	if err != nil {
+		t.Fatalf("Open after write: %v", err)
+	}
+	got, err := io.ReadAll(f)
+	f.Close()
+	if err != nil || !bytes.Equal(got, data) {
+		t.Fatalf("final bytes mismatch: err=%v", err)
 	}
 }
 
@@ -92,7 +154,7 @@ func TestConfinementRejected(t *testing.T) {
 		"a/b/../../../../outside",
 	}
 	for _, p := range escapes {
-		err := m.Write(p, []byte("nope"))
+		_, _, err := m.WriteFrom(p, bytes.NewReader([]byte("nope")))
 		if err == nil {
 			t.Fatalf("Write(%q) succeeded, expected rejection", p)
 		}
@@ -105,9 +167,7 @@ func TestConfinementRejected(t *testing.T) {
 	// path: it is confined to <root>/etc/passwd and MUST NOT touch the real
 	// /etc/passwd. Confinement (not rejection) is the security property here.
 	before, _ := os.ReadFile("/etc/passwd")
-	if err := m.Write("/etc/passwd", []byte("ATTACK")); err != nil {
-		t.Fatalf("Write(/etc/passwd) confined write failed: %v", err)
-	}
+	writeMirror(t, m, "/etc/passwd", []byte("ATTACK"))
 	after, _ := os.ReadFile("/etc/passwd")
 	if string(before) != string(after) {
 		t.Fatalf("the real /etc/passwd was modified — confinement breached")
@@ -140,7 +200,7 @@ func TestConfinementRejectsSymlinkAncestor(t *testing.T) {
 		t.Fatalf("symlink: %v", err)
 	}
 	// Writing "through" the symlink would escape the root; must be rejected.
-	err := m.Write("/evil/passwd", []byte("nope"))
+	_, _, err := m.WriteFrom("/evil/passwd", bytes.NewReader([]byte("nope")))
 	if err == nil || !errors.Is(err, ErrPathEscape) {
 		t.Fatalf("write through symlink: err = %v, want ErrPathEscape", err)
 	}
@@ -151,9 +211,7 @@ func TestConfinementRejectsSymlinkAncestor(t *testing.T) {
 
 func TestDeleteIdempotent(t *testing.T) {
 	m := newTestMirror(t)
-	if err := m.Write("/gone.txt", []byte("x")); err != nil {
-		t.Fatalf("write: %v", err)
-	}
+	writeMirror(t, m, "/gone.txt", []byte("x"))
 
 	existed, err := m.Delete("/gone.txt")
 	if err != nil {
@@ -188,9 +246,7 @@ func TestDeleteIdempotent(t *testing.T) {
 func TestCaseOnlyRename(t *testing.T) {
 	m := newTestMirror(t)
 	want := []byte("case-fold bytes")
-	if err := m.Write("/Foo.txt", want); err != nil {
-		t.Fatalf("write: %v", err)
-	}
+	writeMirror(t, m, "/Foo.txt", want)
 
 	if err := m.Rename("/Foo.txt", "/foo.txt"); err != nil {
 		t.Fatalf("rename: %v", err)
@@ -211,9 +267,7 @@ func TestCaseOnlyRename(t *testing.T) {
 
 func TestRenameConfined(t *testing.T) {
 	m := newTestMirror(t)
-	if err := m.Write("/ok.txt", []byte("x")); err != nil {
-		t.Fatalf("write: %v", err)
-	}
+	writeMirror(t, m, "/ok.txt", []byte("x"))
 	if err := m.Rename("/ok.txt", "../escape.txt"); !errors.Is(err, ErrPathEscape) {
 		t.Fatalf("rename to escape: err = %v, want ErrPathEscape", err)
 	}

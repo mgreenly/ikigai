@@ -1,6 +1,7 @@
 package dropbox
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"errors"
@@ -317,7 +318,7 @@ func (e *Engine) applyFile(ctx context.Context, entry DeltaEntry) error {
 	if err != nil {
 		return err
 	}
-	if err := e.svc.Mirror.Write(entry.PathDisplay, data); err != nil {
+	if _, _, err := e.svc.Mirror.WriteFrom(entry.PathDisplay, bytes.NewReader(data)); err != nil {
 		return err
 	}
 	rev := meta.Rev

@@ -1,7 +1,6 @@
 package dropbox
 
 import (
-	"bytes"
 	"errors"
 	"net/http"
 	"time"
@@ -53,7 +52,7 @@ func (s *Service) ContentHandler() http.Handler {
 			revPtr = &rev
 		}
 
-		data, row, err := s.Content(path, revPtr)
+		row, err := s.Content(path, revPtr)
 		if err != nil {
 			switch {
 			case errors.Is(err, ErrRevMismatch):
@@ -66,6 +65,12 @@ func (s *Service) ContentHandler() http.Handler {
 			}
 			return
 		}
+		f, _, err := s.Mirror.Open(row.Path)
+		if err != nil {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		defer f.Close()
 
 		// Feed http.ServeContent the canonical display path (for the Content-Type
 		// sniff by extension) and the indexed modtime (for Last-Modified +
@@ -75,6 +80,6 @@ func (s *Service) ContentHandler() http.Handler {
 		if perr != nil {
 			modTime = time.Time{}
 		}
-		http.ServeContent(w, r, row.Path, modTime, bytes.NewReader(data))
+		http.ServeContent(w, r, row.Path, modTime, f)
 	})
 }

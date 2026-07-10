@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"io"
 	"testing"
 	"time"
 )
@@ -142,6 +143,20 @@ func applyEntries(t *testing.T, eng *Engine, entries ...DeltaEntry) error {
 
 func ctx() context.Context { return context.Background() }
 
+func readContent(svc *Service, path string, rev *string) ([]byte, FileRow, error) {
+	row, err := svc.Content(path, rev)
+	if err != nil {
+		return nil, row, err
+	}
+	f, _, err := svc.Mirror.Open(row.Path)
+	if err != nil {
+		return nil, row, err
+	}
+	defer f.Close()
+	data, err := io.ReadAll(f)
+	return data, row, err
+}
+
 // ── Rule 5: create / modify / rev-dedup ──────────────────────────────────────
 
 func TestRule5_CreateModifyRevDedup(t *testing.T) {
@@ -156,7 +171,7 @@ func TestRule5_CreateModifyRevDedup(t *testing.T) {
 	if got := sink.eventTypes(); len(got) != 1 || got[0] != EventFileCreated {
 		t.Fatalf("want [file.created], got %v", got)
 	}
-	if data, _, err := svc.Content("/inbox/report.pdf", nil); err != nil || string(data) != "hello" {
+	if data, _, err := readContent(svc, "/inbox/report.pdf", nil); err != nil || string(data) != "hello" {
 		t.Fatalf("content after create: data=%q err=%v", data, err)
 	}
 
@@ -181,7 +196,7 @@ func TestRule5_CreateModifyRevDedup(t *testing.T) {
 	if got := sink.eventTypes(); len(got) != 1 || got[0] != EventFileModified {
 		t.Fatalf("want [file.modified], got %v", got)
 	}
-	if data, _, err := svc.Content("/inbox/report.pdf", nil); err != nil || string(data) != "world" {
+	if data, _, err := readContent(svc, "/inbox/report.pdf", nil); err != nil || string(data) != "world" {
 		t.Fatalf("content after modify: data=%q err=%v", data, err)
 	}
 }
@@ -214,13 +229,13 @@ func TestRule1_FolderDeleteSubtreeFanout(t *testing.T) {
 		}
 	}
 	// /other/c.txt survives; /proj files gone from index and mirror.
-	if _, _, err := svc.Content("/proj/a.txt", nil); !errors.Is(err, ErrNotFound) {
+	if _, _, err := readContent(svc, "/proj/a.txt", nil); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("a.txt should be gone, err=%v", err)
 	}
-	if _, _, err := svc.Content("/proj/sub/b.txt", nil); !errors.Is(err, ErrNotFound) {
+	if _, _, err := readContent(svc, "/proj/sub/b.txt", nil); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("b.txt should be gone, err=%v", err)
 	}
-	if data, _, err := svc.Content("/other/c.txt", nil); err != nil || string(data) != "c" {
+	if data, _, err := readContent(svc, "/other/c.txt", nil); err != nil || string(data) != "c" {
 		t.Fatalf("c.txt should survive: data=%q err=%v", data, err)
 	}
 	_ = c
@@ -349,7 +364,7 @@ func TestRule4_PoisonEntryBoundMarksErrorAndAdvances(t *testing.T) {
 		t.Fatalf("health failed_files should be 1, got %d", h.FailedFiles)
 	}
 	// The good entry on the same page still applied.
-	if data, _, err := svc.Content("/ok.txt", nil); err != nil || string(data) != "ok" {
+	if data, _, err := readContent(svc, "/ok.txt", nil); err != nil || string(data) != "ok" {
 		t.Fatalf("good entry should apply despite poison: data=%q err=%v", data, err)
 	}
 	_ = good
@@ -383,7 +398,7 @@ func TestRule6_CaseOnlyRenameModified(t *testing.T) {
 		t.Fatalf("case-only rename must not re-download")
 	}
 	// Index now carries the new display path; content resolves via either case.
-	if data, row, err := svc.Content("/report.pdf", nil); err != nil || string(data) != "data" || row.Path != "/Report.pdf" {
+	if data, row, err := readContent(svc, "/report.pdf", nil); err != nil || string(data) != "data" || row.Path != "/Report.pdf" {
 		t.Fatalf("after rename: data=%q display=%q err=%v", data, row.Path, err)
 	}
 }
@@ -428,11 +443,11 @@ func TestContentRevMismatch(t *testing.T) {
 		t.Fatalf("seed: %v", err)
 	}
 	stale := "rev0"
-	if _, _, err := svc.Content("/f.txt", &stale); !errors.Is(err, ErrRevMismatch) {
+	if _, _, err := readContent(svc, "/f.txt", &stale); !errors.Is(err, ErrRevMismatch) {
 		t.Fatalf("stale rev should yield ErrRevMismatch, got %v", err)
 	}
 	cur := "rev1"
-	if data, _, err := svc.Content("/f.txt", &cur); err != nil || string(data) != "y" {
+	if data, _, err := readContent(svc, "/f.txt", &cur); err != nil || string(data) != "y" {
 		t.Fatalf("matching rev should serve bytes: data=%q err=%v", data, err)
 	}
 }

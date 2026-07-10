@@ -58,28 +58,23 @@ func (s *Service) Whoami(ownerEmail, clientID string) (HealthInfo, error) {
 // ── content resolution (Phase 5 wires the HTTP route; logic lives here) ──────
 
 // Content resolves a literal Dropbox path through the index (case-insensitive,
-// PLAN.md §2/§4) to the canonical stored display path and returns the current
-// mirror bytes for it. When rev is non-nil and does not match the indexed rev it
+// PLAN.md §2/§4) to the canonical stored display path. When rev is non-nil and does not match the indexed rev it
 // returns ErrRevMismatch (the §4 exact-bytes contract → 409). ErrNotFound when
 // the path is not in the index (e.g. after a delete → the route 404s).
-func (s *Service) Content(path string, rev *string) ([]byte, FileRow, error) {
+func (s *Service) Content(path string, rev *string) (FileRow, error) {
 	tx, err := s.DB.BeginTx(context.Background(), &sql.TxOptions{ReadOnly: true})
 	if err != nil {
-		return nil, FileRow{}, fmt.Errorf("content: begin tx: %w", err)
+		return FileRow{}, fmt.Errorf("content: begin tx: %w", err)
 	}
 	defer tx.Rollback()
 	row, err := s.Store.GetFile(tx, path)
 	if err != nil {
-		return nil, FileRow{}, err // ErrNotFound passes through
+		return FileRow{}, err // ErrNotFound passes through
 	}
 	if rev != nil && *rev != "" && *rev != row.Rev {
-		return nil, row, ErrRevMismatch
+		return row, ErrRevMismatch
 	}
-	data, err := s.Mirror.Read(row.Path)
-	if err != nil {
-		return nil, row, err
-	}
-	return data, row, nil
+	return row, nil
 }
 
 // List returns index rows for the `list` MCP tool: a path_lower-ordered page of

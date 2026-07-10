@@ -1,6 +1,7 @@
 package dropbox
 
 import (
+	"bytes"
 	"database/sql"
 	"net/http"
 	"net/http/httptest"
@@ -8,6 +9,28 @@ import (
 	"testing"
 	"time"
 )
+
+type hashingResponseWriter struct {
+	header http.Header
+	status int
+	hash   *streamingContentHash
+	size   int64
+}
+
+func newHashingResponseWriter() *hashingResponseWriter {
+	return &hashingResponseWriter{header: make(http.Header), hash: newStreamingContentHash()}
+}
+
+func (w *hashingResponseWriter) Header() http.Header    { return w.header }
+func (w *hashingResponseWriter) WriteHeader(status int) { w.status = status }
+func (w *hashingResponseWriter) Write(p []byte) (int, error) {
+	if w.status == 0 {
+		w.status = http.StatusOK
+	}
+	n, err := w.hash.Write(p)
+	w.size += int64(n)
+	return n, err
+}
 
 // newContentService wires a Service over a real temp DB + mirror, seeds one
 // indexed file with bytes on disk, and returns the service plus the canonical
@@ -28,9 +51,7 @@ func newContentService(t *testing.T) (*Service, *sql.DB, *Mirror) {
 // seedFile writes bytes to the mirror and upserts a matching index row.
 func seedFile(t *testing.T, svc *Service, conn *sql.DB, mirror *Mirror, display, rev string, data []byte) {
 	t.Helper()
-	if err := mirror.Write(display, data); err != nil {
-		t.Fatalf("mirror write: %v", err)
-	}
+	writeMirror(t, mirror, display, data)
 	withTx(t, conn, func(tx *sql.Tx) {
 		if err := svc.Store.UpsertFile(tx, display, rev, "hash-"+rev, int64(len(data)), svc.now()); err != nil {
 			t.Fatalf("upsert: %v", err)
@@ -57,6 +78,51 @@ func TestContentHandler_ServesBytesURLEncodedPath(t *testing.T) {
 	}
 	if got := rec.Body.String(); got != string(want) {
 		t.Fatalf("body = %q, want %q", got, want)
+	}
+}
+
+func TestContentHandler_ServesRangeAndFullFile(t *testing.T) {
+	// R-JW86-KP40
+	svc, conn, mirror := newContentService(t)
+	data := []byte("0123456789abcdef")
+	seedFile(t, svc, conn, mirror, "/inbox/range.bin", "rev1", data)
+	q := url.Values{"path": {"/inbox/range.bin"}}
+	h := svc.ContentHandler()
+	rangeReq := httptest.NewRequest(http.MethodGet, "/content?"+q.Encode(), nil)
+	rangeReq.Header.Set("Range", "bytes=3-8")
+	rangeRec := httptest.NewRecorder()
+	h.ServeHTTP(rangeRec, rangeReq)
+	if rangeRec.Code != http.StatusPartialContent || rangeRec.Body.String() != "345678" {
+		t.Fatalf("range response = %d %q, want 206 %q", rangeRec.Code, rangeRec.Body.String(), "345678")
+	}
+	fullRec := httptest.NewRecorder()
+	h.ServeHTTP(fullRec, httptest.NewRequest(http.MethodGet, "/content?"+q.Encode(), nil))
+	if fullRec.Code != http.StatusOK || !bytes.Equal(fullRec.Body.Bytes(), data) {
+		t.Fatalf("full response = %d %q, want 200 full bytes", fullRec.Code, fullRec.Body.Bytes())
+	}
+}
+
+func TestContentHandler_RoundTrips64MiBFromWriteFrom(t *testing.T) {
+	// R-JXG2-YGUP
+	svc, conn, mirror := newContentService(t)
+	data := make([]byte, 64<<20)
+	for i := range data {
+		data[i] = byte(i % 251)
+	}
+	hash, size, err := mirror.WriteFrom("/inbox/large.bin", bytes.NewReader(data))
+	if err != nil || size != int64(len(data)) || hash != ContentHash(data) {
+		t.Fatalf("WriteFrom = hash %q size %d err %v", hash, size, err)
+	}
+	withTx(t, conn, func(tx *sql.Tx) {
+		if err := svc.Store.UpsertFile(tx, "/inbox/large.bin", "rev1", hash, size, svc.now()); err != nil {
+			t.Fatalf("upsert: %v", err)
+		}
+	})
+	q := url.Values{"path": {"/inbox/large.bin"}}
+	rec := newHashingResponseWriter()
+	svc.ContentHandler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/content?"+q.Encode(), nil))
+	if rec.status != http.StatusOK || rec.size != size || rec.hash.Sum() != hash {
+		t.Fatalf("64 MiB response failed: status=%d size=%d hash=%q", rec.status, rec.size, rec.hash.Sum())
 	}
 }
 
