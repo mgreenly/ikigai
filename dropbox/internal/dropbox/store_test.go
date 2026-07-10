@@ -166,7 +166,7 @@ func TestDirectoriesMigrationRecordsSchemaAndRejectsFileCollision(t *testing.T) 
 	if err := conn.QueryRow(`SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'directories'`).Scan(&table); err != nil || table != "directories" {
 		t.Fatalf("directories table = %q, %v", table, err)
 	}
-	if err := conn.QueryRow(`SELECT CAST(version AS TEXT) FROM schema_migrations ORDER BY version DESC LIMIT 1`).Scan(&version); err != nil || version != "20260710231450" {
+	if err := conn.QueryRow(`SELECT CAST(version AS TEXT) FROM schema_migrations WHERE version = 20260710231450`).Scan(&version); err != nil || version != "20260710231450" {
 		t.Fatalf("migration version = %q, %v", version, err)
 	}
 	withTx(t, conn, func(tx *sql.Tx) {
@@ -176,6 +176,57 @@ func TestDirectoriesMigrationRecordsSchemaAndRejectsFileCollision(t *testing.T) 
 		}
 		if err := s.UpsertDir(tx, "/report"); !errors.Is(err, ErrValidation) {
 			t.Fatalf("case-fold collision = %v, want validation", err)
+		}
+	})
+}
+
+func TestEnqueueUploadCoalescesPathToLatestOperation(t *testing.T) {
+	// R-KC2V-JPR1
+	conn := openStoreDB(t)
+	s := NewStore()
+	withTx(t, conn, func(tx *sql.Tx) {
+		if err := s.EnqueueUpload(tx, UploadQueueRow{
+			Path: "/inbox/report.md", Op: "put", Origin: sql.NullString{String: "first", Valid: true},
+			EnqueuedAt: "2026-07-10T00:00:00Z", NextAttemptAt: "2026-07-10T00:00:00Z",
+		}); err != nil {
+			t.Fatalf("enqueue first: %v", err)
+		}
+		if err := s.EnqueueUpload(tx, UploadQueueRow{
+			Path: "/inbox/report.md", Op: "delete", Origin: sql.NullString{String: "second", Valid: true},
+			EnqueuedAt: "2026-07-10T00:01:00Z", NextAttemptAt: "2026-07-10T00:01:00Z",
+		}); err != nil {
+			t.Fatalf("enqueue replacement: %v", err)
+		}
+	})
+
+	withTx(t, conn, func(tx *sql.Tx) {
+		rows, err := s.DueUploads(tx, "2026-07-10T01:00:00Z")
+		if err != nil {
+			t.Fatalf("due uploads: %v", err)
+		}
+		if len(rows) != 1 {
+			t.Fatalf("queue rows = %d, want exactly one: %+v", len(rows), rows)
+		}
+		if got := rows[0]; got.Path != "/inbox/report.md" || got.Op != "delete" || got.Origin.String != "second" || got.EnqueuedAt != "2026-07-10T00:01:00Z" {
+			t.Fatalf("coalesced row = %+v, want latest operation", got)
+		}
+	})
+}
+
+func TestUploadQueueMigrationRecordsVersionAndEnforcesPathPrimaryKey(t *testing.T) {
+	// R-KDAR-XHHQ
+	conn := openStoreDB(t)
+	var version string
+	if err := conn.QueryRow(`SELECT CAST(version AS TEXT) FROM schema_migrations WHERE version = 20260710232630`).Scan(&version); err != nil || version != "20260710232630" {
+		t.Fatalf("upload queue migration version = %q, %v", version, err)
+	}
+	withTx(t, conn, func(tx *sql.Tx) {
+		args := []any{"/same-path", "put", "2026-07-10T00:00:00Z", "2026-07-10T00:00:00Z"}
+		if _, err := tx.Exec(`INSERT INTO upload_queue (path, op, enqueued_at, next_attempt_at) VALUES (?, ?, ?, ?)`, args...); err != nil {
+			t.Fatalf("insert queue row: %v", err)
+		}
+		if _, err := tx.Exec(`INSERT INTO upload_queue (path, op, enqueued_at, next_attempt_at) VALUES (?, ?, ?, ?)`, args...); err == nil {
+			t.Fatal("duplicate queue path inserted; primary key is not enforced")
 		}
 	})
 }

@@ -50,6 +50,119 @@ type DirRow struct {
 	UpdatedAt string
 }
 
+// UploadQueueRow is one durable, pending Dropbox write. Path is the queue key:
+// a newer local mutation for a path replaces the pending operation, allowing the
+// uploader to send only the current mirror contents.
+type UploadQueueRow struct {
+	Path          string
+	Op            string
+	Dest          sql.NullString
+	Origin        sql.NullString
+	EnqueuedAt    string
+	Attempts      int
+	NextAttemptAt string
+	State         string
+	LastError     sql.NullString
+}
+
+// UploadBacklog is the health-facing summary of outstanding writes. The oldest
+// timestamp is absent when no pending upload remains.
+type UploadBacklog struct {
+	Pending         int
+	Failed          int
+	OldestPendingAt sql.NullString
+}
+
+// ── durable upload queue ───────────────────────────────────────────────────
+
+// EnqueueUpload inserts a durable write request or replaces a prior request for
+// the same path. Replacing also clears retry state: a new local mutation is a
+// fresh operation and the latest operation is what the uploader must send.
+func (Store) EnqueueUpload(tx *sql.Tx, row UploadQueueRow) error {
+	_, err := tx.Exec(`
+		INSERT INTO upload_queue (
+			path, op, dest, origin, enqueued_at, attempts, next_attempt_at, state, last_error
+		) VALUES (?, ?, ?, ?, ?, 0, ?, 'pending', NULL)
+		ON CONFLICT(path) DO UPDATE SET
+			op              = excluded.op,
+			dest            = excluded.dest,
+			origin          = excluded.origin,
+			enqueued_at     = excluded.enqueued_at,
+			attempts        = 0,
+			next_attempt_at = excluded.next_attempt_at,
+			state           = 'pending',
+			last_error      = NULL
+	`, row.Path, row.Op, row.Dest, row.Origin, row.EnqueuedAt, row.NextAttemptAt)
+	if err != nil {
+		return fmt.Errorf("enqueue upload: %w", err)
+	}
+	return nil
+}
+
+// DueUploads returns pending requests whose retry gate has passed, oldest first.
+func (Store) DueUploads(tx *sql.Tx, now string) ([]UploadQueueRow, error) {
+	rows, err := tx.Query(`
+		SELECT path, op, dest, origin, enqueued_at, attempts, next_attempt_at, state, last_error
+		FROM upload_queue
+		WHERE state = 'pending' AND next_attempt_at <= ?
+		ORDER BY next_attempt_at ASC, path ASC
+	`, now)
+	if err != nil {
+		return nil, fmt.Errorf("due uploads: %w", err)
+	}
+	defer rows.Close()
+
+	var queued []UploadQueueRow
+	for rows.Next() {
+		var row UploadQueueRow
+		if err := rows.Scan(&row.Path, &row.Op, &row.Dest, &row.Origin, &row.EnqueuedAt, &row.Attempts, &row.NextAttemptAt, &row.State, &row.LastError); err != nil {
+			return nil, fmt.Errorf("scan due upload: %w", err)
+		}
+		queued = append(queued, row)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate due uploads: %w", err)
+	}
+	return queued, nil
+}
+
+// ClearUpload removes a successfully pushed request.
+func (Store) ClearUpload(tx *sql.Tx, path string) error {
+	if _, err := tx.Exec(`DELETE FROM upload_queue WHERE path = ?`, path); err != nil {
+		return fmt.Errorf("clear upload: %w", err)
+	}
+	return nil
+}
+
+// FailUpload retains a failed request, increments its retry count, and moves its
+// backoff gate. The uploader can later mark poison rows failed without dropping
+// them; this method deliberately keeps ordinary failures pending.
+func (Store) FailUpload(tx *sql.Tx, path string, errMsg string, nextAttemptAt string) error {
+	if _, err := tx.Exec(`
+		UPDATE upload_queue
+		SET attempts = attempts + 1, next_attempt_at = ?, last_error = ?
+		WHERE path = ?
+	`, nextAttemptAt, errMsg, path); err != nil {
+		return fmt.Errorf("fail upload: %w", err)
+	}
+	return nil
+}
+
+// UploadBacklog summarizes durable writes for health reporting.
+func (Store) UploadBacklog(tx *sql.Tx) (UploadBacklog, error) {
+	var backlog UploadBacklog
+	if err := tx.QueryRow(`
+		SELECT
+			COUNT(*) FILTER (WHERE state = 'pending'),
+			COUNT(*) FILTER (WHERE state = 'failed'),
+			MIN(CASE WHEN state = 'pending' THEN enqueued_at END)
+		FROM upload_queue
+	`).Scan(&backlog.Pending, &backlog.Failed, &backlog.OldestPendingAt); err != nil {
+		return UploadBacklog{}, fmt.Errorf("upload backlog: %w", err)
+	}
+	return backlog, nil
+}
+
 // ── sync_state (singleton cursor) ───────────────────────────────────────────
 
 // GetCursor returns the persisted Dropbox list_folder cursor and whether a
