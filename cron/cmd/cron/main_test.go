@@ -654,6 +654,60 @@ func TestNginxStaticLocationIsSessionGatedAndProxiesToStaticHandler(t *testing.T
 	}
 }
 
+func TestNginxSessionLocationsUseApexLoginBounce(t *testing.T) {
+	conf := readNginxConfig(t)
+	landing := nginxLocationBlock(t, conf, "location = /srv/cron/ {")
+	assets := nginxLocationBlock(t, conf, "location /srv/cron/static/ {")
+	bearer := nginxLocationBlock(t, conf, "location /srv/cron/ {")
+
+	for name, block := range map[string]string{
+		"landing": landing,
+		"assets":  assets,
+	} {
+		// R-3V6H-7F1M
+		for _, want := range []string{
+			"auth_request /_session-authn;",
+			"error_page 401 = @login_bounce;",
+		} {
+			if !strings.Contains(block, want) {
+				t.Fatalf("%s session location does not contain %q:\n%s", name, want, block)
+			}
+		}
+	}
+
+	// R-3WED-L6SB
+	if strings.Contains(bearer, "error_page 401 = @login_bounce;") {
+		t.Fatalf("bearer location must retain its OAuth 401 rather than bounce to login:\n%s", bearer)
+	}
+
+	// R-3XM9-YYJ0
+	for name, block := range map[string]string{
+		"landing": landing,
+		"assets":  assets,
+	} {
+		for _, want := range []string{
+			"auth_request /_session-authn;",
+			"proxy_pass ",
+		} {
+			if !strings.Contains(block, want) {
+				t.Fatalf("%s session location lost existing directive %q:\n%s", name, want, block)
+			}
+		}
+	}
+	for _, header := range []string{
+		"location = /srv/cron/.well-known/oauth-protected-resource {",
+		"location = /srv/cron/feed { return 404; }",
+		"location = /srv/cron/ {",
+		"location /srv/cron/static/ {",
+		"location /srv/cron/ {",
+		"location @cron_authn_500 {",
+	} {
+		if !strings.Contains(conf, header) {
+			t.Fatalf("nginx config no longer contains pre-existing location %q:\n%s", header, conf)
+		}
+	}
+}
+
 func manifestExtras(in []appkit.ManifestKV) []manifest.KV {
 	out := make([]manifest.KV, 0, len(in))
 	for _, kv := range in {
