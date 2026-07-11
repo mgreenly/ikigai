@@ -14,6 +14,9 @@
 *.sqlite
 *.sqlite3
 
+# Build-loop ephemeral seam (gather authors it, verify deletes it; never committed)
+project/loops/brief.md
+
 # Editor / OS
 .DS_Store
 *.swp

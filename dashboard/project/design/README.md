@@ -2,7 +2,7 @@
 
 **Authority: shape and its proof.** This document and the `project/design/`
 directory it heads own *how* the dashboard's three-page web surface is built and
-*how each behavior is proven*. The product (`project/product/product.md`) owns the
+*how each behavior is proven*. The product (`project/product/README.md`) owns the
 *why*, *for whom*, and the user-facing promises; design states the **exact,
 checkable form** of those promises and never re-declares the why. This design
 covers two bodies of work in the dashboard: (1) the **web surface** — splitting
@@ -173,7 +173,7 @@ Verification list assumes:
 The design is split for addressability so a build phase reads only the one
 Decision it realizes:
 
-- `project/design/design.md` — this spine: static cross-cutting facts only, no
+- `project/design/README.md` — this spine: static cross-cutting facts only, no
   per-Decision detail.
 - `project/design/DNN.md` — one self-contained file per Decision (zero-padded:
   `D01.md`, `D02.md`, …; referenced in prose and the plan as `D<N>`).
