@@ -118,6 +118,86 @@ func TestNginxStaticLocationIsSessionGated(t *testing.T) {
 	}
 }
 
+func TestNginxSessionLocationsUseLoginBounce(t *testing.T) {
+	conf := readNginxConfig(t)
+
+	// R-3YU6-CQ9P
+	for _, opener := range []string{
+		"location = /srv/gmail/ {",
+		"location /srv/gmail/static/ {",
+	} {
+		location := nginxLocationBlock(t, conf, opener)
+		for _, want := range []string{
+			"auth_request /_session-authn;",
+			"error_page 401 = @login_bounce;",
+		} {
+			if !strings.Contains(location, want) {
+				t.Fatalf("session-gated location %q missing %q: %s", opener, want, location)
+			}
+		}
+	}
+}
+
+func TestNginxBearerLocationDoesNotUseLoginBounce(t *testing.T) {
+	conf := readNginxConfig(t)
+	bearer := nginxLocationBlock(t, conf, "location /srv/gmail/ {")
+
+	// R-4022-QI0E
+	if strings.Contains(bearer, "error_page 401 = @login_bounce;") {
+		t.Fatalf("bearer location must keep its 401 protocol response: %s", bearer)
+	}
+}
+
+func TestNginxLoginBounceIsAdditive(t *testing.T) {
+	conf := readNginxConfig(t)
+
+	// R-419Z-49R3
+	for _, check := range []struct {
+		opener string
+		wants  []string
+	}{
+		{
+			opener: "location = /srv/gmail/ {",
+			wants: []string{
+				"auth_request /_session-authn;",
+				"proxy_pass " + registry.BaseURL("gmail") + "/;",
+			},
+		},
+		{
+			opener: "location /srv/gmail/static/ {",
+			wants: []string{
+				"auth_request /_session-authn;",
+				"proxy_pass " + registry.BaseURL("gmail") + "/static/;",
+			},
+		},
+		{
+			opener: "location /srv/gmail/ {",
+			wants:  []string{"auth_request /_authn;"},
+		},
+		{
+			opener: "location = /srv/gmail/.well-known/oauth-protected-resource {",
+			wants:  []string{"proxy_pass " + registry.BaseURL("gmail") + "/.well-known/oauth-protected-resource;"},
+		},
+		{
+			opener: "location @gmail_authn_500 {",
+			wants:  []string{"return 429;", "return 500;"},
+		},
+	} {
+		location := nginxLocationBlock(t, conf, check.opener)
+		for _, want := range check.wants {
+			if !strings.Contains(location, want) {
+				t.Fatalf("location %q no longer retains %q: %s", check.opener, want, location)
+			}
+		}
+	}
+	if !strings.Contains(conf, "location = /srv/gmail/feed { return 404; }") {
+		t.Fatal("nginx fragment no longer retains the feed 404 location")
+	}
+	if strings.Count(conf, "error_page 401 = @login_bounce;") != 2 {
+		t.Fatalf("login bounce must appear exactly twice, got %d", strings.Count(conf, "error_page 401 = @login_bounce;"))
+	}
+}
+
 func readNginxConfig(t *testing.T) string {
 	t.Helper()
 	src, err := os.ReadFile(filepath.Join("..", "..", "etc", "nginx.conf"))
