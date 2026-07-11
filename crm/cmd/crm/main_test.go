@@ -539,6 +539,56 @@ func TestNginxStaticLocationIsSessionGatedAndProxiesStaticHandler(t *testing.T) 
 	}
 }
 
+func TestNginxSessionLocationsOptIntoLoginBounce(t *testing.T) {
+	conf := readNginxConfig(t)
+	landing := nginxLocationBlock(t, conf, "location = /srv/crm/ {")
+	static := nginxLocationBlock(t, conf, "location /srv/crm/static/ {")
+
+	// R-3BO3-336I
+	for name, block := range map[string]string{"landing": landing, "static": static} {
+		t.Run(name, func(t *testing.T) {
+			for _, want := range []string{
+				"auth_request /_session-authn;",
+				"error_page 401 = @login_bounce;",
+			} {
+				if !strings.Contains(block, want) {
+					t.Fatalf("%s session location missing %q:\n%s", name, want, block)
+				}
+			}
+		})
+	}
+
+	// R-3CVZ-GUX7
+	bearer := nginxLocationBlock(t, conf, "location /srv/crm/ {")
+	if strings.Contains(bearer, "error_page 401 = @login_bounce;") {
+		t.Fatalf("bearer location unexpectedly redirects unauthenticated requests to login:\n%s", bearer)
+	}
+
+	// R-3E3V-UMNW
+	for _, location := range []string{
+		"location = /srv/crm/.well-known/oauth-protected-resource {",
+		"location = /srv/crm/feed { return 404; }",
+		"location = /srv/crm/ {",
+		"location /srv/crm/static/ {",
+		"location /srv/crm/ {",
+		"location @crm_authn_500 {",
+	} {
+		if !strings.Contains(conf, location) {
+			t.Fatalf("pre-existing location %q was removed:\n%s", location, conf)
+		}
+	}
+	for name, block := range map[string]string{"landing": landing, "static": static} {
+		t.Run(name+"-retains-session-proxy", func(t *testing.T) {
+			if !strings.Contains(block, "auth_request /_session-authn;") {
+				t.Fatalf("%s session auth_request was removed:\n%s", name, block)
+			}
+			if !strings.Contains(block, "proxy_pass ") {
+				t.Fatalf("%s proxy_pass was removed:\n%s", name, block)
+			}
+		})
+	}
+}
+
 func freeTCPPort(t *testing.T) int {
 	t.Helper()
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
