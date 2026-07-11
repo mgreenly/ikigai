@@ -748,7 +748,7 @@ func TestNginxLoginBounceOptInRetainsExistingLocationsAndDirectives(t *testing.T
 		"location = /srv/scripts/ {",
 		"location /srv/scripts/static/ {",
 		"location /srv/scripts/ {",
-		"location @prompts_authn_500 {",
+		"location @scripts_authn_500 {",
 	} {
 		if !strings.Contains(conf, want) {
 			t.Fatalf("nginx config missing pre-existing location %q", want)
@@ -768,6 +768,36 @@ func TestNginxLoginBounceOptInRetainsExistingLocationsAndDirectives(t *testing.T
 		if !strings.Contains(block, check.want) {
 			t.Fatalf("location %q no longer contains %q:\n%s", check.opener, check.want, block)
 		}
+	}
+}
+
+func TestNginxBearerIdentityUsesScriptsNamedPlumbing(t *testing.T) {
+	// R-4EOV-BQWQ
+	conf := readNginxConfig(t)
+	block := nginxLocationBlock(t, conf, "location /srv/scripts/ {")
+	for _, want := range []string{
+		"auth_request_set $scripts_owner  $upstream_http_x_owner_email;",
+		"auth_request_set $scripts_client $upstream_http_x_client_id;",
+		"proxy_set_header X-Owner-Email $scripts_owner;",
+		"proxy_set_header X-Client-Id  $scripts_client;",
+		"error_page 500 = @scripts_authn_500;",
+	} {
+		if !strings.Contains(block, want) {
+			t.Fatalf("bearer block missing scripts identity directive %q:\n%s", want, block)
+		}
+	}
+	if !strings.Contains(conf, "location @scripts_authn_500 {") {
+		t.Fatalf("nginx config missing scripts authn re-emit location:\n%s", conf)
+	}
+	if !strings.Contains(block, "auth_request /_authn;") {
+		t.Fatalf("bearer block must remain bearer-gated:\n%s", block)
+	}
+}
+
+func TestNginxContainsNoPromptsNamedHeritage(t *testing.T) {
+	// R-4FWR-PINF
+	if conf := readNginxConfig(t); strings.Contains(conf, "prompts") {
+		t.Fatalf("nginx config retains prompts-named heritage:\n%s", conf)
 	}
 }
 
