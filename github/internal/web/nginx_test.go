@@ -60,6 +60,67 @@ func TestNginxFragmentRoutesGithubMount(t *testing.T) {
 	}
 }
 
+func TestNginxSessionLocationsUseLoginBounce(t *testing.T) {
+	// R-42HV-I1HS
+	conf := readNginxFragment(t)
+
+	for _, start := range []string{
+		`location = /srv/github/ {`,
+		`location /srv/github/static/ {`,
+	} {
+		block := nginxLocationBlock(t, conf, start)
+		for _, want := range []string{
+			"auth_request /_session-authn;",
+			"error_page 401 = @login_bounce;",
+		} {
+			if !strings.Contains(block, want) {
+				t.Errorf("session location %q missing %q:\n%s", start, want, block)
+			}
+		}
+	}
+}
+
+func TestNginxBearerLocationDoesNotUseLoginBounce(t *testing.T) {
+	// R-43PR-VT8H
+	conf := readNginxFragment(t)
+	prefix := nginxLocationBlock(t, conf, `location /srv/github/ {`)
+
+	if strings.Contains(prefix, "error_page 401 = @login_bounce;") {
+		t.Fatalf("bearer location must preserve its 401 challenge instead of using login bounce:\n%s", prefix)
+	}
+}
+
+func TestNginxLoginBounceChangePreservesLocationsAndSessionProxies(t *testing.T) {
+	// R-44XO-9KZ6
+	conf := readNginxFragment(t)
+
+	for _, start := range []string{
+		`location = /srv/github/.well-known/oauth-protected-resource {`,
+		`location = /srv/github/pr { return 404; }`,
+		`location = /srv/github/ {`,
+		`location /srv/github/static/ {`,
+		`location /srv/github/ {`,
+		`location @github_authn_500 {`,
+	} {
+		if !strings.Contains(conf, start) {
+			t.Errorf("nginx fragment missing pre-existing location %q", start)
+		}
+	}
+
+	sessionLocations := map[string]string{
+		`location = /srv/github/ {`:      "proxy_pass http://127.0.0.1:3203/;",
+		`location /srv/github/static/ {`: "proxy_pass http://127.0.0.1:3203/static/;",
+	}
+	for start, proxyPass := range sessionLocations {
+		block := nginxLocationBlock(t, conf, start)
+		for _, want := range []string{"auth_request /_session-authn;", proxyPass} {
+			if !strings.Contains(block, want) {
+				t.Errorf("session location %q did not retain %q:\n%s", start, want, block)
+			}
+		}
+	}
+}
+
 func readNginxFragment(t *testing.T) string {
 	t.Helper()
 
