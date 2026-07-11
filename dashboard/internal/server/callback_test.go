@@ -58,6 +58,7 @@ func liveSession(t *testing.T, srv *http.Server) *http.Cookie {
 	return nil
 }
 
+// R-VQY2-GZ3F
 // TestCallbackSuccessMintsSession is the end-to-end contract for the callback
 // leg: a valid handshake + binding cookie + a verified, in-Workspace identity
 // yields a redirect to /, a session cookie on the browser, and exactly one
@@ -105,12 +106,19 @@ func TestCallbackSuccessMintsSession(t *testing.T) {
 		t.Fatalf("web_sessions rows = %d, want 1", count)
 	}
 
-	var ownerEmail, storedHash string
-	if err := database.QueryRow(`SELECT owner_email, cookie_hash FROM web_sessions`).Scan(&ownerEmail, &storedHash); err != nil {
+	var ownerEmail, ownerID, storedHash string
+	if err := database.QueryRow(`SELECT owner_email, owner_id, cookie_hash FROM web_sessions`).Scan(&ownerEmail, &ownerID, &storedHash); err != nil {
 		t.Fatalf("read web_sessions: %v", err)
 	}
 	if ownerEmail != googleidp.StubIdentity.Email {
 		t.Errorf("owner_email = %q, want %q", ownerEmail, googleidp.StubIdentity.Email)
+	}
+	var resolvedID string
+	if err := database.QueryRow(`SELECT id FROM identities WHERE iss = ? AND sub = ?`, googleidp.StubIdentity.Iss, googleidp.StubIdentity.Sub).Scan(&resolvedID); err != nil {
+		t.Fatalf("read resolved identity: %v", err)
+	}
+	if ownerID != resolvedID {
+		t.Errorf("owner_id = %q, want resolved identity handle %q", ownerID, resolvedID)
 	}
 	sum := sha256.Sum256([]byte(session.Value))
 	wantHash := hex.EncodeToString(sum[:])

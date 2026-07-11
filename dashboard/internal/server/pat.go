@@ -38,7 +38,7 @@ func (a *app) handlePATCreate() http.HandlerFunc {
 			http.Error(w, "cross-origin request rejected", http.StatusForbidden)
 			return
 		}
-		owner, ok := a.requireSession(w, r)
+		owner, ownerID, ok := a.requireSessionIdentity(w, r)
 		if !ok {
 			return
 		}
@@ -47,7 +47,7 @@ func (a *app) handlePATCreate() http.HandlerFunc {
 			http.Error(w, "a label is required (1–48 characters)", http.StatusBadRequest)
 			return
 		}
-		plaintext, p, err := a.pats.Create(r.Context(), owner, label)
+		plaintext, p, err := a.pats.Create(r.Context(), owner, ownerID, label)
 		if err != nil {
 			a.logger.Error("pat.create", "err", err)
 			http.Error(w, "internal error", http.StatusInternalServerError)

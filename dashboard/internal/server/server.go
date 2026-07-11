@@ -27,6 +27,7 @@ import (
 	"dashboard/internal/audit"
 	"dashboard/internal/googleidp"
 	"dashboard/internal/grantevents"
+	"dashboard/internal/identity"
 	"dashboard/internal/oauth"
 	"dashboard/internal/oauthstate"
 	"dashboard/internal/pat"
@@ -44,6 +45,7 @@ type Options struct {
 	Handshakes      *oauthstate.HandshakeStore // login-handshake store (required for login)
 	WorkspaceDomain string                     // Google Workspace hosted domain federation is restricted to (required for login)
 	Sessions        *session.SessionStore      // web-session store (required for login)
+	Identity        *identity.Store            // durable identity-handle store (required for login)
 
 	// OAuth authorization-server collaborators (required).
 	DB           *sql.DB              // shared database handle (token-exchange transactions)
@@ -90,6 +92,7 @@ type app struct {
 	handshakes      *oauthstate.HandshakeStore
 	workspaceDomain string
 	sessions        *session.SessionStore
+	identity        *identity.Store
 
 	db           *sql.DB
 	oauthClients *oauth.ClientStore
@@ -124,6 +127,9 @@ func newApp(opts Options) (*app, error) {
 	}
 	if opts.Sessions == nil {
 		return nil, errors.New("server: Sessions is required")
+	}
+	if opts.Identity == nil {
+		return nil, errors.New("server: Identity is required")
 	}
 	if opts.DB == nil {
 		return nil, errors.New("server: DB is required")
@@ -189,6 +195,7 @@ func newApp(opts Options) (*app, error) {
 		handshakes:      opts.Handshakes,
 		workspaceDomain: opts.WorkspaceDomain,
 		sessions:        opts.Sessions,
+		identity:        opts.Identity,
 		db:              opts.DB,
 		oauthClients:    opts.OAuthClients,
 		oauthCodes:      opts.OAuthCodes,

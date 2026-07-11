@@ -23,7 +23,7 @@ func mintAccessToken(t *testing.T, d serverDeps, ownerEmail, resource string) st
 	if err != nil {
 		t.Fatalf("BeginTx: %v", err)
 	}
-	pair, err := d.tokens.IssueChainAndTokens(ctx, tx, "client-abc", ownerEmail, resource)
+	pair, err := d.tokens.IssueChainAndTokens(ctx, tx, "client-abc", ownerEmail, "owner-test", resource)
 	if err != nil {
 		tx.Rollback()
 		t.Fatalf("IssueChainAndTokens: %v", err)
@@ -284,7 +284,7 @@ func twoResourceServer(t *testing.T, d serverDeps, limiter *ratelimit.Limiter) h
 // mintPAT creates a PAT directly through the store and returns its plaintext.
 func mintPAT(t *testing.T, d serverDeps, ownerEmail string) (plaintext string, p pat.PAT) {
 	t.Helper()
-	plaintext, p, err := d.pats.Create(context.Background(), ownerEmail, "test pat")
+	plaintext, p, err := d.pats.Create(context.Background(), ownerEmail, "owner-test", "test pat")
 	if err != nil {
 		t.Fatalf("pats.Create: %v", err)
 	}

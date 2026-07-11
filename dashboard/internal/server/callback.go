@@ -5,6 +5,7 @@ import (
 	"net/url"
 
 	"dashboard/internal/audit"
+	"dashboard/internal/identity"
 	"dashboard/internal/oauth"
 	"dashboard/internal/oauthstate"
 )
@@ -72,7 +73,7 @@ func (a *app) handleCallback() http.HandlerFunc {
 			return
 		}
 		redirectURI := a.publicBaseURL + "/oauth/google/callback"
-		identity, err := a.idpProvider.ExchangeCode(r.Context(), code, redirectURI)
+		googleIdentity, err := a.idpProvider.ExchangeCode(r.Context(), code, redirectURI)
 		if err != nil {
 			a.logger.Warn("callback.exchange_code", "err", err)
 			a.writeFederationReject(r, "", "code_exchange_failed")
@@ -82,24 +83,33 @@ func (a *app) handleCallback() http.HandlerFunc {
 		// Federation policy: this app only admits verified identities from the
 		// box's own Google Workspace. ExchangeCode proved the token is authentic;
 		// the handler decides whether that authentic identity is allowed in.
-		if !identity.EmailVerified {
-			a.logger.Warn("callback.email_unverified", "email", identity.Email)
-			a.writeFederationReject(r, identity.Email, "email_not_verified")
+		if !googleIdentity.EmailVerified {
+			a.logger.Warn("callback.email_unverified", "email", googleIdentity.Email)
+			a.writeFederationReject(r, googleIdentity.Email, "email_not_verified")
 			http.Error(w, "forbidden", http.StatusForbidden)
 			return
 		}
-		if identity.HostedDomain != a.workspaceDomain {
-			a.logger.Warn("callback.wrong_workspace", "email", identity.Email, "hd", identity.HostedDomain)
-			a.writeFederationReject(r, identity.Email, "workspace_domain")
+		if googleIdentity.HostedDomain != a.workspaceDomain {
+			a.logger.Warn("callback.wrong_workspace", "email", googleIdentity.Email, "hd", googleIdentity.HostedDomain)
+			a.writeFederationReject(r, googleIdentity.Email, "workspace_domain")
 			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
+		ownerID, err := a.identity.ResolveOrCreate(r.Context(), identity.Claims{
+			Iss: googleIdentity.Iss, Sub: googleIdentity.Sub, Email: googleIdentity.Email,
+			Name: googleIdentity.Name, Picture: googleIdentity.Picture,
+		})
+		if err != nil {
+			a.logger.Error("callback.resolve_identity", "err", err)
+			http.Error(w, "internal server error", http.StatusInternalServerError)
 			return
 		}
 
 		switch handshake.Origin {
 		case oauthstate.OriginMCP:
-			a.callbackMCP(w, r, handshake, identity.Email)
+			a.callbackMCP(w, r, handshake, googleIdentity.Email, ownerID)
 		default:
-			a.callbackWeb(w, r, identity.Email)
+			a.callbackWeb(w, r, googleIdentity.Email, ownerID)
 		}
 	}
 }
@@ -107,8 +117,8 @@ func (a *app) handleCallback() http.HandlerFunc {
 // callbackWeb is the web-origin completion: it mints a web session, sets the
 // session cookie, and redirects to the apex. Behavior (status, cookie, redirect)
 // matches the pre-OAuth callback exactly.
-func (a *app) callbackWeb(w http.ResponseWriter, r *http.Request, email string) {
-	issued, err := a.sessions.Create(r.Context(), email)
+func (a *app) callbackWeb(w http.ResponseWriter, r *http.Request, email, ownerID string) {
+	issued, err := a.sessions.Create(r.Context(), email, ownerID)
 	if err != nil {
 		a.logger.Warn("callback.create_session", "email", email, "err", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
@@ -131,10 +141,11 @@ func (a *app) callbackWeb(w http.ResponseWriter, r *http.Request, email string) 
 // callbackMCP is the MCP-origin completion: it issues an OAuth authorization
 // code bound to the captured MCP request and redirects back to the originating
 // MCP client carrying the code and the client's original state.
-func (a *app) callbackMCP(w http.ResponseWriter, r *http.Request, handshake oauthstate.Handshake, email string) {
+func (a *app) callbackMCP(w http.ResponseWriter, r *http.Request, handshake oauthstate.Handshake, email, ownerID string) {
 	plaintext, _, err := a.oauthCodes.Issue(r.Context(), oauth.IssueParams{
 		ClientID:            handshake.MCPClientID,
 		OwnerEmail:          email,
+		OwnerID:             ownerID,
 		CodeChallenge:       handshake.MCPCodeChallenge,
 		CodeChallengeMethod: handshake.MCPCodeChallengeMethod,
 		RedirectURI:         handshake.MCPRedirectURI,

@@ -57,6 +57,23 @@ func (a *app) requireSession(w http.ResponseWriter, r *http.Request) (string, bo
 	return owner, true
 }
 
+// requireSessionIdentity returns the signed-in session's email and durable
+// identity handle. PAT creation carries this already-resolved handle forward
+// rather than looking the identity up again.
+func (a *app) requireSessionIdentity(w http.ResponseWriter, r *http.Request) (string, string, bool) {
+	c, err := r.Cookie(sessionCookieName)
+	if err != nil {
+		http.Error(w, "sign-in required", http.StatusUnauthorized)
+		return "", "", false
+	}
+	sess, err := a.sessions.Lookup(r.Context(), c.Value)
+	if err != nil {
+		http.Error(w, "sign-in required", http.StatusUnauthorized)
+		return "", "", false
+	}
+	return sess.OwnerEmail, sess.OwnerID, true
+}
+
 // handleGrantsStream is the SSE endpoint. It clears the per-connection write
 // deadline (the server pins a 15s WriteTimeout, which would otherwise tear the
 // stream down), subscribes to the owner's grant-change notifications, and emits

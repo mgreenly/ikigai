@@ -34,6 +34,7 @@ import (
 	"dashboard/internal/db"
 	"dashboard/internal/googleidp"
 	"dashboard/internal/grantevents"
+	"dashboard/internal/identity"
 	"dashboard/internal/oauth"
 	"dashboard/internal/oauthstate"
 	"dashboard/internal/pat"
@@ -162,6 +163,7 @@ func registerRoutes(rt *appkit.Router, telemetryStore *telemetry.Store, manifest
 	// briefly-valid authorization codes.
 	handshakes := oauthstate.NewHandshakeStore(conn, 5*time.Minute)
 	sessions := session.NewSessionStore(conn)
+	identities := identity.NewStore(conn)
 	oauthClients := oauth.NewClientStore(conn)
 	oauthCodes := oauth.NewAuthCodeStore(conn, 2*time.Minute)
 	oauthTokens := oauth.NewTokenStore(conn, 30*time.Minute, 30*24*time.Hour)
@@ -175,6 +177,7 @@ func registerRoutes(rt *appkit.Router, telemetryStore *telemetry.Store, manifest
 		Handshakes:      handshakes,
 		WorkspaceDomain: creds.WorkspaceDomain,
 		Sessions:        sessions,
+		Identity:        identities,
 		DB:              conn,
 		OAuthClients:    oauthClients,
 		OAuthCodes:      oauthCodes,

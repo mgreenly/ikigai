@@ -260,6 +260,51 @@ func TestAuthCodeStoreLookupAndMarkUsed(t *testing.T) {
 	}
 }
 
+// R-VS5Y-UQU4
+func TestAuthCodeOwnerIDSurvivesExchangeToChain(t *testing.T) {
+	d := openTestDB(t)
+	ctx := context.Background()
+	acs := NewAuthCodeStore(d, time.Minute)
+	plaintext, code, err := acs.Issue(ctx, IssueParams{
+		ClientID: "client-1", OwnerEmail: "owner@example.com", OwnerID: "identity-handle",
+		CodeChallenge: "challenge", CodeChallengeMethod: "S256", RedirectURI: "https://e/cb",
+		Resource: "https://e/mcp",
+	})
+	if err != nil {
+		t.Fatalf("Issue: %v", err)
+	}
+	var storedOwnerID string
+	if err := d.QueryRowContext(ctx, `SELECT owner_id FROM oauth_authcodes WHERE id = ?`, code.ID).Scan(&storedOwnerID); err != nil {
+		t.Fatalf("read authcode owner_id: %v", err)
+	}
+	if storedOwnerID != "identity-handle" {
+		t.Fatalf("authcode owner_id = %q, want identity-handle", storedOwnerID)
+	}
+	tx, err := d.BeginTx(ctx, nil)
+	if err != nil {
+		t.Fatalf("BeginTx: %v", err)
+	}
+	defer tx.Rollback()
+	lookedUp, err := acs.LookupTx(ctx, tx, plaintext)
+	if err != nil {
+		t.Fatalf("LookupTx: %v", err)
+	}
+	ts := NewTokenStore(d, time.Minute, time.Hour)
+	pair, err := ts.IssueChainAndTokens(ctx, tx, lookedUp.ClientID, lookedUp.OwnerEmail, lookedUp.OwnerID, lookedUp.Resource)
+	if err != nil {
+		t.Fatalf("IssueChainAndTokens: %v", err)
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatalf("Commit: %v", err)
+	}
+	if err := d.QueryRowContext(ctx, `SELECT owner_id FROM oauth_chains WHERE id = ?`, pair.ChainID).Scan(&storedOwnerID); err != nil {
+		t.Fatalf("read chain owner_id: %v", err)
+	}
+	if storedOwnerID != "identity-handle" {
+		t.Errorf("chain owner_id = %q, want identity-handle", storedOwnerID)
+	}
+}
+
 func TestAuthCodeStoreLookupUnknown(t *testing.T) {
 	d := openTestDB(t)
 	ctx := context.Background()
@@ -295,7 +340,7 @@ func TestTokenStoreIssueChainAndTokens(t *testing.T) {
 	if err != nil {
 		t.Fatalf("BeginTx: %v", err)
 	}
-	pair, err := ts.IssueChainAndTokens(ctx, tx, clientID, "owner@example.com", "https://e/mcp")
+	pair, err := ts.IssueChainAndTokens(ctx, tx, clientID, "owner@example.com", "owner-1", "https://e/mcp")
 	if err != nil {
 		tx.Rollback()
 		t.Fatalf("IssueChainAndTokens: %v", err)
@@ -337,7 +382,7 @@ func issueChain(t *testing.T, d *sql.DB, ts *TokenStore, clientID, owner, resour
 	if err != nil {
 		t.Fatalf("BeginTx: %v", err)
 	}
-	pair, err := ts.IssueChainAndTokens(ctx, tx, clientID, owner, resource)
+	pair, err := ts.IssueChainAndTokens(ctx, tx, clientID, owner, "owner-test", resource)
 	if err != nil {
 		tx.Rollback()
 		t.Fatalf("IssueChainAndTokens: %v", err)

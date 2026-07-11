@@ -45,7 +45,7 @@ func TestCreateValidateRoundTrip(t *testing.T) {
 	s, clk := newStore(t)
 	ctx := context.Background()
 
-	plaintext, p, err := s.Create(ctx, "alice@example.com", "Claude Code")
+	plaintext, p, err := s.Create(ctx, "alice@example.com", "owner-alice", "Claude Code")
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
@@ -78,7 +78,7 @@ func TestStoredRowHoldsHashNotPlaintext(t *testing.T) {
 	s := NewStore(openTestDB(t))
 	ctx := context.Background()
 
-	plaintext, p, err := s.Create(ctx, "alice@example.com", "lbl")
+	plaintext, p, err := s.Create(ctx, "alice@example.com", "owner-alice", "lbl")
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
@@ -112,7 +112,7 @@ func TestValidateRevoked(t *testing.T) {
 	s, _ := newStore(t)
 	ctx := context.Background()
 
-	plaintext, p, err := s.Create(ctx, "alice@example.com", "lbl")
+	plaintext, p, err := s.Create(ctx, "alice@example.com", "owner-alice", "lbl")
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
@@ -128,7 +128,7 @@ func TestValidateExpired(t *testing.T) {
 	s, clk := newStore(t)
 	ctx := context.Background()
 
-	plaintext, p, err := s.Create(ctx, "alice@example.com", "lbl")
+	plaintext, p, err := s.Create(ctx, "alice@example.com", "owner-alice", "lbl")
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
@@ -146,7 +146,7 @@ func TestRevokeIdempotent(t *testing.T) {
 	s, _ := newStore(t)
 	ctx := context.Background()
 
-	_, p, err := s.Create(ctx, "alice@example.com", "lbl")
+	_, p, err := s.Create(ctx, "alice@example.com", "owner-alice", "lbl")
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
@@ -163,19 +163,19 @@ func TestListByOwnerExcludesRevokedNewestFirst(t *testing.T) {
 	ctx := context.Background()
 
 	// First PAT.
-	_, p1, err := s.Create(ctx, "alice@example.com", "first")
+	_, p1, err := s.Create(ctx, "alice@example.com", "owner-alice", "first")
 	if err != nil {
 		t.Fatalf("Create p1: %v", err)
 	}
 	// Second PAT, created later.
 	clk.current = clk.current.Add(time.Minute)
-	_, p2, err := s.Create(ctx, "alice@example.com", "second")
+	_, p2, err := s.Create(ctx, "alice@example.com", "owner-alice", "second")
 	if err != nil {
 		t.Fatalf("Create p2: %v", err)
 	}
 	// A revoked PAT that must be excluded.
 	clk.current = clk.current.Add(time.Minute)
-	_, p3, err := s.Create(ctx, "alice@example.com", "revoked")
+	_, p3, err := s.Create(ctx, "alice@example.com", "owner-alice", "revoked")
 	if err != nil {
 		t.Fatalf("Create p3: %v", err)
 	}
@@ -183,7 +183,7 @@ func TestListByOwnerExcludesRevokedNewestFirst(t *testing.T) {
 		t.Fatalf("Revoke p3: %v", err)
 	}
 	// A different owner's PAT that must be excluded.
-	if _, _, err := s.Create(ctx, "bob@example.com", "other"); err != nil {
+	if _, _, err := s.Create(ctx, "bob@example.com", "owner-bob", "other"); err != nil {
 		t.Fatalf("Create bob: %v", err)
 	}
 
@@ -203,7 +203,7 @@ func TestGetByPublicID(t *testing.T) {
 	s, _ := newStore(t)
 	ctx := context.Background()
 
-	_, p, err := s.Create(ctx, "alice@example.com", "lbl")
+	_, p, err := s.Create(ctx, "alice@example.com", "owner-alice", "lbl")
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}

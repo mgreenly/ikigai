@@ -294,7 +294,7 @@ func (a *app) handleTokenAuthCode(w http.ResponseWriter, r *http.Request) {
 		a.auditAfterRollback(r.Context(), tx, audit.Event{Type: audit.EventTokenReject, ClientID: clientID, IP: r.RemoteAddr, UserAgent: r.Header.Get("User-Agent"), Details: map[string]any{"reason": "pkce_mismatch"}})
 		return
 	}
-	pair, err := a.oauthTokens.IssueChainAndTokens(r.Context(), tx, ac.ClientID, ac.OwnerEmail, ac.Resource)
+	pair, err := a.oauthTokens.IssueChainAndTokens(r.Context(), tx, ac.ClientID, ac.OwnerEmail, ac.OwnerID, ac.Resource)
 	if err != nil {
 		a.logger.Error("token.issue", "err", err)
 		writeOAuthError(w, http.StatusInternalServerError, "server_error", "could not issue tokens")

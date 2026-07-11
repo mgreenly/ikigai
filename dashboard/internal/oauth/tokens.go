@@ -36,14 +36,14 @@ type TokenPair struct {
 
 // IssueChainAndTokens creates a fresh chain row and a fresh access/refresh
 // pair, all inside tx. The caller commits.
-func (s *TokenStore) IssueChainAndTokens(ctx context.Context, tx *sql.Tx, clientID, ownerEmail, resource string) (TokenPair, error) {
+func (s *TokenStore) IssueChainAndTokens(ctx context.Context, tx *sql.Tx, clientID, ownerEmail, ownerID, resource string) (TokenPair, error) {
 	now := s.Now().UTC()
 	chainID := ids.New()
 	publicID := ids.New()
 	_, err := tx.ExecContext(ctx, `
-		INSERT INTO oauth_chains (id, public_id, client_id, owner_email, resource, created_at)
-		VALUES (?, ?, ?, ?, ?, ?)
-	`, chainID, publicID, clientID, ownerEmail, resource, now.Format(time.RFC3339Nano))
+		INSERT INTO oauth_chains (id, public_id, client_id, owner_email, owner_id, resource, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?)
+	`, chainID, publicID, clientID, ownerEmail, ownerID, resource, now.Format(time.RFC3339Nano))
 	if err != nil {
 		return TokenPair{}, fmt.Errorf("insert chain: %w", err)
 	}
@@ -110,7 +110,7 @@ func (s *TokenStore) LookupRefreshTx(ctx context.Context, tx *sql.Tx, plaintext 
 	}
 	row := tx.QueryRowContext(ctx, `
 		SELECT t.id, t.chain_id, t.kind, t.issued_at, t.expires_at, t.used_at, t.revoked_at,
-		       c.id, c.public_id, c.client_id, c.owner_email, c.resource, c.created_at, c.revoked_at
+		       c.id, c.public_id, c.client_id, c.owner_email, c.owner_id, c.resource, c.created_at, c.revoked_at
 		FROM oauth_tokens t JOIN oauth_chains c ON t.chain_id = c.id
 		WHERE t.token_hash = ? AND t.kind = ?
 	`, hashString(plaintext), KindRefresh)
@@ -120,7 +120,7 @@ func (s *TokenStore) LookupRefreshTx(ctx context.Context, tx *sql.Tx, plaintext 
 func (s *TokenStore) lookupActive(ctx context.Context, plaintext, kind string) (ValidatedToken, error) {
 	row := s.DB.QueryRowContext(ctx, `
 		SELECT t.id, t.chain_id, t.kind, t.issued_at, t.expires_at, t.used_at, t.revoked_at,
-		       c.id, c.public_id, c.client_id, c.owner_email, c.resource, c.created_at, c.revoked_at
+		       c.id, c.public_id, c.client_id, c.owner_email, c.owner_id, c.resource, c.created_at, c.revoked_at
 		FROM oauth_tokens t JOIN oauth_chains c ON t.chain_id = c.id
 		WHERE t.token_hash = ? AND t.kind = ?
 	`, hashString(plaintext), kind)
@@ -157,7 +157,7 @@ func scanTokenChainRow(row scannable) (Token, Chain, error) {
 	)
 	err := row.Scan(
 		&tok.ID, &tok.ChainID, &tok.Kind, &issuedAt, &expiresAt, &usedAt, &tokRev,
-		&chain.ID, &chain.PublicID, &chain.ClientID, &chain.OwnerEmail, &chain.Resource, &chainCre, &chainRev,
+		&chain.ID, &chain.PublicID, &chain.ClientID, &chain.OwnerEmail, &chain.OwnerID, &chain.Resource, &chainCre, &chainRev,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Token{}, Chain{}, ErrNotFound
@@ -283,13 +283,13 @@ func (s *TokenStore) ListChainsByOwner(ctx context.Context, ownerEmail string) (
 // GetChainByPublicID returns a chain row by its user-facing public_id.
 // Callers compare owner_email to enforce per-visitor scope.
 func (s *TokenStore) GetChainByPublicID(ctx context.Context, publicID string) (Chain, error) {
-	row := s.DB.QueryRowContext(ctx, `SELECT id, public_id, client_id, owner_email, resource, created_at, revoked_at FROM oauth_chains WHERE public_id = ?`, publicID)
+	row := s.DB.QueryRowContext(ctx, `SELECT id, public_id, client_id, owner_email, owner_id, resource, created_at, revoked_at FROM oauth_chains WHERE public_id = ?`, publicID)
 	var (
 		c       Chain
 		created string
 		revoked sql.NullString
 	)
-	err := row.Scan(&c.ID, &c.PublicID, &c.ClientID, &c.OwnerEmail, &c.Resource, &created, &revoked)
+	err := row.Scan(&c.ID, &c.PublicID, &c.ClientID, &c.OwnerEmail, &c.OwnerID, &c.Resource, &created, &revoked)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Chain{}, ErrNotFound
 	}
@@ -306,13 +306,13 @@ func (s *TokenStore) GetChainByPublicID(ctx context.Context, publicID string) (C
 
 // GetChain returns a chain row by id.
 func (s *TokenStore) GetChain(ctx context.Context, chainID string) (Chain, error) {
-	row := s.DB.QueryRowContext(ctx, `SELECT id, public_id, client_id, owner_email, resource, created_at, revoked_at FROM oauth_chains WHERE id = ?`, chainID)
+	row := s.DB.QueryRowContext(ctx, `SELECT id, public_id, client_id, owner_email, owner_id, resource, created_at, revoked_at FROM oauth_chains WHERE id = ?`, chainID)
 	var (
 		c       Chain
 		created string
 		revoked sql.NullString
 	)
-	err := row.Scan(&c.ID, &c.PublicID, &c.ClientID, &c.OwnerEmail, &c.Resource, &created, &revoked)
+	err := row.Scan(&c.ID, &c.PublicID, &c.ClientID, &c.OwnerEmail, &c.OwnerID, &c.Resource, &created, &revoked)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Chain{}, ErrNotFound
 	}

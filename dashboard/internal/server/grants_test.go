@@ -51,7 +51,7 @@ func grantsTestServer(t *testing.T) (*http.Server, serverDeps) {
 // mintSession creates a live web session for owner and returns its cookie.
 func mintSession(t *testing.T, deps serverDeps, owner string) *http.Cookie {
 	t.Helper()
-	issued, err := deps.sessions.Create(context.Background(), owner)
+	issued, err := deps.sessions.Create(context.Background(), owner, "owner-test")
 	if err != nil {
 		t.Fatalf("sessions.Create: %v", err)
 	}
@@ -71,7 +71,7 @@ func issueChain(t *testing.T, deps serverDeps, owner, clientName string) (public
 	if err != nil {
 		t.Fatalf("BeginTx: %v", err)
 	}
-	pair, err := deps.tokens.IssueChainAndTokens(ctx, tx, client.ClientID, owner, testResource)
+	pair, err := deps.tokens.IssueChainAndTokens(ctx, tx, client.ClientID, owner, "owner-test", testResource)
 	if err != nil {
 		tx.Rollback()
 		t.Fatalf("IssueChainAndTokens: %v", err)

@@ -157,7 +157,7 @@ func TestPATCreateUnauthenticated(t *testing.T) {
 // store.Create with a chosen label; the authn-test mintPAT uses a fixed label.
 func mintPATWithLabel(t *testing.T, deps serverDeps, owner, label string) string {
 	t.Helper()
-	_, p, err := deps.pats.Create(context.Background(), owner, label)
+	_, p, err := deps.pats.Create(context.Background(), owner, "owner-test", label)
 	if err != nil {
 		t.Fatalf("pats.Create: %v", err)
 	}
@@ -258,5 +258,32 @@ func TestIndexOmitsPATManagement(t *testing.T) {
 	}
 	if strings.Contains(body, "Codex on laptop") {
 		t.Errorf("index still renders PAT list:\n%s", body)
+	}
+}
+
+// R-VTDV-8IKT
+func TestPATCreateStampsOwnerIDFromSession(t *testing.T) {
+	srv, deps := patTestServer(t)
+	cookie := mintSession(t, deps, "owner@int.ikigenba.com")
+	var sessionOwnerID string
+	if err := deps.db.QueryRow(`SELECT owner_id FROM web_sessions WHERE cookie_hash IS NOT NULL`).Scan(&sessionOwnerID); err != nil {
+		t.Fatalf("read session owner_id: %v", err)
+	}
+	rec := doForm(t, srv, "https://int.ikigenba.com/pat", url.Values{"label": {"session handle"}}, map[string]string{
+		"Cookie": cookie.Name + "=" + cookie.Value,
+		"Origin": "https://int.ikigenba.com",
+	})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("create status = %d, want 200", rec.Code)
+	}
+	var ownerEmail, ownerID string
+	if err := deps.db.QueryRow(`SELECT owner_email, owner_id FROM personal_tokens`).Scan(&ownerEmail, &ownerID); err != nil {
+		t.Fatalf("read PAT owner: %v", err)
+	}
+	if ownerEmail != "owner@int.ikigenba.com" {
+		t.Errorf("owner_email = %q, want unchanged email", ownerEmail)
+	}
+	if ownerID != sessionOwnerID {
+		t.Errorf("owner_id = %q, want session owner_id %q", ownerID, sessionOwnerID)
 	}
 }

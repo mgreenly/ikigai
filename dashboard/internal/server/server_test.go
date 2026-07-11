@@ -15,6 +15,7 @@ import (
 	"dashboard/internal/db"
 	"dashboard/internal/googleidp"
 	"dashboard/internal/grantevents"
+	"dashboard/internal/identity"
 	"dashboard/internal/oauth"
 	"dashboard/internal/oauthstate"
 	"dashboard/internal/pat"
@@ -38,6 +39,7 @@ type serverDeps struct {
 	db         *sql.DB
 	handshakes *oauthstate.HandshakeStore
 	sessions   *session.SessionStore
+	identity   *identity.Store
 	clients    *oauth.ClientStore
 	codes      *oauth.AuthCodeStore
 	tokens     *oauth.TokenStore
@@ -60,6 +62,7 @@ func newServerDeps(t *testing.T) serverDeps {
 		db:         database,
 		handshakes: oauthstate.NewHandshakeStore(database, 5*time.Minute),
 		sessions:   session.NewSessionStore(database),
+		identity:   identity.NewStore(database),
 		clients:    oauth.NewClientStore(database),
 		codes:      oauth.NewAuthCodeStore(database, 10*time.Minute),
 		tokens:     oauth.NewTokenStore(database, 60*time.Minute, 14*24*time.Hour),
@@ -79,6 +82,7 @@ func (d serverDeps) opts() Options {
 		Handshakes:      d.handshakes,
 		WorkspaceDomain: testWorkspaceDomain,
 		Sessions:        d.sessions,
+		Identity:        d.identity,
 		DB:              d.db,
 		OAuthClients:    d.clients,
 		OAuthCodes:      d.codes,

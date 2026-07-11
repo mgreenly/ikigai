@@ -30,6 +30,7 @@ const (
 type Session struct {
 	ID         string
 	OwnerEmail string
+	OwnerID    string
 	IssuedAt   time.Time
 	ExpiresAt  time.Time
 	LastSeenAt time.Time
@@ -59,15 +60,15 @@ type Issued struct {
 // value. The row keeps only the cookie's hash; the plaintext is returned here
 // and never persisted — the browser gets the plaintext, the database gets the
 // hash, and Lookup re-hashes to compare.
-func (s *SessionStore) Create(ctx context.Context, ownerEmail string) (Issued, error) {
+func (s *SessionStore) Create(ctx context.Context, ownerEmail, ownerID string) (Issued, error) {
 	id := ids.New()
 	cookie := ids.New()
 	now := time.Now().UTC()
 	exp := now.Add(absoluteTimeout)
 	_, err := s.db.ExecContext(ctx, `
-		INSERT INTO web_sessions (id, owner_email, cookie_hash, issued_at, expires_at, last_seen_at)
-		VALUES (?, ?, ?, ?, ?, ?)`,
-		id, ownerEmail, hashCookie(cookie),
+		INSERT INTO web_sessions (id, owner_email, owner_id, cookie_hash, issued_at, expires_at, last_seen_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		id, ownerEmail, ownerID, hashCookie(cookie),
 		now.Format(time.RFC3339Nano), exp.Format(time.RFC3339Nano), now.Format(time.RFC3339Nano))
 	if err != nil {
 		return Issued{}, fmt.Errorf("insert session: %w", err)
@@ -95,14 +96,14 @@ func (s *SessionStore) Lookup(ctx context.Context, cookieValue string) (Session,
 		return Session{}, ErrInvalid
 	}
 	row := s.db.QueryRowContext(ctx, `
-		SELECT id, owner_email, issued_at, expires_at, last_seen_at, revoked_at
+		SELECT id, owner_email, owner_id, issued_at, expires_at, last_seen_at, revoked_at
 		FROM web_sessions WHERE cookie_hash = ?`, hashCookie(cookieValue))
 	var (
 		sess                        Session
 		issuedAt, expires, lastSeen string
 		revoked                     sql.NullString
 	)
-	err := row.Scan(&sess.ID, &sess.OwnerEmail, &issuedAt, &expires, &lastSeen, &revoked)
+	err := row.Scan(&sess.ID, &sess.OwnerEmail, &sess.OwnerID, &issuedAt, &expires, &lastSeen, &revoked)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Session{}, ErrNotFound
 	}

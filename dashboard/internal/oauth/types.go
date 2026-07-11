@@ -38,6 +38,7 @@ type Chain struct {
 	PublicID   string
 	ClientID   string
 	OwnerEmail string
+	OwnerID    string
 	Resource   string
 	CreatedAt  time.Time
 	RevokedAt  *time.Time
@@ -60,6 +61,7 @@ type AuthCode struct {
 	ID                  string
 	ClientID            string
 	OwnerEmail          string
+	OwnerID             string
 	CodeChallenge       string
 	CodeChallengeMethod string
 	RedirectURI         string

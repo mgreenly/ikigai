@@ -38,6 +38,7 @@ type PAT struct {
 	ID         string
 	PublicID   string
 	OwnerEmail string
+	OwnerID    string
 	Label      string
 	CreatedAt  time.Time
 	LastUsedAt *time.Time
@@ -59,20 +60,21 @@ func NewStore(db *sql.DB) *Store {
 // hash. The plaintext is ms_pat_ + ids.New() + ids.New(), mirroring the OAuth
 // token shape. expires_at is always NULL in v1 (ADR §D6). This is the only
 // place the plaintext ever exists.
-func (s *Store) Create(ctx context.Context, ownerEmail, label string) (plaintext string, p PAT, err error) {
+func (s *Store) Create(ctx context.Context, ownerEmail, ownerID, label string) (plaintext string, p PAT, err error) {
 	plaintext = Prefix + ids.New() + ids.New()
 	now := s.Now().UTC()
 	p = PAT{
 		ID:         ids.New(),
 		PublicID:   ids.New(),
 		OwnerEmail: ownerEmail,
+		OwnerID:    ownerID,
 		Label:      label,
 		CreatedAt:  now,
 	}
 	_, err = s.DB.ExecContext(ctx, `
-		INSERT INTO personal_tokens (id, public_id, owner_email, label, token_hash, created_at, expires_at)
-		VALUES (?, ?, ?, ?, ?, ?, NULL)
-	`, p.ID, p.PublicID, p.OwnerEmail, p.Label, hashString(plaintext), now.Format(time.RFC3339Nano))
+		INSERT INTO personal_tokens (id, public_id, owner_email, owner_id, label, token_hash, created_at, expires_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, NULL)
+	`, p.ID, p.PublicID, p.OwnerEmail, p.OwnerID, p.Label, hashString(plaintext), now.Format(time.RFC3339Nano))
 	if err != nil {
 		return "", PAT{}, fmt.Errorf("insert personal token: %w", err)
 	}
@@ -87,7 +89,7 @@ func (s *Store) ValidatePAT(ctx context.Context, plaintext string) (PAT, error) 
 		return PAT{}, ErrBadPrefix
 	}
 	row := s.DB.QueryRowContext(ctx, `
-		SELECT id, public_id, owner_email, label, created_at, last_used_at, expires_at, revoked_at
+		SELECT id, public_id, owner_email, owner_id, label, created_at, last_used_at, expires_at, revoked_at
 		FROM personal_tokens WHERE token_hash = ?
 	`, hashString(plaintext))
 	p, err := scanPAT(row)
@@ -107,7 +109,7 @@ func (s *Store) ValidatePAT(ctx context.Context, plaintext string) (PAT, error) 
 // first.
 func (s *Store) ListByOwner(ctx context.Context, ownerEmail string) ([]PAT, error) {
 	rows, err := s.DB.QueryContext(ctx, `
-		SELECT id, public_id, owner_email, label, created_at, last_used_at, expires_at, revoked_at
+		SELECT id, public_id, owner_email, owner_id, label, created_at, last_used_at, expires_at, revoked_at
 		FROM personal_tokens
 		WHERE owner_email = ? AND revoked_at IS NULL
 		ORDER BY created_at DESC
@@ -131,7 +133,7 @@ func (s *Store) ListByOwner(ctx context.Context, ownerEmail string) ([]PAT, erro
 // owner_email to enforce per-visitor scope.
 func (s *Store) GetByPublicID(ctx context.Context, publicID string) (PAT, error) {
 	row := s.DB.QueryRowContext(ctx, `
-		SELECT id, public_id, owner_email, label, created_at, last_used_at, expires_at, revoked_at
+		SELECT id, public_id, owner_email, owner_id, label, created_at, last_used_at, expires_at, revoked_at
 		FROM personal_tokens WHERE public_id = ?
 	`, publicID)
 	return scanPAT(row)
@@ -158,7 +160,7 @@ func scanPAT(row scannable) (PAT, error) {
 		expiresAt  sql.NullString
 		revokedAt  sql.NullString
 	)
-	err := row.Scan(&p.ID, &p.PublicID, &p.OwnerEmail, &p.Label, &created, &lastUsedAt, &expiresAt, &revokedAt)
+	err := row.Scan(&p.ID, &p.PublicID, &p.OwnerEmail, &p.OwnerID, &p.Label, &created, &lastUsedAt, &expiresAt, &revokedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return PAT{}, ErrNotFound
 	}
