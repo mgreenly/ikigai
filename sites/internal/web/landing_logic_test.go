@@ -70,6 +70,7 @@ nodes.createdAt.dataset.sortKey = "createdAt";
 var document = {
   documentElement: { className: "no-js" },
   createElement: node,
+  createElementNS: function(namespace) { var element = node(); element.namespaceURI = namespace; return element; },
   querySelector: function(selector) {
     return {"#sites-data": nodes.data, ".controls": nodes.controls, ".pager": nodes.pager, ".no-match": nodes.noMatch, "#site-search": nodes.search, "#site-clear": nodes.clear, "#pager-prev": nodes.previous, "#pager-next": nodes.next, "#pager-label": nodes.label, ".site-table tbody": nodes.body}[selector];
   },

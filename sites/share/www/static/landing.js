@@ -126,7 +126,10 @@
         created.textContent = row.createdAt;
         var copy = document.createElement("td");
         var button = document.createElement("button");
-        var icon = document.createElement("svg");
+        var svgNamespace = "http://www.w3.org/2000/svg";
+        var icon = document.createElementNS(svgNamespace, "svg");
+        var rect = document.createElementNS(svgNamespace, "rect");
+        var path = document.createElementNS(svgNamespace, "path");
         var label = document.createElement("span");
         copy.dataset.label = "Copy";
         button.type = "button";
@@ -134,7 +137,13 @@
         button.dataset.url = row.url;
         icon.setAttribute("aria-hidden", "true");
         icon.setAttribute("viewBox", "0 0 24 24");
-        icon.innerHTML = '<rect x="9" y="9" width="11" height="11" rx="1"></rect><path d="M15 9V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h4"></path>';
+        rect.setAttribute("x", "9");
+        rect.setAttribute("y", "9");
+        rect.setAttribute("width", "11");
+        rect.setAttribute("height", "11");
+        rect.setAttribute("rx", "1");
+        path.setAttribute("d", "M15 9V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h4");
+        icon.append(rect, path);
         label.className = "copy-label";
         label.textContent = "Copy";
         button.append(icon, label);

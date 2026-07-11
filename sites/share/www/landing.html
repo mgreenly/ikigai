@@ -285,11 +285,17 @@
     }
 
     .copy-label {
+      min-width: var(--space-12);
       font-family: var(--font-mono);
       font-size: var(--text-label-size);
       line-height: var(--text-label-lh);
       font-weight: var(--text-label-weight);
+      text-align: right;
       text-transform: uppercase;
+    }
+
+    .site-table td[data-label="Copy"] {
+      text-align: right;
     }
 
     .copy-btn.is-copied {

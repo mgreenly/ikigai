@@ -1023,11 +1023,19 @@ func TestLandingBrowserControlsWorkThroughRealDOMEvents(t *testing.T) {
 	// R-NN9H-UKP3
 	wantURL := "http://suite.test/srv/sites/public/dashboard/"
 	copySelector := `button.copy-btn[data-url="` + wantURL + `"]`
-	var clipboardText, copiedLabel, rowURL string
+	var clipboardText, copiedLabel, iconNamespace, rowURL string
+	var iconWidth, iconHeight, tableWidthBefore, tableWidthAfter float64
+
+	// R-VYEF-053C
 	if err := chromedp.Run(session,
 		browser.SetPermission(&browser.PermissionDescriptor{Name: "clipboard-read"}, browser.PermissionSettingGranted).WithOrigin(srv.URL),
 		browser.SetPermission(&browser.PermissionDescriptor{Name: "clipboard-write"}, browser.PermissionSettingGranted).WithOrigin(srv.URL),
 		chromedp.Evaluate(`document.querySelector('`+copySelector+`').closest('tr').querySelector('td:first-child a').href`, &rowURL),
+		chromedp.Evaluate(`document.querySelector('`+copySelector+` svg').namespaceURI`, &iconNamespace),
+		chromedp.Evaluate(`document.querySelector('`+copySelector+` svg').getBoundingClientRect().width`, &iconWidth),
+		chromedp.Evaluate(`document.querySelector('`+copySelector+` svg').getBoundingClientRect().height`, &iconHeight),
+		// R-VZMB-DWU1
+		chromedp.Evaluate(`document.querySelector('.site-table').getBoundingClientRect().width`, &tableWidthBefore),
 		chromedp.Click(copySelector),
 		chromedp.ActionFunc(func(ctx context.Context) error {
 			result, exception, err := runtime.Evaluate(`navigator.clipboard.readText()`).WithAwaitPromise(true).WithReturnByValue(true).Do(ctx)
@@ -1040,6 +1048,7 @@ func TestLandingBrowserControlsWorkThroughRealDOMEvents(t *testing.T) {
 			return json.Unmarshal(result.Value, &clipboardText)
 		}),
 		chromedp.Evaluate(`document.querySelector('`+copySelector+` .copy-label').textContent`, &copiedLabel),
+		chromedp.Evaluate(`document.querySelector('.site-table').getBoundingClientRect().width`, &tableWidthAfter),
 	); err != nil {
 		t.Fatalf("copy dashboard URL to clipboard: %v", err)
 	}
@@ -1051,6 +1060,12 @@ func TestLandingBrowserControlsWorkThroughRealDOMEvents(t *testing.T) {
 	}
 	if copiedLabel != "Copied" {
 		t.Fatalf("copy button label = %q, want Copied", copiedLabel)
+	}
+	if iconNamespace != "http://www.w3.org/2000/svg" || iconWidth <= 0 || iconHeight <= 0 {
+		t.Fatalf("copy icon = namespace %q, %gx%g; want SVG namespace with non-zero box", iconNamespace, iconWidth, iconHeight)
+	}
+	if tableWidthAfter != tableWidthBefore {
+		t.Fatalf("table width after copy = %g, want unchanged %g", tableWidthAfter, tableWidthBefore)
 	}
 }
 
