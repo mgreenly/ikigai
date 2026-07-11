@@ -1,13 +1,17 @@
 package server
 
-import "net/http"
+import (
+	"net/http"
+	"net/url"
+	"strings"
+)
 
 // handleLogin starts the Google sign-in flow: it mints a one-time state record,
 // binds it to the browser with a cookie, then redirects to Google's authorize
 // URL carrying that state.
 func (a *app) handleLogin() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		handshake, cookie, err := a.handshakes.Create(r.Context())
+		handshake, cookie, err := a.handshakes.CreateWeb(r.Context(), safeReturnTo(r.URL.Query().Get("return_to")))
 		if err != nil {
 			a.logger.Error("login.create_handshake", "err", err)
 			http.Error(w, "internal server error", http.StatusInternalServerError)
@@ -17,6 +21,23 @@ func (a *app) handleLogin() http.HandlerFunc {
 		redirectURI := a.publicBaseURL + "/oauth/google/callback"
 		http.Redirect(w, r, a.idpProvider.AuthorizeURL(handshake.ID, redirectURI), http.StatusFound)
 	}
+}
+
+// safeReturnTo returns p if it is a same-site absolute path, else "".
+func safeReturnTo(p string) string {
+	if p == "" || !strings.HasPrefix(p, "/") || strings.HasPrefix(p, "//") || strings.HasPrefix(p, "/\\") {
+		return ""
+	}
+	for i := 0; i < len(p); i++ {
+		if p[i] == '\\' || p[i] < 0x20 || p[i] == 0x7f {
+			return ""
+		}
+	}
+	u, err := url.Parse(p)
+	if err != nil || u.Scheme != "" || u.Host != "" {
+		return ""
+	}
+	return p
 }
 
 // bindingCookieName is the cookie carrying a handshake's plaintext binding secret

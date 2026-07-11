@@ -83,6 +83,54 @@ func TestLoginPersistsHandshakeAndBindsBrowser(t *testing.T) {
 	}
 }
 
+// R-XO7E-R1H7
+// TestLoginCapturesSameSiteReturnTo confirms a local path is persisted on the
+// web handshake instead of being carried by the browser through OAuth.
+func TestLoginCapturesSameSiteReturnTo(t *testing.T) {
+	srv, database := loginServer(t)
+	const returnTo = "/srv/sites/private/test07/"
+	rec := do(t, srv, "GET", "http://int.ikigenba.com/login?return_to="+url.QueryEscape(returnTo), nil)
+	if rec.Code != http.StatusFound {
+		t.Fatalf("status = %d, want 302", rec.Code)
+	}
+
+	var got string
+	if err := database.QueryRow(`SELECT return_to FROM oauth_state`).Scan(&got); err != nil {
+		t.Fatalf("read persisted return_to: %v", err)
+	}
+	if got != returnTo {
+		t.Errorf("persisted return_to = %q, want %q", got, returnTo)
+	}
+}
+
+// R-XPFB-4T7W
+// TestLoginRejectsHostileReturnTo verifies off-site and browser-normalized
+// targets are replaced with the empty default before the handshake is stored.
+func TestLoginRejectsHostileReturnTo(t *testing.T) {
+	for _, returnTo := range []string{
+		"//evil.com",
+		"https://evil.com/x",
+		"/\\evil.com",
+		"evil.com",
+	} {
+		t.Run(returnTo, func(t *testing.T) {
+			srv, database := loginServer(t)
+			rec := do(t, srv, "GET", "http://int.ikigenba.com/login?return_to="+url.QueryEscape(returnTo), nil)
+			if rec.Code != http.StatusFound {
+				t.Fatalf("status = %d, want 302", rec.Code)
+			}
+
+			var got string
+			if err := database.QueryRow(`SELECT return_to FROM oauth_state`).Scan(&got); err != nil {
+				t.Fatalf("read persisted return_to: %v", err)
+			}
+			if got != "" {
+				t.Errorf("persisted return_to = %q, want empty for hostile %q", got, returnTo)
+			}
+		})
+	}
+}
+
 // TestSetBindingCookieAttributes pins the cookie's hardening attributes, including
 // the Secure gate: off on plain HTTP (localhost), on behind an HTTPS proxy.
 func TestSetBindingCookieAttributes(t *testing.T) {

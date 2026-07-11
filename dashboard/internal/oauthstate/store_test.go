@@ -88,6 +88,38 @@ func TestCreateMintsUniqueValues(t *testing.T) {
 	}
 }
 
+// R-XLRL-ZHZT
+// TestCreateWebReturnToRoundTrip proves the optional web destination survives
+// the real migrated SQLite row, while ordinary Create keeps it empty.
+func TestCreateWebReturnToRoundTrip(t *testing.T) {
+	store := testStore(t, 5*time.Minute)
+	const returnTo = "/srv/sites/private/test07/"
+
+	created, cookie, err := store.CreateWeb(context.Background(), returnTo)
+	if err != nil {
+		t.Fatalf("CreateWeb: %v", err)
+	}
+	got, err := store.Consume(context.Background(), created.ID, cookie)
+	if err != nil {
+		t.Fatalf("Consume CreateWeb handshake: %v", err)
+	}
+	if got.ReturnTo != returnTo {
+		t.Errorf("CreateWeb ReturnTo = %q, want %q", got.ReturnTo, returnTo)
+	}
+
+	plain, plainCookie, err := store.Create(context.Background())
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	plainGot, err := store.Consume(context.Background(), plain.ID, plainCookie)
+	if err != nil {
+		t.Fatalf("Consume Create handshake: %v", err)
+	}
+	if plainGot.ReturnTo != "" {
+		t.Errorf("Create ReturnTo = %q, want empty", plainGot.ReturnTo)
+	}
+}
+
 // TestConsumeReturnsHandshake is the happy path: a freshly created handshake,
 // consumed with the right id and cookie, returns the stored row.
 func TestConsumeReturnsHandshake(t *testing.T) {
