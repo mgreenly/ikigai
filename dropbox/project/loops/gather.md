@@ -162,8 +162,8 @@ Report this run's result as a `status` and a one-sentence `message`:
 - `NEXT` — **terminal**: this turn's work is done; hand off to the next prompt.
 - `DONE` — **terminal**: the whole job is complete; the loop stops.
 - `message` — one short, plain sentence describing what happened, e.g.
-  `wrote brief for Phase 12 (MCP surface over appkit/mcp)` or
-  `Phase 12 already in flight; left its brief untouched`.
+  `wrote brief for Phase 21 (session-gated @login_bounce opt-in)` or
+  `Phase 21 already in flight; left its brief untouched`.
 
 Report `DONE` only when the step-1 grep found **no** `⬜` phase; in every other
 case (fresh brief written, or in-flight brief left untouched) report `NEXT`. Keep

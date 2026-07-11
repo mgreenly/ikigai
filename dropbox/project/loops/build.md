@@ -129,7 +129,7 @@ Report this run's result as a `status` and a one-sentence `message`:
   finishing this phase completely, green suite and all open gaps closed, is still
   `NEXT`; only gather, finding no `⬜` phase left, ever reports `DONE`.
 - `message` — one short, plain sentence describing what happened, e.g.
-  `built internal/mcp list+get tool table and tagged tests for Phase 12`.
+  `added error_page @login_bounce to both session-gated locations and tagged tests for Phase 21`.
 
 You always report `NEXT` (even when you believe the phase is now fully done —
 that call is verify's, not yours). Keep `message` a single plain sentence — not a

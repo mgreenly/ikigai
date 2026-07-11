@@ -37,7 +37,9 @@ any status marker. Default to making progress; do not ask questions.
    over many thin increments (an incomplete phase is simply re-attacked next
    cycle). Build the named package(s), consuming dependencies **only** through the
    brief's copied interface signatures — never open a design or source file to
-   re-derive them.
+   re-derive them. For a **structural phase** (the brief's `### Ids to cover` is
+   `(none — structural phase)`), make the exact change the brief names and satisfy
+   its named structural check — write no `R-id` test.
 
 5. **Write id-tagged, genuinely-asserting tests.** For every id in the brief's
    `### Ids to cover`, write a test that carries a `// R-XXXX-XXXX` comment and
@@ -76,6 +78,9 @@ Always report `NEXT`.
 - **Test placement:** unit tests are `*_test.go` **co-located** in the package they
   exercise and named for the behavior; the few cross-package integration tests live
   in `internal/wiki/`. **Never** create a per-phase or root-level test file.
+- **nginx fragment (config phases):** `wiki/etc/nginx.conf` is config, not Go — a
+  structural phase editing it is proven by its named fragment check (a
+  `project/`-excluded grep over that file), not an `R-id` test.
 
 ## Boundaries
 

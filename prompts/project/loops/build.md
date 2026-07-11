@@ -10,41 +10,50 @@ product docs. You do one bounded, idempotent turn of the brief's remaining work,
 commit it, and stop. You do **not** decide whether the phase is complete and you
 do **not** touch the status marker or the brief.
 
-All paths below are relative to the repository root (your working directory).
+All paths below are relative to the service root `prompts/` (the loop's working
+directory).
 
 ## Procedure
 
-1. **Read the brief** — `project/loops/brief.md`. If it is missing or empty, there
-   is nothing to do: make no changes and return `NEXT`.
+1. **Read the whole brief** — `project/loops/brief.md`, **both** its contract
+   region and its `## Verify feedback` region. If the brief is missing or empty,
+   there is nothing to do: make no changes and return `NEXT`.
 
-2. **See what already exists** (the brief is the whole spec; don't re-derive it
+2. **Prioritize the feedback.** If the `## Verify feedback` region lists open
+   gaps, those are the exact, command-grounded items the independent gate found
+   unsatisfied last cycle — **close those first**, using the failing command and
+   observed output each gap records to reproduce and fix it.
+
+3. **See what already exists** (the brief is the whole spec; don't re-derive it
    from design):
-   - which ids are already covered:
-     `grep -rn "R-[A-Z0-9]\{4\}-[A-Z0-9]\{4\}" prompts --include=*_test.go`
+   - which ids already have tagged tests:
+     `grep -rn "R-[A-Z0-9]\{4\}-[A-Z0-9]\{4\}" . --include=*_test.go`
    - the current suite state, to read concrete failures:
-     `cd prompts && go build ./... ; go vet ./... ; go test ./...`
+     `go build ./... ; go vet ./... ; go test ./...`
 
-3. **Do one increment of the remaining work.** Build the package(s) named under
-   **Files to touch**, consuming dependencies **only** through the interface
-   signatures copied into the brief. Write id-tagged, genuinely-asserting tests:
-   each Verification id under **Ids to cover** gets a test carrying a
-   `// R-XXXX-XXXX` comment that actually exercises the behavior the brief
-   describes (never a bare id literal with no assertion). It is fine to land a
-   subset this turn — the loop re-enters until the phase is fully green; favor a
-   correct, committed increment over attempting everything at once.
+4. **Do as much of the remaining work as cleanly fits this turn — ideally the
+   whole phase**, so `verify` can pass it next cycle. Prefer fewer, fuller turns
+   over many thin increments (an incomplete phase is simply re-attacked next
+   cycle). Build the package(s) named under **Files to touch**, consuming
+   dependencies **only** through the interface signatures copied into the brief.
+   Write id-tagged, genuinely-asserting tests: each id under **Ids to cover** gets
+   a test carrying a `// R-XXXX-XXXX` comment that actually exercises the behavior
+   the brief describes (never a bare id literal with no assertion, never a test
+   that always passes).
 
-4. **Keep the suite green for what you've written** and format:
+5. **Keep the suite green for what you've written** and format (run from
+   `prompts/`):
 
    ```
-   cd prompts && gofmt -w .
-   cd prompts && go build ./...
-   cd prompts && go vet ./...
-   cd prompts && go test ./...
+   gofmt -w .
+   go build ./...
+   go vet ./...
+   go test ./...
    ```
 
    Plus any phase-specific check the brief's **Done bar** names.
 
-5. **Commit this turn's increment** (never an empty commit) with a message naming
+6. **Commit this turn's increment** (never an empty commit) with a message naming
    the phase, and the repo trailer:
 
    ```
@@ -60,40 +69,48 @@ All paths below are relative to the repository root (your working directory).
 ## Project conventions (inlined — do not open design to recover these)
 
 - **Toolchain:** Go 1.26, single `module prompts` rooted at `prompts/`. The
-  in-repo `appkit` and `eventplane` are replace-siblings; `github.com/ikigenba/agentkit v0.1.0`
-  is the published agentkit dependency (replaces the old local `replace agentkit => ../agentkit`
-  by Phase 06).
-- **"The suite is green"** means all of: `cd prompts && go build ./...`,
-  `cd prompts && go vet ./...`, `cd prompts && gofmt -l .` (prints nothing),
-  and `cd prompts && go test ./...` succeed with
-  zero failures.
+  in-repo `appkit`, `eventplane`, and `registry` are committed `replace`
+  siblings; `github.com/ikigenba/agentkit` is the published external dependency,
+  pinned in `prompts/go.mod` (do not change the pin unless the brief says to).
+- **"The suite is green"** means all of these, run from `prompts/`, succeed with
+  zero failures and no race violations: `go build ./...`, `go vet ./...`,
+  `gofmt -l .` (prints nothing), and `go test ./...`.
+- **Test placement:** unit tests are **co-located with the code they exercise**,
+  as package-local `*_test.go` files named for the behavior (e.g. the nginx
+  fragment assertions live in `cmd/prompts/web_test.go` beside the composition
+  root). **Never** gather tests into a per-phase or root-level test file; the few
+  cross-package integration tests live in the `*_test.go` of the package that
+  drives them.
 - **Migrations:** ordered SQL under `prompts/internal/db/migrations/`. **Never
   hand-author a version number** — create one with
   `bin/create-migration prompts <name>`. Never edit a committed migration.
-- **Test seams:** `validateConfig` accepts `getenv func(string) string` so tests
-  inject a fake environment without touching process env vars. `Runner` has
-  injectable `buildProvider func(prompt.Config, func(string) string) (agentkit.Provider, error)`
-  and `discover func(...) []agentkit.Tool` fields so tests supply stub
-  implementations without a live provider or peer. A `fakeProvider` implements
-  `Name() string`, `Pricing(model string) (agentkit.Pricing, bool)`, and
-  `RoundTrip(ctx, req) *agentkit.RoundTrip`; its `RoundTrip` returns a pre-canned
-  one-turn response with `FinishStop` so the conversation completes without a
-  network call.
-- **No live provider calls in tests:** every test that exercises the runner uses
-  the fake provider; no test requires `ANTHROPIC_API_KEY` or any other API key.
-  The suite is green offline.
+- **No live provider / network calls in tests:** runner tests use the injected
+  fake provider seam; nginx-fragment and web-surface tests read the on-disk
+  `prompts/etc/nginx.conf` / `share/www` tree and never run nginx or a server
+  against a real network. The suite is green offline — no test requires an API
+  key.
 
 ## Boundaries
 
-- Never read `project/plan/*`, `project/design/*`, or
-  `project/product.md`. The brief is your only source.
+- Never read `project/plan/*`, `project/design/*`, or `project/product/*`. The
+  brief is your only source.
 - Never edit `project/plan/STATUS.md` or flip a `⬜`/`✅` marker — that is
   verify's job alone.
-- Never delete or edit `project/loops/brief.md`.
-- Never return `DONE` or `CONTINUE`. You always return `NEXT`.
+- Never delete or edit `project/loops/brief.md`, including its `## Verify
+  feedback` region — you read that region but never write it.
 
-End your final message with exactly one JSON object and nothing after it:
+## Reporting the result
 
-```json
-{"status": "NEXT", "message": "<one short sentence on what this increment landed>"}
-```
+Report this run's result as a `status` and a one-sentence `message`:
+- `CONTINUE` — **non-terminal**: any progress message you stream *before* the
+  turn's final message. You are still working; this never advances the loop.
+- `NEXT` — **terminal**: this turn's work is done; hand off to the next prompt.
+- `DONE` — **terminal — never yours to report**: ending the run is never yours —
+  finishing this phase completely, green suite and all open gaps closed, is still
+  `NEXT`; only gather, finding no `⬜` phase left, ever reports `DONE`.
+- `message` — one short, plain sentence describing what happened, e.g.
+  `landed the two @login_bounce lines and their web_test.go assertions for Phase 25`.
+
+You always return `NEXT` — build hands off every turn and is never the step that
+ends the run. Keep `message` a single plain sentence — not a JSON object or code
+block.

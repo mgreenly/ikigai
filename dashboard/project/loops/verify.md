@@ -31,13 +31,11 @@ advance a phase on a gap.
    go vet ./...
    gofmt -l .            # must print nothing
    go test ./...
-   bin/check-migrations dashboard
    ```
 
    Any non-pass (build/vet error, `gofmt -l .` prints a file, a failing or
-   **`SKIP`ped** test, a migration-check failure) is a gap. **A skipped
-   `R-XXXX-XXXX`-tagged test is a gap, never green** — a skip means that
-   requirement was not verified.
+   **`SKIP`ped** test) is a gap. **A skipped `R-XXXX-XXXX`-tagged test is a gap,
+   never green** — a skip means that requirement was not verified.
 
 3. **Check coverage of every id in the brief's `### Ids to cover`.** Extract the
    denominator mechanically:

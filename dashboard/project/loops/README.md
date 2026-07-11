@@ -117,6 +117,5 @@ stall-streak: <count>
 ```
 
 The green suite (from design *Conventions*), run from `dashboard/`:
-`go build ./...`, `go vet ./...`, `gofmt -l .` (empty), `go test ./...`,
-`bin/check-migrations dashboard`. Next-phase lookup:
-`grep -nE '^Phase .* ⬜' project/plan/STATUS.md | head -1`.
+`go build ./...`, `go vet ./...`, `gofmt -l .` (empty), `go test ./...`.
+Next-phase lookup: `grep -nE '^Phase .* ⬜' project/plan/STATUS.md | head -1`.

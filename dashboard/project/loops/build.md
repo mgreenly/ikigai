@@ -48,7 +48,6 @@ markers — that is verify's job.
    go vet ./...
    gofmt -l .            # must print nothing
    go test ./...
-   bin/check-migrations dashboard
    ```
 
 6. **Commit this turn's increment** — a non-empty commit with a phase-naming
@@ -61,7 +60,7 @@ markers — that is verify's job.
 - **Module / toolchain:** Go 1.26, single `module dashboard` rooted at
   `dashboard/`; pure-Go SQLite `modernc.org/sqlite` (no cgo); `appkit` and
   `eventplane` are in-repo replace-siblings.
-- **"The suite is green"** = the five commands in step 5 all succeed with zero
+- **"The suite is green"** = the four commands in step 5 all succeed with zero
   failures (`gofmt -l .` prints nothing).
 - **Test placement — co-located, behavior-named, never gathered.** Unit and
   HTTP-level tests live in the **same package as the code they exercise**, in

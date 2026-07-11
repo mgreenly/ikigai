@@ -94,7 +94,9 @@ Report this run's result as a `status` and a one-sentence `message`:
 - `CONTINUE` — **non-terminal**: any progress message you stream *before* the
   turn's final message. You are still working; this never advances the loop.
 - `NEXT` — **terminal**: this turn's work is done; hand off to the next prompt.
-- `DONE` — **terminal**: the whole job is complete; the loop stops.
+- `DONE` — **terminal — never yours to report**: ending the run is never yours —
+  finishing this phase completely, green suite and all open gaps closed, is still
+  `NEXT`; only gather, finding no `⬜` phase left, ever reports `DONE`.
 - `message` — one short, plain sentence describing what happened, e.g.
   `Built internal/gh client and 15 id-tagged tests; suite green.`
 

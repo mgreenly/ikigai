@@ -44,7 +44,7 @@ not ask questions.
       Decision …*` line and body, note the Decision(s) it realizes and the exact
       `R-XXXX-XXXX` ids it lists in its *Done when* (this is often a **slice** of a
       Decision's ids — take **only** the ids this phase lists, never all of a
-      Decision's ids).
+      Decision's ids). A structural phase names **no** ids — record it as such.
    2. Resolve each realized Decision to its file via `project/design/INDEX.md`
       (`grep -n 'D<n> →' project/design/INDEX.md`, or `grep -n R-XXXX-XXXX
       project/design/INDEX.md` for a single id). Read **only** those `project/design/DNN.md`
@@ -101,8 +101,9 @@ build never opens a design or source file to learn them. Use fenced Go.>
 (go build ./..., go vet ./..., gofmt -l . prints nothing, go test ./... all pass),
 every id above is covered by a genuinely-asserting `// R-XXXX-XXXX`-tagged test
 co-located with the code it exercises (never a per-phase or root-level test file;
-cross-package integration tests live in internal/wiki/), and any structural
-check the phase names (a clean build, exact named files/targets, a project/-excluded grep).>
+cross-package integration tests live in internal/wiki/), plus any structural
+check the phase names (a clean build, exact named files/targets, a
+project/-excluded grep against the named non-project file).>
 
 ## Verify feedback — attempt 0  (verify-owned — gather writes this empty)
 
@@ -131,7 +132,7 @@ Report this run's result as a `status` and a one-sentence `message`:
 - `NEXT` — **terminal**: this turn's work is done; hand off to the next prompt.
 - `DONE` — **terminal**: the whole job is complete; the loop stops.
 - `message` — one short, plain sentence describing what happened, e.g.
-  `Wrote a fresh brief for Phase 07 realizing D4.` or `Phase 07 brief already in
+  `Wrote a fresh brief for Phase 89 realizing D60.` or `Phase 89 brief already in
   flight; left it untouched.` or `No ⬜ phase remains; the plan is fully built.`
 
 End the turn on **`DONE`** only when step 1's grep found no `⬜` phase; otherwise

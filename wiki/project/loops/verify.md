@@ -31,8 +31,8 @@ believe.
    (The `-o` yields just the matched id per line and ignores the trailing
    requirement text, so it never miscounts an id quoted inside prose.) If the brief
    says `(none — structural phase)`, this is a structural phase — verify the named
-   structural check (a clean build + the exact named files/targets or a
-   `project/`-excluded grep) instead of id coverage.
+   structural check (a clean build + the exact named files/targets, or a
+   `project/`-excluded grep over the named non-project file) instead of id coverage.
 
 3. **Run the full suite** and confirm every check is green (each is a deterministic
    command with a defined pass criterion):
@@ -62,10 +62,12 @@ believe.
    flag nothing in the repo sets, or one that turns a real failure (non-zero exit,
    unparseable output) into a skip, as **uncovered**, no matter how genuine its
    assertion reads. When you cannot confirm a test really asserts the behavior,
-   treat the id as **uncovered**.
+   treat the id as **uncovered**. For a **structural phase**, run the named
+   structural check instead and treat its failure as the (single) open gap.
 
-5. **Collect the open gaps** — every uncovered or failing id, each with the exact
-   command + observed output that proves it open (file:line when known). Then:
+5. **Collect the open gaps** — every uncovered or failing id (or a failed
+   structural check), each with the exact command + observed output that proves it
+   open (file:line when known). Then:
 
    ### Pass — no open gaps (and, for a structural phase, the named check holds)
 
@@ -129,8 +131,8 @@ Report this run's result as a `status` and a one-sentence `message`:
   finishing this phase completely, green suite and all open gaps closed, is still
   `NEXT`; only gather, finding no `⬜` phase left, ever reports `DONE`.
 - `message` — one short, plain sentence describing what happened, e.g.
-  `Phase 07 green with full coverage; flipped to ✅ and deleted the brief.` or
-  `Phase 07 has 2 open gaps; wrote attempt-3 feedback, left ⬜.`
+  `Phase 89 green with the named fragment check holding; flipped to ✅ and deleted the brief.` or
+  `Phase 89 fragment check failed; wrote attempt-3 feedback, left ⬜.`
 
 Always end the turn on **`NEXT`** — on a pass and on a gap alike. Keep `message` a
 single plain sentence — not a JSON object or code block.

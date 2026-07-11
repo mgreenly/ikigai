@@ -50,14 +50,16 @@ tool) — the prompts describe only the contract, never a transport.
 | step | reads | writes | commits | flips a marker |
 |---|---|---|---|---|
 | **gather** | `STATUS.md`; for a fresh brief, the one `phase-NN.md` + its Decision `DNN.md`(s) + `INDEX.md` + dependency interface signatures | `brief.md` **contract** region (fresh brief only); nothing on an in-flight brief | no | no |
-| **build** | `brief.md` only (contract + feedback) | source packages + id-tagged `*_test.go` | yes (the code increment) | no |
+| **build** | `brief.md` only (contract + feedback) | source packages + id-tagged `*_test.go` (or the named config file, for a structural phase) | yes (the code increment) | no |
 | **verify** | `brief.md` (contract + own prior feedback) + the suite | on pass: the one `STATUS.md` line; on gap: `brief.md` **feedback** region | yes (the one-line flip, on pass) | **yes** (only verify) |
 
 The toolchain the loop bakes in (from design's *Conventions*): build/typecheck
 `go build ./...` + `go vet ./...`; test `go test ./...`; **green** = those plus
 `gofmt -l .` printing nothing, all with zero failures. Tests are `*_test.go`
 co-located in the package they exercise; cross-package integration tests live in
-`internal/wiki/`.
+`internal/wiki/`. A **structural/config phase** (e.g. an `wiki/etc/nginx.conf`
+edit) carries no `R-ids` — it is proven by a green suite plus the named fragment
+check the phase states (a `project/`-excluded grep over that file).
 
 ## The brief lifecycle
 
@@ -118,7 +120,7 @@ R-XXXX-XXXX — <full requirement text, verbatim from the Decision's Verificatio
 
 ### Done bar
 <deterministic acceptance: green suite + every id covered by a genuinely-asserting
- co-located `// R-id` test, or the named structural check>
+ co-located `// R-id` test, or the named structural check for a config phase>
 
 ## Verify feedback — attempt N  (verify-owned — gather writes this empty)
 - build commit observed: <sha | none>

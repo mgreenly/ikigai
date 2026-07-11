@@ -143,8 +143,8 @@ Report this run's result as a `status` and a one-sentence `message`:
   finishing this phase completely, green suite and all open gaps closed, is still
   `NEXT`; only gather, finding no `⬜` phase left, ever reports `DONE`.
 - `message` — one short, plain sentence describing what happened, e.g.
-  `Phase 12 verified ✅ and brief deleted` or
-  `Phase 12 left ⬜; wrote feedback for 2 open gaps (attempt 3)`.
+  `Phase 21 verified ✅ and brief deleted` or
+  `Phase 21 left ⬜; wrote feedback for 2 open gaps (attempt 3)`.
 
 You always report `NEXT` — on a pass, on a gap, and on a stall reset. Keep
 `message` a single plain sentence — not a JSON object or code block.

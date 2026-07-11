@@ -2,11 +2,11 @@
 harness: codex
 model: gpt-5.6-terra
 ---
-# build — advance the current phase by one bounded increment
+# build — advance the current phase toward done
 
 You are the **build** step of the cron build loop, invoked in a fresh, isolated
 context. You read **only** `project/loops/brief.md` — never the plan, design, or
-product docs. You do one bounded, idempotent turn of the brief's remaining work,
+product docs. You do a bounded, idempotent turn of the brief's remaining work,
 commit it, and stop. You do **not** decide whether the phase is complete and you
 do **not** touch the status marker or the brief.
 
@@ -15,42 +15,50 @@ working directory.
 
 ## Procedure
 
-1. **Read the brief** — `project/loops/brief.md`. If it is missing or empty,
+1. **Read the whole brief** — `project/loops/brief.md`, **both** its contract
+   region and its `## Verify feedback` region. If the brief is missing or empty,
    there is nothing to do: make no changes and return `NEXT`.
 
-2. **See what already exists** (the brief is the whole spec; don't re-derive it
+2. **If `## Verify feedback` lists open gaps, those are this turn's priority.**
+   They are the exact, command-grounded items the independent gate found
+   unsatisfied last cycle — each tied to an `R-id` with the failing command and
+   observed output. Close **those** first.
+
+3. **See what already exists** (the brief is the whole spec; don't re-derive it
    from design):
    - which ids are already covered:
      `grep -rn "R-[A-Z0-9]\{4\}-[A-Z0-9]\{4\}" . --include=*_test.go`
    - the current suite state, to read concrete failures:
      `cd cron && go build ./... ; go vet ./... ; go test ./...`
 
-3. **Do one increment of the remaining work.** Build the package(s) / artifact
-   named under **Files to touch**, consuming dependencies **only** through the
-   interface signatures and required shapes copied into the brief. For a
-   **code** phase, write id-tagged, genuinely-asserting tests: each Verification
-   id under **Ids to cover** gets a test carrying a `// R-XXXX-XXXX` comment that
-   actually exercises the behavior the brief describes (never a bare id literal
-   with no assertion). Place each test in the package it exercises —
-   `cron/internal/web/web_test.go`, `package web`, named for the behavior — never
-   in a root-level or `phaseNN_test.go` file. The nginx-fragment test reads
-   `cron/etc/nginx.conf` from disk and asserts over its content; keep it in a
-   focused package (e.g. `cron/internal/web`). For a **docs/structural** phase,
-   make the doc edit and satisfy the named content check instead of writing
-   id-tagged tests. It is fine to land a subset this turn — the loop re-enters
-   until the phase is fully green; favor a correct, committed increment over
-   attempting everything at once.
+4. **Do as much of the remaining work as cleanly fits this one fresh context —
+   ideally complete the whole phase** so `verify` can pass it next cycle. Prefer
+   fewer, fuller turns over many thin increments; an incomplete phase is simply
+   re-attacked next cycle with verify's feedback in front of you. Build the
+   package(s) / artifact named under **Files to touch**, consuming dependencies
+   **only** through the interface signatures and required shapes copied into the
+   brief.
 
-   - **Composition root.** `cmd/cron/main.go` is grown incrementally (e.g. adding
-     the `GET /{$}` landing route to the existing `Handlers` hook) — that is
-     wiring growth, not a domain rewrite. Leave the `POST /mcp` mount, the crontab
-     `Store`, the `Publishes` provider, and the tick `Producer`/`Workers` wiring
-     intact.
-   - **Doctrine doc.** cron has **no** `AGENTS.md`/`CLAUDE.md`; its doctrine prose
-     is the package-doc comment at the top of `cmd/cron/main.go`. The docs phase
-     edits **only that comment** (a documentation comment — no behavior change).
+   - **Code phase:** for each Verification id under **Ids to cover**, write a test
+     carrying a `// R-XXXX-XXXX` comment that **genuinely asserts** the behavior
+     the brief describes — never a bare id literal with no assertion, never a test
+     that always passes, never a test that turns a real failure into a `t.Skip`.
+   - **Structural / docs phase:** make the edit and satisfy the named content
+     check instead of writing id-tagged tests.
+   - **Composition root.** `cmd/cron/main.go` is grown incrementally (wiring
+     growth, not a domain rewrite): the service is `appkit.Main(cronSpec())` with
+     `cronSpec()` declared inline. Leave the crontab `Store`, the assembled
+     `POST /mcp` handler, the LIVE `Publishes` provider, and the tick
+     `Producer`/`Workers` wiring intact.
 
-4. **Keep the suite green for what you've written** and format:
+5. **Place every test in the package it exercises, named for the behavior** —
+   never a root-level or `phaseNN_test.go` file. Landing / mux / composition-root /
+   nginx-fragment tests live in `cron/cmd/cron/` (e.g.
+   `cron/cmd/cron/main_test.go`); MCP-surface tests live in `cron/internal/mcp/`.
+   A config-artifact test reads `cron/etc/nginx.conf` from disk and asserts over
+   its content.
+
+6. **Keep the suite green for what you've written** and format:
 
    ```
    cd cron && gofmt -w .
@@ -59,57 +67,69 @@ working directory.
    cd cron && go test ./...
    ```
 
-   Plus any phase-specific check the brief's **Done bar** names (e.g. the
-   doctrine phase's check that `cron/cmd/cron/main.go`'s header mentions the
-   landing page and `grep -rni "no UI" cron/` finds nothing).
+   Plus any phase-specific check the brief's **Done bar** names.
 
-5. **Commit this turn's increment** (never an empty commit) with a message naming
+7. **Commit this turn's increment** (never an empty commit) with a message naming
    the phase, and the repo trailer:
 
    ```
    git add -A
    git commit -m "cron Phase NN: <what this increment added>
 
-   Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+   Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
    ```
 
-   Do **not** stage or commit `project/loops/brief.md` (it is the ephemeral seam
-   between prompts; do not commit it). Then return `NEXT`.
+   Do **not** stage or commit `project/loops/brief.md` (it is the ephemeral,
+   git-ignored seam between prompts). Then return `NEXT`.
 
 ## Project conventions (inlined — do not open design to recover these)
 
 - **Toolchain:** Go 1.26, single `module cron` rooted at `cron/`; pure-Go SQLite
-  driver `modernc.org/sqlite` (no cgo). The in-repo `appkit` and `eventplane` are
-  replace-siblings. The landing page adds **no new dependency** — standard library
-  (`net/http`, `embed`, `html/template`) + the appkit chassis only.
+  driver `modernc.org/sqlite` (no cgo). The in-repo `appkit`, `eventplane`, and
+  `registry` are committed replace-siblings. The web/MCP surfaces add **no new
+  third-party dependency** — standard library + the appkit chassis
+  (`appkit/web`, `appkit/mcp`) + `registry` only.
 - **"The suite is green"** means all of: `cd cron && go build ./...`,
-  `cd cron && go vet ./...`, `cd cron && gofmt -l .` (prints nothing),
-  and `cd cron && go test ./...` succeed with zero failures.
-- **No schema change for the landing page.** It touches no SQLite and adds **no**
-  migration. (Never hand-author a migration version anyway — `bin/create-migration
-  cron <name>` — but this work needs none.)
+  `cd cron && go vet ./...`, `cd cron && gofmt -l .` (prints nothing), and
+  `cd cron && go test ./...` succeed with zero failures.
+- **The chassis owns the server.** cron is `appkit.Main(cronSpec())`;
+  `cronSpec()` is declared inline in `cmd/cron/main.go`. The web surface is served
+  from `cron/share/www/` through the chassis `appkit/web` mechanism (`WWW: true`,
+  rendered via `rt.WWW()`); there is no `internal/web` package. The MCP surface is
+  the `cron/internal/mcp` tool table (`Instructions` + `Tools(store)` +
+  `NewHandler`) over the shared `appkit/mcp` transport. `cron/internal/db` holds
+  **only** the embedded migration set and its guard tests.
+- **No schema change unless a phase says so.** Never hand-author a migration
+  version — `bin/create-migration cron <name>` — but most phases here need none.
 - **Determinism / seams:** the landing handler is pure over its two string inputs
   (`service`, `version`), injected at the composition root from
   `rt.Service()`/`rt.Version()`; tests construct it directly with fixed values and
-  drive it with `net/http/httptest` — **no test makes a network call and no test
-  needs a running suite**. Embedded assets (`tokens.css`, woff2 fonts) are real
-  bytes via `//go:embed`.
-- **Test layout:** co-locate every test with the code it exercises
-  (`internal/web/web_test.go`, `package web`), named for the behavior asserted.
-  A phase is one package, so its tests live in that package — never a root-level or
-  `phaseNN_test.go` file.
+  drive it with `net/http/httptest` over the repo-real `share/www` tree — **no
+  test makes a network call and no test needs a running suite**.
+- **Test layout:** co-locate every test with the code it exercises, in a
+  `*_test.go` file named for the behavior asserted. A phase is one package, so its
+  tests live in that package — never a root-level or `phaseNN_test.go` file.
 
 ## Boundaries
 
-- Never read `project/plan/*`, `project/design/*`, or `project/product/product.md`.
+- Never read `project/plan/*`, `project/design/*`, or `project/product/README.md`.
   The brief is your only source.
-- Never edit `project/plan/STATUS.md` or flip a `⬜`/`✅` marker — that is
-  verify's job alone.
-- Never delete or edit `project/loops/brief.md`.
-- Never return `DONE` or `CONTINUE`. You always return `NEXT`.
+- Never edit `project/plan/STATUS.md` or flip a `⬜`/`✅` marker — that is verify's
+  job alone.
+- Never delete or edit `project/loops/brief.md` — including its `## Verify
+  feedback` region: you read it but never write it.
 
-End your final message with exactly one JSON object and nothing after it:
+## Reporting the result
 
-```json
-{"status": "NEXT", "message": "<one short sentence on what this increment landed>"}
-```
+Report this run's result as a `status` and a one-sentence `message`:
+
+- `CONTINUE` — **non-terminal**: any progress message you stream *before* the
+  turn's final message. You are still working; this never advances the loop.
+- `NEXT` — **terminal**: this turn's work is done; hand off to the next prompt.
+- `DONE` — **terminal — never yours to report**: ending the run is never yours —
+  finishing this phase completely, green suite and all open gaps closed, is still
+  `NEXT`; only gather, finding no `⬜` phase left, ever reports `DONE`.
+- `message` — one short, plain sentence on what this increment landed, e.g.
+  `added error_page 401 = @login_bounce to the two session-gated locations plus tests`.
+
+Keep `message` a single plain sentence — not a JSON object or code block.
