@@ -11,7 +11,7 @@ A real **double-entry bookkeeping** service for personal and small-business use,
 modeled conceptually on [ledger-cli](https://ledger-cli.org/): an **immutable
 journal** of balanced transactions, with every report a query over postings. The
 domain surface is a **fixed set of seven verbs** (it does not grow as features
-are added — see `project/design/design.md`) over a single write entity, the
+are added — see `project/design/README.md`) over a single write entity, the
 transaction. The chassis adds standard `health` and `reflection` tools, for nine
 tools on the wire. It is an event-plane **producer** (emits
 `transaction.recorded` to an outbox at `GET /feed`, mirroring `../crm`). The
@@ -20,7 +20,7 @@ chassis, renamed.
 
 **Read the decisions first — do not re-derive them:**
 
-- `project/design/design.md` — the ledger design (the 8-verb rationale, the immutable-journal /
+- `project/design/README.md` — the ledger design (the 8-verb rationale, the immutable-journal /
   emergent-typed-account model, the transaction contract, the events).
 - `../crm` — the sibling service that shares this chassis and is the reference
   event-plane **producer** (`internal/contacts` → `/feed` outbox).
@@ -52,7 +52,7 @@ the only guardrail being that the top-level root must be one of five known types
 alias + case-fold canonicalization so the tree can't fork. Money is integer cents,
 single-currency USD. The domain surface is seven verbs; `health` and
 `reflection` are chassis-supplied standard tools, for nine tools on the wire.
-See `project/design/design.md` for the full contract.
+See `project/design/README.md` for the full contract.
 
 - **`record`** — record one immutable double-entry transaction (≥2 postings
   that must balance to zero; at most one posting may elide its amount and receive
@@ -107,7 +107,7 @@ after commit. **Every committed transaction emits exactly one
 it's a correction). `cmd/ledger/main.go` wires the `outbox` and injects it into
 `ledger.Service`; the SSE handler is mounted at `GET /feed` (unauthenticated,
 loopback-only — the perimeter is nginx). Second-wave payloads (`transaction.reversed`,
-`posting.reconciled`) are designed but unwired in v1 (`project/design/design.md`).
+`posting.reconciled`) are designed but unwired in v1 (`project/design/README.md`).
 
 ## nginx fragment (not a vhost)
 

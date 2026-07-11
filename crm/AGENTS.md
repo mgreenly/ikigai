@@ -27,7 +27,7 @@ SQLite, single instance, is correct and deliberate.
 ## The domain — a polymorphic CRM (5 entities, 6 verbs)
 
 The service is a real **sales CRM**, not an address book, and it is **MCP-only**
-(no REST domain routes). The full design is in `project/design/design.md`; the shape:
+(no REST domain routes). The full design is in `project/design/README.md`; the shape:
 
 - **Five entities** (all ULID id, `created_at`/`updated_at`/`deleted_at` soft
   delete; every read filters `deleted_at IS NULL`): **organization**, **contact**

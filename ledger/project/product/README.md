@@ -1,39 +1,24 @@
-# scripts — Product (landing page)
+# ledger — Product
 
-**Authority: intent.** This document owns *why* scripts serves a web landing
-page, *for whom*, what is in and out of scope, and what we **promise** the
-viewer — in outcome terms only. Mechanism (the handler, the embedded template,
-the Carbon tokens, the nginx fragment, the route pattern) and its checkable proof
-live in `project/design/design.md`. Where the two touch observable behavior,
-product states the *promise* and design states the *exact, checkable form*; that
+**Authority: intent.** This document owns *why* ledger serves a web landing page,
+*for whom*, what is in and out of scope, and what we **promise** the viewer — in
+outcome terms only. Mechanism (the handler, the embedded template, the Carbon
+tokens, the nginx fragment, the route pattern) and its checkable proof live in
+`project/design/README.md`. Where the two touch observable behavior, product
+states the *promise* and design states the *exact, checkable form*; that
 boundary keeps product, design, and plan from overlapping.
 
 > **Scope note.** This product doc covers **only** the new web-pages direction
-> for scripts — the landing page. scripts's existing domain (the deterministic
-> `python3`-exec script runner, the `ikigenba_scripts_*` MCP surface, the
-> event-plane producer `scripts.succeeded`/`scripts.failed`, and the
-> multi-upstream consumer) is owned by `scripts/project/notes/` and is untouched
-> here. This mirrors the **template** the suite's other simple services copy, so
-> it states the uniform v1 starting point precisely.
-
-> **Registry-adoption note (no promise change).** A separate, behavior-preserving
-> internal change adopts the suite's shared `registry` library so scripts resolves
-> its **own** loopback port and its **peer** addresses (the cron/crm/ledger/
-> dropbox/prompts feeds and the dropbox content base) **by name** at startup,
-> instead of from hardcoded `127.0.0.1:30xx` literals. This is a wiring refactor at
-> the composition root, not a user-facing feature: every promise above holds
-> unchanged, the running port is still `3003`, and no viewer, operator, or agent
-> observes any difference. It is recorded here only so a reader knows the port
-> literals moved to the registry table; the *why/shape/proof* of that change lives
-> in design Decision D10, and it is why this product intent does **not** shift.
-> *(Speed-run assumption: treated as behavior-preserving; if adoption ever changed
-> an observable value, this promise set would need revisiting — it does not.)*
+> for ledger — the landing page. ledger's existing bookkeeping domain (the
+> immutable-journal, eight-verb MCP surface) is owned by `ledger/CLAUDE.md`; it is untouched here. ledger mirrors the
+> already-approved **crm** template for this work — the same uniform v1 starting
+> point, stated precisely.
 
 ## Problem
 
 Until now every ikigenba service except the dashboard served **only** machine
 surfaces — the RFC 9728 PRM bootstrap, `/health`, the bearer-gated `/mcp`, and
-the loopback `/feed`. A human who opened `<account>.ikigenba.com/srv/scripts/` in
+the loopback `/feed`. A human who opened `<account>.ikigenba.com/srv/ledger/` in
 a browser got nothing useful: there is no token in a browser, so the bearer gate
 refuses them, and there was no human-facing page behind that mount at all. The
 services declared "no UI," and that statement is now being deliberately retired.
@@ -48,73 +33,69 @@ as a raw error or a blank proxy response.
 
 ## Purpose
 
-The scripts landing page is the **human front door** to the scripts service under
-`/srv/scripts/`. For v1 it is intentionally minimal: a single Carbon-styled card
+The ledger landing page is the **human front door** to the ledger service under
+`/srv/ledger/`. For v1 it is intentionally minimal: a single Carbon-styled card
 showing the **service name** and the **running version**. It is gated by the
 viewer's **dashboard browser session** (the login cookie), not by a bearer
 token — because a browser cannot present a bearer token, and because a
 name-and-version page warrants only a coarse "are you a logged-in user of this
 box" check, never a per-resource authorization. The page proves the service is
 deployed, reachable, and on-system, and it establishes the seam (handler +
-embedded template + embedded design assets) that every later scripts web page
+embedded template + embedded design assets) that every later ledger web page
 grows from.
 
 ## Users
 
 - **A logged-in dashboard user, in a browser.** Any human authenticated to this
-  box's dashboard who navigates to `/srv/scripts/`. They see the service name and
+  box's dashboard who navigates to `/srv/ledger/`. They see the service name and
   version on the Carbon design system. The check is deliberately **coarse**: any
   logged-in dashboard user may view any app's landing page — there is no
   per-resource or per-owner authorization on this page.
 - **The operator, confirming a deploy.** Opens the mount root after a deploy or
-  rollback to confirm scripts is up and which version is live — a browser-visible
+  rollback to confirm ledger is up and which version is live — a browser-visible
   liveness signal that complements the machine `/health` and `version` checks.
 
 The page is **not** for agents or MCP clients — those keep using the
-bearer-gated `/mcp` endpoint, which is unchanged. It is likewise **not** a
-control surface for scripts or runs: a script is still authored, triggered, and
-supervised over MCP, never on this page.
+bearer-gated `/mcp` endpoint, which is unchanged.
 
 ## Scope
 
-The scripts landing page does this and only this:
+The ledger landing page does this and only this:
 
 - **Serve one landing page at the mount root** — a `GET` of the bare
-  `/srv/scripts/` root returns an HTML page. Internally (nginx strips the mount
+  `/srv/ledger/` root returns an HTML page. Internally (nginx strips the mount
   prefix) the service answers this at its exact root path `/`.
 - **Show the service name and version** — the page displays the service name
-  (`scripts`) and the running version, taken from the values the chassis already
+  (`ledger`) and the running version, taken from the values the chassis already
   exposes. Nothing else is shown in v1.
 - **Look like the suite** — the page is styled with the **Carbon** design system:
   monochrome neutrals, blue `#2563EB` as the only signal color, the Space
   Grotesk / IBM Plex Sans / IBM Plex Mono type pairing, the 4px spacing grid. A
   simple centered card: service name in display type, version as a mono label.
-- **Carry its own design assets** — scripts embeds its **own** copy of the Carbon
+- **Carry its own design assets** — ledger embeds its **own** copy of the Carbon
   `tokens.css` and the woff2 fonts under its static directory and serves them
   from its own mount; it does not depend on the dashboard's assets at runtime.
 - **Gate humans by the dashboard session cookie** — the page (and any future
-  scripts web page) is reachable only by a viewer whose `dashboard_session`
-  cookie validates against the dashboard's web-session store. An unauthenticated
-  browser gets `401`. This is the same coarse session gate `sites` already uses
-  for its private static tier.
+  ledger web page) is reachable only by a viewer whose `dashboard_session` cookie
+  validates against the dashboard's web-session store. An unauthenticated browser
+  gets `401`. This is the same coarse session gate `sites` already uses for its
+  private static tier.
 
 It deliberately does **nothing else** in v1 — in particular it does not: perform
 any per-resource or per-owner authorization (the session gate is coarse by
-design); expose any script body, run output, trigger, or completion-event data on
-the page; add or change any MCP tool; serve any interactive control, form, or
-write action (no creating, editing, triggering, or cancelling a run from the
-page); alter the bearer-gated `/mcp`, the PRM well-known, `/health`, or the
-loopback `/feed` (the event plane stays internal-only); or share a landing
-handler with any other service. Later scripts-specific web pages are **out of
-scope** for this work — this establishes only the uniform v1 page and the seam
-they will grow from.
+design); expose any transaction, posting, account, or balance on the page; add or
+change any MCP tool; serve any interactive control, form, or write action; alter
+the bearer-gated `/mcp`, the PRM well-known, `/health`, or the loopback `/feed`;
+or share a landing handler with any other service. Later ledger-specific web pages
+are **out of scope** for this work — this establishes only the uniform v1 page
+and the seam they will grow from.
 
 ## Contractual constants
 
 Promised values the design must honor verbatim and never re-declare:
 
 - **The landing page lives at the mount root only.** A human reaches it at
-  `<account>.ikigenba.com/srv/scripts/`; the service answers it at its exact root
+  `<account>.ikigenba.com/srv/ledger/`; the service answers it at its exact root
   path `/` and nowhere else. It never shadows `/mcp`, `/health`, `/feed`, or the
   PRM well-known.
 - **The page is gated by the dashboard browser session, not by a bearer token.**
@@ -128,24 +109,22 @@ Promised values the design must honor verbatim and never re-declare:
   come from what the chassis already exposes (`rt.Service()` / `rt.Version()`);
   the page adds no new data source.
 - **Each app owns its own landing page.** There is no shared landing handler;
-  scripts's page code, template, and embedded assets live under `scripts/`.
-- **The visual system is Carbon.** `design/carbon.md` (rules) +
-  `design/tokens.css` (tokens) + `design/example.html` (reference) are the source
-  of truth; scripts embeds its own copy of the tokens and fonts.
+  ledger's page code, template, and embedded assets live under `ledger/`.
+- **The visual system is Carbon.** `design/carbon.md` (rules) + `design/tokens.css`
+  (tokens) + `design/example.html` (reference) are the source of truth; ledger
+  embeds its own copy of the tokens and fonts.
 
 ## What we promise (user-facing behavior)
 
-- **A logged-in human who opens `/srv/scripts/` sees a real page** — the scripts
+- **A logged-in human who opens `/srv/ledger/` sees a real page** — the ledger
   service name and the running version, on the suite's design system, not a raw
   proxy error or a blank page.
 - **A browser that is not logged in is refused** — an unauthenticated browser
-  hitting `/srv/scripts/` gets `401`, because the page is gated by the dashboard
+  hitting `/srv/ledger/` gets `401`, because the page is gated by the dashboard
   session cookie.
 - **Agents are unaffected** — the bearer-gated `/mcp` endpoint, the PRM
   well-known, `/health`, and the loopback `/feed` behave exactly as before; the
-  landing page is added beside them, shadowing none of them. The event plane —
-  scripts' `scripts.succeeded`/`scripts.failed` producer feed and its
-  cron/crm/ledger/dropbox/prompts consumer loops — is untouched.
+  landing page is added beside them, shadowing none of them.
 - **The page looks like the rest of the suite** — same fonts, same neutral
   palette, same single blue signal color, same spacing grid as the dashboard and
   the other apps.
@@ -157,15 +136,16 @@ Promised values the design must honor verbatim and never re-declare:
 
 Each is a result the viewer or operator can confirm against the running service:
 
-- As a logged-in dashboard user I open `<account>.ikigenba.com/srv/scripts/` and
-  see a Carbon-styled page showing the service name `scripts` and the running
+- As a logged-in dashboard user I open `<account>.ikigenba.com/srv/ledger/` and
+  see a Carbon-styled page showing the service name `ledger` and the running
   version.
-- As a browser with no dashboard session I open `/srv/scripts/` and am refused
-  with `401`, not shown the page.
+- As a browser with no dashboard session I open `/srv/ledger/` and am refused with
+  `401`, not shown the page.
 - The version shown on the page matches the version the deployed binary reports.
 - The page's fonts and colors match the suite design system (Carbon), and the
   page loads its own embedded `tokens.css` and fonts, not the dashboard's.
 - An MCP client still discovers the AS via the PRM well-known and calls the
   bearer-gated `/mcp` exactly as before; the landing page changed nothing for it.
-- Opening `/srv/scripts/feed` from nginx still returns `404`, and `/health` still
-  responds — the landing page shadowed neither.
+- Opening `/srv/ledger/feed` through nginx still goes through the bearer-gated
+  `/srv/ledger/` prefix exactly as before, and `/health` still responds — the
+  exact-match landing root captured neither.

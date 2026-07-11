@@ -3,7 +3,7 @@
 **Authority: shape and its proof.** This directory owns *how* the webhooks
 service is built and *how each behavior is proven* — its seams, public
 interfaces, naming, struct/type definitions, data model, and the test plan.
-`project/product/product.md` owns the *why* and the user-facing promises; design
+`project/product/README.md` owns the *why* and the user-facing promises; design
 states the **exact, checkable form** of those promises and never re-declares the
 why. Design **uses** the product's contractual constants by value
 (`/srv/webhooks/`, starting version `0.1.0`) but does not own them. This is the

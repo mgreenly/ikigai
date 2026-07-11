@@ -1,4 +1,4 @@
-# prompts agentkit migration — Plan
+# prompts — Plan
 
 **Authority: construction order and history.** This document and the `project/plan/` directory it heads own the build order and the record of what is built. The plan is **append-only**: completed phases are never rewritten or deleted, so it doubles as construction history. To extend the plan, update product and design in place, then **append** a new phase — a new `project/plan/phase-NN.md` plus a new line at the end of `project/plan/STATUS.md` — never edit a finished phase except to flip its status marker from `⬜` to `✅`.
 
@@ -8,4 +8,4 @@
 
 ## Layout
 
-`project/plan/STATUS.md` is the manifest and the **only** home of status markers; `project/plan/phase-NN.md` is one body file per phase (zero-padded; sub-phases keep their suffix, e.g. `phase-07a.md`); `project/plan.md` is these static rules. The append-only rule applies to the layout: never rewrite or delete a `phase-NN.md`, never delete a `STATUS.md` line; the only build-time mutation is flipping one phase's `⬜ → ✅` in `STATUS.md`.
+`project/plan/STATUS.md` is the manifest and the **only** home of status markers; `project/plan/phase-NN.md` is one body file per phase (zero-padded; sub-phases keep their suffix, e.g. `phase-07a.md`); `project/plan/README.md` is these static rules. The append-only rule applies to the layout: never rewrite or delete a `phase-NN.md`, never delete a `STATUS.md` line; the only build-time mutation is flipping one phase's `⬜ → ✅` in `STATUS.md`.

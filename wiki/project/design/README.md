@@ -1,6 +1,6 @@
 # wiki — Design
 
-**Authority: shape and its proof.** This document and the `project/design/` directory it heads own *how* the wiki is built and *how each behavior is proven*. The product (`project/product/product.md`) owns the *why*, *for whom*, and the user-facing promises; design states the **exact, checkable form** of those promises and never re-declares the why. Design *uses* the product's contractual constants by value (page cap 12,000 chars; subject types `entity|event|concept`; `ask` strictly read-only) but does **not** own them. This is the single, current statement of the architecture — it is rewritten in place to stay true (stale decisions are removed, not stacked); the history of how it got here lives in the plan.
+**Authority: shape and its proof.** This document and the `project/design/` directory it heads own *how* the wiki is built and *how each behavior is proven*. The product (`project/product/README.md`) owns the *why*, *for whom*, and the user-facing promises; design states the **exact, checkable form** of those promises and never re-declares the why. Design *uses* the product's contractual constants by value (page cap 12,000 chars; subject types `entity|event|concept`; `ask` strictly read-only) but does **not** own them. This is the single, current statement of the architecture — it is rewritten in place to stay true (stale decisions are removed, not stacked); the history of how it got here lives in the plan.
 
 ## Requirement ids
 
@@ -43,7 +43,7 @@ Two audiences, two gates: **agents** reach `/mcp` (and `/health`/`/feed`) with a
 
 The design is split for addressability so a build phase reads only the one Decision it realizes:
 
-- `project/design/design.md` — this spine: static cross-cutting facts only, no per-Decision detail.
+- `project/design/README.md` — this spine: static cross-cutting facts only, no per-Decision detail.
 - `project/design/DNN.md` — one self-contained file per Decision (zero-padded: `D01.md`, `D02.md`, …; referenced in prose and the plan as `D<N>`).
 - `project/design/INDEX.md` — the manifest: each Decision → its file, plus a sorted `R-id → Decision/file` reverse map. It is the grep target for resolving an id.
 

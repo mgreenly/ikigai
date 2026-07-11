@@ -1,6 +1,6 @@
 # wiki — Product
 
-**Authority: intent.** This document owns *why* the wiki exists, *for whom*, what is in and out of scope, and what we **promise** the user — in outcome terms only. Mechanism, data formats, schema, exit codes, and test assertions live in `project/design/design.md`. Where the two touch observable behavior, product states the *promise* and design states the *exact, checkable proof*; that boundary keeps product, design, and plan from overlapping.
+**Authority: intent.** This document owns *why* the wiki exists, *for whom*, what is in and out of scope, and what we **promise** the user — in outcome terms only. Mechanism, data formats, schema, exit codes, and test assertions live in `project/design/README.md`. Where the two touch observable behavior, product states the *promise* and design states the *exact, checkable proof*; that boundary keeps product, design, and plan from overlapping.
 
 ## Problem
 

@@ -4,7 +4,7 @@
 *for whom*, what is in and out of scope, and what we **promise** — in outcome
 terms only. Mechanism (handlers, templates, the Carbon tokens, the nginx
 fragment, the MCP transport, the tool descriptors, the guide document) and its
-checkable proof live in `project/design/design.md`. Where the two touch
+checkable proof live in `project/design/README.md`. Where the two touch
 observable behavior, product states the *promise* and design states the *exact,
 checkable form*; that boundary keeps product, design, and plan from overlapping.
 

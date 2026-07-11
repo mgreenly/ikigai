@@ -17,7 +17,7 @@ of the folders below. Paths are written relative to the **service root**
 | `requests/` | free-form feature requests | free-form (not mode-owned) |
 | `loops/` | the `ralph` build-loop prompts: `gather.md`, `build.md`, `verify.md` (+ the ephemeral `brief.md`) | build-loop infrastructure |
 
-The four **spine documents** (`product/product.md`, `research/research.md`,
+The four **spine documents** (`product/README.md`, `research/research.md`,
 `design/README.md`, `plan/README.md`) are each singular and owned by a `/*-mode`
 command — that command is the sanctioned way to change them. The `bugs/`,
 `requests/`, and extra `research/*-research.md` notes are informal scratch and are

@@ -1,7 +1,7 @@
 # wiki — Research: the `ask` retrieval upgrade
 
 **Status: informational, non-contractual.** This doc feeds the author of
-`project/design/design.md` and nothing downstream consumes it (the autonomous
+`project/design/README.md` and nothing downstream consumes it (the autonomous
 build reads only product, design, plan). It is a single coherent statement of
 current research — edited in place as the goal evolves, never appended to.
 

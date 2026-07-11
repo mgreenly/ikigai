@@ -3,7 +3,7 @@
 **Authority: construction order and history.** This document — and the
 `project/plan/` directory it heads — owns the order in which the webhooks service
 is built and the record of what has been built. It does **not** restate *why*
-(that is `project/product/product.md`) or *how/proof* (that is
+(that is `project/product/README.md`) or *how/proof* (that is
 `project/design/`); it orders design's Decisions into dependency-respecting
 phases and tracks which are done. The plan is **append-only**: a completed phase
 is never rewritten or deleted, so this directory doubles as the construction

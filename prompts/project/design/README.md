@@ -1,4 +1,4 @@
-# prompts agentkit migration — Design
+# prompts — Design
 
 **Authority: shape and its proof.** This document owns *how* the migration is built and *how each behavior is verified*. The product doc owns the *why* and the user-facing promises; this doc uses the product's contractual constants (provider names, config keys) by value but does not restate the intent behind them. Design states the exact, checkable form of those promises — mechanism, interfaces, types, naming, test strategy. This is the single current statement of the architecture: when a decision changes, its `DNN.md` is rewritten in place; history lives in the plan.
 

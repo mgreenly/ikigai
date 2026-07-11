@@ -39,12 +39,12 @@ The design+plan workspace lives entirely under **`wiki/project/`** (not the
 repo-root `docs/`, which is suite-level only); `project/README.md` is the map of
 that workspace. The convention:
 
-- **Design** is rewritten in place: `project/design/design.md` (the spine) +
+- **Design** is rewritten in place: `project/design/README.md` (the spine) +
   `project/design/DNN.md` (one file per Decision) + `project/design/INDEX.md` (the
   manifest and the sorted `R-id → Decision` reverse map). Add a Decision by
   appending the next `DNN.md` and an INDEX entry — never renumber, never edit a
   shipped Decision's existing ids.
-- **Plan** is append-only: `project/plan/plan.md` (the spine) + `project/plan/phase-NN.md`
+- **Plan** is append-only: `project/plan/README.md` (the spine) + `project/plan/phase-NN.md`
   (one per phase) + `project/plan/STATUS.md` (the manifest — the **only** place a
   phase's `⬜`/`✅` marker lives). Extend by appending the next `phase-NN.md` and
   one STATUS line; never rewrite a finished phase except to flip its marker.

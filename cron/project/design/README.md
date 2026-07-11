@@ -4,7 +4,7 @@
 directory it heads own *how* cron's web landing page is built **and how cron
 conforms to the appkit chassis reference shape** (the `share/www` web surface,
 the `appkit/mcp` tool table, `registry` ports, the inline composition root, the
-`internal/db` shim deletion) — and *how each behavior is proven*. The product (`project/product/product.md`) owns the *why*,
+`internal/db` shim deletion) — and *how each behavior is proven*. The product (`project/product/README.md`) owns the *why*,
 *for whom*, and the user-facing promises; design states the **exact, checkable
 form** of those promises and never re-declares the why. Design *uses* the
 product's contractual constants by value (the page lives at the mount root only;
@@ -137,7 +137,7 @@ approach every Decision's Verification list assumes:
 The design is split for addressability so a build phase reads only the one
 Decision it realizes:
 
-- `project/design/design.md` — this spine: static cross-cutting facts only, no
+- `project/design/README.md` — this spine: static cross-cutting facts only, no
   per-Decision detail.
 - `project/design/DNN.md` — one self-contained file per Decision (zero-padded:
   `D01.md`, `D02.md`, …; referenced in prose and the plan as `D<N>`).

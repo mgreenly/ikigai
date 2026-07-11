@@ -95,7 +95,7 @@ Promised values the design must honor verbatim and never re-declare:
   the `webhooks` service. `github` neither produces nor consumes events and serves
   no `/feed`.
 
-## What we promise (caller-facing behavior)
+## What we promise (user-facing behavior)
 
 - **An agent can act on the org's GitHub through tools alone** — a `prompts` run
   discovers the `github` tools automatically and can read a pull request, leave a

@@ -1,7 +1,7 @@
 # github — Design
 
 **Authority: shape and its proof.** This directory owns *how* `github` is built
-and *how each behavior is proven*. The product (`project/product/product.md`) owns
+and *how each behavior is proven*. The product (`project/product/README.md`) owns
 the *why* and the caller-facing promises; design states the **exact, checkable
 form** of those promises and never re-declares the why. Design *uses* the
 product's contractual constants (org `ikigenba`, loopback port `3203`, bot-only
