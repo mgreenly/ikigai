@@ -709,6 +709,68 @@ func TestNginxStaticAssetsLocationSessionGated(t *testing.T) {
 	}
 }
 
+func TestNginxSessionGatedLocationsUseLoginBounce(t *testing.T) {
+	// R-465K-NCPV
+	conf := readNginxConfig(t)
+	for _, opener := range []string{
+		"location = /srv/scripts/ {",
+		"location /srv/scripts/static/ {",
+	} {
+		block := nginxLocationBlock(t, conf, opener)
+		for _, want := range []string{
+			"auth_request /_session-authn;",
+			"error_page 401 = @login_bounce;",
+		} {
+			if !strings.Contains(block, want) {
+				t.Fatalf("session-gated block %q missing %q:\n%s", opener, want, block)
+			}
+		}
+	}
+}
+
+func TestNginxBearerLocationDoesNotUseLoginBounce(t *testing.T) {
+	// R-47DH-14GK
+	block := nginxLocationBlock(t, readNginxConfig(t), "location /srv/scripts/ {")
+	if !strings.Contains(block, "auth_request /_authn;") {
+		t.Fatalf("bearer block must retain bearer auth_request:\n%s", block)
+	}
+	if strings.Contains(block, "error_page 401 = @login_bounce;") {
+		t.Fatalf("bearer block must not redirect 401 responses to login:\n%s", block)
+	}
+}
+
+func TestNginxLoginBounceOptInRetainsExistingLocationsAndDirectives(t *testing.T) {
+	// R-49T9-SNXY
+	conf := readNginxConfig(t)
+	for _, want := range []string{
+		"location = /srv/scripts/.well-known/oauth-protected-resource {",
+		"location = /srv/scripts/feed { return 404; }",
+		"location = /srv/scripts/ {",
+		"location /srv/scripts/static/ {",
+		"location /srv/scripts/ {",
+		"location @prompts_authn_500 {",
+	} {
+		if !strings.Contains(conf, want) {
+			t.Fatalf("nginx config missing pre-existing location %q", want)
+		}
+	}
+
+	for _, check := range []struct {
+		opener string
+		want   string
+	}{
+		{"location = /srv/scripts/ {", "auth_request /_session-authn;"},
+		{"location = /srv/scripts/ {", "proxy_pass http://127.0.0.1:3003/;"},
+		{"location /srv/scripts/static/ {", "auth_request /_session-authn;"},
+		{"location /srv/scripts/static/ {", "proxy_pass http://127.0.0.1:3003/static/;"},
+	} {
+		block := nginxLocationBlock(t, conf, check.opener)
+		if !strings.Contains(block, check.want) {
+			t.Fatalf("location %q no longer contains %q:\n%s", check.opener, check.want, block)
+		}
+	}
+}
+
 // R-4LKF-FB23
 func TestScriptsBootsFromOpsctlLayoutAndServesHealth(t *testing.T) {
 	// R-RUNS-BOOT
