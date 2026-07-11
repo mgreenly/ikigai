@@ -790,6 +790,51 @@ func TestNginxFragmentProxiesPublicAndSessionGatesPrivateTiers(t *testing.T) {
 	}
 }
 
+func TestNginxFragmentBouncesOnlySessionGatedLocations(t *testing.T) {
+	conf := readNginxConfig(t)
+	sessionLocations := map[string]string{
+		"location = /srv/sites/":       "proxy_pass http://127.0.0.1:3004/;",
+		"location /srv/sites/static/":  "proxy_pass http://127.0.0.1:3004/static/;",
+		"location /srv/sites/private/": "proxy_pass http://127.0.0.1:3004/private/;",
+	}
+
+	// R-XVIT-1NXD
+	for location, proxyPass := range sessionLocations {
+		block := nginxLocationBlock(t, conf, location)
+		for _, directive := range []string{"auth_request /_session-authn;", "error_page 401 = @login_bounce;"} {
+			if !strings.Contains(block, directive) {
+				t.Fatalf("%s missing session bounce directive %q:\n%s", location, directive, block)
+			}
+		}
+
+		// R-XXYL-T7ER
+		if !strings.Contains(block, proxyPass) {
+			t.Fatalf("%s does not preserve proxy directive %q:\n%s", location, proxyPass, block)
+		}
+	}
+
+	// R-XWQP-FFO2
+	for _, location := range []string{"location /srv/sites/public/", "location = /srv/sites/mcp"} {
+		block := nginxLocationBlock(t, conf, location)
+		if strings.Contains(block, "error_page 401 = @login_bounce;") {
+			t.Fatalf("%s must not bounce a 401 to the session login:\n%s", location, block)
+		}
+	}
+
+	// R-XXYL-T7ER
+	for _, location := range []string{
+		"location = /srv/sites/.well-known/oauth-protected-resource",
+		"location = /srv/sites/mcp",
+		"location = /srv/sites/",
+		"location /srv/sites/static/",
+		"location /srv/sites/public/",
+		"location /srv/sites/private/",
+		"location @sites_authn_500",
+	} {
+		_ = nginxLocationBlock(t, conf, location)
+	}
+}
+
 // R-4LKF-FB23
 func TestSitesBootsFromOpsctlLayoutAndServesHealth(t *testing.T) {
 	root := t.TempDir()
