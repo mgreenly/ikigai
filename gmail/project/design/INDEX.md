@@ -18,13 +18,17 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - D12 → `project/design/D12.md` — Prove no loopback-port literal survives, and guard the deploy artifacts against registry drift — owns R-9RMC-Y6QU, R-9SU9-BYHJ
 - D13 → `project/design/D13.md` — Composition-root normalization: the `appkit.Spec` inline in `cmd/gmail/main.go` — none (structural)
 - D14 → `project/design/D14.md` — Delete the chassis shims (`internal/db` wrappers) and true up the doctrine doc — none (structural)
+- D15 → `project/design/D15.md` — The session-gated locations opt into the apex `@login_bounce`: a logged-out human navigation goes to sign-in, not a bare 401 (bearer tier deliberately excluded) — owns R-3YU6-CQ9P, R-4022-QI0E, R-419Z-49R3
 
 ## Verification ids → Decision
 
 - R-3X4A-Y8CI → D8 → `project/design/D08.md`
 - R-3YC7-C037 → D8 → `project/design/D08.md`
+- R-3YU6-CQ9P → D15 → `project/design/D15.md`
 - R-3ZK3-PRTW → D8 → `project/design/D08.md`
+- R-4022-QI0E → D15 → `project/design/D15.md`
 - R-40S0-3JKL → D8 → `project/design/D08.md`
+- R-419Z-49R3 → D15 → `project/design/D15.md`
 - R-41ZW-HBBA → D8 → `project/design/D08.md`
 - R-9LIV-1C1D → D9 → `project/design/D09.md`
 - R-9MQR-F3S2 → D9 → `project/design/D09.md`

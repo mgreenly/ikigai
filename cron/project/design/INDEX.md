@@ -16,6 +16,7 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - D10 → `project/design/D10.md` — MCP surface over `appkit/mcp`: `internal/mcp` becomes the tool table — owns R-LS2J-73T5
 - D11 → `project/design/D11.md` — Adopt `registry`: resolve cron's port by name and guard the deploy artifacts against drift — owns R-LTAF-KVJU, R-LUIB-YNAJ, R-LVQ8-CF18
 - D12 → `project/design/D12.md` — Delete the chassis shims (`internal/db` wrappers) and true up the doctrine header — none (structural)
+- D13 → `project/design/D13.md` — The session-gated locations opt into the apex `@login_bounce`: a logged-out human navigation goes to sign-in, not a bare 401 (bearer tier deliberately excluded) — owns R-3V6H-7F1M, R-3WED-L6SB, R-3XM9-YYJ0
 
 ## Verification ids → Decision
 
@@ -24,6 +25,9 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - R-23T7-D8EH → D7 → `project/design/D07.md`
 - R-2513-R056 → D7 → `project/design/D07.md`
 - R-2690-4RVV → D7 → `project/design/D07.md`
+- R-3V6H-7F1M → D13 → `project/design/D13.md`
+- R-3WED-L6SB → D13 → `project/design/D13.md`
+- R-3XM9-YYJ0 → D13 → `project/design/D13.md`
 - R-ASST-3V7W → D3 → `project/design/D03.md`
 - R-ASST-5X9Y → D3 → `project/design/D03.md`
 - R-ASST-7Z2A → D3 → `project/design/D03.md`

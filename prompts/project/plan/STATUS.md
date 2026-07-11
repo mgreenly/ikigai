@@ -26,3 +26,4 @@ Phase 21 ✅ realizes D18 — delete the `internal/db` `Open`/`Migrate` wrappers
 Phase 22 ✅ realizes D6 (rewritten: deferred groups) — Suite discovery returns deferred tool groups (mcpclient Initialize + per-peer DeferredToolGroup)
 Phase 23 ✅ realizes D19, D7 (assembly) — Runner wires DeferredTools, framing-prompt guidance, agentkit bump to v0.2.0
 Phase 24 ✅ realizes D19 (amended) — agentkit v0.2.1: framing prompt states group-name loading (a service's name loads all its tools), go.mod pin bumps to v0.2.1; covers R-A69O-ATWI
+Phase 25 ⬜ realizes D20 — add `error_page 401 = @login_bounce;` to the two session-gated locations in `prompts/etc/nginx.conf` (`= /srv/prompts/`, `/srv/prompts/static/`), leaving the bearer tier untouched; purely additive, proven by extending the `cmd/prompts/web_test.go` nginx content assertions; covers R-3RIS-23TJ, R-3SQO-FVK8, R-3TYK-TNAX

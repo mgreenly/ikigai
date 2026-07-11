@@ -63,6 +63,7 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - D57 → `project/design/D57.md` — Adopt the MCP self-discovery convention: instructions, lean tool descriptions, a `guide` tool — owns R-YDS9-MBQZ, R-YF06-03HO, R-YG82-DV8D, R-YHFY-RMZ2, R-YINV-5EPR
 - D58 → `project/design/D58.md` — Inline first-occurrence subject links: the positional matcher + markdown-safe linkifier (`internal/wiki`) — owns R-82BY-EKDH, R-83JU-SC46, R-84RR-63UV, R-877J-XNC9, R-88FG-BF2Y, R-89NC-P6TN, R-8AV9-2YKC, R-8C35-GQB1
 - D59 → `project/design/D59.md` — Every user-facing subject link is a fully-qualified front-door URL (retire the web-relative rule) — owns R-8I6N-DL0I, R-8JEJ-RCR7
+- D60 → `project/design/D60.md` — nginx: the session-gated web locations opt into the apex `@login_bounce` (bearer prefix excluded) — none (structural; config — proven by a named-fragment check phase)
 
 ## Verification ids → Decision
 

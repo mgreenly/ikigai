@@ -13,9 +13,13 @@ Verification ids change.
 - D4 → `project/design/D04.md` — The MCP tool surface — owns `R-EEWI-J569`, `R-EHCB-AONN`, `R-EIK7-OGEC`, `R-EJS4-2851`, `R-EL00-FZVQ`, `R-EM7W-TRMF`, `R-ENFT-7JD4`
 - D5 → `project/design/D05.md` — The loopback `GET /pr` twin for scripts — owns `R-EPVL-Z2UI`, `R-ER3I-CUL7`, `R-ETJB-4E2L`
 - D6 → `project/design/D06.md` — The landing page and nginx fragment — owns `R-EVZ3-VXJZ`, `R-XSOU-THYE`, `R-XTWR-79P3`, `R-7NJI-UTHM`, `R-7PZB-MCZ0`, `R-EX70-9PAO`, `R-XV4N-L1FS`, `R-XWCJ-YT6H`, `R-XXKG-CKX6`, `R-XYSC-QCNV`, `R-EYEW-NH1D`
+- D7 → `project/design/D07.md` — The session-gated locations opt into the apex `@login_bounce`: a logged-out human navigation goes to sign-in, not a bare 401 (bearer tier deliberately excluded) — owns `R-42HV-I1HS`, `R-43PR-VT8H`, `R-44XO-9KZ6`
 
 ## Verification ids → Decision
 
+- R-42HV-I1HS → D7 — `project/design/D07.md`
+- R-43PR-VT8H → D7 — `project/design/D07.md`
+- R-44XO-9KZ6 → D7 — `project/design/D07.md`
 - R-7NJI-UTHM → D6 — `project/design/D06.md`
 - R-7PZB-MCZ0 → D6 — `project/design/D06.md`
 - R-D0IM-VQ7H → D3 — `project/design/D03.md`

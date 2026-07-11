@@ -25,11 +25,15 @@ Each Decision maps to its `DNN.md` file. Every `R-XXXX-XXXX` id maps to its Deci
 | D17 | project/design/D17.md | MCP surface over `appkit/mcp`: `internal/mcp` becomes the tool table | R-DKQP-QZ3Q, R-DLYM-4QUF |
 | D18 | project/design/D18.md | Delete the chassis shims (`internal/db` wrappers) and true up the doctrine doc | none — structural |
 | D19 | project/design/D19.md | Progressive suite-tool discovery (deferred suite tools) | R-9NBD-XAU5, R-9OJA-B2KU, R-9PR6-OUBJ, R-A69O-ATWI |
+| D20 | project/design/D20.md | Session-gated locations opt into the apex `@login_bounce` (bearer tier excluded) | R-3RIS-23TJ, R-3SQO-FVK8, R-3TYK-TNAX |
 
 ## Verification ids → Decision
 
 | id | Decision | File |
 |----|----------|------|
+| R-3RIS-23TJ | D20 | project/design/D20.md |
+| R-3SQO-FVK8 | D20 | project/design/D20.md |
+| R-3TYK-TNAX | D20 | project/design/D20.md |
 | R-9JNO-RZM2 | D6 | project/design/D06.md |
 | R-9KVL-5RCR | D6 | project/design/D06.md |
 | R-9M3H-JJ3G | D6 | project/design/D06.md |
@@ -37,6 +41,18 @@ Each Decision maps to its `DNN.md` file. Every `R-XXXX-XXXX` id maps to its Deci
 | R-9OJA-B2KU | D19 | project/design/D19.md |
 | R-9PR6-OUBJ | D19 | project/design/D19.md |
 | R-A69O-ATWI | D19 | project/design/D19.md |
+| R-DFKP-IVZU | D13 | project/design/D13.md |
+| R-DFV4-7W4Y | D15 | project/design/D15.md |
+| R-DGSL-WNQJ | D13 | project/design/D13.md |
+| R-DH30-LNVN | D15 | project/design/D15.md |
+| R-DI0I-AFH8 | D13 | project/design/D13.md |
+| R-DIAW-ZFMC | D16 | project/design/D16.md |
+| R-DJ8E-O77X | D13 | project/design/D13.md |
+| R-DJIT-D7D1 | D16 | project/design/D16.md |
+| R-DKGB-1YYM | D13 | project/design/D13.md |
+| R-DKQP-QZ3Q | D17 | project/design/D17.md |
+| R-DLYM-4QUF | D17 | project/design/D17.md |
+| R-HOME-2T4X | D12 | project/design/D12.md |
 | R-JTBA-4RDB | D2 | project/design/D02.md |
 | R-JUJ6-IJ40 | D2 | project/design/D02.md |
 | R-JVR2-WAUP | D3 | project/design/D03.md |
@@ -60,18 +76,6 @@ Each Decision maps to its `DNN.md` file. Every `R-XXXX-XXXX` id maps to its Deci
 | R-LAND-PG01 | D10 | project/design/D10.md |
 | R-LAND-ROOT | D10 | project/design/D10.md |
 | R-LAND-UNGT | D10 | project/design/D10.md |
-| R-HOME-2T4X | D12 | project/design/D12.md |
-| R-DFKP-IVZU | D13 | project/design/D13.md |
-| R-DGSL-WNQJ | D13 | project/design/D13.md |
-| R-DI0I-AFH8 | D13 | project/design/D13.md |
-| R-DJ8E-O77X | D13 | project/design/D13.md |
-| R-DKGB-1YYM | D13 | project/design/D13.md |
 | R-RG01-PORT | D14 | project/design/D14.md |
 | R-RG03-DBOX | D14 | project/design/D14.md |
 | R-RG04-NLIT | D14 | project/design/D14.md |
-| R-DFV4-7W4Y | D15 | project/design/D15.md |
-| R-DH30-LNVN | D15 | project/design/D15.md |
-| R-DIAW-ZFMC | D16 | project/design/D16.md |
-| R-DJIT-D7D1 | D16 | project/design/D16.md |
-| R-DKQP-QZ3Q | D17 | project/design/D17.md |
-| R-DLYM-4QUF | D17 | project/design/D17.md |

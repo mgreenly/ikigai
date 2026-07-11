@@ -20,21 +20,31 @@ Verification ids change.
 - D11 → `project/design/D11.md` — Web surface from `share/www` through the chassis (de-embed) — R-0GVM-EPJ9, R-0I3I-SH9Y
 - D12 → `project/design/D12.md` — MCP surface over `appkit/mcp` (`internal/mcp` becomes the tool table) — R-0JBF-690N
 - D13 → `project/design/D13.md` — Delete the `internal/db` shim, normalize the composition root, true up the doctrine — (structural; no ids)
+- D14 → `project/design/D14.md` — The session-gated locations opt into the apex `@login_bounce`: a logged-out human navigation goes to sign-in, not a bare 401 (bearer tier deliberately excluded) — R-4B16-6FON, R-4C92-K7FC, R-4DGY-XZ61
 
 ## Verification ids → Decision
 
-- R-IC14-FKIK → D1 — `project/design/D01.md`
-- R-ID90-TC99 → D1 — `project/design/D01.md`
-- R-SZ8I-R4EY → D2 — `project/design/D02.md`
-- R-T0GF-4W5N → D2 — `project/design/D02.md`
-- R-T1OB-INWC → D2 — `project/design/D02.md`
-- R-T2W7-WFN1 → D2 — `project/design/D02.md`
+- R-0D7X-9EB6 → D10 — `project/design/D10.md`
+- R-0EFT-N61V → D10 — `project/design/D10.md`
+- R-0FNQ-0XSK → D10 — `project/design/D10.md`
+- R-0GVM-EPJ9 → D11 — `project/design/D11.md`
+- R-0I3I-SH9Y → D11 — `project/design/D11.md`
+- R-0JBF-690N → D12 — `project/design/D12.md`
 - R-37GT-C05G → D3 — `project/design/D03.md`
 - R-38OP-PRW5 → D3 — `project/design/D03.md`
 - R-39WM-3JMU → D3 — `project/design/D03.md`
 - R-3CCE-V348 → D3 — `project/design/D03.md`
 - R-3DKB-8UUX → D3 — `project/design/D03.md`
 - R-3ES7-MMLM → D3 — `project/design/D03.md`
+- R-4B16-6FON → D14 — `project/design/D14.md`
+- R-4C92-K7FC → D14 — `project/design/D14.md`
+- R-4DGY-XZ61 → D14 — `project/design/D14.md`
+- R-5Z8J-Y0YP → D6 — `project/design/D06.md`
+- R-60GG-BSPE → D6 — `project/design/D06.md`
+- R-61OC-PKG3 → D6 — `project/design/D06.md`
+- R-62W9-3C6S → D6 — `project/design/D06.md`
+- R-6445-H3XH → D6 — `project/design/D06.md`
+- R-65C1-UVO6 → D6 — `project/design/D06.md`
 - R-7ISQ-ZZCF → D4 — `project/design/D04.md`
 - R-7K0N-DR34 → D4 — `project/design/D04.md`
 - R-7L8J-RITT → D4 — `project/design/D04.md`
@@ -45,29 +55,23 @@ Verification ids change.
 - R-GWAS-21YA → D5 — `project/design/D05.md`
 - R-GXIO-FTOZ → D5 — `project/design/D05.md`
 - R-GYQK-TLFO → D5 — `project/design/D05.md`
-- R-5Z8J-Y0YP → D6 — `project/design/D06.md`
-- R-60GG-BSPE → D6 — `project/design/D06.md`
-- R-61OC-PKG3 → D6 — `project/design/D06.md`
-- R-62W9-3C6S → D6 — `project/design/D06.md`
-- R-6445-H3XH → D6 — `project/design/D06.md`
-- R-65C1-UVO6 → D6 — `project/design/D06.md`
+- R-IC14-FKIK → D1 — `project/design/D01.md`
+- R-ID90-TC99 → D1 — `project/design/D01.md`
 - R-OD12-3CVG → D7 — `project/design/D07.md`
 - R-OE8Y-H4M5 → D7 — `project/design/D07.md`
 - R-OFGU-UWCU → D7 — `project/design/D07.md`
 - R-OGOR-8O3J → D7 — `project/design/D07.md`
-- R-TTUW-5O3V → D7 — `project/design/D07.md`
-- R-TV2S-JFUK → D7 — `project/design/D07.md`
-- R-TWAO-X7L9 → D7 — `project/design/D07.md`
-- R-UELV-YLA4 → D8 — `project/design/D08.md`
-- R-UFTS-CD0T → D8 — `project/design/D08.md`
+- R-SZ8I-R4EY → D2 — `project/design/D02.md`
+- R-T0GF-4W5N → D2 — `project/design/D02.md`
+- R-T1OB-INWC → D2 — `project/design/D02.md`
+- R-T2W7-WFN1 → D2 — `project/design/D02.md`
 - R-TMJH-V1NP → D9 — `project/design/D09.md`
 - R-TNRE-8TEE → D9 — `project/design/D09.md`
 - R-TOZA-ML53 → D9 — `project/design/D09.md`
 - R-TQ77-0CVS → D9 — `project/design/D09.md`
 - R-TRF3-E4MH → D9 — `project/design/D09.md`
-- R-0D7X-9EB6 → D10 — `project/design/D10.md`
-- R-0EFT-N61V → D10 — `project/design/D10.md`
-- R-0FNQ-0XSK → D10 — `project/design/D10.md`
-- R-0GVM-EPJ9 → D11 — `project/design/D11.md`
-- R-0I3I-SH9Y → D11 — `project/design/D11.md`
-- R-0JBF-690N → D12 — `project/design/D12.md`
+- R-TTUW-5O3V → D7 — `project/design/D07.md`
+- R-TV2S-JFUK → D7 — `project/design/D07.md`
+- R-TWAO-X7L9 → D7 — `project/design/D07.md`
+- R-UELV-YLA4 → D8 — `project/design/D08.md`
+- R-UFTS-CD0T → D8 — `project/design/D08.md`

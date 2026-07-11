@@ -18,9 +18,13 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - D12 → `project/design/D12.md` — Web surface from `share/www` through the chassis (de-embed; `Spec.WWW`, delete `internal/web`) — owns R-4FW1-V9QL, R-4H3Y-91HA
 - D13 → `project/design/D13.md` — MCP surface over `appkit/mcp`: `internal/mcp` becomes the `send` tool table — owns R-4IBU-MT7Z
 - D14 → `project/design/D14.md` — Delete the chassis shims (`internal/db` wrappers) and true up the doctrine doc — none (structural)
+- D15 → `project/design/D15.md` — The session-gated locations opt into the apex `@login_bounce`: a logged-out human navigation goes to sign-in, not a bare 401 (bearer tier deliberately excluded) — owns R-3IZH-DPMO, R-3K7D-RHDD, R-3LFA-5942
 
 ## Verification ids → Decision
 
+- R-3IZH-DPMO → D15 → `project/design/D15.md`
+- R-3K7D-RHDD → D15 → `project/design/D15.md`
+- R-3LFA-5942 → D15 → `project/design/D15.md`
 - R-4DG9-3Q97 → D11 → `project/design/D11.md`
 - R-4EO5-HHZW → D11 → `project/design/D11.md`
 - R-4FW1-V9QL → D12 → `project/design/D12.md`

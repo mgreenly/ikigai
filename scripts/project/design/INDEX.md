@@ -18,9 +18,16 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - D12 → `project/design/D12.md` — Web surface from `share/www` through the chassis (de-embed; `Spec.WWW`, delete `internal/web`) — owns R-8Z2T-SF7W, R-90AQ-66YL
 - D13 → `project/design/D13.md` — MCP surface over `appkit/mcp`: `internal/mcp` becomes the sixteen-tool domain table; chassis `health`+`reflection` added; runtime contract moves to `Spec.Health` — owns R-91IM-JYPA, R-92QI-XQFZ
 - D14 → `project/design/D14.md` — Delete the `internal/db` open/migrate shim and true up the doctrine — none (structural)
+- D15 → `project/design/D15.md` — The session-gated locations opt into the apex `@login_bounce`: a logged-out human navigation goes to sign-in, not a bare 401 (bearer tier deliberately excluded) — owns R-465K-NCPV, R-47DH-14GK, R-49T9-SNXY
+- D16 → `project/design/D16.md` — Rename the bearer tier's prompts-named identity plumbing (`$prompts_owner`/`$prompts_client`/`@prompts_authn_500`) to scripts-owned names — owns R-4EOV-BQWQ, R-4FWR-PINF
 
 ## Verification ids → Decision
 
+- R-465K-NCPV → D15 → `project/design/D15.md`
+- R-47DH-14GK → D15 → `project/design/D15.md`
+- R-49T9-SNXY → D15 → `project/design/D15.md`
+- R-4EOV-BQWQ → D16 → `project/design/D16.md`
+- R-4FWR-PINF → D16 → `project/design/D16.md`
 - R-8WN1-0VQI → D11 → `project/design/D11.md`
 - R-8XUX-ENH7 → D11 → `project/design/D11.md`
 - R-8Z2T-SF7W → D12 → `project/design/D12.md`

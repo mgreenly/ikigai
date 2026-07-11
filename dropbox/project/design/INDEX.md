@@ -24,9 +24,13 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - D18 → `project/design/D18.md` — Origin-tagged file events (`origin` payload field: writing client id, or `dropbox`) — owns R-KO9V-DF5Z, R-KPHR-R6WO, R-KQPO-4YND
 - D19 → `project/design/D19.md` — MCP write tools (`put`/`mkdir`/`delete`/`move`; capped base64 small-file convenience) — owns R-KRXK-IQE2, R-KT5G-WI4R, R-KUDD-A9VG
 - D20 → `project/design/D20.md` — The `dropbox/docs/` filesystem-API reference + route-coverage guard — owns R-KVL9-O1M5, R-KWT6-1TCU
+- D21 → `project/design/D21.md` — The session-gated locations opt into the apex `@login_bounce`: a logged-out human navigation goes to sign-in, not a bare 401 (bearer tier deliberately excluded) — owns R-3MN6-J0UR, R-3NV2-WSLG, R-3P2Z-AKC5
 
 ## Verification ids → Decision
 
+- R-3MN6-J0UR → D21 → `project/design/D21.md`
+- R-3NV2-WSLG → D21 → `project/design/D21.md`
+- R-3P2Z-AKC5 → D21 → `project/design/D21.md`
 - R-ASST-3H6J → D3 → `project/design/D03.md`
 - R-ASST-5K8L → D3 → `project/design/D03.md`
 - R-ASST-7M1N → D3 → `project/design/D03.md`
