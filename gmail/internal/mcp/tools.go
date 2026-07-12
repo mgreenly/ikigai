@@ -139,7 +139,7 @@ func Tools(client Client, contentBase string) []appkitmcp.Tool {
 		},
 		{
 			Name:        tool("read"),
-			Description: "Read a full message by id: its headers, snippet, label ids, and attachment entries (filename, size, mime_type, attachment_id, content_url). content_url is a loopback URL for services to fetch bytes; agents pass the reference rather than fetching it.",
+			Description: "Read a full message by id: its headers, snippet, label ids, and attachment entries (filename, size, mime_type, content_url). content_url is a durable loopback reference for services to fetch bytes; agents pass it rather than fetching it.",
 			InputSchema: obj(map[string]any{
 				"id": descTyp("string", "the message id (from list/search or an event payload)"),
 			}, "id"),
@@ -149,7 +149,7 @@ func Tools(client Client, contentBase string) []appkitmcp.Tool {
 		},
 		{
 			Name:        tool("thread"),
-			Description: "Read a whole thread by id: the thread's messages in order, each with headers, snippet, label ids, and attachment entries (filename, size, mime_type, attachment_id, content_url). content_url is a loopback URL for services to fetch bytes; agents pass the reference rather than fetching it.",
+			Description: "Read a whole thread by id: the thread's messages in order, each with headers, snippet, label ids, and attachment entries (filename, size, mime_type, content_url). content_url is a durable loopback reference for services to fetch bytes; agents pass it rather than fetching it.",
 			InputSchema: obj(map[string]any{
 				"id": descTyp("string", "the thread id (thread_id from a message or event payload)"),
 			}, "id"),
@@ -525,7 +525,7 @@ func collectHeaders(p gm.MessagePart, out map[string]string) {
 
 // collectAttachments walks the MIME tree and records every part that carries a
 // filename (an attachment) as {filename, size, mime_type}; attachment-backed
-// parts also get their raw attachment_id and a complete, encoded content_url.
+// parts with stable IDs also get a complete, encoded content_url.
 func collectAttachments(p gm.MessagePart, messageID, contentBase string, out *[]map[string]any) {
 	if p.Filename != "" {
 		attachment := map[string]any{
@@ -533,11 +533,10 @@ func collectAttachments(p gm.MessagePart, messageID, contentBase string, out *[]
 			"size":      p.Body.Size,
 			"mime_type": p.MimeType,
 		}
-		if p.Body.AttachmentID != "" {
-			attachment["attachment_id"] = p.Body.AttachmentID
+		if p.Body.AttachmentID != "" && p.PartID != "" {
 			attachment["content_url"] = contentBase + "/attachment?" + url.Values{
-				"message_id":    []string{messageID},
-				"attachment_id": []string{p.Body.AttachmentID},
+				"message_id": []string{messageID},
+				"part_id":    []string{p.PartID},
 			}.Encode()
 		}
 		*out = append(*out, attachment)

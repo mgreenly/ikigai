@@ -23,8 +23,8 @@ func AttachmentHandler(src AttachmentSource) http.Handler {
 		}
 
 		messageID := r.URL.Query().Get("message_id")
-		attachmentID := r.URL.Query().Get("attachment_id")
-		if messageID == "" || attachmentID == "" {
+		partID := r.URL.Query().Get("part_id")
+		if messageID == "" || partID == "" {
 			http.Error(w, "not found", http.StatusNotFound)
 			return
 		}
@@ -34,7 +34,7 @@ func AttachmentHandler(src AttachmentSource) http.Handler {
 			attachmentError(w, err)
 			return
 		}
-		mimeType, ok := attachmentMIMEType(message.Payload, attachmentID)
+		mimeType, attachmentID, ok := attachmentPart(message.Payload, partID)
 		if !ok {
 			http.Error(w, "not found", http.StatusNotFound)
 			return
@@ -61,14 +61,17 @@ func attachmentError(w http.ResponseWriter, err error) {
 	http.Error(w, "bad gateway", http.StatusBadGateway)
 }
 
-func attachmentMIMEType(part MessagePart, attachmentID string) (string, bool) {
-	if part.Body.AttachmentID == attachmentID {
-		return part.MimeType, true
+func attachmentPart(part MessagePart, partID string) (mimeType, attachmentID string, ok bool) {
+	if part.PartID == partID {
+		if part.Body.AttachmentID == "" {
+			return "", "", false
+		}
+		return part.MimeType, part.Body.AttachmentID, true
 	}
 	for _, child := range part.Parts {
-		if mimeType, ok := attachmentMIMEType(child, attachmentID); ok {
-			return mimeType, true
+		if mimeType, attachmentID, ok := attachmentPart(child, partID); ok {
+			return mimeType, attachmentID, true
 		}
 	}
-	return "", false
+	return "", "", false
 }

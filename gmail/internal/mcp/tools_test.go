@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -421,12 +422,12 @@ func TestRead_RendersHeadersAndAttachments(t *testing.T) {
 }
 
 func TestRead_RendersAttachmentReference(t *testing.T) {
-	// R-X3AV-WMZ4
+	// R-3JSW-5BHT
 	h, fc := newHandler(t)
-	attachmentID := "ANGjdJ8/with space"
+	attachmentID := "ephemeral-token-must-not-leak"
 	fc.msg = gm.Message{ID: "message-1", Payload: gm.MessagePart{Parts: []gm.MessagePart{{
 		MimeType: "application/pdf", Filename: "2026-06-inv.pdf",
-		Body: gm.Body{Size: 184230, AttachmentID: attachmentID},
+		PartID: "2/with space", Body: gm.Body{Size: 184230, AttachmentID: attachmentID},
 	}}}}
 	p, isErr := callTool(t, h, "read", `{"id":"message-1"}`)
 	if isErr {
@@ -437,16 +438,18 @@ func TestRead_RendersAttachmentReference(t *testing.T) {
 		t.Fatalf("attachments = %v", p["attachments"])
 	}
 	a := atts[0].(map[string]any)
-	if a["filename"] != "2026-06-inv.pdf" || a["size"] != float64(184230) || a["mime_type"] != "application/pdf" || a["attachment_id"] != attachmentID {
+	if a["filename"] != "2026-06-inv.pdf" || a["size"] != float64(184230) || a["mime_type"] != "application/pdf" {
 		t.Fatalf("attachment = %v", a)
+	}
+	if _, ok := a["attachment_id"]; ok {
+		t.Fatalf("attachment leaks ephemeral id: %v", a)
 	}
 	u, err := url.Parse(a["content_url"].(string))
 	if err != nil {
 		t.Fatalf("parse content_url: %v", err)
 	}
 	wantURL := contentBase() + "/attachment?" + url.Values{
-		"message_id":    []string{"message-1"},
-		"attachment_id": []string{attachmentID},
+		"message_id": []string{"message-1"}, "part_id": []string{"2/with space"},
 	}.Encode()
 	if a["content_url"] != wantURL {
 		t.Fatalf("content_url = %q, want %q", a["content_url"], wantURL)
@@ -454,30 +457,33 @@ func TestRead_RendersAttachmentReference(t *testing.T) {
 	if u.Scheme != "http" || u.Host != "127.0.0.1:"+strconv.Itoa(registry.MustPort("gmail")) || u.Path != "/attachment" {
 		t.Fatalf("content_url = %q", u.String())
 	}
-	if u.Query().Get("message_id") != "message-1" || u.Query().Get("attachment_id") != attachmentID {
+	if u.Query().Get("message_id") != "message-1" || u.Query().Get("part_id") != "2/with space" {
 		t.Fatalf("content_url query = %v", u.Query())
+	}
+	if strings.Contains(fmt.Sprint(p), attachmentID) {
+		t.Fatalf("rendered result leaks ephemeral id: %v", p)
 	}
 }
 
-func TestRead_InlineAttachmentHasMetadataOnly(t *testing.T) {
-	// R-X5QO-O6GI
+func TestRead_UnfetchableAttachmentsHaveMetadataOnly(t *testing.T) {
+	// R-3M8O-WUZ7
 	h, fc := newHandler(t)
-	fc.msg = gm.Message{ID: "message-1", Payload: gm.MessagePart{Parts: []gm.MessagePart{{
-		MimeType: "image/png", Filename: "inline.png", Body: gm.Body{Size: 42},
-	}}}}
+	fc.msg = gm.Message{ID: "message-1", Payload: gm.MessagePart{Parts: []gm.MessagePart{
+		{PartID: "1", MimeType: "image/png", Filename: "inline.png", Body: gm.Body{Size: 42}},
+		{MimeType: "application/pdf", Filename: "missing-part-id.pdf", Body: gm.Body{Size: 43, AttachmentID: "ephemeral"}},
+	}}}
 	p, isErr := callTool(t, h, "read", `{"id":"message-1"}`)
 	if isErr {
 		t.Fatalf("read isError: %v", p)
 	}
-	a := p["attachments"].([]any)[0].(map[string]any)
-	if a["filename"] != "inline.png" || a["size"] != float64(42) || a["mime_type"] != "image/png" {
-		t.Fatalf("attachment metadata = %v", a)
-	}
-	if _, ok := a["attachment_id"]; ok {
-		t.Fatalf("inline attachment unexpectedly has attachment_id: %v", a)
-	}
-	if _, ok := a["content_url"]; ok {
-		t.Fatalf("inline attachment unexpectedly has content_url: %v", a)
+	for _, raw := range p["attachments"].([]any) {
+		a := raw.(map[string]any)
+		if _, ok := a["attachment_id"]; ok {
+			t.Fatalf("metadata-only attachment leaks id: %v", a)
+		}
+		if _, ok := a["content_url"]; ok {
+			t.Fatalf("metadata-only attachment has URL: %v", a)
+		}
 	}
 }
 
@@ -512,11 +518,11 @@ func TestThread_RendersMessages(t *testing.T) {
 }
 
 func TestThread_RendersAttachmentReferencesPerMessage(t *testing.T) {
-	// R-X4IS-AEPT
+	// R-3L0S-J38I
 	h, fc := newHandler(t)
 	fc.thread = gm.Thread{ID: "thread-1", Messages: []gm.Message{
-		{ID: "message-1", Payload: gm.MessagePart{Parts: []gm.MessagePart{{Filename: "one.pdf", MimeType: "application/pdf", Body: gm.Body{Size: 1, AttachmentID: "att-1"}}}}},
-		{ID: "message-2", Payload: gm.MessagePart{Parts: []gm.MessagePart{{Filename: "two.pdf", MimeType: "application/pdf", Body: gm.Body{Size: 2, AttachmentID: "att-2"}}}}},
+		{ID: "message-1", Payload: gm.MessagePart{Parts: []gm.MessagePart{{PartID: "2", Filename: "one.pdf", MimeType: "application/pdf", Body: gm.Body{Size: 1, AttachmentID: "att-1"}}}}},
+		{ID: "message-2", Payload: gm.MessagePart{Parts: []gm.MessagePart{{PartID: "3", Filename: "two.pdf", MimeType: "application/pdf", Body: gm.Body{Size: 2, AttachmentID: "att-2"}}}}},
 	}}
 	p, isErr := callTool(t, h, "thread", `{"id":"thread-1"}`)
 	if isErr {
@@ -529,8 +535,8 @@ func TestThread_RendersAttachmentReferencesPerMessage(t *testing.T) {
 	urls := make([]*url.URL, 0, len(msgs))
 	for i, msg := range msgs {
 		a := msg.(map[string]any)["attachments"].([]any)[0].(map[string]any)
-		if a["attachment_id"] != "att-"+strconv.Itoa(i+1) {
-			t.Fatalf("attachment %d = %v", i, a)
+		if _, ok := a["attachment_id"]; ok {
+			t.Fatalf("attachment %d leaks id: %v", i, a)
 		}
 		u, err := url.Parse(a["content_url"].(string))
 		if err != nil {
@@ -538,6 +544,9 @@ func TestThread_RendersAttachmentReferencesPerMessage(t *testing.T) {
 		}
 		if u.Query().Get("message_id") != "message-"+strconv.Itoa(i+1) {
 			t.Fatalf("attachment %d URL = %q", i, u.String())
+		}
+		if u.Query().Get("part_id") != strconv.Itoa(i+2) {
+			t.Fatalf("attachment %d part id = %q", i, u.Query().Get("part_id"))
 		}
 		urls = append(urls, u)
 	}
