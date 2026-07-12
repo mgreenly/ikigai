@@ -1,10 +1,14 @@
 package tick
 
 import (
+	"bufio"
 	"context"
 	"database/sql"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -44,24 +48,31 @@ func harness(t *testing.T) (*Worker, *crontab.Store, *sql.DB, context.Context) {
 }
 
 // outboxRows reads every outbox row's type+payload, in seq order.
-func outboxRows(t *testing.T, conn *sql.DB) []event.Payload {
+type outboxRow struct {
+	Kind    string
+	Subject string
+	Payload event.Payload
+}
+
+// outboxRows reads every outbox row's routing address and payload, in seq order.
+func outboxRows(t *testing.T, conn *sql.DB) []outboxRow {
 	t.Helper()
-	rows, err := conn.Query(`SELECT type, payload FROM outbox ORDER BY seq ASC`)
+	rows, err := conn.Query(`SELECT kind, subject, payload FROM outbox ORDER BY seq ASC`)
 	if err != nil {
 		t.Fatalf("query outbox: %v", err)
 	}
 	defer rows.Close()
-	var out []event.Payload
+	var out []outboxRow
 	for rows.Next() {
-		var typ, payload string
-		if err := rows.Scan(&typ, &payload); err != nil {
+		var row outboxRow
+		var payload string
+		if err := rows.Scan(&row.Kind, &row.Subject, &payload); err != nil {
 			t.Fatalf("scan: %v", err)
 		}
-		var p event.Payload
-		if err := json.Unmarshal([]byte(payload), &p); err != nil {
+		if err := json.Unmarshal([]byte(payload), &row.Payload); err != nil {
 			t.Fatalf("unmarshal payload: %v", err)
 		}
-		out = append(out, p)
+		out = append(out, row)
 	}
 	return out
 }
@@ -91,7 +102,7 @@ func TestFire_AtMostOncePerSlot(t *testing.T) {
 	if len(rows) != 1 {
 		t.Fatalf("want exactly 1 outbox row, got %d: %+v", len(rows), rows)
 	}
-	if rows[0].Name != "every" || rows[0].ScheduledFor != "2026-06-06T03:00:00Z" {
+	if rows[0].Payload.Name != "every" || rows[0].Payload.ScheduledFor != "2026-06-06T03:00:00Z" {
 		t.Fatalf("payload wrong: %+v", rows[0])
 	}
 	// last_slot must be recorded.
@@ -123,7 +134,7 @@ func TestFire_NextSlotFiresAgain(t *testing.T) {
 	if len(rows) != 2 {
 		t.Fatalf("want 2 rows (one per slot), got %d", len(rows))
 	}
-	if rows[0].ScheduledFor != "2026-06-06T03:00:00Z" || rows[1].ScheduledFor != "2026-06-06T03:01:00Z" {
+	if rows[0].Payload.ScheduledFor != "2026-06-06T03:00:00Z" || rows[1].Payload.ScheduledFor != "2026-06-06T03:01:00Z" {
 		t.Fatalf("wrong slots in payloads: %+v", rows)
 	}
 }
@@ -148,7 +159,7 @@ func TestFire_MultipleSchedulesOneTick(t *testing.T) {
 	rows := outboxRows(t, conn)
 	names := map[string]bool{}
 	for _, r := range rows {
-		names[r.Name] = true
+		names[r.Payload.Name] = true
 	}
 	if !names["every"] || !names["top-of-hour"] || names["never-now"] || len(rows) != 2 {
 		t.Fatalf("wrong set fired: %+v", rows)
@@ -169,9 +180,94 @@ func TestFire_FiredAtDivergesFromSlot(t *testing.T) {
 	if len(rows) != 1 {
 		t.Fatalf("want 1 row, got %d", len(rows))
 	}
-	if rows[0].ScheduledFor != "2026-06-06T03:00:00Z" || rows[0].FiredAt != "2026-06-06T03:01:30Z" {
-		t.Fatalf("scheduled_for/fired_at wrong: %+v", rows[0])
+	if rows[0].Payload.ScheduledFor != "2026-06-06T03:00:00Z" || rows[0].Payload.FiredAt != "2026-06-06T03:01:30Z" {
+		t.Fatalf("scheduled_for/fired_at wrong: %+v", rows[0].Payload)
 	}
+}
+
+// R-PQH6-2RYI
+func TestFireUsesTickKindAndScheduleSubjectsAtomically(t *testing.T) {
+	w, store, conn, ctx := harness(t)
+	now := time.Now()
+	mustCreate(t, store, ctx, now, "nightly", "* * * * *")
+	mustCreate(t, store, ctx, now, "bill-sweep", "* * * * *")
+	slot := time.Date(2026, 6, 6, 3, 0, 0, 0, time.UTC)
+
+	if n, err := w.Fire(ctx, slot, slot); err != nil || n != 2 {
+		t.Fatalf("first Fire = (%d, %v), want (2, nil)", n, err)
+	}
+	if n, err := w.Fire(ctx, slot, slot); err != nil || n != 0 {
+		t.Fatalf("second Fire = (%d, %v), want (0, nil)", n, err)
+	}
+	rows := outboxRows(t, conn)
+	if len(rows) != 2 {
+		t.Fatalf("outbox rows = %d, want 2", len(rows))
+	}
+	subjects := map[string]bool{}
+	for _, row := range rows {
+		if row.Kind != event.Kind {
+			t.Fatalf("outbox kind = %q, want %q", row.Kind, event.Kind)
+		}
+		subjects[row.Subject] = true
+		entry, err := store.Get(ctx, row.Payload.Name)
+		if err != nil || entry.LastSlot == nil || !tickSlotEqual(*entry.LastSlot, slot) {
+			t.Fatalf("last_slot for %q was not committed with its outbox row: %+v, %v", row.Payload.Name, entry, err)
+		}
+	}
+	if !subjects["/nightly"] || !subjects["/bill-sweep"] || len(subjects) != 2 {
+		t.Fatalf("outbox subjects = %v, want /nightly and /bill-sweep", subjects)
+	}
+}
+
+func tickSlotEqual(a, b time.Time) bool { return Slot(a).Equal(Slot(b)) }
+
+// R-PU4V-836L
+func TestFireServesCanonicalRoutingEnvelope(t *testing.T) {
+	w, store, _, ctx := harness(t)
+	mustCreate(t, store, ctx, time.Now(), "bill-sweep", "* * * * *")
+	slot := time.Date(2026, 6, 6, 3, 0, 0, 0, time.UTC)
+	if n, err := w.Fire(ctx, slot, slot); err != nil || n != 1 {
+		t.Fatalf("Fire = (%d, %v), want (1, nil)", n, err)
+	}
+	srv := httptest.NewServer(w.ob.FeedHandler())
+	defer srv.Close()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, srv.URL, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	scanner := bufio.NewScanner(resp.Body)
+	var frame []string
+	for scanner.Scan() {
+		line := scanner.Text()
+		frame = append(frame, line)
+		if line == "" && len(frame) > 1 {
+			joined := strings.Join(frame, "\n")
+			if strings.Contains(joined, "event: cron:tick/bill-sweep") {
+				data := ""
+				for _, field := range frame {
+					if strings.HasPrefix(field, "data: ") {
+						data = strings.TrimPrefix(field, "data: ")
+						break
+					}
+				}
+				var envelope map[string]json.RawMessage
+				if err := json.Unmarshal([]byte(data), &envelope); err != nil {
+					t.Fatalf("decode event envelope: %v", err)
+				}
+				if _, ok := envelope["type"]; ok || envelope["kind"] == nil || envelope["subject"] == nil {
+					t.Fatalf("routing envelope = %s", data)
+				}
+				return
+			}
+			frame = nil
+		}
+	}
+	t.Fatalf("did not receive cron routing frame: %v", scanner.Err())
 }
 
 func mustCreate(t *testing.T, s *crontab.Store, ctx context.Context, now time.Time, name, expr string) {

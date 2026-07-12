@@ -198,7 +198,7 @@ func TestCreate_WrongFieldCount(t *testing.T) {
 }
 
 // TestCreateThenListGet: a valid expr round-trips through the store and the live
-// type appears in reflection.
+// family appears in reflection.
 func TestCreateThenListGet(t *testing.T) {
 	h, _ := newHandler(t)
 	if _, isErr := call(t, h, "create", map[string]any{
@@ -229,10 +229,60 @@ func TestCreateThenListGet(t *testing.T) {
 	}
 	pubs, _ := refl["publishes"].([]any)
 	if len(pubs) != 1 {
-		t.Fatalf("want 1 published type, got %v", refl["publishes"])
+		t.Fatalf("want 1 published family, got %v", refl["publishes"])
 	}
 	first, _ := pubs[0].(map[string]any)
-	if first["type"] != "cron.nightly" {
-		t.Fatalf("wrong published type: %v", first)
+	if first["kind"] != event.Kind || first["subject"] != "/<schedule name>" || !strings.Contains(first["description"].(string), "nightly") {
+		t.Fatalf("wrong published family: %v", first)
+	}
+}
+
+// R-PRP2-GJP7
+func TestReflectionPublishesOneLiveTickFamily(t *testing.T) {
+	h, _ := newHandler(t)
+	for _, name := range []string{"nightly", "bill-sweep"} {
+		if _, isErr := call(t, h, "create", map[string]any{"name": name, "expr": "0 3 * * *"}); isErr {
+			t.Fatalf("create %q failed", name)
+		}
+	}
+	index, isErr := call(t, h, "reflection", map[string]any{})
+	if isErr {
+		t.Fatal("reflection index errored")
+	}
+	families, _ := index["publishes"].([]any)
+	if len(families) != 1 {
+		t.Fatalf("families = %v, want exactly one", index["publishes"])
+	}
+	family, _ := families[0].(map[string]any)
+	description, _ := family["description"].(string)
+	if family["kind"] != event.Kind || family["subject"] != "/<schedule name>" || !strings.Contains(description, "bill-sweep") || !strings.Contains(description, "nightly") {
+		t.Fatalf("unexpected reflected family: %v", family)
+	}
+	detail, isErr := call(t, h, "reflection", map[string]any{"kind": event.Kind})
+	if isErr {
+		t.Fatal("reflection detail errored")
+	}
+	schema, _ := detail["schema"].(map[string]any)
+	properties, _ := schema["properties"].(map[string]any)
+	example, _ := detail["example"].(map[string]any)
+	for _, name := range []string{"name", "scheduled_for", "fired_at"} {
+		if properties[name] == nil || example[name] == nil {
+			t.Fatalf("schema/example disagree or omit %q: schema=%v example=%v", name, schema, example)
+		}
+	}
+	if _, isErr := call(t, h, "delete", map[string]any{"name": "nightly"}); isErr {
+		t.Fatal("delete nightly failed")
+	}
+	after, isErr := call(t, h, "reflection", map[string]any{})
+	if isErr {
+		t.Fatal("reflection after delete errored")
+	}
+	families, _ = after["publishes"].([]any)
+	if len(families) != 1 {
+		t.Fatalf("families after delete = %v, want exactly one", after["publishes"])
+	}
+	description, _ = families[0].(map[string]any)["description"].(string)
+	if strings.Contains(description, "nightly") || !strings.Contains(description, "bill-sweep") {
+		t.Fatalf("live description after delete = %q", description)
 	}
 }
