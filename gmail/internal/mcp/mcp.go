@@ -50,9 +50,12 @@ type Client interface {
 // table. client is the P2 Gmail client backing the full mailbox surface; a nil
 // client is a wiring error and panics at this seam rather than deferring a nil
 // dereference to first request.
-func NewHandler(client Client, rt *appkit.Router) (http.Handler, error) {
+func NewHandler(client Client, contentBase string, rt *appkit.Router) (http.Handler, error) {
 	if client == nil {
 		panic("mcp: gmail client is required")
+	}
+	if contentBase == "" {
+		panic("mcp: content base is required")
 	}
 	if rt == nil {
 		return nil, fmt.Errorf("mcp: router is required")
@@ -61,7 +64,7 @@ func NewHandler(client Client, rt *appkit.Router) (http.Handler, error) {
 		Service:       rt.Service(),
 		Version:       rt.Version(),
 		Instructions:  Instructions,
-		Tools:         Tools(client),
+		Tools:         Tools(client, contentBase),
 		Health:        rt.Health(),
 		Events:        rt.Events(),
 		Publishes:     rt.Publishes(),

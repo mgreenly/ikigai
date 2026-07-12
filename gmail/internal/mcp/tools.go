@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"mime"
+	"net/url"
 	"strings"
 
 	appkitmcp "appkit/mcp"
@@ -110,16 +111,17 @@ var Events = outbox.Registry{
 // ── tool table ───────────────────────────────────────────────────────────────
 
 type toolHandlers struct {
-	client Client
+	client      Client
+	contentBase string
 }
 
 // Tools returns gmail's full normal-mailbox surface over the P2 client. The
 // shared appkit MCP chassis supplies the standard health and reflection tools.
-func Tools(client Client) []appkitmcp.Tool {
+func Tools(client Client, contentBase string) []appkitmcp.Tool {
 	if client == nil {
 		panic("mcp: gmail client is required")
 	}
-	h := &toolHandlers{client: client}
+	h := &toolHandlers{client: client, contentBase: contentBase}
 	return []appkitmcp.Tool{
 		{
 			Name:        tool("list"),
@@ -134,7 +136,7 @@ func Tools(client Client) []appkitmcp.Tool {
 		},
 		{
 			Name:        tool("read"),
-			Description: "Read a full message by id: its headers, snippet, label ids, and attachment METADATA (filename, size, mime_type) for each attachment part. Attachment blob download is not supported.",
+			Description: "Read a full message by id: its headers, snippet, label ids, and attachment entries (filename, size, mime_type, attachment_id, content_url). content_url is a loopback URL for services to fetch bytes; agents pass the reference rather than fetching it.",
 			InputSchema: obj(map[string]any{
 				"id": descTyp("string", "the message id (from list/search or an event payload)"),
 			}, "id"),
@@ -144,7 +146,7 @@ func Tools(client Client) []appkitmcp.Tool {
 		},
 		{
 			Name:        tool("thread"),
-			Description: "Read a whole thread by id: the thread's messages in order, each with headers, snippet, label ids, and attachment metadata.",
+			Description: "Read a whole thread by id: the thread's messages in order, each with headers, snippet, label ids, and attachment entries (filename, size, mime_type, attachment_id, content_url). content_url is a loopback URL for services to fetch bytes; agents pass the reference rather than fetching it.",
 			InputSchema: obj(map[string]any{
 				"id": descTyp("string", "the thread id (thread_id from a message or event payload)"),
 			}, "id"),
@@ -286,7 +288,7 @@ func (h *toolHandlers) toolRead(ctx context.Context, raw json.RawMessage) (map[s
 	if err != nil {
 		return appkitmcp.ErrorResult(err.Error()), nil
 	}
-	return appkitmcp.JSONResult(renderMessage(m))
+	return appkitmcp.JSONResult(renderMessage(m, h.contentBase))
 }
 
 // toolThread reads a whole thread and renders each message.
@@ -306,7 +308,7 @@ func (h *toolHandlers) toolThread(ctx context.Context, raw json.RawMessage) (map
 	}
 	msgs := make([]map[string]any, 0, len(t.Messages))
 	for _, m := range t.Messages {
-		msgs = append(msgs, renderMessage(m))
+		msgs = append(msgs, renderMessage(m, h.contentBase))
 	}
 	return appkitmcp.JSONResult(map[string]any{
 		"id":       t.ID,
@@ -491,12 +493,12 @@ func buildRawMessage(to, subject, body string) string {
 
 // renderMessage projects a gmail.Message into the read/thread tool shape:
 // headers as a name→value map, snippet, label ids, and attachment metadata
-// (filename/size/mime — no blob).
-func renderMessage(m gm.Message) map[string]any {
+// plus content references for attachment-backed MIME parts (no blob).
+func renderMessage(m gm.Message, contentBase string) map[string]any {
 	headers := map[string]string{}
 	collectHeaders(m.Payload, headers)
 	atts := []map[string]any{}
-	collectAttachments(m.Payload, &atts)
+	collectAttachments(m.Payload, m.ID, contentBase, &atts)
 	return map[string]any{
 		"id":            m.ID,
 		"thread_id":     m.ThreadID,
@@ -519,17 +521,26 @@ func collectHeaders(p gm.MessagePart, out map[string]string) {
 }
 
 // collectAttachments walks the MIME tree and records every part that carries a
-// filename (an attachment) as {filename, size, mime_type} — metadata only.
-func collectAttachments(p gm.MessagePart, out *[]map[string]any) {
+// filename (an attachment) as {filename, size, mime_type}; attachment-backed
+// parts also get their raw attachment_id and a complete, encoded content_url.
+func collectAttachments(p gm.MessagePart, messageID, contentBase string, out *[]map[string]any) {
 	if p.Filename != "" {
-		*out = append(*out, map[string]any{
+		attachment := map[string]any{
 			"filename":  p.Filename,
 			"size":      p.Body.Size,
 			"mime_type": p.MimeType,
-		})
+		}
+		if p.Body.AttachmentID != "" {
+			attachment["attachment_id"] = p.Body.AttachmentID
+			attachment["content_url"] = contentBase + "/attachment?" + url.Values{
+				"message_id":    []string{messageID},
+				"attachment_id": []string{p.Body.AttachmentID},
+			}.Encode()
+		}
+		*out = append(*out, attachment)
 	}
 	for _, child := range p.Parts {
-		collectAttachments(child, out)
+		collectAttachments(child, messageID, contentBase, out)
 	}
 }
 

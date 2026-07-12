@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"appkit"
@@ -85,6 +86,12 @@ func gmailSpec() appkit.Spec {
 				RefreshToken: os.Getenv("GMAIL_REFRESH_TOKEN"),
 			}
 			client := gm.NewClient(cfg, nil)
+			port, err := config.EnvOrInt(os.Getenv, "GMAIL_PORT", registry.MustPort("gmail"))
+			if err != nil {
+				return err
+			}
+			ip := config.EnvOr(os.Getenv, "GMAIL_IP", "127.0.0.1")
+			contentBase := "http://" + ip + ":" + strconv.Itoa(port)
 
 			interval, err := config.EnvOrDuration(os.Getenv, "GMAIL_POLL_INTERVAL", 60*time.Second)
 			if err != nil {
@@ -101,7 +108,7 @@ func gmailSpec() appkit.Spec {
 
 			rt.Handle("GET /attachment", gm.AttachmentHandler(client))
 			rt.Handle("GET /{$}", landingHandler(rt.WWW(), rt.Service(), rt.Version()))
-			handler, err := mcp.NewHandler(client, rt)
+			handler, err := mcp.NewHandler(client, contentBase, rt)
 			if err != nil {
 				return err
 			}
