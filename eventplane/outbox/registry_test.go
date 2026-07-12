@@ -155,12 +155,10 @@ func TestDetailExampleRoundTrips(t *testing.T) {
 			t.Errorf("example field %q absent from schema", field)
 		}
 	}
-}
 
-func TestDetailUnknownTypeCorrectiveError(t *testing.T) {
-	_, err := testRegistry().Detail("nope")
+	_, err = testRegistry().Detail("nope")
 	if err == nil {
-		t.Fatal("expected error for unknown type")
+		t.Fatal("expected error for unknown kind")
 	}
 	var ute *UnknownKindError
 	if !errors.As(err, &ute) {
