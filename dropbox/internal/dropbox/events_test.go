@@ -18,23 +18,23 @@ func TestEventsSamplesUseRegistryDropBoxContentOrigin(t *testing.T) {
 	}
 
 	for _, entry := range Events {
-		if !wantTypes[entry.Type] {
-			t.Fatalf("unexpected event type %q", entry.Type)
+		if !wantTypes[entry.Kind] {
+			t.Fatalf("unexpected event kind %q", entry.Kind)
 		}
-		delete(wantTypes, entry.Type)
+		delete(wantTypes, entry.Kind)
 
 		sample, ok := entry.Sample.(filePayload)
 		if !ok {
-			t.Fatalf("%s sample type = %T, want filePayload", entry.Type, entry.Sample)
+			t.Fatalf("%s sample type = %T, want filePayload", entry.Kind, entry.Sample)
 		}
 		if !strings.HasPrefix(sample.ContentURL, wantPrefix) {
-			t.Fatalf("%s content_url = %q, want prefix %q", entry.Type, sample.ContentURL, wantPrefix)
+			t.Fatalf("%s content_url = %q, want prefix %q", entry.Kind, sample.ContentURL, wantPrefix)
 		}
 		if sample.ContentURL != wantURL {
-			t.Fatalf("%s content_url = %q, want %q", entry.Type, sample.ContentURL, wantURL)
+			t.Fatalf("%s content_url = %q, want %q", entry.Kind, sample.ContentURL, wantURL)
 		}
 		if sample.Origin != OriginDropbox {
-			t.Fatalf("%s origin = %q, want %q", entry.Type, sample.Origin, OriginDropbox)
+			t.Fatalf("%s origin = %q, want %q", entry.Kind, sample.Origin, OriginDropbox)
 		}
 	}
 	for eventType := range wantTypes {

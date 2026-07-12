@@ -41,17 +41,17 @@ const (
 // discriminator and (for delete) the last-known field semantics differ.
 var Events = outbox.Registry{
 	{
-		Type:        EventFileCreated,
+		Kind:        EventFileCreated,
 		Description: "A path not previously in the mirror index now exists. Carries a REFERENCE to the bytes (content_url), never the bytes themselves — fetch current bytes over the loopback /content endpoint. origin is \"dropbox\" for a pulled change or the writing service's client id for a service write.",
 		Sample:      sampleFilePayload(EventFileCreated),
 	},
 	{
-		Type:        EventFileModified,
+		Kind:        EventFileModified,
 		Description: "A known path's rev changed (includes a case-only rename). Carries the current rev/content_hash/size and a content_url reference to the bytes. origin is \"dropbox\" for a pulled change or the writing service's client id for a service write.",
 		Sample:      sampleFilePayload(EventFileModified),
 	},
 	{
-		Type:        EventFileDeleted,
+		Kind:        EventFileDeleted,
 		Description: "A known path is gone; one event per indexed file removed (including every file beneath a deleted folder). Carries the file's LAST-KNOWN rev/content_hash/size, read before the in-tx delete. origin is \"dropbox\" for a pulled change or the writing service's client id for a service write.",
 		Sample:      sampleFilePayload(EventFileDeleted),
 	},
@@ -129,7 +129,7 @@ func buildFilePayload(contentBase string, ev FileEvent) (outbox.Event, error) {
 	if err != nil {
 		return outbox.Event{}, fmt.Errorf("marshal %s payload: %w", ev.Type, err)
 	}
-	return outbox.Event{Type: ev.Type, Payload: raw}, nil
+	return outbox.Event{Kind: ev.Type, Payload: raw}, nil
 }
 
 // EventSink is the producer seam the Service appends to inside the index tx. The

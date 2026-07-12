@@ -217,9 +217,9 @@ func TestReflection(t *testing.T) {
 	got := map[string]bool{}
 	for _, pe := range publishes {
 		p := pe.(map[string]any)
-		got[p["type"].(string)] = true
+		got[p["kind"].(string)] = true
 		if p["description"] == "" {
-			t.Errorf("published type %v has empty description", p["type"])
+			t.Errorf("published kind %v has empty description", p["kind"])
 		}
 	}
 	for _, want := range []string{"file.created", "file.modified", "file.deleted"} {
@@ -240,14 +240,14 @@ func TestReflection(t *testing.T) {
 		t.Fatalf("expected empty subscribes for dropbox, got %v", subscribes)
 	}
 
-	// event_type → each publish detail includes origin in its schema and example.
+	// kind → each publish detail includes origin in its schema and example.
 	for _, eventType := range []string{"file.created", "file.modified", "file.deleted"} {
-		detail, isErr := callTool(t, h, "reflection", `{"event_type":"`+eventType+`"}`)
+		detail, isErr := callTool(t, h, "reflection", `{"kind":"`+eventType+`"}`)
 		if isErr {
 			t.Fatalf("reflection detail for %s isError: %v", eventType, detail)
 		}
-		if detail["type"] != eventType {
-			t.Fatalf("detail type for %s = %v", eventType, detail)
+		if detail["kind"] != eventType {
+			t.Fatalf("detail kind for %s = %v", eventType, detail)
 		}
 		if detail["description"] == "" {
 			t.Fatalf("detail for %s missing description: %v", eventType, detail)
@@ -266,12 +266,12 @@ func TestReflection(t *testing.T) {
 		}
 	}
 
-	// Unknown event_type -> chassis error envelope naming the unknown and known types.
-	msg, isErr := callToolText(t, h, "reflection", `{"event_type":"file.nope"}`)
+	// Unknown kind -> chassis error envelope naming the unknown and known kinds.
+	msg, isErr := callToolText(t, h, "reflection", `{"kind":"file.nope"}`)
 	if !isErr {
 		t.Fatalf("expected error for unknown event_type, got %q", msg)
 	}
-	for _, want := range []string{"file.nope", "known types", "file.created", "file.modified", "file.deleted"} {
+	for _, want := range []string{"file.nope", "known kinds", "file.created", "file.modified", "file.deleted"} {
 		if !strings.Contains(msg, want) {
 			t.Errorf("corrective message missing %q: %q", want, msg)
 		}
@@ -641,7 +641,11 @@ func TestPut_SourceURLFetchesServerSideWritesAndPreservesOrigin(t *testing.T) {
 	if gets != 1 {
 		t.Fatalf("source GETs = %d, want 1", gets)
 	}
-	if put["path"] != "/references/source.txt" || put["size"] != float64(len(body)) || put["content_hash"] == "" || put["rev"] == "" {
+	written, err := svc.Stat("/references/source.txt")
+	if err != nil {
+		t.Fatalf("stat written source file: %v", err)
+	}
+	if put["path"] != written.Path || put["size"] != float64(written.Size) || put["content_hash"] != written.ContentHash || put["rev"] != written.Rev {
 		t.Fatalf("source put result = %v", put)
 	}
 	got, isErr := callTool(t, h, "get", `{"path":"/references/source.txt"}`)
