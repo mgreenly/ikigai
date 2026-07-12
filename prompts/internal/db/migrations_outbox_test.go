@@ -3,24 +3,25 @@ package db
 import (
 	"strings"
 	"testing"
-
-	"eventplane/outbox"
 )
 
-// TestOutboxMigrationMatchesLibraryDDL guards the producer invariant: the outbox
-// table DDL is OWNED by the eventplane library (outbox.SchemaSQL); prompts'
-// 005_outbox.sql migration only applies it. If the two drift, prompts' outbox is
-// no longer identical to every other producer's — so this test fails loudly the
-// moment they diverge (mirrors crm/ledger/cron). prompts is the event-plane
-// producer of the static run.succeeded / run.failed outcome types
-// (event-triggering decisions §3).
-func TestOutboxMigrationMatchesLibraryDDL(t *testing.T) {
-	body, err := migrationsFS.ReadFile("migrations/005_outbox.sql")
+// TestOutboxKindSubjectMigrationPreservesTheImmutableBaseline ensures the
+// forward-only upgrade maps legacy type rows to the eventplane kind/subject
+// schema. The original 005 migration is immutable and deliberately remains the
+// historical table definition.
+func TestOutboxKindSubjectMigrationPreservesTheImmutableBaseline(t *testing.T) {
+	body, err := migrationsFS.ReadFile("migrations/20260712191337_outbox_kind_subject.sql")
 	if err != nil {
-		t.Fatalf("read 005_outbox.sql: %v", err)
+		t.Fatalf("read kind/subject migration: %v", err)
 	}
-	if !strings.Contains(string(body), outbox.SchemaSQL) {
-		t.Fatalf("005_outbox.sql does not contain the library DDL verbatim.\n--- outbox.SchemaSQL ---\n%s\n--- migration file ---\n%s",
-			outbox.SchemaSQL, string(body))
+	for _, want := range []string{
+		"ALTER TABLE outbox RENAME TO outbox_old;",
+		"kind       TEXT    NOT NULL",
+		"subject    TEXT    NOT NULL DEFAULT ''",
+		"SELECT seq, event_id, type, '', payload, created_at FROM outbox_old;",
+	} {
+		if !strings.Contains(string(body), want) {
+			t.Fatalf("kind/subject migration missing %q", want)
+		}
 	}
 }

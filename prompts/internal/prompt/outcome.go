@@ -27,12 +27,12 @@ const (
 // wire shape cannot diverge (mirrors crm.Events).
 var Events = outbox.Registry{
 	{
-		Type:        EventRunSucceeded,
+		Kind:        EventRunSucceeded,
 		Description: "A prompts run finished successfully. Carries the prompt identity, the human-readable task name, and the trigger context (the upstream source, fired event type, and upstream event id that started it, empty for a manual run).",
 		Sample:      sampleOutcomeSuccess,
 	},
 	{
-		Type:        EventRunFailed,
+		Kind:        EventRunFailed,
 		Description: "A prompts run terminated in failure. Same shape as run.succeeded plus an error string describing the terminal failure.",
 		Sample:      sampleOutcomeFailure,
 	},
@@ -102,5 +102,5 @@ func outcomeEvent(status, promptID, promptName, runID, triggerSource, triggerTyp
 	if err != nil {
 		return outbox.Event{}, false, fmt.Errorf("prompt: marshal %s payload: %w", typ, err)
 	}
-	return outbox.Event{Type: typ, Payload: raw}, true, nil
+	return outbox.Event{Kind: typ, Payload: raw}, true, nil
 }

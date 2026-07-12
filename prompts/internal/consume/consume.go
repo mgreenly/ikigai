@@ -65,34 +65,34 @@ func Handler(fire FireFunc, lookup LookupFunc, source string, logger *slog.Logge
 		// it is structurally unprocessable poison. Skip + advance so it never stalls
 		// the feed forever. This is the handler's only error path — a fired run never
 		// returns a stalling error.
-		if ev.Type == "" || ev.ID == "" {
-			return fmt.Errorf("consume: malformed envelope from %s (type=%q id=%q): %w", source, ev.Type, ev.ID, consumer.ErrSkip)
+		if ev.Kind == "" || ev.ID == "" {
+			return fmt.Errorf("consume: malformed envelope from %s (kind=%q id=%q): %w", source, ev.Kind, ev.ID, consumer.ErrSkip)
 		}
 
-		promptIDs, err := lookup(ctx, source, ev.Type)
+		promptIDs, err := lookup(ctx, source, ev.Kind)
 		if err != nil {
 			// A lookup failure is a transient DB read, NOT poison. The fire-and-forget
 			// contract is explicit: never stall the feed. Log loudly and advance — a
 			// later event re-exercises the trigger set.
-			logger.Error("consume: trigger lookup failed (advancing)", "source", source, "type", ev.Type, "event_id", ev.ID, "err", err)
+			logger.Error("consume: trigger lookup failed (advancing)", "source", source, "kind", ev.Kind, "event_id", ev.ID, "err", err)
 			return nil
 		}
 		if len(promptIDs) == 0 {
 			// No prompt listens to this (source, type). Matched-zero is success: the
 			// engine advances the cursor so the event does not re-arrive.
-			logger.Debug("consume: no prompts match event", "source", source, "type", ev.Type, "event_id", ev.ID)
+			logger.Debug("consume: no prompts match event", "source", source, "kind", ev.Kind, "event_id", ev.ID)
 			return nil
 		}
 
-		logger.Debug("consume: dispatching event", "source", source, "type", ev.Type, "event_id", ev.ID, "prompts", len(promptIDs))
+		logger.Debug("consume: dispatching event", "source", source, "kind", ev.Kind, "event_id", ev.ID, "prompts", len(promptIDs))
 		for _, promptID := range promptIDs {
 			// Each prompt's run starts on its own goroutine so one slow/failing start
 			// never blocks the rest of the fan-out and the handler returns promptly,
 			// never holding the cursor open. Detached from the engine's request context
 			// (the handler has already returned) via context.Background().
 			go func(promptID string) {
-				if err := fire(context.Background(), promptID, source, ev.Type, ev.ID, ev.Payload); err != nil {
-					logger.Error("consume: fire run failed (dropped)", "prompt", promptID, "source", source, "type", ev.Type, "event_id", ev.ID, "err", err)
+				if err := fire(context.Background(), promptID, source, ev.Kind, ev.ID, ev.Payload); err != nil {
+					logger.Error("consume: fire run failed (dropped)", "prompt", promptID, "source", source, "kind", ev.Kind, "event_id", ev.ID, "err", err)
 				}
 			}(promptID)
 		}

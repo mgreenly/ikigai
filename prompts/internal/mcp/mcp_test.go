@@ -267,7 +267,7 @@ func TestReflectionThroughAssembledHandlerReportsPromptsEventGraph(t *testing.T)
 	gotPublishes := make([]string, 0, len(out.Publishes))
 	for _, pub := range out.Publishes {
 		assertNoHandlerKey(t, pub)
-		gotPublishes = append(gotPublishes, stringField(t, pub, "type"))
+		gotPublishes = append(gotPublishes, stringField(t, pub, "kind"))
 	}
 	wantPublishes := []string{"run.succeeded", "run.failed"}
 	if !equalStrings(gotPublishes, wantPublishes) {

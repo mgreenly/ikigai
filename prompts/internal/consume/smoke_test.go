@@ -86,7 +86,7 @@ func TestSmoke_HandlerAgainstRealServiceAndDB(t *testing.T) {
 	}
 	h := Handler(fire, svc.PromptsForEvent, "dropbox", nil)
 
-	ev := consumer.Event{Type: "file.created", ID: "e1", Source: "dropbox", Payload: json.RawMessage(`{"path":"/x"}`)}
+	ev := consumer.Event{Kind: "file.created", ID: "e1", Source: "dropbox", Payload: json.RawMessage(`{"path":"/x"}`)}
 
 	// First event: fires once, the prompt has a running run carrying the context.
 	if err := h(ctx, ev); err != nil {

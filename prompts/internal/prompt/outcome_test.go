@@ -70,21 +70,21 @@ func seedRunningRunTrig(t *testing.T, store *Store, name, triggerSource, trigger
 	return sess, run
 }
 
-// outboxRows reads every (type, payload) from the outbox table in seq order.
-func outboxRows(t *testing.T, conn *sql.DB) []struct{ Type, Payload string } {
+// outboxRows reads every (kind, payload) from the outbox table in seq order.
+func outboxRows(t *testing.T, conn *sql.DB) []struct{ Kind, Payload string } {
 	t.Helper()
-	rows, err := conn.Query(`SELECT type, payload FROM outbox ORDER BY seq`)
+	rows, err := conn.Query(`SELECT kind, payload FROM outbox ORDER BY seq`)
 	if err != nil {
 		t.Fatalf("query outbox: %v", err)
 	}
 	defer rows.Close()
-	var out []struct{ Type, Payload string }
+	var out []struct{ Kind, Payload string }
 	for rows.Next() {
 		var typ, payload string
 		if err := rows.Scan(&typ, &payload); err != nil {
 			t.Fatalf("scan outbox: %v", err)
 		}
-		out = append(out, struct{ Type, Payload string }{typ, payload})
+		out = append(out, struct{ Kind, Payload string }{typ, payload})
 	}
 	return out
 }
@@ -133,8 +133,8 @@ func TestFinishRun_SuccessEmitsRunSucceeded(t *testing.T) {
 	if len(evs) != 1 {
 		t.Fatalf("expected exactly one outbox event, got %d: %+v", len(evs), evs)
 	}
-	if evs[0].Type != EventRunSucceeded {
-		t.Fatalf("type = %q, want %q", evs[0].Type, EventRunSucceeded)
+	if evs[0].Kind != EventRunSucceeded {
+		t.Fatalf("kind = %q, want %q", evs[0].Kind, EventRunSucceeded)
 	}
 	p := decodePayload(t, evs[0].Payload)
 	if p["prompt_id"] != sess.ID || p["prompt_name"] != "nightly scan" {
@@ -168,7 +168,7 @@ func TestFinishRun_FailureEmitsRunFailedWithError(t *testing.T) {
 	}
 
 	evs := outboxRows(t, conn)
-	if len(evs) != 1 || evs[0].Type != EventRunFailed {
+	if len(evs) != 1 || evs[0].Kind != EventRunFailed {
 		t.Fatalf("expected one run.failed, got %+v", evs)
 	}
 	p := decodePayload(t, evs[0].Payload)
@@ -243,7 +243,7 @@ func TestFinishRun_AppendFailureRollsBackTerminalWrite(t *testing.T) {
 	// Swap in an outbox whose registry rejects run.* — Append will fail.
 	bad, err := outbox.New(conn, outbox.Options{
 		Source:   "prompts",
-		Registry: outbox.Registry{{Type: "other.thing", Description: "x", Sample: map[string]string{}}},
+		Registry: outbox.Registry{{Kind: "other.thing", Description: "x", Sample: map[string]string{}}},
 	})
 	if err != nil {
 		t.Fatalf("outbox.New: %v", err)

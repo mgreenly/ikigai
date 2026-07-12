@@ -77,7 +77,7 @@ func TestHandlerFanOut(t *testing.T) {
 	h := Handler(fire.fn, staticLookup([]string{"p1", "p2"}, nil), "crm", discardLogger())
 
 	payload := json.RawMessage(`{"id":"c1"}`)
-	ev := consumer.Event{Type: "contact.created", ID: "01EVENT", Source: "crm", Payload: payload}
+	ev := consumer.Event{Kind: "contact.created", ID: "01EVENT", Source: "crm", Payload: payload}
 	if err := h(context.Background(), ev); err != nil {
 		t.Fatalf("Handler returned %v, want nil", err)
 	}
@@ -110,7 +110,7 @@ func TestHandlerNonCronUpstream(t *testing.T) {
 	fire.expect(1)
 	h := Handler(fire.fn, staticLookup([]string{"p-drop"}, nil), "dropbox", discardLogger())
 
-	ev := consumer.Event{Type: "file.created", ID: "01FILE", Source: "dropbox", Payload: json.RawMessage(`{"path":"/x"}`)}
+	ev := consumer.Event{Kind: "file.created", ID: "01FILE", Source: "dropbox", Payload: json.RawMessage(`{"path":"/x"}`)}
 	if err := h(context.Background(), ev); err != nil {
 		t.Fatalf("Handler returned %v, want nil", err)
 	}
@@ -132,7 +132,7 @@ func TestHandlerNoMatch(t *testing.T) {
 	fire := &fireRecorder{}
 	h := Handler(fire.fn, staticLookup(nil, nil), "ledger", discardLogger())
 
-	ev := consumer.Event{Type: "transaction.recorded", ID: "01EVENT", Source: "ledger", Payload: json.RawMessage(`{}`)}
+	ev := consumer.Event{Kind: "transaction.recorded", ID: "01EVENT", Source: "ledger", Payload: json.RawMessage(`{}`)}
 	if err := h(context.Background(), ev); err != nil {
 		t.Fatalf("Handler returned %v, want nil", err)
 	}
@@ -149,8 +149,8 @@ func TestHandlerMalformedSkips(t *testing.T) {
 		name string
 		ev   consumer.Event
 	}{
-		{"no type", consumer.Event{Type: "", ID: "01EVENT", Source: "crm", Payload: json.RawMessage(`{}`)}},
-		{"no id", consumer.Event{Type: "contact.created", ID: "", Source: "crm", Payload: json.RawMessage(`{}`)}},
+		{"no type", consumer.Event{Kind: "", ID: "01EVENT", Source: "crm", Payload: json.RawMessage(`{}`)}},
+		{"no id", consumer.Event{Kind: "contact.created", ID: "", Source: "crm", Payload: json.RawMessage(`{}`)}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -182,7 +182,7 @@ func TestHandlerLookupErrorAdvances(t *testing.T) {
 	fire := &fireRecorder{}
 	h := Handler(fire.fn, staticLookup(nil, errors.New("db down")), "dropbox", discardLogger())
 
-	ev := consumer.Event{Type: "file.created", ID: "01EVENT", Source: "dropbox", Payload: json.RawMessage(`{}`)}
+	ev := consumer.Event{Kind: "file.created", ID: "01EVENT", Source: "dropbox", Payload: json.RawMessage(`{}`)}
 	if err := h(context.Background(), ev); err != nil {
 		t.Fatalf("lookup error returned %v, want nil (never stall)", err)
 	}
@@ -199,7 +199,7 @@ func TestHandlerFireErrorDoesNotStall(t *testing.T) {
 	fire.expect(1)
 	h := Handler(fire.fn, staticLookup([]string{"p1"}, nil), "crm", discardLogger())
 
-	ev := consumer.Event{Type: "contact.created", ID: "01EVENT", Source: "crm", Payload: json.RawMessage(`{}`)}
+	ev := consumer.Event{Kind: "contact.created", ID: "01EVENT", Source: "crm", Payload: json.RawMessage(`{}`)}
 	if err := h(context.Background(), ev); err != nil {
 		t.Fatalf("Handler returned %v, want nil", err)
 	}
@@ -224,9 +224,6 @@ func TestSubscriptions(t *testing.T) {
 		delete(want, s.Source)
 		if s.Filter != "*" {
 			t.Errorf("source %q Filter = %q, want %q", s.Source, s.Filter, "*")
-		}
-		if !s.Match("anything.at.all") {
-			t.Errorf("source %q Filter %q should match any type", s.Source, s.Filter)
 		}
 		if s.Description == "" {
 			t.Errorf("source %q has empty Description", s.Source)

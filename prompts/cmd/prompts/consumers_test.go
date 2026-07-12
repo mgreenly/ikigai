@@ -104,7 +104,7 @@ func TestPromptsSpecConsumerHandlerRunsMatchingPromptOnly(t *testing.T) {
 	}
 
 	matching := consumer.Event{
-		Type:    "file.created",
+		Kind:    "file.created",
 		ID:      "evt-match",
 		Source:  "dropbox",
 		Payload: json.RawMessage(`{"path":"/x"}`),
@@ -126,7 +126,7 @@ func TestPromptsSpecConsumerHandlerRunsMatchingPromptOnly(t *testing.T) {
 	}
 
 	notMatching := consumer.Event{
-		Type:    "file.deleted",
+		Kind:    "file.deleted",
 		ID:      "evt-miss",
 		Source:  "dropbox",
 		Payload: json.RawMessage(`{"path":"/x"}`),
