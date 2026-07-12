@@ -433,23 +433,47 @@ func TestTriggersAndScriptsForEvent(t *testing.T) {
 	ctx := context.Background()
 	sc1 := seedScript(t, s, ownerA)
 	sc2 := seedScript(t, s, ownerA)
+	sc3 := seedScript(t, s, ownerA)
+	svc := NewService(s, t.TempDir(), nil)
 
-	// foreign owner cannot set a trigger
-	if err := s.SetTrigger(ctx, ownerB, Trigger{ScriptID: sc1.ID, Source: "dropbox", Filter: "dropbox:create/bills/**/*.pdf", CreatedAt: nowStr()}); !errors.Is(err, ErrNotFound) {
+	// The service derives source from the canonical filter; callers do not get
+	// to provide a second, potentially mismatched source argument.
+	if _, err := svc.SetTrigger(ctx, ownerB, sc1.ID, "dropbox:create/bills/**/*.pdf"); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("foreign SetTrigger: want ErrNotFound, got %v", err)
 	}
-	if err := s.SetTrigger(ctx, ownerA, Trigger{ScriptID: sc1.ID, Source: "dropbox", Filter: "dropbox:create/bills/**/*.pdf", CreatedAt: nowStr()}); err != nil {
+	trig, err := svc.SetTrigger(ctx, ownerA, sc1.ID, "dropbox:create/bills/**/*.pdf")
+	if err != nil {
 		t.Fatalf("SetTrigger sc1: %v", err)
 	}
-	if err := s.SetTrigger(ctx, ownerA, Trigger{ScriptID: sc2.ID, Source: "dropbox", Filter: "dropbox:**", CreatedAt: nowStr()}); err != nil {
+	var source string
+	var count int
+	if err := s.db.QueryRowContext(ctx, `SELECT source, COUNT(*) FROM script_triggers WHERE script_id = ? AND filter = ?`, sc1.ID, trig.Filter).Scan(&source, &count); err != nil {
+		t.Fatal(err)
+	}
+	if source != "dropbox" || count != 1 {
+		t.Fatalf("stored trigger = source %q, count %d", source, count)
+	}
+	if _, err := svc.SetTrigger(ctx, ownerA, sc1.ID, trig.Filter); err != nil {
+		t.Fatalf("repeat SetTrigger: %v", err)
+	}
+	if err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM script_triggers WHERE script_id = ? AND filter = ?`, sc1.ID, trig.Filter).Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	if count != 1 {
+		t.Fatalf("repeat SetTrigger created %d rows", count)
+	}
+	if _, err := svc.SetTrigger(ctx, ownerA, sc2.ID, "dropbox:**"); err != nil {
 		t.Fatalf("SetTrigger sc2: %v", err)
+	}
+	if _, err := svc.SetTrigger(ctx, ownerA, sc3.ID, "dropbox:create/bills/*.pdf"); err != nil {
+		t.Fatalf("SetTrigger sc3: %v", err)
 	}
 	got, err := s.ScriptsForEvent(ctx, "dropbox", "dropbox:create/bills/aws/1.pdf")
 	if err != nil {
 		t.Fatalf("ScriptsForEvent: %v", err)
 	}
-	if len(got) != 2 {
-		t.Fatalf("nested bill: want 2 scripts, got %v", got)
+	if len(got) != 2 || got[0] != sc1.ID || got[1] != sc2.ID {
+		t.Fatalf("nested bill: want [%s %s], got %v", sc1.ID, sc2.ID, got)
 	}
 
 	// contact.updated matches only the glob (sc1)
@@ -465,11 +489,17 @@ func TestTriggersAndScriptsForEvent(t *testing.T) {
 	}
 
 	// ClearTrigger removes the sc1 binding
-	if err := s.ClearTrigger(ctx, ownerA, Trigger{ScriptID: sc1.ID, Filter: "dropbox:create/bills/**/*.pdf"}); err != nil {
+	if err := svc.ClearTrigger(ctx, ownerA, sc1.ID, "dropbox:create/bills/**/*.pdf"); err != nil {
 		t.Fatalf("ClearTrigger: %v", err)
 	}
-	if err := s.ClearTrigger(ctx, ownerA, Trigger{ScriptID: sc1.ID, Filter: "dropbox:create/bills/**/*.pdf"}); err != nil {
+	if err := svc.ClearTrigger(ctx, ownerA, sc1.ID, "dropbox:create/bills/**/*.pdf"); err != nil {
 		t.Fatal(err)
+	}
+	if err := svc.ClearTrigger(ctx, ownerB, sc1.ID, "dropbox:create/bills/**/*.pdf"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("foreign ClearTrigger: want ErrNotFound, got %v", err)
+	}
+	if err := svc.ClearTrigger(ctx, ownerA, "missing", "dropbox:create/bills/**/*.pdf"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("missing ClearTrigger: want ErrNotFound, got %v", err)
 	}
 	got, _ = s.ScriptsForEvent(ctx, "dropbox", "dropbox:create/bills/aws/1.pdf")
 	if len(got) != 1 || got[0] != sc2.ID {

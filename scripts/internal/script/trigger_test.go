@@ -15,7 +15,12 @@ func TestValidateTriggerWellFormedness(t *testing.T) {
 		}
 	}
 	_, err := validateTrigger("github:push/**")
-	if !strings.Contains(err.Error(), "cron") || strings.Contains(err.Error(), "scripts") {
+	for _, source := range []string{"cron", "crm", "ledger", "dropbox", "prompts"} {
+		if !strings.Contains(err.Error(), source) {
+			t.Fatalf("unknown source error does not name %q: %v", source, err)
+		}
+	}
+	if strings.Contains(err.Error(), "scripts") {
 		t.Fatalf("unknown source error = %v", err)
 	}
 	if source, err := validateTrigger("dropbox:create/bills/**"); err != nil || source != "dropbox" {
