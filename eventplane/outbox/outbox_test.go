@@ -46,13 +46,74 @@ func appendOne(t *testing.T, o *Outbox, db *sql.DB, typ string) {
 	if err != nil {
 		t.Fatalf("begin: %v", err)
 	}
-	if err := o.Append(tx, Event{Type: typ, Payload: json.RawMessage(`{"k":"v"}`)}); err != nil {
+	if err := o.Append(tx, Event{Kind: typ, Payload: json.RawMessage(`{"k":"v"}`)}); err != nil {
 		t.Fatalf("append: %v", err)
 	}
 	if err := tx.Commit(); err != nil {
 		t.Fatalf("commit: %v", err)
 	}
 	o.Ring()
+}
+
+func TestAppendValidatesRoutingAddress(t *testing.T) {
+	o, db := newMemOutbox(t)
+	for _, kind := range []string{"", "Create", "file created"} {
+		tx, _ := db.Begin()
+		err := o.Append(tx, Event{Kind: kind, Payload: json.RawMessage(`{}`)})
+		_ = tx.Rollback()
+		// R-39FF-NOQQ
+		if err == nil || !strings.Contains(err.Error(), "kind") || !strings.Contains(err.Error(), fmt.Sprintf("%q", kind)) {
+			t.Errorf("kind %q: error %v must reject and name invalid kind", kind, err)
+		}
+	}
+	for _, tc := range []struct {
+		subject string
+		valid   bool
+	}{{"bills/x.pdf", false}, {"", true}, {"/bills/x.pdf", true}} {
+		tx, _ := db.Begin()
+		err := o.Append(tx, Event{Kind: "run.succeeded", Subject: tc.subject, Payload: json.RawMessage(`{}`)})
+		_ = tx.Rollback()
+		// R-3ANC-1GHF
+		if (err == nil) != tc.valid {
+			t.Errorf("subject %q: error = %v, valid = %v", tc.subject, err, tc.valid)
+		}
+	}
+}
+
+func TestSchemaStoresKindAndSubjectWithoutType(t *testing.T) {
+	o, db := newMemOutbox(t)
+	rows, err := db.Query(`PRAGMA table_info(outbox)`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	columns := map[string]bool{}
+	for rows.Next() {
+		var cid int
+		var name, typ string
+		var notnull int
+		var defaultValue any
+		var pk int
+		if err := rows.Scan(&cid, &name, &typ, &notnull, &defaultValue, &pk); err != nil {
+			t.Fatal(err)
+		}
+		columns[name] = true
+	}
+	_ = rows.Close()
+	tx, _ := db.Begin()
+	if err := o.Append(tx, Event{Kind: "run.succeeded", Subject: "/bills/x.pdf", Payload: json.RawMessage(`{}`)}); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	var kind, subject string
+	if err := db.QueryRow(`SELECT kind, subject FROM outbox`).Scan(&kind, &subject); err != nil {
+		t.Fatal(err)
+	}
+	// R-3BV8-F884
+	if !columns["kind"] || !columns["subject"] || columns["type"] || kind != "run.succeeded" || subject != "/bills/x.pdf" {
+		t.Fatalf("columns=%v, stored kind=%q subject=%q", columns, kind, subject)
+	}
 }
 
 func TestAppendAssignsMonotonicSeqAndStableIdentity(t *testing.T) {
@@ -137,7 +198,7 @@ func TestConcurrencyStress(t *testing.T) {
 					t.Errorf("begin: %v", err)
 					return
 				}
-				if err := o.Append(tx, Event{Type: "contact.created", Payload: json.RawMessage(`{}`)}); err != nil {
+				if err := o.Append(tx, Event{Kind: "contact.created", Payload: json.RawMessage(`{}`)}); err != nil {
 					t.Errorf("append: %v", err)
 					tx.Rollback()
 					return

@@ -15,7 +15,8 @@ package outbox
 const SchemaSQL = `CREATE TABLE outbox (
   seq        INTEGER PRIMARY KEY AUTOINCREMENT,
   event_id   TEXT    NOT NULL,
-  type       TEXT    NOT NULL,
+  kind       TEXT    NOT NULL,
+  subject    TEXT    NOT NULL DEFAULT '',
   payload    TEXT    NOT NULL,
   created_at TEXT    NOT NULL
 );

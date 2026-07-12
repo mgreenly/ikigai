@@ -186,7 +186,7 @@ func TestAppendRejectsUnregisteredTypeWithRegistry(t *testing.T) {
 
 	// A declared type is accepted.
 	tx, _ := db.BeginTx(context.Background(), nil)
-	if err := o.Append(tx, Event{Type: "contact.created", Payload: json.RawMessage(`{}`)}); err != nil {
+	if err := o.Append(tx, Event{Kind: "contact.created", Payload: json.RawMessage(`{}`)}); err != nil {
 		t.Fatalf("declared type rejected: %v", err)
 	}
 	_ = tx.Commit()
@@ -194,7 +194,7 @@ func TestAppendRejectsUnregisteredTypeWithRegistry(t *testing.T) {
 	// An undeclared type is rejected.
 	tx2, _ := db.BeginTx(context.Background(), nil)
 	defer tx2.Rollback()
-	err := o.Append(tx2, Event{Type: "contact.deleted", Payload: json.RawMessage(`{}`)})
+	err := o.Append(tx2, Event{Kind: "contact.deleted", Payload: json.RawMessage(`{}`)})
 	if err == nil {
 		t.Fatal("expected Append to reject an unregistered type")
 	}
@@ -204,7 +204,7 @@ func TestAppendUnchangedWithEmptyRegistry(t *testing.T) {
 	o, db := newMemOutbox(t) // no registry
 	tx, _ := db.BeginTx(context.Background(), nil)
 	defer tx.Rollback()
-	if err := o.Append(tx, Event{Type: "anything.goes", Payload: json.RawMessage(`{}`)}); err != nil {
+	if err := o.Append(tx, Event{Kind: "anything.goes", Payload: json.RawMessage(`{}`)}); err != nil {
 		t.Fatalf("empty registry must not constrain Append: %v", err)
 	}
 }

@@ -136,7 +136,7 @@ func emit(t *testing.T, ob *outbox.Outbox, db *sql.DB, n int) {
 	if err != nil {
 		t.Fatalf("begin: %v", err)
 	}
-	if err := ob.Append(tx, outbox.Event{Type: "contact.created", Payload: json.RawMessage(payload)}); err != nil {
+	if err := ob.Append(tx, outbox.Event{Kind: "contact.created", Payload: json.RawMessage(payload)}); err != nil {
 		t.Fatalf("append: %v", err)
 	}
 	if err := tx.Commit(); err != nil {

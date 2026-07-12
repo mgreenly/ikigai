@@ -67,10 +67,12 @@ var (
 // (§8.3). Payload is the opaque per-type body (§8.6) — the engine never inspects
 // it; the handler unmarshals the types it cares about.
 type Event struct {
-	Type    string          // the SSE event: line, e.g. "contact.created" (§8.5)
+	Type    string          // canonical routing key from the SSE event: line
 	ID      string          // envelope "id" — a ULID, the stable dedup key (§8.3)
 	Source  string          // envelope "source", e.g. "crm" (§8.3)
 	Time    string          // envelope "time", RFC 3339 (§8.3)
+	Kind    string          // envelope "kind"
+	Subject string          // envelope "subject"
 	Payload json.RawMessage // opaque domain snapshot (§8.6)
 }
 
@@ -495,9 +497,10 @@ func jitter(d time.Duration) time.Duration {
 func parseEvent(f sseFrame) (Event, error) {
 	var env struct {
 		ID      string          `json:"id"`
-		Type    string          `json:"type"`
 		Source  string          `json:"source"`
 		Time    string          `json:"time"`
+		Kind    string          `json:"kind"`
+		Subject string          `json:"subject"`
 		Payload json.RawMessage `json:"payload"`
 	}
 	if err := json.Unmarshal([]byte(f.data), &env); err != nil {
@@ -508,6 +511,8 @@ func parseEvent(f sseFrame) (Event, error) {
 		ID:      env.ID,
 		Source:  env.Source,
 		Time:    env.Time,
+		Kind:    env.Kind,
+		Subject: env.Subject,
 		Payload: env.Payload,
 	}, nil
 }

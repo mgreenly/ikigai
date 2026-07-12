@@ -3,6 +3,8 @@ package outbox
 import (
 	"bufio"
 	"context"
+	"database/sql"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -99,6 +101,72 @@ func feedServer(t *testing.T, o *Outbox) string {
 	return srv.URL
 }
 
+func appendAddress(t *testing.T, o *Outbox, db interface {
+	Begin() (*sql.Tx, error)
+}, kind, subject string) {
+	t.Helper()
+	tx, err := db.Begin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := o.Append(tx, Event{Kind: kind, Subject: subject, Payload: json.RawMessage(`{"n":1}`)}); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	o.Ring()
+}
+
+func TestFeedEnvelopeCanonicalKeyAndStableReplay(t *testing.T) {
+	o, db := newMemOutbox(t, func(opts *Options) { opts.Source = "dropbox" })
+	appendAddress(t, o, db, "create", "/bills/a.pdf")
+	url := feedServer(t, o)
+
+	firstConn := dialFeed(t, url, http.Header{})
+	if f := firstConn.next(t); eventOf(f) != "status" {
+		t.Fatalf("want status, got %q", f)
+	}
+	first := firstConn.next(t)
+	var env map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(dataOf(first)), &env); err != nil {
+		t.Fatal(err)
+	}
+	wantKeys := []string{"id", "source", "time", "kind", "subject", "payload"}
+	// R-3D34-SZYT
+	if len(env) != len(wantKeys) {
+		t.Fatalf("envelope keys = %v", env)
+	}
+	for _, key := range wantKeys {
+		if _, ok := env[key]; !ok {
+			t.Fatalf("envelope missing %q: %v", key, env)
+		}
+	}
+	// R-3EB1-6RPI
+	if eventOf(first) != "dropbox:create/bills/a.pdf" {
+		t.Fatalf("event key = %q", eventOf(first))
+	}
+
+	secondConn := dialFeed(t, url, http.Header{})
+	_ = secondConn.next(t) // status
+	second := secondConn.next(t)
+	// R-42P0-U6JE
+	if second != first {
+		t.Fatalf("replay changed:\nfirst:  %s\nsecond: %s", first, second)
+	}
+}
+
+func TestFeedCanonicalKeyWithoutSubject(t *testing.T) {
+	o, db := newMemOutbox(t, func(opts *Options) { opts.Source = "ledger" })
+	appendAddress(t, o, db, "recorded", "")
+	c := dialFeed(t, feedServer(t, o), http.Header{})
+	_ = c.next(t) // status
+	// R-3EB1-6RPI
+	if got := eventOf(c.next(t)); got != "ledger:recorded" {
+		t.Fatalf("event key = %q", got)
+	}
+}
+
 func TestFeed_FromBeginning(t *testing.T) {
 	o, db := newMemOutbox(t)
 	appendOne(t, o, db, "contact.created")
@@ -112,7 +180,7 @@ func TestFeed_FromBeginning(t *testing.T) {
 	}
 	for i := 0; i < 2; i++ {
 		f := c.next(t)
-		if eventOf(f) != "contact.created" {
+		if eventOf(f) != "crm:contact.created" {
 			t.Fatalf("event %d: want contact.created, got %q", i, f)
 		}
 		if idOf(f) == "" {
@@ -136,7 +204,7 @@ func TestFeed_FromTail_DeliversLiveEvent(t *testing.T) {
 	// A live event after caught-up must arrive via the doorbell.
 	appendOne(t, o, db, "contact.created")
 	f := c.next(t)
-	if eventOf(f) != "contact.created" {
+	if eventOf(f) != "crm:contact.created" {
 		t.Fatalf("want live event, got %q", f)
 	}
 }
@@ -154,7 +222,7 @@ func TestFeed_ResumeAfterCursor(t *testing.T) {
 		t.Fatalf("want status, got %q", f)
 	}
 	f := c.next(t)
-	if eventOf(f) != "contact.created" || idOf(f) != makeCursor(o.Generation(), 2) {
+	if eventOf(f) != "crm:contact.created" || idOf(f) != makeCursor(o.Generation(), 2) {
 		t.Fatalf("want seq-2 event, got %q", f)
 	}
 	if f := c.next(t); eventOf(f) != "caught-up" {

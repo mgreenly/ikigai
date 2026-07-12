@@ -27,6 +27,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"eventplane/routing"
 )
 
 // defaults for retention (§11.3) and the feed fetch batch (§6.1).
@@ -41,7 +43,8 @@ const (
 // treats it as an opaque blob, wrapping it in the uniform envelope (§8.3) at
 // serialize time.
 type Event struct {
-	Type    string          // e.g. "contact.created" (§8.5)
+	Kind    string          // fact class, lowercase [a-z0-9_.-]+
+	Subject string          // empty or a single-line /-rooted routing path
 	Payload json.RawMessage // domain snapshot, marshaled by the caller
 }
 
@@ -165,21 +168,24 @@ func (o *Outbox) Append(tx *sql.Tx, ev Event) error {
 	if tx == nil {
 		return errors.New("outbox: Append requires a transaction")
 	}
-	if ev.Type == "" {
-		return errors.New("outbox: event Type is required")
+	if !routing.ValidKind(ev.Kind) {
+		return fmt.Errorf("outbox: invalid event kind %q", ev.Kind)
 	}
-	if len(o.registry) > 0 && !o.registry.has(ev.Type) {
+	if !routing.ValidSubject(ev.Subject) {
+		return fmt.Errorf("outbox: invalid event subject %q", ev.Subject)
+	}
+	if len(o.registry) > 0 && !o.registry.has(ev.Kind) {
 		return fmt.Errorf("outbox: event type %q is not in the registry; declared types: %s",
-			ev.Type, strings.Join(o.registry.types(), ", "))
+			ev.Kind, strings.Join(o.registry.types(), ", "))
 	}
 	eventID := newULID()
 	createdAt := o.now().UTC().Format(time.RFC3339Nano)
 	_, err := tx.Exec(
-		`INSERT INTO outbox (event_id, type, payload, created_at) VALUES (?, ?, ?, ?)`,
-		eventID, ev.Type, string(ev.Payload), createdAt,
+		`INSERT INTO outbox (event_id, kind, subject, payload, created_at) VALUES (?, ?, ?, ?, ?)`,
+		eventID, ev.Kind, ev.Subject, string(ev.Payload), createdAt,
 	)
 	if err != nil {
-		return fmt.Errorf("outbox: append %s: %w", ev.Type, err)
+		return fmt.Errorf("outbox: append %s: %w", ev.Kind, err)
 	}
 	return nil
 }
@@ -208,7 +214,8 @@ func (o *Outbox) subscribe() <-chan struct{} {
 type eventRow struct {
 	seq       int64
 	eventID   string
-	typ       string
+	kind      string
+	subject   string
 	payload   string
 	createdAt string
 }
@@ -219,7 +226,7 @@ type eventRow struct {
 // memory bounded and the backlog on disk (§6.1).
 func (o *Outbox) fetch(ctx context.Context, afterSeq int64, limit int) ([]eventRow, int64, error) {
 	rows, err := o.db.QueryContext(ctx,
-		`SELECT seq, event_id, type, payload, created_at
+		`SELECT seq, event_id, kind, subject, payload, created_at
 		   FROM outbox
 		  WHERE seq > ?
 		  ORDER BY seq
@@ -233,7 +240,7 @@ func (o *Outbox) fetch(ctx context.Context, afterSeq int64, limit int) ([]eventR
 	var out []eventRow
 	for rows.Next() {
 		var r eventRow
-		if err := rows.Scan(&r.seq, &r.eventID, &r.typ, &r.payload, &r.createdAt); err != nil {
+		if err := rows.Scan(&r.seq, &r.eventID, &r.kind, &r.subject, &r.payload, &r.createdAt); err != nil {
 			return nil, afterSeq, fmt.Errorf("outbox: scan: %w", err)
 		}
 		out = append(out, r)

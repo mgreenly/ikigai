@@ -6,6 +6,8 @@ import (
 	"io"
 	"net/http"
 	"time"
+
+	"eventplane/routing"
 )
 
 // keepaliveInterval is the idle-connection keepalive cadence (§10.2 SHOULD ~15s).
@@ -25,9 +27,10 @@ const (
 // `data:` line (§8.3). Payload is opaque to the library.
 type envelope struct {
 	ID      string          `json:"id"`
-	Type    string          `json:"type"`
 	Source  string          `json:"source"`
 	Time    string          `json:"time"`
+	Kind    string          `json:"kind"`
+	Subject string          `json:"subject"`
 	Payload json.RawMessage `json:"payload"`
 }
 
@@ -172,9 +175,10 @@ func (o *Outbox) stream(ctx context.Context, w io.Writer, rc *http.ResponseContr
 func (o *Outbox) eventFrame(row eventRow) string {
 	env := envelope{
 		ID:      row.eventID,
-		Type:    row.typ,
 		Source:  o.source,
 		Time:    row.createdAt,
+		Kind:    row.kind,
+		Subject: row.subject,
 		Payload: json.RawMessage(row.payload),
 	}
 	// json.Marshal emits compact, single-line JSON with no embedded newlines —
@@ -187,7 +191,7 @@ func (o *Outbox) eventFrame(row eventRow) string {
 		return ": skip\n\n"
 	}
 	return "id: " + makeCursor(o.generation, row.seq) + "\n" +
-		"event: " + row.typ + "\n" +
+		"event: " + routing.Key(o.source, row.kind, row.subject) + "\n" +
 		"data: " + string(data) + "\n\n"
 }
 
