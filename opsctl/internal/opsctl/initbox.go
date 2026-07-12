@@ -28,7 +28,7 @@ type InitBoxOptions struct {
 // bootstrap inside dashboard/bin/setup — split out so per-app setup never reaches
 // for global state (PLAN §D1):
 //
-//  1. install nginx + certbot (seam),
+//  1. install nginx + certbot + poppler-utils (seam),
 //  2. create the conf.d/locations/ include dir + the letsencrypt webroot,
 //  3. write the apex nginx server{} block (with /_authn + the locations include),
 //  4. nginx -t + enable+reload nginx (seam),
@@ -51,10 +51,12 @@ func (o *Opsctl) InitBox(ctx context.Context, opts InitBoxOptions) error {
 	}
 	l := o.layout(opts.DefaultApp)
 
-	// 1. Packages: nginx + certbot (the launcher's deps awscli-2/jq are already
-	//    present from instance bootstrap, so init-box does not install them).
-	o.logf("install nginx + certbot")
-	if err := o.System.InstallPackages(ctx, "nginx", "certbot"); err != nil {
+	// 1. Packages: nginx + certbot (front door) and poppler-utils (the
+	// box-baseline PDF tooling — pdftotext/pdftoppm/pdfinfo — that sandboxed
+	// prompts runs rely on). The launcher's deps awscli-2/jq are already present
+	// from instance bootstrap, so init-box does not install them.
+	o.logf("install nginx + certbot + poppler-utils")
+	if err := o.System.InstallPackages(ctx, "nginx", "certbot", "poppler-utils"); err != nil {
 		return fmt.Errorf("init-box: install packages: %w", err)
 	}
 

@@ -136,7 +136,7 @@ func TestInitBox_WritesApexSubstrate(t *testing.T) {
 	// --standalone BEFORE nginx -t, since the apex :443 block references that cert
 	// and nginx cannot validate without it.
 	wantOps := []string{
-		"install-packages:nginx,certbot",
+		"install-packages:nginx,certbot,poppler-utils",
 		"obtain-cert-standalone:int.ikigenba.com",
 		"nginx-test",
 		"enable-now:nginx",
@@ -217,7 +217,7 @@ func TestInitBox_SkipCert(t *testing.T) {
 	// The apex block + locations dir are staged and the renew timer enabled, but
 	// no nginx validate/start and no cert — those wait for the cert to exist.
 	wantOps := []string{
-		"install-packages:nginx,certbot",
+		"install-packages:nginx,certbot,poppler-utils",
 		"daemon-reload",
 		"enable-now:ikigenba-certbot-renew.timer",
 		"enable-now:ikigenba-backup.timer",
@@ -252,7 +252,7 @@ func TestInitBox_CertExists(t *testing.T) {
 	// No standalone bootstrap; nginx validate/enable/reload, then a webroot
 	// obtain-cert that reconciles the renewal config (no re-issue, cert is live).
 	wantOps := []string{
-		"install-packages:nginx,certbot",
+		"install-packages:nginx,certbot,poppler-utils",
 		"nginx-test",
 		"enable-now:nginx",
 		"nginx-reload",

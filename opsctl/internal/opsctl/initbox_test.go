@@ -45,3 +45,35 @@ func TestInitBoxDoesNotCreateServedTreeGroup(t *testing.T) {
 		})
 	}
 }
+
+func TestInitBoxInstallsBaselinePDFToolsWhenSkippingCert(t *testing.T) {
+	// R-WHC0-I9HL
+	root := t.TempDir()
+	sysRoot := t.TempDir()
+	sys := &stubSystem{}
+	o := &Opsctl{
+		Root:    root,
+		SysRoot: sysRoot,
+		System:  sys,
+		Out:     io.Discard,
+		Err:     io.Discard,
+	}
+
+	err := o.InitBox(context.Background(), InitBoxOptions{
+		DefaultApp: "dashboard",
+		Domain:     "int.ikigenba.com",
+		ApexBlock:  "server_name __DOMAIN__;\n",
+		SkipCert:   true,
+	})
+	if err != nil {
+		t.Fatalf("init-box --skip-cert: %v", err)
+	}
+
+	want := "install-packages:nginx,certbot,poppler-utils"
+	for _, op := range sys.opSeq() {
+		if op == want {
+			return
+		}
+	}
+	t.Fatalf("init-box --skip-cert did not request %q; ops = %v", want, sys.opSeq())
+}
