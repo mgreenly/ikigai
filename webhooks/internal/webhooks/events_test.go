@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"path/filepath"
+	"reflect"
 	"testing"
 	"time"
 
@@ -58,8 +59,8 @@ func newRecordFixture(t *testing.T, wh db.Webhook) (svc *Service, dbPath string,
 }
 
 // decodeOnlyOutboxRow asserts there is exactly one outbox row read through conn
-// and returns its type and decoded payload.
-func decodeOnlyOutboxRow(t *testing.T, conn *sql.DB) (eventType string, p webhookReceivedPayload) {
+// and returns its routing fields and decoded payload.
+func decodeOnlyOutboxRow(t *testing.T, conn *sql.DB) (kind, subject string, p webhookReceivedPayload) {
 	t.Helper()
 	var n int
 	if err := conn.QueryRow(`SELECT count(*) FROM outbox`).Scan(&n); err != nil {
@@ -69,16 +70,16 @@ func decodeOnlyOutboxRow(t *testing.T, conn *sql.DB) (eventType string, p webhoo
 		t.Fatalf("expected exactly one outbox row, got %d", n)
 	}
 	var payload string
-	if err := conn.QueryRow(`SELECT type, payload FROM outbox`).Scan(&eventType, &payload); err != nil {
+	if err := conn.QueryRow(`SELECT kind, subject, payload FROM outbox`).Scan(&kind, &subject, &payload); err != nil {
 		t.Fatalf("scan outbox: %v", err)
 	}
 	if err := json.Unmarshal([]byte(payload), &p); err != nil {
 		t.Fatalf("unmarshal payload: %v", err)
 	}
-	return eventType, p
+	return kind, subject, p
 }
 
-// R-GTUZ-AIGW — one Record writes exactly one webhook.received row whose payload
+// R-GTUZ-AIGW — one Record writes exactly one received row whose payload
 // carries the webhook name, stored owner, content_type, and a binary body that
 // base64-decodes byte-for-byte.
 func TestRecord_WritesEventWithBinaryBodyRecoverable(t *testing.T) {
@@ -90,9 +91,9 @@ func TestRecord_WritesEventWithBinaryBodyRecoverable(t *testing.T) {
 		t.Fatalf("Record: %v", err)
 	}
 
-	typ, p := decodeOnlyOutboxRow(t, svc.db)
-	if typ != "webhook.received" {
-		t.Fatalf("type = %q, want webhook.received", typ)
+	kind, subject, p := decodeOnlyOutboxRow(t, svc.db)
+	if kind != "received" || subject != "/deploy-hook" {
+		t.Fatalf("route = (%q, %q), want (received, /deploy-hook)", kind, subject)
 	}
 	if p.Name != "deploy-hook" {
 		t.Errorf("name = %q, want deploy-hook", p.Name)
@@ -124,7 +125,7 @@ func TestRecord_StampsStoredOwnerNotCallerInput(t *testing.T) {
 		t.Fatalf("Record: %v", err)
 	}
 
-	_, p := decodeOnlyOutboxRow(t, svc.db)
+	_, _, p := decodeOnlyOutboxRow(t, svc.db)
 	if p.Owner != "stored-owner@example.com" {
 		t.Fatalf("owner = %q, want stored-owner@example.com (caller input must never be echoed)", p.Owner)
 	}
@@ -147,9 +148,9 @@ func TestRecord_DurableAcrossReopen(t *testing.T) {
 	}
 	defer fresh.Close()
 
-	typ, p := decodeOnlyOutboxRow(t, fresh)
-	if typ != "webhook.received" || p.Name != "durable" {
-		t.Fatalf("reopened row = (%q, %q), want (webhook.received, durable)", typ, p.Name)
+	kind, subject, p := decodeOnlyOutboxRow(t, fresh)
+	if kind != "received" || subject != "/durable" || p.Name != "durable" {
+		t.Fatalf("reopened row = (%q, %q, %q), want (received, /durable, durable)", kind, subject, p.Name)
 	}
 }
 
@@ -164,7 +165,7 @@ func TestRecord_TouchEqualsReceivedAtInOneTx(t *testing.T) {
 		t.Fatalf("Record: %v", err)
 	}
 
-	_, p := decodeOnlyOutboxRow(t, svc.db) // also asserts exactly one row
+	_, _, p := decodeOnlyOutboxRow(t, svc.db) // also asserts exactly one row
 
 	got, _, ok, err := db.NewStore(svc.db).GetByName(context.Background(), "atomic")
 	if err != nil || !ok {
@@ -179,11 +180,79 @@ func TestRecord_TouchEqualsReceivedAtInOneTx(t *testing.T) {
 	}
 }
 
-// R-GYQK-TLFO — Events declares webhook.received, and an Append of a type not in
+// R-A3FB-J3ZK — Records for distinct valid hook names commit the received kind,
+// per-hook routing subject, unchanged payload shape, and last-triggered touch in
+// the same real SQLite transaction.
+func TestRecord_RoutesEachHookAndTouchesAtomically(t *testing.T) {
+	deploy := db.Webhook{Name: "deploy-hook", OwnerEmail: "deploy@example.com"}
+	svc, _, now := newRecordFixture(t, deploy)
+	alpha := db.Webhook{Name: "alpha_1", OwnerEmail: "alpha@example.com", CreatedAt: now}
+	if err := db.NewStore(svc.db).Insert(context.Background(), alpha, "alpha-secret"); err != nil {
+		t.Fatalf("insert alpha webhook: %v", err)
+	}
+
+	for _, wh := range []db.Webhook{deploy, alpha} {
+		if err := svc.Record(context.Background(), wh, "application/json", []byte(`{"hook":true}`)); err != nil {
+			t.Fatalf("Record(%s): %v", wh.Name, err)
+		}
+	}
+
+	rows, err := svc.db.Query(`SELECT kind, subject, payload FROM outbox ORDER BY subject`)
+	if err != nil {
+		t.Fatalf("query outbox: %v", err)
+	}
+	defer rows.Close()
+	wantSubjects := map[string]string{"/alpha_1": "alpha@example.com", "/deploy-hook": "deploy@example.com"}
+	seen := map[string]bool{}
+	for rows.Next() {
+		var kind, subject, raw string
+		if err := rows.Scan(&kind, &subject, &raw); err != nil {
+			t.Fatalf("scan outbox: %v", err)
+		}
+		if kind != "received" {
+			t.Errorf("kind = %q, want received", kind)
+		}
+		owner, ok := wantSubjects[subject]
+		if !ok {
+			t.Fatalf("unexpected subject %q", subject)
+		}
+		seen[subject] = true
+		var payload map[string]any
+		if err := json.Unmarshal([]byte(raw), &payload); err != nil {
+			t.Fatalf("unmarshal payload for %s: %v", subject, err)
+		}
+		wantKeys := map[string]bool{"name": true, "owner": true, "received_at": true, "content_type": true, "body": true}
+		gotKeys := map[string]bool{}
+		for key := range payload {
+			gotKeys[key] = true
+		}
+		if !reflect.DeepEqual(gotKeys, wantKeys) {
+			t.Errorf("payload keys for %s = %v, want %v", subject, gotKeys, wantKeys)
+		}
+		if payload["name"] != subject[1:] || payload["owner"] != owner {
+			t.Errorf("payload for %s = %v, want name %q and owner %q", subject, payload, subject[1:], owner)
+		}
+		wh, _, ok, err := db.NewStore(svc.db).GetByName(context.Background(), subject[1:])
+		if err != nil || !ok || wh.LastTriggeredAt == nil {
+			t.Fatalf("GetByName(%s): webhook=%+v ok=%v err=%v", subject[1:], wh, ok, err)
+		}
+		if got := wh.LastTriggeredAt.UTC().Format(time.RFC3339Nano); got != payload["received_at"] {
+			t.Errorf("last_triggered_at for %s = %q, payload received_at = %v", subject, got, payload["received_at"])
+		}
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatalf("iterate outbox: %v", err)
+	}
+	if !reflect.DeepEqual(seen, map[string]bool{"/alpha_1": true, "/deploy-hook": true}) {
+		t.Fatalf("outbox subjects = %v, want one row for each hook", seen)
+	}
+}
+
+// R-GYQK-TLFO — Events declares received, and an Append of a kind not in
 // the registry errors with no row written.
 func TestEvents_RegistryGatesAppend(t *testing.T) {
-	if !registryHas(Events, "webhook.received") {
-		t.Fatal("Events does not declare webhook.received")
+	if !registryHas(Events, "received") {
+		t.Fatal("Events does not declare received")
 	}
 
 	dbPath := filepath.Join(t.TempDir(), "webhooks.db")
@@ -210,7 +279,7 @@ func TestEvents_RegistryGatesAppend(t *testing.T) {
 	if err != nil {
 		t.Fatalf("BeginTx: %v", err)
 	}
-	if err := ob.Append(tx, outbox.Event{Type: "webhook.not-a-real-type", Payload: json.RawMessage(`{}`)}); err == nil {
+	if err := ob.Append(tx, outbox.Event{Kind: "not-a-real-kind", Payload: json.RawMessage(`{}`)}); err == nil {
 		tx.Rollback()
 		t.Fatal("Append of an unregistered type returned nil, want error")
 	}
@@ -223,9 +292,9 @@ func TestEvents_RegistryGatesAppend(t *testing.T) {
 
 // registryHas reports whether the registry declares eventType (the unexported
 // has() is not reachable from a test outside the outbox package).
-func registryHas(r outbox.Registry, eventType string) bool {
+func registryHas(r outbox.Registry, kind string) bool {
 	for _, et := range r {
-		if et.Type == eventType {
+		if et.Kind == kind {
 			return true
 		}
 	}

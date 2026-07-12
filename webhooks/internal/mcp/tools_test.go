@@ -291,6 +291,47 @@ func TestAssembledHandlerListsExactlySixTools(t *testing.T) {
 	}
 }
 
+// R-A4N7-WVQ9 — the assembled MCP reflection surface exposes the sole received
+// family, with its route-template subject and schema/example agreement.
+func TestReflectionPublishesReceivedFamily(t *testing.T) {
+	h, _ := newTestHandler(t)
+	index := callOK(t, h, ownerA, "reflection", map[string]any{})
+	publishes, ok := index["publishes"].([]any)
+	if !ok || len(publishes) != 1 {
+		t.Fatalf("reflection publishes = %v, want exactly one family", index["publishes"])
+	}
+	family, ok := publishes[0].(map[string]any)
+	if !ok || family["kind"] != "received" || family["subject"] != "/<hook name>" {
+		t.Fatalf("reflection family = %v, want received at /<hook name>", publishes[0])
+	}
+
+	detail := callOK(t, h, ownerA, "reflection", map[string]any{"kind": "received"})
+	if detail["kind"] != "received" || detail["subject"] != "/<hook name>" {
+		t.Fatalf("reflection detail route = %v", detail)
+	}
+	example, ok := detail["example"].(map[string]any)
+	if !ok {
+		t.Fatalf("reflection example = %T, want object", detail["example"])
+	}
+	schema, ok := detail["schema"].(map[string]any)
+	if !ok {
+		t.Fatalf("reflection schema = %T, want object", detail["schema"])
+	}
+	properties, ok := schema["properties"].(map[string]any)
+	if !ok {
+		t.Fatalf("reflection schema properties = %v", schema["properties"])
+	}
+	for field := range example {
+		if _, ok := properties[field]; !ok {
+			t.Errorf("example field %q absent from schema properties %v", field, properties)
+		}
+	}
+	bad := callAs(t, h, ownerA, "reflection", map[string]any{"kind": "missing"})
+	if !bad.IsError || len(bad.Content) != 1 || !strings.Contains(bad.Content[0].Text, `unknown event kind "missing"`) || !strings.Contains(bad.Content[0].Text, "known kinds: received") {
+		t.Fatalf("unknown-kind response = %+v, want typed unknown-kind error naming received", bad)
+	}
+}
+
 // R-5Z8J-Y0YP — create with no name mints an opaque name; trigger_url is
 // baseURL+"in/"+name, the secret is show-once (ms_wh_ prefix), and the row is
 // persisted owned by the X-Owner-Email caller (confirmed via a follow-up list).

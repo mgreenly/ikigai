@@ -12,9 +12,9 @@ import (
 	"webhooks/internal/db"
 )
 
-// eventWebhookReceived is the single wire type this service publishes: one fact
-// per accepted inbound webhook trigger (D5).
-const eventWebhookReceived = "webhook.received"
+// kindReceived is the single fact kind this service publishes: one fact per
+// accepted inbound webhook trigger.
+const kindReceived = "received"
 
 // webhookReceivedPayload is the per-event snapshot marshaled into the outbox
 // envelope. owner is always the STORED owner of the webhook (wh.OwnerEmail),
@@ -28,12 +28,13 @@ type webhookReceivedPayload struct {
 	Body        string `json:"body"` // base64.StdEncoding of the raw request bytes
 }
 
-// Events is the registry of every event type this service may emit. Append
-// rejects any type not declared here, so this is the single source of truth for
+// Events is the registry of every event family this service may emit. Append
+// rejects any kind not declared here, so this is the single source of truth for
 // what "webhooks" publishes onto the event plane.
 var Events = outbox.Registry{
 	{
-		Type:        eventWebhookReceived,
+		Kind:        kindReceived,
+		Subject:     "/<hook name>",
 		Description: "An inbound webhook trigger was accepted and recorded.",
 		Sample: webhookReceivedPayload{
 			Name:        "deploy-hook",
@@ -45,7 +46,7 @@ var Events = outbox.Registry{
 	},
 }
 
-// Record durably publishes one webhook.received event and stamps the webhook's
+// Record durably publishes one received event and stamps the webhook's
 // last_triggered_at in a SINGLE transaction (durable-before-ack, D5): the outbox
 // Append and the touch commit together or not at all. The payload's received_at
 // and the touch both use one fixed instant from the injected clock, so they are
@@ -69,7 +70,7 @@ func (s *Service) Record(ctx context.Context, wh db.Webhook, contentType string,
 	if err != nil {
 		return err
 	}
-	if err := s.Outbox.Append(tx, outbox.Event{Type: eventWebhookReceived, Payload: raw}); err != nil {
+	if err := s.Outbox.Append(tx, outbox.Event{Kind: kindReceived, Subject: "/" + wh.Name, Payload: raw}); err != nil {
 		tx.Rollback()
 		return err
 	}

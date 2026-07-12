@@ -1,0 +1,11 @@
+DROP INDEX IF EXISTS idx_outbox_created_at;
+DROP TABLE IF EXISTS outbox;
+CREATE TABLE outbox (
+  seq        INTEGER PRIMARY KEY AUTOINCREMENT,
+  event_id   TEXT    NOT NULL,
+  kind       TEXT    NOT NULL,
+  subject    TEXT    NOT NULL DEFAULT '',
+  payload    TEXT    NOT NULL,
+  created_at TEXT    NOT NULL
+);
+CREATE INDEX idx_outbox_created_at ON outbox(created_at);

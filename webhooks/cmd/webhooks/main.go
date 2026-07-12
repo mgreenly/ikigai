@@ -14,7 +14,7 @@
 // loopback HTTP server + PRM + identity gate, and the /feed producer mount — is
 // owned by appkit. main.go declares only webhooks's identity (the Spec) and wires
 // its domain surface (the appkit/mcp tools, the share/www web surface, the public
-// ingress, and the webhook.received producer) through the Spec hooks.
+// ingress, and the received-event producer) through the Spec hooks.
 package main
 
 import (
@@ -37,7 +37,7 @@ func main() { appkit.Main(webhooksSpec()) }
 func webhooksSpec() appkit.Spec {
 	// The domain Service is built once and shared by the route hook (which mounts
 	// the gated MCP surface and the bare public ingress over it) and the producer-
-	// injection hook (which attaches the outbox so webhook.received appends append
+	// injection hook (which attaches the outbox so received-event appends append
 	// atomically with the domain write). Both close over svc; appkit calls Producer
 	// after Handlers when webhooks is a producer (Spec.Feed != "").
 	var svc *webhooks.Service
@@ -74,7 +74,7 @@ func webhooksSpec() appkit.Spec {
 			return nil
 		},
 		// Producer fires after Handlers: inject the outbox so every committed
-		// inbound webhook emits its webhook.received event on the same tx.
+		// inbound webhook emits its received event on the same tx.
 		Producer: func(ob *outbox.Outbox) error {
 			if svc == nil {
 				return fmt.Errorf("webhooks: Producer called before Handlers built the Service")
