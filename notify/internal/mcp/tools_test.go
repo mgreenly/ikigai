@@ -236,7 +236,7 @@ func TestToolsCallReflection(t *testing.T) {
 		t.Fatalf("expected empty publishes for notify, got %+v", publishes)
 	}
 
-	// Exactly one subscribes in-edge: crm/contact.created.
+	// Exactly one subscribes in-edge: crm's canonical contact.created key.
 	subscribes, ok := idx["subscribes"].([]any)
 	if !ok {
 		t.Fatalf("reflection index missing subscribes array: %+v", idx)
@@ -248,8 +248,8 @@ func TestToolsCallReflection(t *testing.T) {
 	if sub["source"] != "crm" {
 		t.Errorf("subscribes source = %v, want crm", sub["source"])
 	}
-	if sub["filter"] != "contact.created" {
-		t.Errorf("subscribes filter = %v, want contact.created", sub["filter"])
+	if sub["filter"] != "crm:contact.created/**" {
+		t.Errorf("subscribes filter = %v, want crm:contact.created/**", sub["filter"])
 	}
 	if d, _ := sub["description"].(string); d == "" {
 		t.Errorf("subscribes entry missing description: %+v", sub)

@@ -1,6 +1,7 @@
 package db
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -13,7 +14,19 @@ import (
 // offset store is no longer the schema the engine reads and writes — so this test
 // fails loudly the moment they diverge. It mirrors crm's
 // migrations_outbox_test.go on the producer side.
+// R-ZHCF-YJ8D
 func TestFeedOffsetMigrationMatchesLibraryDDL(t *testing.T) {
+	entries, err := migrationsFS.ReadDir("migrations")
+	if err != nil {
+		t.Fatalf("read embedded migrations: %v", err)
+	}
+	var names []string
+	for _, entry := range entries {
+		names = append(names, entry.Name())
+	}
+	if !slices.Equal(names, []string{"001_schema_migrations.sql", "002_feed_offset.sql"}) {
+		t.Fatalf("embedded migrations = %v, want exactly schema_migrations and feed_offset", names)
+	}
 	body, err := migrationsFS.ReadFile("migrations/002_feed_offset.sql")
 	if err != nil {
 		t.Fatalf("read 002_feed_offset.sql: %v", err)

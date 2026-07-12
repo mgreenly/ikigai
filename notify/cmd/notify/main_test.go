@@ -239,13 +239,15 @@ func TestNotifyConsumerHandlersPushSubscribedEventsOnly(t *testing.T) {
 		{
 			source: "crm",
 			event: consumer.Event{
-				Type:    "contact.created",
+				Kind:    "contact.created",
+				Subject: "/01JCONTACT",
 				ID:      "01JCONTACT",
 				Source:  "crm",
 				Payload: json.RawMessage(`{"display_name":"Ada Lovelace"}`),
 			},
 			unsubscribed: consumer.Event{
-				Type:    "contact.updated",
+				Kind:    "contact.updated",
+				Subject: "/01JCONTACTUP",
 				ID:      "01JCONTACTUP",
 				Source:  "crm",
 				Payload: json.RawMessage(`{"display_name":"Ada Lovelace"}`),
@@ -256,13 +258,15 @@ func TestNotifyConsumerHandlersPushSubscribedEventsOnly(t *testing.T) {
 		{
 			source: "prompts",
 			event: consumer.Event{
-				Type:    "run.succeeded",
+				Kind:    "run.succeeded",
+				Subject: "/nightly-scan",
 				ID:      "01JRUNOK",
 				Source:  "prompts",
 				Payload: json.RawMessage(`{"session_id":"s1","session_name":"nightly scan","trigger_event":"cron.nightly","scheduled_for":"2026-06-06T08:00:00Z"}`),
 			},
 			unsubscribed: consumer.Event{
-				Type:    "run.cancelled",
+				Kind:    "run.cancelled",
+				Subject: "/nightly-scan",
 				ID:      "01JRUNCANCEL",
 				Source:  "prompts",
 				Payload: json.RawMessage(`{"session_name":"nightly scan"}`),

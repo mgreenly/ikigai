@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"eventplane/consumer"
+	"eventplane/routing"
 )
 
 // pushTimeout bounds a single ntfy request so a fire-and-forget goroutine always
@@ -148,7 +149,7 @@ type contactCreated struct {
 func Subscription() consumer.Subscription {
 	return consumer.Subscription{
 		Source:      "crm",
-		Filter:      "contact.created",
+		Filter:      "crm:contact.created/**",
 		Description: "fires a best-effort ntfy.sh push (Title \"New contact\", body = display_name) for every contact created",
 	}
 }
@@ -167,7 +168,8 @@ func Handler(c *Client, logger *slog.Logger) consumer.Handler {
 	}
 	sub := Subscription() // the SAME declared in-edge reflection reports (decision 10)
 	return func(ctx context.Context, ev consumer.Event) error {
-		if !sub.Match(ev.Type) {
+		ok, err := routing.Match(sub.Filter, ev.Key())
+		if err != nil || !ok {
 			return nil // not ours — the engine advances the cursor anyway (§7.3)
 		}
 		var p contactCreated

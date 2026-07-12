@@ -37,7 +37,8 @@ func TestHandlerMalformedPayloadSkips(t *testing.T) {
 	h := push.Handler(client, discard)
 
 	ev := consumer.Event{
-		Type:    "contact.created",
+		Kind:    "contact.created",
+		Subject: "/01JBADPAYLOAD",
 		ID:      "01JBADPAYLOAD",
 		Source:  "crm",
 		Payload: json.RawMessage(`{"display_name": `), // truncated JSON
@@ -64,13 +65,39 @@ func TestHandlerNonMatchingTypeAdvances(t *testing.T) {
 	client := push.NewClient(ntfy.srv.URL, "topic", "tok", discard)
 	h := push.Handler(client, discard)
 
-	ev := consumer.Event{Type: "contact.updated", ID: "01JOTHER", Source: "crm", Payload: json.RawMessage(`{}`)}
+	ev := consumer.Event{Kind: "contact.updated", Subject: "/01JOTHER", ID: "01JOTHER", Source: "crm", Payload: json.RawMessage(`{}`)}
 	if err := h(context.Background(), ev); err != nil {
 		t.Fatalf("non-matching type returned %v, want nil", err)
 	}
 	time.Sleep(20 * time.Millisecond)
 	if got := ntfy.snapshot(); len(got) != 0 {
 		t.Fatalf("non-matching type fired %d pushes, want 0", len(got))
+	}
+}
+
+// R-ZCGU-FG9L
+func TestSubscriptionMatchesCanonicalContactKey(t *testing.T) {
+	sub := push.Subscription()
+	if sub.Source != "crm" || sub.Filter != "crm:contact.created/**" {
+		t.Fatalf("Subscription() = %#v, want crm canonical contact.created filter", sub)
+	}
+	ntfy := newNtfyMock(t)
+	discard := slog.New(slog.NewJSONHandler(io.Discard, nil))
+	h := push.Handler(push.NewClient(ntfy.srv.URL, "topic", "tok", discard), discard)
+	if err := h(context.Background(), consumer.Event{Source: "crm", Kind: "contact.created", Subject: "/01JCONTACT", Payload: json.RawMessage(`{"display_name":"Ada"}`)}); err != nil {
+		t.Fatalf("contact.created returned %v", err)
+	}
+	waitFor(t, "contact-created push", func() bool { return len(ntfy.snapshot()) == 1 })
+	got := ntfy.snapshot()[0]
+	if got.title != "New contact" || got.body != "Ada" {
+		t.Fatalf("push = %#v, want New contact/Ada", got)
+	}
+	if err := h(context.Background(), consumer.Event{Source: "crm", Kind: "contact.updated", Subject: "/01JCONTACT", Payload: json.RawMessage(`{"display_name":"Ada"}`)}); err != nil {
+		t.Fatalf("contact.updated returned %v", err)
+	}
+	time.Sleep(20 * time.Millisecond)
+	if got := ntfy.snapshot(); len(got) != 1 {
+		t.Fatalf("contact.updated made %d pushes, want 1", len(got))
 	}
 }
 
@@ -134,13 +161,13 @@ func openDB(t *testing.T, path, ddl string) *sql.DB {
 
 // emit writes one event with the given type + payload into the producer outbox
 // inside a transaction, commits, and rings — the crm producer wiring (§4.1, §4.3).
-func emit(t *testing.T, ob *outbox.Outbox, db *sql.DB, typ, payload string) {
+func emit(t *testing.T, ob *outbox.Outbox, db *sql.DB, kind, subject, payload string) {
 	t.Helper()
 	tx, err := db.Begin()
 	if err != nil {
 		t.Fatalf("begin: %v", err)
 	}
-	if err := ob.Append(tx, outbox.Event{Type: typ, Payload: json.RawMessage(payload)}); err != nil {
+	if err := ob.Append(tx, outbox.Event{Kind: kind, Subject: subject, Payload: json.RawMessage(payload)}); err != nil {
 		t.Fatalf("append: %v", err)
 	}
 	if err := tx.Commit(); err != nil {
@@ -171,6 +198,7 @@ func waitFor(t *testing.T, what string, cond func() bool) {
 	t.Fatalf("timed out waiting for %s", what)
 }
 
+// R-ZG4J-KRHO
 // TestEndToEndContactCreatedPush is the §13c e2e: consumer.Run against the REAL
 // outbox.FeedHandler, with notify's handler pointed at a mock ntfy. A
 // contact.created event produces exactly one POST with the right Title, body, and
@@ -203,7 +231,7 @@ func TestEndToEndContactCreatedPush(t *testing.T) {
 	cdb := openDB(t, filepath.Join(dir, "consumer.db"), consumer.SchemaSQL)
 
 	// A contact.created event already in the backlog (earliest so we deterministically drain it).
-	emit(t, ob, pdb, "contact.created", `{"id":"c1","display_name":"Alice Example"}`)
+	emit(t, ob, pdb, "contact.created", "/01JCONTACT", `{"id":"c1","display_name":"Alice Example"}`)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
@@ -246,7 +274,7 @@ func TestEndToEndContactCreatedPush(t *testing.T) {
 	// Record the cursor after event 1, then emit a NON-matching event.
 	waitFor(t, "cursor after event 1", func() bool { return feedCursor(t, cdb).Valid })
 	cur1 := feedCursor(t, cdb).String
-	emit(t, ob, pdb, "contact.updated", `{"id":"c1","display_name":"Alice Example"}`)
+	emit(t, ob, pdb, "contact.updated", "/01JCONTACT", `{"id":"c1","display_name":"Alice Example"}`)
 
 	// The cursor MUST advance past the filtered event (§7.3) …
 	waitFor(t, "cursor advances past filtered event", func() bool {
@@ -300,7 +328,7 @@ func TestNotifyConsumerReconstructsCursorAfterProducerCacheRemint(t *testing.T) 
 	}
 	cdb := openDB(t, notifyDB, consumer.SchemaSQL)
 
-	emit(t, ob1, pdb, "contact.created", `{"id":"c1","display_name":"Alice"}`)
+	emit(t, ob1, pdb, "contact.created", "/c1", `{"id":"c1","display_name":"Alice"}`)
 	runNotifyConsumerUntil(t, feed.URL+"/feed", cdb, push.Handler(client, discard), func() bool {
 		cur := cursorFor(t, cdb, "crm")
 		return cur.Valid && strings.HasPrefix(cur.String, ob1.Generation()+".")
@@ -327,7 +355,7 @@ func TestNotifyConsumerReconstructsCursorAfterProducerCacheRemint(t *testing.T) 
 	current = ob2
 	mu.Unlock()
 
-	emit(t, ob2, pdb, "contact.created", `{"id":"c2","display_name":"Bob"}`)
+	emit(t, ob2, pdb, "contact.created", "/c2", `{"id":"c2","display_name":"Bob"}`)
 	runNotifyConsumerUntil(t, feed.URL+"/feed", cdb, push.Handler(client, discard), func() bool {
 		cur := cursorFor(t, cdb, "crm")
 		return cur.Valid && strings.HasPrefix(cur.String, ob2.Generation()+".")

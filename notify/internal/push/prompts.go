@@ -43,13 +43,13 @@ func PromptsSubscriptions() []consumer.Subscription {
 	return []consumer.Subscription{
 		{
 			Source:      promptsSource,
-			Filter:      eventRunSucceeded,
-			Description: "fires a best-effort ntfy.sh push (Title \"Run succeeded\", body = session_name) when a prompts run finishes successfully",
+			Filter:      "prompts:" + eventRunSucceeded + "/**",
+			Description: "fires a best-effort ntfy.sh push (Title \"Run succeeded\", body = session_name) for the outcome of any prompt run, named or not",
 		},
 		{
 			Source:      promptsSource,
-			Filter:      eventRunFailed,
-			Description: "fires a best-effort ntfy.sh push (Title \"Run failed\", body = session_name + error) when a prompts run terminates in failure",
+			Filter:      "prompts:" + eventRunFailed + "/**",
+			Description: "fires a best-effort ntfy.sh push (Title \"Run failed\", body = session_name + error) for the outcome of any prompt run, named or not",
 		},
 	}
 }
@@ -70,7 +70,7 @@ func PromptsHandler(c *Client, logger *slog.Logger) consumer.Handler {
 	}
 	return func(ctx context.Context, ev consumer.Event) error {
 		var title string
-		switch ev.Type {
+		switch ev.Kind {
 		case eventRunSucceeded:
 			title = "Run succeeded"
 		case eventRunFailed:
@@ -83,10 +83,10 @@ func PromptsHandler(c *Client, logger *slog.Logger) consumer.Handler {
 			// A malformed payload can never decode, so retrying it would stall the
 			// feed forever. Wrap ErrSkip so the engine logs it loud and advances the
 			// cursor past it (event-triggering decisions §1).
-			return fmt.Errorf("push: decode %s %s: %w: %w", ev.Type, ev.ID, err, consumer.ErrSkip)
+			return fmt.Errorf("push: decode %s %s: %w: %w", ev.Kind, ev.ID, err, consumer.ErrSkip)
 		}
 		body := p.SessionName
-		if ev.Type == eventRunFailed && p.Error != "" {
+		if ev.Kind == eventRunFailed && p.Error != "" {
 			body = p.SessionName + ": " + p.Error
 		}
 		go func(title, body string) {

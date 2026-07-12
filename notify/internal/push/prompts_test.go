@@ -31,7 +31,8 @@ func TestPromptsHandlerPushesOnSucceeded(t *testing.T) {
 	h := push.PromptsHandler(client, discard)
 
 	ev := consumer.Event{
-		Type:    "run.succeeded",
+		Kind:    "run.succeeded",
+		Subject: "/nightly-scan",
 		ID:      "01JRUNOK",
 		Source:  "prompts",
 		Payload: json.RawMessage(`{"session_id":"s1","session_name":"nightly scan","trigger_event":"cron.nightly","scheduled_for":"2026-06-06T08:00:00Z"}`),
@@ -58,7 +59,8 @@ func TestPromptsHandlerPushesOnFailed(t *testing.T) {
 	h := push.PromptsHandler(client, discard)
 
 	ev := consumer.Event{
-		Type:    "run.failed",
+		Kind:    "run.failed",
+		Subject: "",
 		ID:      "01JRUNBAD",
 		Source:  "prompts",
 		Payload: json.RawMessage(`{"session_id":"s1","session_name":"nightly scan","trigger_event":"cron.nightly","scheduled_for":"2026-06-06T08:00:00Z","error":"run TTL exceeded"}`),
@@ -86,7 +88,8 @@ func TestPromptsHandlerMalformedPayloadSkips(t *testing.T) {
 	h := push.PromptsHandler(client, discard)
 
 	ev := consumer.Event{
-		Type:    "run.succeeded",
+		Kind:    "run.succeeded",
+		Subject: "/nightly-scan",
 		ID:      "01JRUNPOISON",
 		Source:  "prompts",
 		Payload: json.RawMessage(`{"session_name": `), // truncated JSON
@@ -112,7 +115,7 @@ func TestPromptsHandlerNonMatchingTypeAdvances(t *testing.T) {
 	client := push.NewClient(ntfy.srv.URL, "topic", "tok", discard)
 	h := push.PromptsHandler(client, discard)
 
-	ev := consumer.Event{Type: "run.cancelled", ID: "01JOTHER", Source: "prompts", Payload: json.RawMessage(`{}`)}
+	ev := consumer.Event{Kind: "run.cancelled", Subject: "/nightly-scan", ID: "01JOTHER", Source: "prompts", Payload: json.RawMessage(`{}`)}
 	if err := h(context.Background(), ev); err != nil {
 		t.Fatalf("non-matching type returned %v, want nil", err)
 	}
@@ -137,7 +140,8 @@ func TestPromptsHandlerPushFailureReturnsNil(t *testing.T) {
 	h := push.PromptsHandler(client, discard)
 
 	ev := consumer.Event{
-		Type:    "run.failed",
+		Kind:    "run.failed",
+		Subject: "/task",
 		ID:      "01JRUNFAIL",
 		Source:  "prompts",
 		Payload: json.RawMessage(`{"session_id":"s1","session_name":"task","error":"boom"}`),
@@ -148,6 +152,36 @@ func TestPromptsHandlerPushFailureReturnsNil(t *testing.T) {
 	// Give the detached push goroutine a moment to fail; the handler already
 	// returned nil, which is the whole point.
 	time.Sleep(20 * time.Millisecond)
+}
+
+// R-ZEWN-6ZQZ
+func TestPromptsSubscriptionsClassifyKindsRegardlessOfSubject(t *testing.T) {
+	subs := push.PromptsSubscriptions()
+	if len(subs) != 2 || subs[0].Filter != "prompts:run.succeeded/**" || subs[1].Filter != "prompts:run.failed/**" {
+		t.Fatalf("PromptsSubscriptions() = %#v, want the two canonical outcome filters", subs)
+	}
+	ntfy := newNtfyMock(t)
+	discard := slog.New(slog.NewJSONHandler(io.Discard, nil))
+	h := push.PromptsHandler(push.NewClient(ntfy.srv.URL, "topic", "tok", discard), discard)
+	for _, ev := range []consumer.Event{
+		{Kind: "run.succeeded", Subject: "/named", Payload: json.RawMessage(`{"session_name":"good"}`)},
+		{Kind: "run.failed", Subject: "/named", Payload: json.RawMessage(`{"session_name":"bad","error":"boom"}`)},
+		{Kind: "run.failed", Subject: "", Payload: json.RawMessage(`{"session_name":"nameless"}`)},
+		{Kind: "run.cancelled", Subject: "/named", Payload: json.RawMessage(`{"session_name":"cancelled"}`)},
+	} {
+		if err := h(context.Background(), ev); err != nil {
+			t.Fatalf("%s returned %v", ev.Kind, err)
+		}
+	}
+	waitFor(t, "three outcome pushes", func() bool { return len(ntfy.snapshot()) == 3 })
+	got := ntfy.snapshot()
+	seen := map[string]string{}
+	for _, p := range got {
+		seen[p.body] = p.title
+	}
+	if seen["good"] != "Run succeeded" || seen["bad: boom"] != "Run failed" || seen["nameless"] != "Run failed" {
+		t.Fatalf("outcome pushes = %#v", got)
+	}
 }
 
 // cursorFor reads the feed_offset cursor for a given source.
@@ -201,8 +235,8 @@ func TestTwoFeedOffsetsAdvanceIndependently(t *testing.T) {
 	client := push.NewClient(ntfy.srv.URL, "topic", "tok", discard)
 
 	// Seed one event on each feed.
-	emit(t, crmOb, crmDB, "contact.created", `{"id":"c1","display_name":"Alice"}`)
-	emit(t, promptsOb, promptsDB, "run.succeeded", `{"session_id":"s1","session_name":"nightly"}`)
+	emit(t, crmOb, crmDB, "contact.created", "/c1", `{"id":"c1","display_name":"Alice"}`)
+	emit(t, promptsOb, promptsDB, "run.succeeded", "/nightly", `{"session_id":"s1","session_name":"nightly"}`)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 2)
@@ -234,7 +268,7 @@ func TestTwoFeedOffsetsAdvanceIndependently(t *testing.T) {
 	prompts1 := cursorFor(t, cdb, "prompts").String
 
 	// Advance ONLY the crm feed. prompts's cursor must NOT move.
-	emit(t, crmOb, crmDB, "contact.created", `{"id":"c2","display_name":"Bob"}`)
+	emit(t, crmOb, crmDB, "contact.created", "/c2", `{"id":"c2","display_name":"Bob"}`)
 	waitFor(t, "crm cursor advances", func() bool {
 		c := cursorFor(t, cdb, "crm")
 		return c.Valid && c.String != crm1
@@ -245,7 +279,7 @@ func TestTwoFeedOffsetsAdvanceIndependently(t *testing.T) {
 
 	// Now advance ONLY prompts. crm's cursor must NOT move.
 	crm2 := cursorFor(t, cdb, "crm").String
-	emit(t, promptsOb, promptsDB, "run.failed", `{"session_id":"s1","session_name":"nightly","error":"boom"}`)
+	emit(t, promptsOb, promptsDB, "run.failed", "/nightly", `{"session_id":"s1","session_name":"nightly","error":"boom"}`)
 	waitFor(t, "prompts cursor advances", func() bool {
 		c := cursorFor(t, cdb, "prompts")
 		return c.Valid && c.String != prompts1
