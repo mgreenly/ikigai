@@ -184,7 +184,11 @@ func registerRoutes(rt *appkit.Router) error {
 	}
 
 	store := prompt.NewStore(conn)
-	run := runner.New(store, sb, runTTL, manifestRoot)
+	allowedPorts := make(map[int]bool, len(registry.Services))
+	for _, service := range registry.Services {
+		allowedPorts[service.Port] = true
+	}
+	run := runner.New(store, sb, runTTL, manifestRoot, func(port int) bool { return allowedPorts[port] })
 	svc := prompt.NewService(store, sb, runsDir, run)
 	// Wire the dropbox loopback content fetcher for the import verb. DROPBOX_BASE_URL
 	// is env-only (defaulting through the shared registry), the same

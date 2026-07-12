@@ -2,21 +2,28 @@ package tools
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
+	"net"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/ikigenba/agentkit"
 )
 
-func TestAllReturnsSixBuiltInTools(t *testing.T) {
-	// R-K0MO-FDTH
-	got := All(t.TempDir())
-	if len(got) != 6 {
-		t.Fatalf("All returned %d tools, want 6", len(got))
+func TestAllReturnsSevenBuiltInTools(t *testing.T) {
+	// R-64QY-QN1H
+	got := All(t.TempDir(), func(int) bool { return false })
+	if len(got) != 7 {
+		t.Fatalf("All returned %d tools, want 7", len(got))
 	}
 
 	gotNames := make([]string, 0, len(got))
@@ -46,7 +53,7 @@ func TestAllReturnsSixBuiltInTools(t *testing.T) {
 		}
 	}
 
-	wantNames := []string{nameRead, nameBash, nameWrite, nameEdit, nameGlob, nameGrep}
+	wantNames := []string{nameRead, nameBash, nameWrite, nameEdit, nameGlob, nameGrep, nameFetch}
 	if !reflect.DeepEqual(gotNames, wantNames) {
 		t.Fatalf("All tool names = %v, want %v", gotNames, wantNames)
 	}
@@ -58,8 +65,8 @@ func TestAllThreadsSandboxRootPerCall(t *testing.T) {
 	rootA := t.TempDir()
 	rootB := t.TempDir()
 
-	toolsA := All(rootA)
-	toolsB := All(rootB)
+	toolsA := All(rootA, func(int) bool { return false })
+	toolsB := All(rootB, func(int) bool { return false })
 
 	callTool(t, ctx, findTool(t, toolsA, nameWrite), map[string]any{
 		"file_path": "same.txt",
@@ -156,7 +163,7 @@ func TestAllRejectsSymlinkEscapes(t *testing.T) {
 		t.Skipf("symlink unavailable: %v", err)
 	}
 
-	builtins := All(root)
+	builtins := All(root, func(int) bool { return false })
 	expectEscapeError(t, findTool(t, builtins, nameRead), map[string]any{
 		"file_path": "outside/secret.txt",
 	})
@@ -183,6 +190,132 @@ func TestAllRejectsSymlinkEscapes(t *testing.T) {
 		t.Fatalf("write through sandbox symlink created outside file: %v", err)
 	}
 	assertFileContent(t, filepath.Join(outside, "secret.txt"), "classified\n")
+}
+
+func TestFetchStreamsAllowedContentIntoSandbox(t *testing.T) {
+	// R-65YV-4ES6
+	body := []byte("known invoice bytes\n")
+	gets := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gets++
+		if r.Method != http.MethodGet {
+			t.Errorf("method = %s, want GET", r.Method)
+		}
+		_, _ = w.Write(body)
+	}))
+	defer server.Close()
+	port := serverPort(t, server.URL)
+	root := t.TempDir()
+	tool := findTool(t, All(root, func(got int) bool { return got == port }), nameFetch)
+	raw := callTool(t, context.Background(), tool, map[string]any{"content_url": server.URL + "/content", "dest_path": "incoming/invoice.pdf"})
+	var result struct {
+		Path        string `json:"path"`
+		Size        int64  `json:"size"`
+		ContentHash string `json:"content_hash"`
+	}
+	if err := json.Unmarshal([]byte(raw), &result); err != nil {
+		t.Fatalf("fetch result JSON: %v", err)
+	}
+	if result.Path != "incoming/invoice.pdf" || result.Size != int64(len(body)) || result.ContentHash != fmt.Sprintf("%x", sha256.Sum256(body)) {
+		t.Fatalf("fetch result = %+v", result)
+	}
+	if gets != 1 {
+		t.Fatalf("GET count = %d, want 1", gets)
+	}
+	assertFileContent(t, filepath.Join(root, "incoming", "invoice.pdf"), string(body))
+}
+
+func TestFetchRejectsUnconfinedURLsAndDestinationsBeforeRequest(t *testing.T) {
+	// R-676R-I6IV
+	// R-68EN-VY9K
+	gets := 0
+	server := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { gets++ }))
+	defer server.Close()
+	port := serverPort(t, server.URL)
+	root := t.TempDir()
+	tool := findTool(t, All(root, func(got int) bool { return got == port }), nameFetch)
+	for _, input := range []map[string]any{
+		{"content_url": "http://10.0.0.5:3202/file", "dest_path": "x"},
+		{"content_url": fmt.Sprintf("http://localhost:%d/file", port), "dest_path": "x"},
+		{"content_url": "http://127.0.0.1:1/file", "dest_path": "x"},
+		{"content_url": server.URL + "/file", "dest_path": "../outside.bin"},
+		{"content_url": server.URL + "/file", "dest_path": filepath.Join(filepath.Dir(root), "outside.bin")},
+	} {
+		_, err := tool.Call(context.Background(), mustJSON(t, input))
+		if err == nil || !strings.HasPrefix(err.Error(), "validation:") {
+			t.Fatalf("Fetch(%v) error = %v, want validation", input, err)
+		}
+	}
+	if gets != 0 {
+		t.Fatalf("rejected inputs made %d requests, want 0", gets)
+	}
+	callTool(t, context.Background(), tool, map[string]any{"content_url": server.URL + "/file", "dest_path": "allowed"})
+	if gets != 1 {
+		t.Fatalf("allowed loopback URL made %d requests, want 1", gets)
+	}
+	if _, err := os.Stat(filepath.Join(filepath.Dir(root), "outside.bin")); !os.IsNotExist(err) {
+		t.Fatalf("escaping destination exists: %v", err)
+	}
+}
+
+func TestFetchMapsSourceFailuresWithoutDestinationFile(t *testing.T) {
+	// R-69MK-9Q09
+	redirectTargetCalls := 0
+	target := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { redirectTargetCalls++ }))
+	defer target.Close()
+	source := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/missing":
+			w.WriteHeader(http.StatusNotFound)
+		case "/conflict":
+			w.WriteHeader(http.StatusConflict)
+		case "/redirect":
+			http.Redirect(w, r, target.URL, http.StatusFound)
+		}
+	}))
+	defer source.Close()
+	port := serverPort(t, source.URL)
+	closed, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	closedPort := closed.Addr().(*net.TCPAddr).Port
+	_ = closed.Close()
+	root := t.TempDir()
+	tool := findTool(t, All(root, func(got int) bool { return got == port || got == closedPort }), nameFetch)
+	for path, prefix := range map[string]string{"/missing": "not_found:", "/conflict": "conflict:", "/redirect": "source_unavailable:"} {
+		dest := "failed" + strings.ReplaceAll(path, "/", "_")
+		_, err := tool.Call(context.Background(), mustJSON(t, map[string]any{"content_url": source.URL + path, "dest_path": dest}))
+		if err == nil || !strings.HasPrefix(err.Error(), prefix) {
+			t.Fatalf("%s error = %v, want %s", path, err, prefix)
+		}
+		if _, statErr := os.Stat(filepath.Join(root, dest)); !os.IsNotExist(statErr) {
+			t.Fatalf("%s destination exists: %v", path, statErr)
+		}
+	}
+	_, err = tool.Call(context.Background(), mustJSON(t, map[string]any{"content_url": fmt.Sprintf("http://127.0.0.1:%d/file", closedPort), "dest_path": "refused"}))
+	if err == nil || !strings.HasPrefix(err.Error(), "source_unavailable:") {
+		t.Fatalf("refused error = %v", err)
+	}
+	if _, statErr := os.Stat(filepath.Join(root, "refused")); !os.IsNotExist(statErr) {
+		t.Fatalf("refused destination exists: %v", statErr)
+	}
+	if redirectTargetCalls != 0 {
+		t.Fatalf("redirect target received %d requests", redirectTargetCalls)
+	}
+}
+
+func serverPort(t *testing.T, rawURL string) int {
+	t.Helper()
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	port, err := strconv.Atoi(u.Port())
+	if err != nil {
+		t.Fatal(err)
+	}
+	return port
 }
 
 func findTool(t *testing.T, tools []agentkit.Tool, name string) agentkit.Tool {

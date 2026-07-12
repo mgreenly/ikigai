@@ -3,16 +3,23 @@ package tools
 import (
 	"bufio"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
+	"net"
+	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ikigenba/agentkit"
 )
@@ -24,10 +31,11 @@ const (
 	nameEdit  = "Edit"
 	nameGlob  = "Glob"
 	nameGrep  = "Grep"
+	nameFetch = "Fetch"
 )
 
-// All returns the six built-in tools confined to sandboxRoot.
-func All(sandboxRoot string) []agentkit.Tool {
+// All returns the seven built-in tools confined to sandboxRoot.
+func All(sandboxRoot string, sourcePortAllowed func(port int) bool) []agentkit.Tool {
 	return []agentkit.Tool{
 		agentkit.NewTool(nameRead, "Read a file inside the sandbox.", func(ctx context.Context, in readInput) (string, error) {
 			return readFile(sandboxRoot, in)
@@ -46,6 +54,9 @@ func All(sandboxRoot string) []agentkit.Tool {
 		}),
 		agentkit.NewTool(nameGrep, "Search files inside the sandbox for a regular expression.", func(ctx context.Context, in grepInput) (string, error) {
 			return grepFiles(sandboxRoot, in)
+		}),
+		agentkit.NewTool(nameFetch, "Fetch a suite content URL into the sandbox.", func(ctx context.Context, in fetchInput) (string, error) {
+			return fetchFile(ctx, sandboxRoot, sourcePortAllowed, in)
 		}),
 	}
 }
@@ -81,6 +92,104 @@ type grepInput struct {
 	Pattern string `json:"pattern" jsonschema:"required,description=Regular expression to search for"`
 	Path    string `json:"path,omitempty" jsonschema:"description=File or directory to search, relative to the sandbox root"`
 	Glob    string `json:"glob,omitempty" jsonschema:"description=Optional file glob matched against base names"`
+}
+
+type fetchInput struct {
+	ContentURL string `json:"content_url" jsonschema:"required,description=A suite loopback content URL (e.g. from an event payload or a tool result)"`
+	DestPath   string `json:"dest_path" jsonschema:"required,description=Destination file path, relative to the sandbox root"`
+}
+
+func fetchFile(ctx context.Context, root string, sourcePortAllowed func(int) bool, in fetchInput) (string, error) {
+	dest, err := confinePath(root, in.DestPath)
+	if err != nil {
+		return "", fmt.Errorf("validation: destination path must stay inside the sandbox: %w", err)
+	}
+	u, err := validateContentURL(in.ContentURL, sourcePortAllowed)
+	if err != nil {
+		return "", err
+	}
+	if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
+		return "", fmt.Errorf("source_unavailable: prepare destination: %w", err)
+	}
+	base, err := sandboxRoot(root)
+	if err != nil {
+		return "", fmt.Errorf("source_unavailable: resolve sandbox: %w", err)
+	}
+	tmp, err := os.CreateTemp(base, ".fetch-*")
+	if err != nil {
+		return "", fmt.Errorf("source_unavailable: create temporary file: %w", err)
+	}
+	tmpName := tmp.Name()
+	defer os.Remove(tmpName)
+
+	client := &http.Client{
+		Timeout: 0,
+		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+		Transport: &http.Transport{
+			DialContext:           (&net.Dialer{Timeout: 10 * time.Second}).DialContext,
+			ResponseHeaderTimeout: 10 * time.Second,
+		},
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return "", fmt.Errorf("validation: invalid content URL: %w", err)
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("source_unavailable: fetch content URL: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusNotFound {
+		return "", fmt.Errorf("not_found: the reference is stale or absent — re-derive it from the holder")
+	}
+	if resp.StatusCode == http.StatusConflict {
+		return "", fmt.Errorf("conflict: the reference revision moved — re-derive it from the holder")
+	}
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return "", fmt.Errorf("source_unavailable: source returned HTTP %d", resp.StatusCode)
+	}
+
+	hash := sha256.New()
+	size, err := io.Copy(tmp, io.TeeReader(resp.Body, hash))
+	if closeErr := tmp.Close(); err == nil {
+		err = closeErr
+	}
+	if err != nil {
+		return "", fmt.Errorf("source_unavailable: stream content: %w", err)
+	}
+	if err := os.Rename(tmpName, dest); err != nil {
+		return "", fmt.Errorf("source_unavailable: finalize content: %w", err)
+	}
+	result, err := json.Marshal(struct {
+		Path        string `json:"path"`
+		Size        int64  `json:"size"`
+		ContentHash string `json:"content_hash"`
+	}{in.DestPath, size, fmt.Sprintf("%x", hash.Sum(nil))})
+	if err != nil {
+		return "", err
+	}
+	return string(result), nil
+}
+
+func validateContentURL(raw string, sourcePortAllowed func(int) bool) (*url.URL, error) {
+	u, err := url.Parse(raw)
+	if err != nil || u.Scheme != "http" {
+		return nil, fmt.Errorf("validation: content URL must use the http scheme")
+	}
+	if u.Hostname() != "127.0.0.1" && u.Hostname() != "::1" {
+		return nil, fmt.Errorf("validation: content URL host must be literal 127.0.0.1 or ::1")
+	}
+	portText := u.Port()
+	port, err := strconv.Atoi(portText)
+	if err != nil || portText == "" || port < 1 || port > 65535 {
+		return nil, fmt.Errorf("validation: content URL must carry an explicit valid port")
+	}
+	if sourcePortAllowed == nil || !sourcePortAllowed(port) {
+		return nil, fmt.Errorf("validation: content URL port %d is not registered", port)
+	}
+	return u, nil
 }
 
 func runBash(ctx context.Context, root string, in bashInput) (string, error) {

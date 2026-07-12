@@ -162,7 +162,7 @@ func newTestRunner(t *testing.T, ttl time.Duration, fp agentkit.Provider) (*Runn
 		t.Fatalf("sandbox.New: %v", err)
 	}
 
-	r := New(store, sb, ttl, t.TempDir())
+	r := New(store, sb, ttl, t.TempDir(), func(int) bool { return false })
 	r.buildProvider = func(prompt.Config, func(string) string) (agentkit.Provider, error) { return fp, nil }
 	return r, store
 }
@@ -389,6 +389,8 @@ func TestSpawn_RequestAdvertisesSandboxAndLoaderOnlyForDeferredTools(t *testing.
 
 func TestSpawn_SystemFramesDeferredToolsWithoutServiceEnumeration(t *testing.T) {
 	// R-9OJA-B2KU
+	// R-6AUG-NHQY
+	// R-6I5U-Y474
 	fp := &fakeProvider{}
 	runsDir := t.TempDir()
 	r, store := newTestRunner(t, time.Minute, fp)
@@ -415,6 +417,11 @@ func TestSpawn_SystemFramesDeferredToolsWithoutServiceEnumeration(t *testing.T) 
 	}
 	if strings.Contains(req.System, "ikigenba_") {
 		t.Fatalf("system prompt enumerates suite tool names: %q", req.System)
+	}
+	for _, phrase := range []string{"bash, read, write, edit, glob, grep, and fetch", "Fetch takes a suite content URL", "pdftotext", "pdftoppm", "pdfinfo"} {
+		if !strings.Contains(req.System, phrase) {
+			t.Fatalf("system prompt = %q, missing %q", req.System, phrase)
+		}
 	}
 }
 
@@ -679,7 +686,7 @@ func TestNew_DefaultDiscoverWired(t *testing.T) {
 		t.Fatalf("sandbox.New: %v", err)
 	}
 
-	r := New(prompt.NewStore(conn), sb, time.Minute, t.TempDir())
+	r := New(prompt.NewStore(conn), sb, time.Minute, t.TempDir(), func(int) bool { return false })
 	if r.discover == nil {
 		t.Fatalf("New left discover seam nil")
 	}

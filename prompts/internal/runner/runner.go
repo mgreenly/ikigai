@@ -46,6 +46,8 @@ type Runner struct {
 	// suite.Discover, but is injectable so tests can supply fake groups and
 	// never touch the real inventory or any peer.
 	discover func(ctx context.Context, owner, promptID string) []agentkit.DeferredToolGroup
+	// sourcePortAllowed confines Fetch to registered loopback services.
+	sourcePortAllowed func(port int) bool
 
 	mu      sync.Mutex
 	cancels map[string]context.CancelFunc
@@ -59,7 +61,7 @@ type Runner struct {
 // every run's wall-clock; on expiry the run ends failed with a TTL error.
 // manifestRoot is the box inventory root (PROMPTS_MANIFEST_ROOT) threaded into
 // the default suite-discovery closure.
-func New(store *prompt.Store, sb *sandbox.Manager, ttl time.Duration, manifestRoot string) *Runner {
+func New(store *prompt.Store, sb *sandbox.Manager, ttl time.Duration, manifestRoot string, sourcePortAllowed func(int) bool) *Runner {
 	return &Runner{
 		store:         store,
 		sandbox:       sb,
@@ -68,8 +70,9 @@ func New(store *prompt.Store, sb *sandbox.Manager, ttl time.Duration, manifestRo
 		discover: func(ctx context.Context, owner, promptID string) []agentkit.DeferredToolGroup {
 			return suite.Discover(ctx, manifestRoot, owner, promptID)
 		},
-		cancels:       make(map[string]context.CancelFunc),
-		userCancelled: make(map[string]bool),
+		sourcePortAllowed: sourcePortAllowed,
+		cancels:           make(map[string]context.CancelFunc),
+		userCancelled:     make(map[string]bool),
 	}
 }
 
@@ -224,7 +227,7 @@ func (r *Runner) execute(run prompt.Run) {
 		Log:               logSink,
 		Gen:               genSettings(cfg),
 		Retry:             retryPolicy(cfg),
-		Tools:             runtools.All(sandboxRoot),
+		Tools:             runtools.All(sandboxRoot, r.sourcePortAllowed),
 		DeferredTools:     r.discover(ctx, run.OwnerEmail, run.PromptID),
 		MaxToolIterations: cfg.ToolLoopLimit,
 	}
