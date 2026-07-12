@@ -22,10 +22,10 @@ const rfc = time.RFC3339Nano
 // InsertTransaction inserts the bare transaction row (no postings).
 func (Store) InsertTransaction(tx *sql.Tx, t Transaction) error {
 	_, err := tx.Exec(`
-		INSERT INTO transactions (id, date, description, created_at, reverses_id, reversed_by_id)
-		VALUES (?, ?, ?, ?, ?, ?)
+		INSERT INTO transactions (id, date, description, created_at, reverses_id, reversed_by_id, external_ref)
+		VALUES (?, ?, ?, ?, ?, ?, ?)
 	`, t.ID, t.Date, t.Description, t.CreatedAt.UTC().Format(rfc),
-		nullString(t.ReversesID), nullString(t.ReversedByID))
+		nullString(t.ReversesID), nullString(t.ReversedByID), nullString(t.ExternalRef))
 	if err != nil {
 		return fmt.Errorf("insert transaction: %w", err)
 	}
@@ -89,9 +89,18 @@ func (Store) UpdatePostingStatus(tx *sql.Tx, postingID, status string) error {
 // absent.
 func (Store) GetTransaction(tx *sql.Tx, id string) (Transaction, error) {
 	row := tx.QueryRow(`
-		SELECT id, date, description, created_at, reverses_id, reversed_by_id
+		SELECT id, date, description, created_at, reverses_id, reversed_by_id, external_ref
 		FROM transactions WHERE id = ?
 	`, id)
+	return scanTransaction(row)
+}
+
+// GetTransactionByExternalRef returns the transaction that permanently claims ref.
+func (Store) GetTransactionByExternalRef(tx *sql.Tx, ref string) (Transaction, error) {
+	row := tx.QueryRow(`
+		SELECT id, date, description, created_at, reverses_id, reversed_by_id, external_ref
+		FROM transactions WHERE external_ref = ?
+	`, ref)
 	return scanTransaction(row)
 }
 
@@ -251,11 +260,11 @@ type rowScanner interface {
 
 func scanTransaction(r rowScanner) (Transaction, error) {
 	var (
-		t                        Transaction
-		createdAt                string
-		reversesID, reversedByID sql.NullString
+		t                                     Transaction
+		createdAt                             string
+		reversesID, reversedByID, externalRef sql.NullString
 	)
-	if err := r.Scan(&t.ID, &t.Date, &t.Description, &createdAt, &reversesID, &reversedByID); err != nil {
+	if err := r.Scan(&t.ID, &t.Date, &t.Description, &createdAt, &reversesID, &reversedByID, &externalRef); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return Transaction{}, ErrNotFound
 		}
@@ -267,6 +276,9 @@ func scanTransaction(r rowScanner) (Transaction, error) {
 	}
 	if reversedByID.Valid {
 		t.ReversedByID = &reversedByID.String
+	}
+	if externalRef.Valid {
+		t.ExternalRef = &externalRef.String
 	}
 	return t, nil
 }

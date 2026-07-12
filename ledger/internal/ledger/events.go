@@ -4,8 +4,11 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
+	"time"
 
 	"eventplane/outbox"
+	"ledger/internal/ids"
 )
 
 // eventTimeFormat matches the read API's timestamp rendering (internal/mcp
@@ -23,7 +26,7 @@ const eventTransactionRecorded = "transaction.recorded"
 // JSON Schema and the worked example, so schema/example/wire shape can't diverge.
 var Events = outbox.Registry{
 	{
-		Type:        eventTransactionRecorded,
+		Kind:        eventTransactionRecorded,
 		Description: "A balanced double-entry transaction was committed to the immutable journal (including a reversal mirror, whose reverses_id is non-null). Carries the whole transaction and its postings so a consumer can rebuild balances off the feed.",
 		Sample:      sampleTransactionRecorded,
 	},
@@ -37,11 +40,14 @@ var sampleTransactionRecorded = transactionRecordedPayload{
 	Description: "Acme — June hosting",
 	CreatedAt:   "2026-06-01T12:00:00.000000000Z",
 	ReversesID:  nil,
+	ExternalRef: stringPtr("dropbox:/bills/aws/2026-06.pdf@content_hash"),
 	Postings: []postingPayload{
 		{ID: "01J9Z2K7P3QC8M4R6T0V2X5YB", Account: "Assets:Bank:Checking", AmountCents: 12000, Status: "pending", Ord: 0},
 		{ID: "01J9Z2K7P3QC8M4R6T0V2X5YC", Account: "Income:Sales", AmountCents: -12000, Status: "pending", Ord: 1},
 	},
 }
+
+func stringPtr(s string) *string { return &s }
 
 // outboxProducer adapts the eventplane outbox to the Service's EventSink seam.
 // It is the concrete implementation of EventSink; the Service holds it as an
@@ -67,7 +73,20 @@ func (o *outboxProducer) AppendRecorded(tx *sql.Tx, t Transaction) error {
 	if err != nil {
 		return err
 	}
-	return o.ob.Append(tx, ev)
+	if err := o.ob.Append(tx, ev); err == nil {
+		return nil
+	} else if !strings.Contains(err.Error(), "no column named kind") {
+		return err
+	}
+	// Existing ledger databases retain the immutable pre-kind outbox migration.
+	// Keep those databases writable while eventplane's current producer supports
+	// the newer kind/subject table shape.
+	_, err = tx.Exec(`INSERT INTO outbox (event_id, type, payload, created_at) VALUES (?, ?, ?, ?)`,
+		ids.NewULID(), eventTransactionRecorded, string(ev.Payload), time.Now().UTC().Format(time.RFC3339Nano))
+	if err != nil {
+		return fmt.Errorf("outbox: append %s to legacy table: %w", eventTransactionRecorded, err)
+	}
+	return nil
 }
 
 // Ring wakes parked feed connections after commit.
@@ -83,6 +102,7 @@ type transactionRecordedPayload struct {
 	Description string           `json:"description"`
 	CreatedAt   string           `json:"created_at"`
 	ReversesID  *string          `json:"reverses_id"`
+	ExternalRef *string          `json:"external_ref"`
 	Postings    []postingPayload `json:"postings"`
 }
 
@@ -104,6 +124,7 @@ func transactionRecordedEvent(t Transaction) (outbox.Event, error) {
 		Description: t.Description,
 		CreatedAt:   t.CreatedAt.UTC().Format(eventTimeFormat),
 		ReversesID:  t.ReversesID,
+		ExternalRef: t.ExternalRef,
 		Postings:    make([]postingPayload, 0, len(t.Postings)),
 	}
 	for _, pg := range t.Postings {
@@ -119,5 +140,5 @@ func transactionRecordedEvent(t Transaction) (outbox.Event, error) {
 	if err != nil {
 		return outbox.Event{}, fmt.Errorf("marshal transaction.recorded payload: %w", err)
 	}
-	return outbox.Event{Type: eventTransactionRecorded, Payload: raw}, nil
+	return outbox.Event{Kind: eventTransactionRecorded, Payload: raw}, nil
 }

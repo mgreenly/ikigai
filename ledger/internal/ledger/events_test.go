@@ -112,3 +112,33 @@ func TestReverse_AlsoEmitsRecorded_WithReversesID(t *testing.T) {
 		t.Errorf("mirror event reverses_id = %v, want %s", p.ReversesID, orig.ID)
 	}
 }
+
+func TestRecordedEventsCarryExternalRef(t *testing.T) {
+	// R-FV4M-RTM7
+	s := mkSvcWithOutbox(t)
+	ref := "gmail:message-id"
+	orig, err := s.Record(context.Background(), RecordInput{Date: "2026-06-01", Description: "x", ExternalRef: &ref, Postings: []PostingInput{leg("Assets:Bank", i64(100)), leg("Income:Hosting", i64(-100))}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	mirror, err := s.Reverse(context.Background(), orig.ID, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows := outboxRows(t, s)
+	var first, second struct {
+		ExternalRef *string `json:"external_ref"`
+	}
+	if err := json.Unmarshal([]byte(rows[0].Payload), &first); err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal([]byte(rows[1].Payload), &second); err != nil {
+		t.Fatal(err)
+	}
+	if first.ExternalRef == nil || *first.ExternalRef != ref {
+		t.Errorf("original event ref = %v", first.ExternalRef)
+	}
+	if second.ExternalRef != nil {
+		t.Errorf("mirror %s inherited ref %v", mirror.ID, second.ExternalRef)
+	}
+}

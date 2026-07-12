@@ -27,11 +27,12 @@ type Recipe struct {
 // and their meaning, the live emergent account tree, and recipes for the common
 // statements. It is the first call any agent should make.
 type DescribeReport struct {
-	Unit     string
-	Roots    []RootInfo
-	Statuses []StatusInfo
-	Accounts []string
-	Recipes  []Recipe
+	Unit         string
+	Roots        []RootInfo
+	Statuses     []StatusInfo
+	Accounts     []string
+	Recipes      []Recipe
+	ExternalRefs string
 }
 
 // reconciliationStates and reportRecipes are hand-authored static content (§12);
@@ -68,10 +69,11 @@ func (s *Service) Describe(ctx context.Context) (DescribeReport, error) {
 		accounts = []string{}
 	}
 	return DescribeReport{
-		Unit:     Unit,
-		Roots:    Roots(),
-		Statuses: reconciliationStates,
-		Accounts: accounts,
-		Recipes:  reportRecipes,
+		Unit:         Unit,
+		Roots:        Roots(),
+		Statuses:     reconciliationStates,
+		Accounts:     accounts,
+		Recipes:      reportRecipes,
+		ExternalRefs: "Use <source>:<identifier> for external_ref (for example dropbox:/bills/aws/2026-06.pdf@<content_hash> or gmail:<message-id>); this is a naming convention, not a validated format.",
 	}, nil
 }

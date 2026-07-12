@@ -26,6 +26,11 @@ const (
 )
 
 func newTestHandler(t *testing.T) http.Handler {
+	h, _ := newTestHandlerWithService(t)
+	return h
+}
+
+func newTestHandlerWithService(t *testing.T) (http.Handler, *ledger.Service) {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "ledger_test.db")
 	conn, err := appkitdb.Open(path)
@@ -66,7 +71,7 @@ func newTestHandler(t *testing.T) http.Handler {
 	if err != nil {
 		t.Fatalf("build mcp handler: %v", err)
 	}
-	return h
+	return h, svc
 }
 
 // rpc drives one JSON-RPC call through ServeHTTP and returns the decoded result
@@ -162,8 +167,8 @@ func TestReflection(t *testing.T) {
 		t.Fatalf("expected exactly 1 published type, got %d: %v", len(publishes), publishes)
 	}
 	p := publishes[0].(map[string]any)
-	if p["type"] != "transaction.recorded" {
-		t.Errorf("published type = %v, want transaction.recorded", p["type"])
+	if p["kind"] != "transaction.recorded" {
+		t.Errorf("published kind = %v, want transaction.recorded", p["kind"])
 	}
 	if p["description"] == "" {
 		t.Errorf("published type has empty description")
@@ -179,12 +184,12 @@ func TestReflection(t *testing.T) {
 	}
 
 	// event_type → the publish detail (schema + example).
-	detail, isErr := callTool(t, h, "reflection", `{"event_type":"transaction.recorded"}`)
+	detail, isErr := callTool(t, h, "reflection", `{"kind":"transaction.recorded"}`)
 	if isErr {
 		t.Fatalf("reflection detail isError: %v", detail)
 	}
-	if detail["type"] != "transaction.recorded" {
-		t.Fatalf("detail type mismatch: %v", detail)
+	if detail["kind"] != "transaction.recorded" {
+		t.Fatalf("detail kind mismatch: %v", detail)
 	}
 	if detail["description"] == "" {
 		t.Fatalf("detail missing description: %v", detail)
@@ -201,11 +206,11 @@ func TestReflection(t *testing.T) {
 	}
 
 	// Unknown event_type → corrective error listing valid types.
-	badErr, isErr := callToolText(t, h, "reflection", `{"event_type":"transaction.nope"}`)
+	badErr, isErr := callToolText(t, h, "reflection", `{"kind":"transaction.nope"}`)
 	if !isErr {
 		t.Fatalf("expected error for unknown event_type, got %v", badErr)
 	}
-	if !strings.Contains(badErr, "unknown event_type") ||
+	if !strings.Contains(badErr, "unknown event kind") ||
 		!strings.Contains(badErr, "transaction.recorded") {
 		t.Errorf("corrective message missing valid type: %q", badErr)
 	}
@@ -337,6 +342,85 @@ func TestRecord_ErrorsSurfaceAsToolErrors(t *testing.T) {
 	p, isErr = callTool(t, h, "get", `{"id":"NOPE"}`)
 	if !isErr || errCode(p) != "not_found" {
 		t.Errorf("not_found: isErr=%v payload=%v", isErr, p)
+	}
+}
+
+func TestExternalRefMCPContract(t *testing.T) {
+	// R-FP14-UYWQ
+	// R-FSOU-0A4T
+	// R-FWCJ-5LCW
+	h, svc := newTestHandlerWithService(t)
+	tools := rpc(t, h, "tools/list", `{}`)["tools"].([]any)
+	for _, item := range tools {
+		tool := item.(map[string]any)
+		if tool["name"] == "record" || tool["name"] == "reverse" {
+			props := tool["inputSchema"].(map[string]any)["properties"].(map[string]any)
+			ref, ok := props["external_ref"].(map[string]any)
+			if !ok || !strings.Contains(ref["description"].(string), "<source>:<identifier>") {
+				t.Errorf("%s external_ref schema = %v", tool["name"], ref)
+			}
+		}
+	}
+	desc, bad := callTool(t, h, "describe", `{}`)
+	if bad || !strings.Contains(desc["external_refs"].(string), "<source>:<identifier>") {
+		t.Fatalf("describe external_refs = %v", desc)
+	}
+	args := `{"date":"2026-06-01","description":"ref","external_ref":"gmail:message-1","postings":[{"account":"Assets:Bank","amount_cents":100},{"account":"Income:Hosting","amount_cents":-100}]}`
+	first, bad := callTool(t, h, "record", args)
+	if bad {
+		t.Fatalf("record: %v", first)
+	}
+	id := first["id"].(string)
+	if first["external_ref"] != "gmail:message-1" {
+		t.Errorf("record ref = %v", first["external_ref"])
+	}
+	var stored string
+	if err := svc.DB.QueryRow(`SELECT external_ref FROM transactions WHERE id = ?`, id).Scan(&stored); err != nil || stored != "gmail:message-1" {
+		t.Fatalf("stored ref = %q, %v", stored, err)
+	}
+	got, bad := callTool(t, h, "get", `{"id":"`+id+`"}`)
+	if bad || got["external_ref"] != "gmail:message-1" {
+		t.Errorf("get ref = %v", got)
+	}
+	dup, bad := callTool(t, h, "record", args)
+	if !bad || errCode(dup) != "duplicate_ref" || !strings.Contains(dup["error"].(map[string]any)["message"].(string), id) {
+		t.Errorf("duplicate response = %v", dup)
+	}
+	var before, after int
+	if err := svc.DB.QueryRow(`SELECT COUNT(*) FROM transactions`).Scan(&before); err != nil {
+		t.Fatal(err)
+	}
+	plain := `{"date":"2026-06-02","description":"manual","postings":[{"account":"Assets:Bank","amount_cents":100},{"account":"Income:Hosting","amount_cents":-100}]}`
+	noRef, bad := callTool(t, h, "record", plain)
+	if bad {
+		t.Fatal(noRef)
+	}
+	if _, ok := noRef["external_ref"]; ok {
+		t.Error("no-ref record included external_ref")
+	}
+	getNoRef, bad := callTool(t, h, "get", `{"id":"`+noRef["id"].(string)+`"}`)
+	if bad {
+		t.Fatal(getNoRef)
+	}
+	if _, ok := getNoRef["external_ref"]; ok {
+		t.Error("no-ref get included external_ref")
+	}
+	if _, bad = callTool(t, h, "record", plain); bad {
+		t.Fatal("second no-ref record rejected")
+	}
+	if err := svc.DB.QueryRow(`SELECT COUNT(*) FROM transactions`).Scan(&after); err != nil {
+		t.Fatal(err)
+	}
+	if after != before+2 {
+		t.Errorf("no-ref records count = %d, want %d", after, before+2)
+	}
+	invalid, bad := callTool(t, h, "record", `{"date":"2026-06-03","description":"bad","external_ref":"","postings":[{"account":"Assets:Bank","amount_cents":1},{"account":"Income:Hosting","amount_cents":-1}]}`)
+	if !bad || errCode(invalid) != "validation" {
+		t.Errorf("empty record ref = %v", invalid)
+	}
+	invalid, bad = callTool(t, h, "reverse", `{"id":"`+id+`","external_ref":""}`)
+	if !bad || errCode(invalid) != "validation" {
+		t.Errorf("empty reverse ref = %v", invalid)
 	}
 }
 

@@ -35,9 +35,10 @@ func Tools(svc *ledger.Service) []appkitmcp.Tool {
 			Name:        tool("record"),
 			Description: "Post one balanced double-entry transaction. Provide 2+ postings whose signed amount_cents sum to zero (debit +, credit −). Exactly one posting MAY omit amount_cents to receive the balancing residual. Accounts are colon-paths whose root must be a known type; sub-accounts spring into existence on first posting. Returns the full transaction with the resolved residual and assigned ids.",
 			InputSchema: obj(map[string]any{
-				"date":        typd("string", "calendar day YYYY-MM-DD (a business day, not a timestamp)"),
-				"description": typd("string", "payee / memo"),
-				"status":      enumd("default reconciliation status for postings that omit their own (defaults to pending)", ledger.StatusPending, ledger.StatusCleared, ledger.StatusReconciled),
+				"date":         typd("string", "calendar day YYYY-MM-DD (a business day, not a timestamp)"),
+				"description":  typd("string", "payee / memo"),
+				"status":       enumd("default reconciliation status for postings that omit their own (defaults to pending)", ledger.StatusPending, ledger.StatusCleared, ledger.StatusReconciled),
+				"external_ref": typd("string", "<source>:<identifier> convention, e.g. dropbox:/bills/aws/2026-06.pdf@<content_hash> — a naming convention, not a validated format"),
 				"postings": array(obj(map[string]any{
 					"account":      typd("string", "colon-path, e.g. Assets:Bank:Checking; root must be Assets|Liabilities|Equity|Income(alias Revenue)|Expenses — call describe to see the live chart"),
 					"amount_cents": typd("integer", "signed minor units in USD cents (debit +, credit −); omit on at most one posting to receive the balancing residual"),
@@ -52,9 +53,10 @@ func Tools(svc *ledger.Service) []appkitmcp.Tool {
 			Name:        tool("reverse"),
 			Description: "The correction primitive. Posts the sign-flipped mirror of an existing transaction (whole-transaction only) and links the two both ways. The journal is immutable — there is no edit or delete; corrections are compensating facts. Blocked if the transaction is already reversed (reverse its mirror instead). Returns the new mirror transaction.",
 			InputSchema: obj(map[string]any{
-				"id":   typd("string", "id of the transaction to reverse"),
-				"date": typd("string", "optional YYYY-MM-DD for the mirror (defaults to the original's date)"),
-				"memo": typd("string", "optional description for the mirror (defaults to 'Reversal of: <original>')"),
+				"id":           typd("string", "id of the transaction to reverse"),
+				"date":         typd("string", "optional YYYY-MM-DD for the mirror (defaults to the original's date)"),
+				"memo":         typd("string", "optional description for the mirror (defaults to 'Reversal of: <original>')"),
+				"external_ref": typd("string", "<source>:<identifier> convention, e.g. dropbox:/bills/aws/2026-06.pdf@<content_hash> — a naming convention, not a validated format"),
 			}, "id"),
 			Handler: func(ctx context.Context, args json.RawMessage, _ server.Identity) (map[string]any, error) {
 				return toolReverse(ctx, svc, args)
@@ -166,9 +168,13 @@ func toolRecord(ctx context.Context, svc *ledger.Service, raw json.RawMessage) (
 		Description string       `json:"description"`
 		Status      string       `json:"status,omitempty"`
 		Postings    []postingArg `json:"postings"`
+		ExternalRef *string      `json:"external_ref,omitempty"`
 	}
 	if err := json.Unmarshal(raw, &a); err != nil {
 		return nil, err
+	}
+	if a.ExternalRef != nil && *a.ExternalRef == "" {
+		return appkitmcp.ErrorResult(translateLedgerError(fmt.Errorf("%w: external_ref must not be empty", ledger.ErrValidation))), nil
 	}
 	date, err := parseDay(a.Date)
 	if err != nil {
@@ -203,7 +209,7 @@ func toolRecord(ctx context.Context, svc *ledger.Service, raw json.RawMessage) (
 	if elisions > 1 {
 		return appkitmcp.ErrorResult(translateLedgerError(fmt.Errorf("%w: at most one posting may elide its amount", ledger.ErrValidation))), nil
 	}
-	out, err := svc.Record(ctx, ledger.RecordInput{Date: date, Description: a.Description, Postings: postings})
+	out, err := svc.Record(ctx, ledger.RecordInput{Date: date, Description: a.Description, Postings: postings, ExternalRef: a.ExternalRef})
 	if err != nil {
 		return appkitmcp.ErrorResult(translateLedgerError(err)), nil
 	}
@@ -212,9 +218,10 @@ func toolRecord(ctx context.Context, svc *ledger.Service, raw json.RawMessage) (
 
 func toolReverse(ctx context.Context, svc *ledger.Service, raw json.RawMessage) (map[string]any, error) {
 	var a struct {
-		ID   string  `json:"id"`
-		Date *string `json:"date,omitempty"`
-		Memo *string `json:"memo,omitempty"`
+		ID          string  `json:"id"`
+		Date        *string `json:"date,omitempty"`
+		Memo        *string `json:"memo,omitempty"`
+		ExternalRef *string `json:"external_ref,omitempty"`
 	}
 	if err := json.Unmarshal(raw, &a); err != nil {
 		return nil, err
@@ -224,7 +231,10 @@ func toolReverse(ctx context.Context, svc *ledger.Service, raw json.RawMessage) 
 			return appkitmcp.ErrorResult(translateLedgerError(err)), nil
 		}
 	}
-	out, err := svc.Reverse(ctx, a.ID, a.Date, a.Memo)
+	if a.ExternalRef != nil && *a.ExternalRef == "" {
+		return appkitmcp.ErrorResult(translateLedgerError(fmt.Errorf("%w: external_ref must not be empty", ledger.ErrValidation))), nil
+	}
+	out, err := svc.Reverse(ctx, a.ID, a.Date, a.Memo, a.ExternalRef)
 	if err != nil {
 		return appkitmcp.ErrorResult(translateLedgerError(err)), nil
 	}
@@ -349,6 +359,7 @@ func toolDescribe(ctx context.Context, svc *ledger.Service) (map[string]any, err
 		"reconciliation_states": states,
 		"accounts":              rep.Accounts,
 		"recipes":               recipes,
+		"external_refs":         rep.ExternalRefs,
 	})
 }
 
@@ -377,6 +388,9 @@ func transactionJSON(t ledger.Transaction) map[string]any {
 	}
 	if t.ReversedByID != nil {
 		out["reversed_by_id"] = *t.ReversedByID
+	}
+	if t.ExternalRef != nil {
+		out["external_ref"] = *t.ExternalRef
 	}
 	return out
 }

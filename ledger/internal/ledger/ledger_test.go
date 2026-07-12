@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -177,6 +178,56 @@ func TestGet_NotFound(t *testing.T) {
 	_, err := s.Get(context.Background(), "NOPE")
 	if !errors.Is(err, ErrNotFound) {
 		t.Fatalf("err = %v, want ErrNotFound", err)
+	}
+}
+
+func TestRecord_ExternalRefClaimsAndLeavesNoPartialState(t *testing.T) {
+	// R-FQ91-8QNF
+	s := mkSvc(t)
+	ref := "dropbox:/bills/aws/2026-06.pdf@hash"
+	first, err := s.Record(context.Background(), RecordInput{Date: "2026-06-01", Description: "first", ExternalRef: &ref, Postings: []PostingInput{leg("Assets:Bank", i64(100)), leg("Income:Hosting", i64(-100))}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var before [3]int
+	for i, table := range []string{"transactions", "postings", "outbox"} {
+		if err := s.DB.QueryRow(`SELECT COUNT(*) FROM ` + table).Scan(&before[i]); err != nil {
+			t.Fatal(err)
+		}
+	}
+	_, err = s.Record(context.Background(), RecordInput{Date: "2026-06-02", Description: "second", ExternalRef: &ref, Postings: []PostingInput{leg("Assets:Bank", i64(200)), leg("Income:Hosting", i64(-200))}})
+	if !errors.Is(err, ErrDuplicateRef) || !strings.Contains(err.Error(), first.ID) {
+		t.Fatalf("duplicate error = %v, want ErrDuplicateRef naming %s", err, first.ID)
+	}
+	for i, table := range []string{"transactions", "postings", "outbox"} {
+		var after int
+		if err := s.DB.QueryRow(`SELECT COUNT(*) FROM ` + table).Scan(&after); err != nil {
+			t.Fatal(err)
+		}
+		if after != before[i] {
+			t.Errorf("%s count = %d, want %d", table, after, before[i])
+		}
+	}
+}
+
+func TestReverse_ExternalRefIsItsOwnPermanentClaim(t *testing.T) {
+	// R-FTWQ-E1VI
+	s := mkSvc(t)
+	ref := "gmail:original"
+	orig, err := s.Record(context.Background(), RecordInput{Date: "2026-06-01", Description: "original", ExternalRef: &ref, Postings: []PostingInput{leg("Assets:Bank", i64(100)), leg("Income:Hosting", i64(-100))}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	mirrorRef := "gmail:credit-note"
+	mirror, err := s.Reverse(context.Background(), orig.ID, nil, nil, &mirrorRef)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if mirror.ExternalRef == nil || *mirror.ExternalRef != mirrorRef {
+		t.Fatalf("mirror ref = %v", mirror.ExternalRef)
+	}
+	if _, err := s.Record(context.Background(), RecordInput{Date: "2026-06-02", Description: "rerun", ExternalRef: &ref, Postings: []PostingInput{leg("Assets:Bank", i64(100)), leg("Income:Hosting", i64(-100))}}); !errors.Is(err, ErrDuplicateRef) || !strings.Contains(err.Error(), orig.ID) {
+		t.Fatalf("reused original ref error = %v", err)
 	}
 }
 

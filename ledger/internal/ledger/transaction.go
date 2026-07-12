@@ -19,6 +19,7 @@ func (s *Service) Record(ctx context.Context, in RecordInput) (Transaction, erro
 		Date:        in.Date,
 		Description: in.Description,
 		CreatedAt:   s.Now().UTC(),
+		ExternalRef: in.ExternalRef,
 	}
 	postings, err := resolvePostings(t.ID, in.Postings)
 	if err != nil {
@@ -31,6 +32,9 @@ func (s *Service) Record(ctx context.Context, in RecordInput) (Transaction, erro
 		return Transaction{}, fmt.Errorf("begin tx: %w", err)
 	}
 	defer tx.Rollback()
+	if err := s.assertRefAvailable(tx, t.ExternalRef); err != nil {
+		return Transaction{}, err
+	}
 	if err := s.persist(tx, t); err != nil {
 		return Transaction{}, err
 	}

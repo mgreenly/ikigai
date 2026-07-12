@@ -55,6 +55,8 @@ func translateLedgerError(err error) string {
 		return `{"error":{"code":"not_found","message":"` + jsonEscape(err.Error()) + `"}}`
 	case errors.Is(err, ledger.ErrValidation):
 		return `{"error":{"code":"validation","message":"` + jsonEscape(err.Error()) + `"}}`
+	case errors.Is(err, ledger.ErrDuplicateRef):
+		return `{"error":{"code":"duplicate_ref","message":"` + jsonEscape(err.Error()) + `"}}`
 	default:
 		return `{"error":{"code":"internal","message":"internal error"}}`
 	}

@@ -3,7 +3,9 @@ package ledger
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -71,6 +73,9 @@ func (s *Service) persist(tx *sql.Tx, t Transaction) error {
 		return err
 	}
 	if err := s.Store.InsertTransaction(tx, t); err != nil {
+		if t.ExternalRef != nil && strings.Contains(err.Error(), "UNIQUE constraint failed") {
+			return s.duplicateRefError(tx, *t.ExternalRef)
+		}
 		return err
 	}
 	for _, p := range t.Postings {
@@ -84,6 +89,31 @@ func (s *Service) persist(tx *sql.Tx, t Transaction) error {
 		}
 	}
 	return nil
+}
+
+// assertRefAvailable performs the error-shaping pre-check in the caller's write
+// transaction. The migration's partial unique index remains the authoritative
+// race backstop.
+func (s *Service) assertRefAvailable(tx *sql.Tx, ref *string) error {
+	if ref == nil {
+		return nil
+	}
+	_, err := s.Store.GetTransactionByExternalRef(tx, *ref)
+	if errors.Is(err, ErrNotFound) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	return s.duplicateRefError(tx, *ref)
+}
+
+func (s *Service) duplicateRefError(tx *sql.Tx, ref string) error {
+	existing, err := s.Store.GetTransactionByExternalRef(tx, ref)
+	if err != nil {
+		return err
+	}
+	return fmt.Errorf("%w: external_ref %q already recorded by transaction %s", ErrDuplicateRef, ref, existing.ID)
 }
 
 // ring wakes parked feed connections after a successful commit (no-op when the

@@ -19,12 +19,16 @@ import (
 // ErrAlreadyReversed. Reversing a reversal is allowed — it re-creates the
 // original effect. date overrides the mirror's date (defaults to the original's);
 // memo overrides its description (defaults to "Reversal of: <original>").
-func (s *Service) Reverse(ctx context.Context, id string, date, memo *string) (Transaction, error) {
+func (s *Service) Reverse(ctx context.Context, id string, date, memo *string, externalRefs ...*string) (Transaction, error) {
 	tx, err := s.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return Transaction{}, fmt.Errorf("begin tx: %w", err)
 	}
 	defer tx.Rollback()
+	var externalRef *string
+	if len(externalRefs) > 0 {
+		externalRef = externalRefs[0]
+	}
 
 	orig, err := s.loadFull(tx, id)
 	if err != nil {
@@ -37,6 +41,7 @@ func (s *Service) Reverse(ctx context.Context, id string, date, memo *string) (T
 		Description: "Reversal of: " + orig.Description,
 		CreatedAt:   s.Now().UTC(),
 		ReversesID:  &orig.ID,
+		ExternalRef: externalRef,
 	}
 	if date != nil && *date != "" {
 		mirror.Date = *date
@@ -56,6 +61,9 @@ func (s *Service) Reverse(ctx context.Context, id string, date, memo *string) (T
 		}
 	}
 
+	if err := s.assertRefAvailable(tx, mirror.ExternalRef); err != nil {
+		return Transaction{}, err
+	}
 	if err := s.persist(tx, mirror); err != nil {
 		return Transaction{}, err
 	}

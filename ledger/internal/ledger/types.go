@@ -34,6 +34,8 @@ var (
 	ErrNotFound = errors.New("ledger: not found")
 	// ErrAlreadyReversed: the target transaction already has a reversal mirror.
 	ErrAlreadyReversed = errors.New("ledger: already reversed")
+	// ErrDuplicateRef: an external reference is already claimed by a transaction.
+	ErrDuplicateRef = errors.New("ledger: duplicate ref")
 )
 
 // Reconciliation states (PLAN.md §3, §4). Free transitions among the three;
@@ -148,6 +150,7 @@ type Transaction struct {
 	CreatedAt    time.Time
 	ReversesID   *string
 	ReversedByID *string
+	ExternalRef  *string
 	Postings     []Posting
 }
 
@@ -179,6 +182,7 @@ type RecordInput struct {
 	Date        string
 	Description string
 	Postings    []PostingInput
+	ExternalRef *string
 }
 
 // Filter drives the balance and register reads. Query is a case-insensitive
