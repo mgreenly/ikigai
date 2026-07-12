@@ -7,7 +7,7 @@
 // schema), config-from-env, the migration runner + downgrade guard, the
 // loopback HTTP server + PRM + identity gate, and the /feed producer mount — is
 // owned by appkit. main.go declares only ledger's identity (the Spec) and wires
-// its domain surface (the ledger_* MCP tools and the transaction.recorded
+// its domain surface (the ledger_* MCP tools and the recorded
 // producer) through the Spec hooks. RESOURCE_ID / AUTH_SERVER are composed
 // in-binary by appkit/config from IKIGENBA_DOMAIN + MOUNT (was the deleted
 // bin/build run-wrapper's job).
@@ -34,7 +34,7 @@ func main() {
 
 func ledgerSpec() appkit.Spec {
 	// The domain Service is built once and shared by the producer-injection hook
-	// (which attaches the outbox so transaction.recorded events append atomically
+	// (which attaches the outbox so recorded events append atomically
 	// with the journal write) and the route hook (which mounts the ledger_* MCP
 	// surface over it). Both close over svc; appkit calls Producer before Handlers
 	// when ledger is a producer (Spec.Feed != "").
@@ -55,7 +55,7 @@ func ledgerSpec() appkit.Spec {
 		},
 		// Producer fires first: build the Service over appkit's shared DB handle
 		// and inject the outbox so every committed transaction emits exactly one
-		// transaction.recorded on the same tx (the payload builders stay app-side
+		// recorded event on the same tx (the payload builders stay app-side
 		// in internal/ledger/events.go).
 		Producer: func(ob *outbox.Outbox) error {
 			if svc == nil {

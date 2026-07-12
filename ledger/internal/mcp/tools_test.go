@@ -148,10 +148,10 @@ func TestToolsListIncludesDomainAndChassisTools(t *testing.T) {
 }
 
 // TestReflection covers the reflection tool: the no-arg index
-// (the one published type, empty subscribes — ledger is a producer), the
-// event_type detail (schema + example), and the corrective error for an unknown
-// type.
+// (the one published family, empty subscribes — ledger is a producer), the
+// kind detail (schema + example), and the corrective error for an unknown kind.
 func TestReflection(t *testing.T) {
+	// R-FYSB-X4UA
 	h := newTestHandler(t)
 
 	// No-arg → the index {publishes, subscribes}.
@@ -164,11 +164,14 @@ func TestReflection(t *testing.T) {
 		t.Fatalf("reflection index missing publishes array: %v", idx)
 	}
 	if len(publishes) != 1 {
-		t.Fatalf("expected exactly 1 published type, got %d: %v", len(publishes), publishes)
+		t.Fatalf("expected exactly 1 published family, got %d: %v", len(publishes), publishes)
 	}
 	p := publishes[0].(map[string]any)
-	if p["kind"] != "transaction.recorded" {
-		t.Errorf("published kind = %v, want transaction.recorded", p["kind"])
+	if p["kind"] != "recorded" {
+		t.Errorf("published kind = %v, want recorded", p["kind"])
+	}
+	if p["subject"] != "" {
+		t.Errorf("published subject = %v, want empty", p["subject"])
 	}
 	if p["description"] == "" {
 		t.Errorf("published type has empty description")
@@ -183,13 +186,16 @@ func TestReflection(t *testing.T) {
 		t.Fatalf("expected empty subscribes for ledger, got %v", subscribes)
 	}
 
-	// event_type → the publish detail (schema + example).
-	detail, isErr := callTool(t, h, "reflection", `{"kind":"transaction.recorded"}`)
+	// kind → the publish detail (schema + example).
+	detail, isErr := callTool(t, h, "reflection", `{"kind":"recorded"}`)
 	if isErr {
 		t.Fatalf("reflection detail isError: %v", detail)
 	}
-	if detail["kind"] != "transaction.recorded" {
+	if detail["kind"] != "recorded" {
 		t.Fatalf("detail kind mismatch: %v", detail)
+	}
+	if detail["subject"] != "" {
+		t.Fatalf("detail subject mismatch: %v", detail)
 	}
 	if detail["description"] == "" {
 		t.Fatalf("detail missing description: %v", detail)
@@ -198,21 +204,31 @@ func TestReflection(t *testing.T) {
 	if !ok || sch["type"] != "object" {
 		t.Fatalf("detail schema not an object schema: %v", detail["schema"])
 	}
-	if _, ok := sch["properties"].(map[string]any); !ok {
+	props, ok := sch["properties"].(map[string]any)
+	if !ok {
 		t.Fatalf("detail schema missing properties: %v", sch)
 	}
-	if _, ok := detail["example"].(map[string]any); !ok {
+	example, ok := detail["example"].(map[string]any)
+	if !ok {
 		t.Fatalf("detail missing example object: %v", detail["example"])
 	}
+	if _, ok := props["external_ref"]; !ok {
+		t.Fatalf("detail schema missing external_ref: %v", props)
+	}
+	for name := range example {
+		if _, ok := props[name]; !ok {
+			t.Errorf("example field %q is absent from schema", name)
+		}
+	}
 
-	// Unknown event_type → corrective error listing valid types.
+	// Unknown kind → corrective error listing valid kinds.
 	badErr, isErr := callToolText(t, h, "reflection", `{"kind":"transaction.nope"}`)
 	if !isErr {
-		t.Fatalf("expected error for unknown event_type, got %v", badErr)
+		t.Fatalf("expected error for unknown kind, got %v", badErr)
 	}
 	if !strings.Contains(badErr, "unknown event kind") ||
-		!strings.Contains(badErr, "transaction.recorded") {
-		t.Errorf("corrective message missing valid type: %q", badErr)
+		!strings.Contains(badErr, "recorded") {
+		t.Errorf("corrective message missing valid kind: %q", badErr)
 	}
 }
 

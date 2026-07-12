@@ -4,21 +4,18 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"strings"
-	"time"
 
 	"eventplane/outbox"
-	"ledger/internal/ids"
 )
 
 // eventTimeFormat matches the read API's timestamp rendering (internal/mcp
 // tools.go) so the event payload is the same shape the read API returns.
 const eventTimeFormat = "2006-01-02T15:04:05.000000000Z07:00"
 
-// eventTransactionRecorded is the one first-wave event type string, declared
+// kindRecorded is the one first-wave event kind, declared
 // once and referenced at both the emit site and the reflection Registry so the
 // two cannot drift (the reflection plan's single-source-of-truth rule).
-const eventTransactionRecorded = "transaction.recorded"
+const kindRecorded = "recorded"
 
 // Events is the published-event Registry for the reflection tool and Append-time
 // validation (wired via Spec.Events). Each entry carries a filled-in Sample
@@ -26,14 +23,15 @@ const eventTransactionRecorded = "transaction.recorded"
 // JSON Schema and the worked example, so schema/example/wire shape can't diverge.
 var Events = outbox.Registry{
 	{
-		Kind:        eventTransactionRecorded,
+		Kind:        kindRecorded,
+		Subject:     "",
 		Description: "A balanced double-entry transaction was committed to the immutable journal (including a reversal mirror, whose reverses_id is non-null). Carries the whole transaction and its postings so a consumer can rebuild balances off the feed.",
 		Sample:      sampleTransactionRecorded,
 	},
 }
 
 // sampleTransactionRecorded is a filled-in transactionRecordedPayload used as the
-// reflection Sample for transaction.recorded.
+// reflection Sample for the recorded family.
 var sampleTransactionRecorded = transactionRecordedPayload{
 	ID:          "01J9Z2K7P3QC8M4R6T0V2X5YA",
 	Date:        "2026-06-01",
@@ -63,7 +61,7 @@ func NewOutboxProducer(ob *outbox.Outbox) EventSink {
 	return &outboxProducer{ob: ob}
 }
 
-// AppendRecorded appends the transaction.recorded event on the caller's tx,
+// AppendRecorded appends the recorded event on the caller's tx,
 // atomic with the journal write (PLAN.md §6). Every committed transaction emits
 // exactly one such event — reversal mirrors included, because Record and Reverse
 // share the same persist helper, so a consumer rebuilding balances off the feed
@@ -73,26 +71,13 @@ func (o *outboxProducer) AppendRecorded(tx *sql.Tx, t Transaction) error {
 	if err != nil {
 		return err
 	}
-	if err := o.ob.Append(tx, ev); err == nil {
-		return nil
-	} else if !strings.Contains(err.Error(), "no column named kind") {
-		return err
-	}
-	// Existing ledger databases retain the immutable pre-kind outbox migration.
-	// Keep those databases writable while eventplane's current producer supports
-	// the newer kind/subject table shape.
-	_, err = tx.Exec(`INSERT INTO outbox (event_id, type, payload, created_at) VALUES (?, ?, ?, ?)`,
-		ids.NewULID(), eventTransactionRecorded, string(ev.Payload), time.Now().UTC().Format(time.RFC3339Nano))
-	if err != nil {
-		return fmt.Errorf("outbox: append %s to legacy table: %w", eventTransactionRecorded, err)
-	}
-	return nil
+	return o.ob.Append(tx, ev)
 }
 
 // Ring wakes parked feed connections after commit.
 func (o *outboxProducer) Ring() { o.ob.Ring() }
 
-// transactionRecordedPayload is the transaction.recorded snapshot: the whole
+// transactionRecordedPayload is the recorded snapshot: the whole
 // transaction and its postings. reverses_id is non-null on a reversal mirror so
 // a consumer can already tell a correction from an original before the
 // second-wave transaction.reversed event exists.
@@ -114,7 +99,7 @@ type postingPayload struct {
 	Ord         int    `json:"ord"`
 }
 
-// transactionRecordedEvent builds the transaction.recorded outbox event from a
+// transactionRecordedEvent builds the recorded outbox event from a
 // freshly persisted transaction. The library wraps this opaque payload in the
 // uniform envelope at serialize time; ledger owns only the payload shape.
 func transactionRecordedEvent(t Transaction) (outbox.Event, error) {
@@ -138,7 +123,7 @@ func transactionRecordedEvent(t Transaction) (outbox.Event, error) {
 	}
 	raw, err := json.Marshal(p)
 	if err != nil {
-		return outbox.Event{}, fmt.Errorf("marshal transaction.recorded payload: %w", err)
+		return outbox.Event{}, fmt.Errorf("marshal recorded payload: %w", err)
 	}
-	return outbox.Event{Kind: eventTransactionRecorded, Payload: raw}, nil
+	return outbox.Event{Kind: kindRecorded, Subject: "", Payload: raw}, nil
 }

@@ -1,8 +1,12 @@
 package ledger
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"eventplane/outbox"
@@ -14,7 +18,7 @@ import (
 func mkSvcWithOutbox(t *testing.T) *Service {
 	t.Helper()
 	conn := openDB(t)
-	ob, err := outbox.New(conn, outbox.Options{Source: "ledger"})
+	ob, err := outbox.New(conn, outbox.Options{Source: "ledger", Registry: Events})
 	if err != nil {
 		t.Fatalf("outbox.New: %v", err)
 	}
@@ -24,25 +28,28 @@ func mkSvcWithOutbox(t *testing.T) *Service {
 }
 
 func outboxRows(t *testing.T, s *Service) []struct {
-	Type    string
+	Kind    string
+	Subject string
 	Payload string
 } {
 	t.Helper()
-	rows, err := s.DB.Query(`SELECT type, payload FROM outbox ORDER BY seq`)
+	rows, err := s.DB.Query(`SELECT kind, subject, payload FROM outbox ORDER BY seq`)
 	if err != nil {
 		t.Fatalf("query outbox: %v", err)
 	}
 	defer rows.Close()
 	var out []struct {
-		Type    string
+		Kind    string
+		Subject string
 		Payload string
 	}
 	for rows.Next() {
 		var r struct {
-			Type    string
+			Kind    string
+			Subject string
 			Payload string
 		}
-		if err := rows.Scan(&r.Type, &r.Payload); err != nil {
+		if err := rows.Scan(&r.Kind, &r.Subject, &r.Payload); err != nil {
 			t.Fatal(err)
 		}
 		out = append(out, r)
@@ -50,7 +57,7 @@ func outboxRows(t *testing.T, s *Service) []struct {
 	return out
 }
 
-func TestRecord_EmitsTransactionRecorded(t *testing.T) {
+func TestRecord_EmitsRecorded(t *testing.T) {
 	s := mkSvcWithOutbox(t)
 	tx := record(t, s, "2026-06-01", "Acme — June hosting",
 		leg("Assets:Receivable:Acme", i64(5000)),
@@ -60,8 +67,8 @@ func TestRecord_EmitsTransactionRecorded(t *testing.T) {
 	if len(rows) != 1 {
 		t.Fatalf("outbox rows = %d, want 1", len(rows))
 	}
-	if rows[0].Type != "transaction.recorded" {
-		t.Errorf("type = %q, want transaction.recorded", rows[0].Type)
+	if rows[0].Kind != kindRecorded || rows[0].Subject != "" {
+		t.Errorf("address = (%q, %q), want (recorded, empty)", rows[0].Kind, rows[0].Subject)
 	}
 	var p struct {
 		ID         string  `json:"id"`
@@ -82,7 +89,8 @@ func TestRecord_EmitsTransactionRecorded(t *testing.T) {
 	}
 }
 
-func TestReverse_AlsoEmitsRecorded_WithReversesID(t *testing.T) {
+func TestRecordAndReverse_UseSubjectlessRecordedAddressAtomically(t *testing.T) {
+	// R-FXKF-JD3L
 	s := mkSvcWithOutbox(t)
 	orig := record(t, s, "2026-06-01", "x",
 		leg("Assets:Bank:Checking", i64(100)),
@@ -93,10 +101,15 @@ func TestReverse_AlsoEmitsRecorded_WithReversesID(t *testing.T) {
 		t.Fatalf("reverse: %v", err)
 	}
 	rows := outboxRows(t, s)
-	// Every committed transaction emits exactly one transaction.recorded — the
+	// Every committed transaction emits exactly one recorded event — the
 	// original and the reversal mirror both.
 	if len(rows) != 2 {
 		t.Fatalf("outbox rows = %d, want 2", len(rows))
+	}
+	for i, row := range rows {
+		if row.Kind != kindRecorded || row.Subject != "" {
+			t.Errorf("row %d address = (%q, %q), want (recorded, empty)", i, row.Kind, row.Subject)
+		}
 	}
 	var p struct {
 		ID         string  `json:"id"`
@@ -110,6 +123,19 @@ func TestReverse_AlsoEmitsRecorded_WithReversesID(t *testing.T) {
 	}
 	if p.ReversesID == nil || *p.ReversesID != orig.ID {
 		t.Errorf("mirror event reverses_id = %v, want %s", p.ReversesID, orig.ID)
+	}
+	tx, err := s.DB.Begin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Outbox.AppendRecorded(tx, orig); err != nil {
+		t.Fatalf("append in rollback tx: %v", err)
+	}
+	if err := tx.Rollback(); err != nil {
+		t.Fatal(err)
+	}
+	if got := len(outboxRows(t, s)); got != 2 {
+		t.Errorf("outbox rows after rollback = %d, want 2", got)
 	}
 }
 
@@ -140,5 +166,55 @@ func TestRecordedEventsCarryExternalRef(t *testing.T) {
 	}
 	if second.ExternalRef != nil {
 		t.Errorf("mirror %s inherited ref %v", mirror.ID, second.ExternalRef)
+	}
+}
+
+func TestFeedHandlerFramesSubjectlessRecordedEnvelope(t *testing.T) {
+	// R-G2G1-2G2D
+	s := mkSvcWithOutbox(t)
+	record(t, s, "2026-06-01", "Acme — June hosting",
+		leg("Assets:Receivable:Acme", i64(5000)),
+		leg("Income:Hosting", nil),
+	)
+	producer := s.Outbox.(*outboxProducer)
+	server := httptest.NewServer(producer.ob.FeedHandler())
+	defer server.Close()
+
+	res, err := http.Get(server.URL)
+	if err != nil {
+		t.Fatalf("GET feed: %v", err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("feed status = %d", res.StatusCode)
+	}
+
+	scanner := bufio.NewScanner(res.Body)
+	var event, data string
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "event: ") {
+			event = strings.TrimPrefix(line, "event: ")
+		}
+		if strings.HasPrefix(line, "data: ") && event == "ledger:recorded" {
+			data = strings.TrimPrefix(line, "data: ")
+			break
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		t.Fatalf("read feed: %v", err)
+	}
+	if event != "ledger:recorded" || data == "" {
+		t.Fatalf("SSE frame = event %q data %q", event, data)
+	}
+	var envelope map[string]any
+	if err := json.Unmarshal([]byte(data), &envelope); err != nil {
+		t.Fatalf("decode envelope: %v", err)
+	}
+	if envelope["source"] != "ledger" || envelope["kind"] != kindRecorded || envelope["subject"] != "" {
+		t.Errorf("envelope address = %v", envelope)
+	}
+	if _, ok := envelope["type"]; ok {
+		t.Errorf("envelope unexpectedly has type: %v", envelope)
 	}
 }

@@ -20,7 +20,7 @@ type Service struct {
 	Store *Store
 	Now   func() time.Time
 	// Outbox, when set, makes the service an event-plane producer: a
-	// transaction.recorded event is appended atomically with every committed
+	// recorded event is appended atomically with every committed
 	// transaction and the feed is rung after commit. Nil disables emission. It is
 	// wired in events.go (Phase 5); kept as an interface so the domain does not
 	// hard-depend on the event-plane library when emission is off.
@@ -32,7 +32,7 @@ type Service struct {
 // Service can run with emission disabled (Outbox == nil) without importing the
 // library.
 type EventSink interface {
-	// AppendRecorded appends the transaction.recorded event for t on tx, atomic
+	// AppendRecorded appends the recorded event for t on tx, atomic
 	// with the journal write.
 	AppendRecorded(tx *sql.Tx, t Transaction) error
 	// Ring wakes parked feed connections; called after a successful commit.
@@ -63,7 +63,7 @@ func assertBalanced(postings []Posting) error {
 }
 
 // persist inserts a fully-resolved, balanced transaction and its postings on the
-// caller's tx, then (when wired) appends the transaction.recorded event on the
+// caller's tx, then (when wired) appends the recorded event on the
 // SAME tx so it commits atomically. It is the single insert helper shared by
 // Record and Reverse, so every committed transaction emits exactly one event,
 // reversal mirrors included (PLAN.md §6). Ring happens after Commit, in the
