@@ -43,7 +43,7 @@ func validateExpr(expr string) error {
 
 // Tools returns cron's service-owned MCP tool declarations. The shared appkit
 // MCP transport appends the chassis health and reflection tools. A crontab entry
-// is {name, expr}: name is the identity and the cron.<name> event suffix; expr
+// is {name, expr}: name is the identity and the event subject suffix; expr
 // is 5-field cron (minute hour day-of-month month day-of-week), evaluated in UTC.
 func Tools(store *crontab.Store) []appkitmcp.Tool {
 	if store == nil {
@@ -52,16 +52,16 @@ func Tools(store *crontab.Store) []appkitmcp.Tool {
 	h := &toolHandlers{store: store}
 	return []appkitmcp.Tool{
 		desc(tool("create"),
-			"Create a named schedule. 'name' is the identity and the suffix of the emitted event type cron.<name> — lowercase letters, digits and hyphens only. 'expr' is a 5-field cron expression evaluated in UTC. The expression is validated here (fails loudly naming the bad field) and rejected if 'name' already exists.",
+			"Create a named schedule. 'name' is the identity and the suffix of the emitted event cron:tick/<name> — lowercase letters, digits and hyphens only. 'expr' is a 5-field cron expression evaluated in UTC. The expression is validated here (fails loudly naming the bad field) and rejected if 'name' already exists.",
 			obj(map[string]any{
-				"name": descTyp("string", "schedule identity / cron.<name> suffix; [a-z0-9-]"),
+				"name": descTyp("string", "schedule identity / cron:tick/<name> suffix; [a-z0-9-]"),
 				"expr": descTyp("string", "5-field cron (min hour dom mon dow), UTC. Operators: *, n, lists a,b, ranges a-b, steps */n and a-b/n; dow 0 or 7 = Sunday. e.g. \"0 3 * * *\" = daily 03:00 UTC"),
 			}, "name", "expr"),
 			func(ctx context.Context, args json.RawMessage, _ server.Identity) (map[string]any, error) {
 				return h.toolCreate(ctx, args)
 			}),
 		desc(tool("list"),
-			"List every schedule, ordered by name. Each entry returns {name, expr, created_at, updated_at, last_slot}. The authoritative view of which cron.<name> events exist. Takes no inputs.",
+			"List every schedule, ordered by name. Each entry returns {name, expr, created_at, updated_at, last_slot}. The authoritative view of which cron:tick/<name> events exist. Takes no inputs.",
 			obj(map[string]any{}),
 			func(ctx context.Context, _ json.RawMessage, _ server.Identity) (map[string]any, error) {
 				return h.toolList(ctx)
@@ -73,7 +73,7 @@ func Tools(store *crontab.Store) []appkitmcp.Tool {
 				return h.toolGet(ctx, args)
 			}),
 		desc(tool("update"),
-			"Change an existing schedule's cron expression. 'expr' is validated here exactly as on create. 'name' is immutable (the event type cron.<name> depends on it) — to rename, delete and create. The double-emit guard (last_slot) is deliberately NOT reset on an expr change.",
+			"Change an existing schedule's cron expression. 'expr' is validated here exactly as on create. 'name' is immutable (the event cron:tick/<name> depends on it) — to rename, delete and create. The double-emit guard (last_slot) is deliberately NOT reset on an expr change.",
 			obj(map[string]any{
 				"name": descTyp("string", "schedule name"),
 				"expr": descTyp("string", "new 5-field cron expression, UTC"),
@@ -82,7 +82,7 @@ func Tools(store *crontab.Store) []appkitmcp.Tool {
 				return h.toolUpdate(ctx, args)
 			}),
 		desc(tool("delete"),
-			"Delete a schedule by name. The cron.<name> event type stops being published. Consumers subscribed to it simply stop receiving (cron is subscriber-blind).",
+			"Delete a schedule by name. The cron:tick/<name> event stops being published. Consumers subscribed to it simply stop receiving (cron is subscriber-blind).",
 			obj(map[string]any{"name": descTyp("string", "schedule name")}, "name"),
 			func(ctx context.Context, args json.RawMessage, _ server.Identity) (map[string]any, error) {
 				return h.toolDelete(ctx, args)

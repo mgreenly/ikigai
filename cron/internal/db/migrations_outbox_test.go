@@ -9,16 +9,16 @@ import (
 
 // TestOutboxMigrationMatchesLibraryDDL guards the producer invariant: the outbox
 // table DDL is OWNED by the eventplane library (outbox.SchemaSQL); cron's
-// 003_outbox.sql migration only applies it. If the two drift, every producer's
+// newest outbox migration only applies it. If the two drift, every producer's
 // outbox is no longer identical — so this test fails loudly the moment they
 // diverge (mirrors crm/ledger).
 func TestOutboxMigrationMatchesLibraryDDL(t *testing.T) {
-	body, err := migrationsFS.ReadFile("migrations/003_outbox.sql")
+	body, err := migrationsFS.ReadFile("migrations/20260712160651_outbox_routing.sql")
 	if err != nil {
-		t.Fatalf("read 003_outbox.sql: %v", err)
+		t.Fatalf("read newest outbox migration: %v", err)
 	}
 	if !strings.Contains(string(body), outbox.SchemaSQL) {
-		t.Fatalf("003_outbox.sql does not contain the library DDL verbatim.\n--- outbox.SchemaSQL ---\n%s\n--- migration file ---\n%s",
+		t.Fatalf("newest outbox migration does not contain the library DDL verbatim.\n--- outbox.SchemaSQL ---\n%s\n--- migration file ---\n%s",
 			outbox.SchemaSQL, string(body))
 	}
 }

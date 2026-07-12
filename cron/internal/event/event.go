@@ -1,21 +1,20 @@
-// Package event owns cron's event contract: the cron.<name> type namespace, the
-// shared {name, scheduled_for, fired_at} payload shape, and the LIVE published-
-// type provider (Spec.Publishes) that reads the crontab at reflection time
-// (event-triggering decisions §2).
+// Package event owns cron's event contract: kind tick with a /<schedule name>
+// subject, the shared {name, scheduled_for, fired_at} payload shape, and the
+// LIVE published-family provider (Spec.Publishes) that reads the crontab at
+// reflection time.
 //
 // cron is the dynamic producer the P3 Publishes seam was built for: its
-// emittable types are not compile-time payload structs (as crm/ledger's are) but
-// "cron."+<name> derived from the current crontab rows. Append-time validation
-// is therefore NONE (an empty Spec.Events registry, so the outbox imposes no
-// per-emit registry guard); the type is valid by construction — the tick worker
-// emits "cron."+name from a charset-CHECKed row, so the boundary guarantee lives
-// at the DB CHECK, not a registry.
+// emittable subjects are derived from the current crontab rows. Append-time
+// validation is therefore NONE (an empty Spec.Events registry); the subject is
+// valid by construction because the tick worker emits /+name from a
+// charset-CHECKed row, so the boundary guarantee lives at the DB CHECK.
 package event
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"cron/internal/crontab"
@@ -23,18 +22,17 @@ import (
 	"eventplane/outbox"
 )
 
-// TypePrefix is the namespace cron owns. The emitted type is TypePrefix + the
-// crontab row's name (decisions §2 — "cron owns the cron.* type namespace").
-const TypePrefix = "cron."
+// Kind is cron's one fact class: a schedule fired for a minute slot.
+const Kind = "tick"
 
 // timeFormat is the canonical wire timestamp shape (UTC RFC3339), matching the
 // repo's other event payloads (crm/ledger render times this way).
 const timeFormat = time.RFC3339
 
-// Type returns the wire event type for a crontab entry name: "cron."+name.
-func Type(name string) string { return TypePrefix + name }
+// Subject renders a schedule name as its routing subject.
+func Subject(name string) string { return "/" + name }
 
-// Payload is the cron.<name> event payload (decisions §2). Field names and the
+// Payload is the tick event payload. Field names and the
 // UTC-RFC3339 time format are the wire contract; ScheduledFor is the matched
 // minute slot, FiredAt the actual emit time (the two diverge after a restart
 // blink — the staleness signal a consumer uses).
@@ -44,7 +42,7 @@ type Payload struct {
 	FiredAt      string `json:"fired_at"`
 }
 
-// Build marshals the cron.<name> event for one fire: name from the crontab row,
+// Build marshals a tick event for one fire: name from the crontab row,
 // scheduledFor the matched slot, firedAt the emit time. Both times are rendered
 // in the canonical UTC-RFC3339 wire format.
 func Build(name string, scheduledFor, firedAt time.Time) (outbox.Event, error) {
@@ -54,13 +52,12 @@ func Build(name string, scheduledFor, firedAt time.Time) (outbox.Event, error) {
 		FiredAt:      firedAt.UTC().Format(timeFormat),
 	})
 	if err != nil {
-		return outbox.Event{}, fmt.Errorf("marshal cron.%s payload: %w", name, err)
+		return outbox.Event{}, fmt.Errorf("marshal tick payload for %s: %w", name, err)
 	}
-	return outbox.Event{Type: Type(name), Payload: raw}, nil
+	return outbox.Event{Kind: Kind, Subject: Subject(name), Payload: raw}, nil
 }
 
-// sample is the reflection example/schema source for every live cron.<name>
-// type — they all share this one payload shape.
+// sample is the reflection example/schema source for cron's one live family.
 var sample = Payload{
 	Name:         "nightly",
 	ScheduledFor: "2026-06-06T03:00:00Z",
@@ -68,26 +65,28 @@ var sample = Payload{
 }
 
 // Publishes returns a LIVE provider for Spec.Publishes: it reads the crontab at
-// reflection time and returns one EventType per row, so reflection reports the
-// live cron.foo, cron.bar, … (decisions §2). Each entry carries the one shared
-// payload Sample, so every type reflects the same schema/example. A read failure
-// yields an empty registry (reflection degrades to "nothing published" rather
-// than erroring the tool); the crontab list MCP tool is the authoritative
-// instance view regardless.
+// reflection time and returns one family. Its description enumerates the live
+// schedule names while its subject remains open. A read failure or empty
+// crontab degrades to an empty registry; the crontab list MCP tool remains the
+// authoritative instance view.
 func Publishes(store *crontab.Store) func() outbox.Registry {
 	return func() outbox.Registry {
 		entries, err := store.List(context.Background())
 		if err != nil {
 			return outbox.Registry{}
 		}
-		reg := make(outbox.Registry, 0, len(entries))
-		for _, e := range entries {
-			reg = append(reg, outbox.EventType{
-				Type:        Type(e.Name),
-				Description: fmt.Sprintf("Fires on each minute matching the %q schedule (expr %q). Payload carries the matched slot and emit time.", e.Name, e.Expr),
-				Sample:      sample,
-			})
+		if len(entries) == 0 {
+			return outbox.Registry{}
 		}
-		return reg
+		names := make([]string, 0, len(entries))
+		for _, e := range entries {
+			names = append(names, e.Name)
+		}
+		return outbox.Registry{{
+			Kind:        Kind,
+			Subject:     "/<schedule name>",
+			Description: fmt.Sprintf("A schedule fired for a matching minute. Live schedules: %s.", strings.Join(names, ", ")),
+			Sample:      sample,
+		}}
 	}
 }

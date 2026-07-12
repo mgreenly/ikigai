@@ -2,7 +2,7 @@
 // decisions §2 "cron implementation detail"). It wakes aligned to the wall-clock
 // minute boundary, computes the current slot = now.Truncate(minute) in UTC, and
 // for every crontab row whose schedule matches the slot AND whose last_slot is
-// not already this slot, emits one cron.<name> event.
+// not already this slot, emits one tick event with that schedule's subject.
 //
 // The at-most-once-per-(schedule, slot) guarantee — the critical invariant — is
 // the product of two things done together: (1) the slot is minute-truncated, so
@@ -80,8 +80,8 @@ func (w *Worker) Run(ctx context.Context) error {
 
 // Fire is the testable core of one tick. For the given slot it scans every
 // crontab row, and for each row whose parsed schedule matches the slot and whose
-// last_slot != slot, runs ONE per-schedule transaction: Append the cron.<name>
-// event AND UPDATE last_slot = slot (atomic "emitted" + "recorded"). It calls
+// last_slot != slot, runs ONE per-schedule transaction: Append the tick event
+// AND UPDATE last_slot = slot (atomic "emitted" + "recorded"). It calls
 // Ring() once after the scan if anything fired, and returns the number of events
 // emitted. firedAt is the actual emit time stamped into the payload; pass the
 // same value as wall-clock now in production, an explicit value in tests.

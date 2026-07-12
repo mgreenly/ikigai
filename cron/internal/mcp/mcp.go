@@ -15,7 +15,7 @@ import (
 )
 
 // Instructions describes cron's MCP surface to clients during initialize.
-const Instructions = "Named UTC cron schedules that publish a cron.<name> event on " +
+const Instructions = "Named UTC cron schedules that publish a cron:tick/<name> event on " +
 	"a timer. Create a schedule, then wire consumers to its event."
 
 // NewHandler builds the POST /mcp handler from the appkit Router seam. The

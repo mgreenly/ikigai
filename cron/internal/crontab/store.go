@@ -1,6 +1,6 @@
 // Package crontab is cron's domain layer: the persistent crontab of named
 // 5-field schedules and the CRUD store over it. `name` is the identity (and the
-// suffix of the emitted cron.<name> event); the DB CHECK on the crontab table is
+// suffix of the emitted tick event subject); the DB CHECK on the crontab table is
 // the validation boundary for the charset (decisions §2). The MCP surface and
 // the tick worker that consume this store land in P5; this phase provides the
 // store and the matcher only.
