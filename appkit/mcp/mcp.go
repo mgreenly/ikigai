@@ -216,9 +216,9 @@ func (h *Handler) toolReflection(args json.RawMessage) (map[string]any, error) {
 	if p.EventType != "" {
 		detail, err := events.Detail(p.EventType)
 		if err != nil {
-			var unknown *outbox.UnknownEventTypeError
+			var unknown *outbox.UnknownKindError
 			if errors.As(err, &unknown) {
-				return ErrorResult(fmt.Sprintf("unknown event_type %q; known types: %s", unknown.Type, strings.Join(unknown.Valid, ", "))), nil
+				return ErrorResult(fmt.Sprintf("unknown event kind %q; known kinds: %s", unknown.Kind, strings.Join(unknown.Valid, ", "))), nil
 			}
 			return nil, err
 		}

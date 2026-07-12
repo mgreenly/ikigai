@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -16,10 +17,81 @@ import (
 	"testing"
 	"time"
 
+	appkitdb "appkit/db"
 	"appkit/manifest"
 	appweb "appkit/web"
+	"crm/internal/crm"
+	"crm/internal/db"
+	"eventplane/outbox"
 	"registry"
 )
+
+// R-8L50-7G0J
+func TestCRMFeedFramesRoutedContactEvent(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "crm.db")
+	conn, err := appkitdb.Open(path)
+	if err != nil {
+		t.Fatalf("open SQLite: %v", err)
+	}
+	defer conn.Close()
+	migs, err := appkitdb.LoadMigrations(db.FS, "migrations")
+	if err != nil {
+		t.Fatalf("load migrations: %v", err)
+	}
+	if err := appkitdb.Migrate(context.Background(), conn, migs); err != nil {
+		t.Fatalf("apply migrations: %v", err)
+	}
+	ob, err := outbox.New(conn, outbox.Options{Source: "crm", Registry: crm.Events})
+	if err != nil {
+		t.Fatalf("new outbox: %v", err)
+	}
+	svc := crm.NewService(conn)
+	svc.Outbox = ob
+	created, err := svc.Save(context.Background(), "contact", "", []byte(`{"display_name":"Ada"}`), false)
+	if err != nil {
+		t.Fatalf("save contact: %v", err)
+	}
+
+	server := httptest.NewServer(ob.FeedHandler())
+	defer server.Close()
+	resp, err := http.Get(server.URL)
+	if err != nil {
+		t.Fatalf("get feed: %v", err)
+	}
+	defer resp.Body.Close()
+	scanner := bufio.NewScanner(resp.Body)
+	var event, data string
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "event: ") {
+			event = strings.TrimPrefix(line, "event: ")
+		}
+		if strings.HasPrefix(line, "data: ") {
+			data = strings.TrimPrefix(line, "data: ")
+		}
+		if line == "" && event != "" && event != "status" {
+			break
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		t.Fatalf("read feed: %v", err)
+	}
+	if want := "crm:contact.created/" + created.ID; event != want {
+		t.Fatalf("SSE event = %q, want %q", event, want)
+	}
+	var envelope map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(data), &envelope); err != nil {
+		t.Fatalf("decode event envelope: %v", err)
+	}
+	if _, ok := envelope["type"]; ok {
+		t.Fatalf("event envelope must not contain type: %s", data)
+	}
+	for _, key := range []string{"kind", "subject"} {
+		if _, ok := envelope[key]; !ok {
+			t.Fatalf("event envelope missing %q: %s", key, data)
+		}
+	}
+}
 
 // R-8DF1-W89F
 func TestCommittedManifestIsPortable(t *testing.T) {

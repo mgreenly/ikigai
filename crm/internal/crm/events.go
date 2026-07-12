@@ -37,22 +37,26 @@ const (
 // JSON Schema and the worked example, so schema/example/wire shape can't diverge.
 var Events = outbox.Registry{
 	{
-		Type:        eventContactCreated,
+		Kind:        eventContactCreated,
+		Subject:     "/<contact id>",
 		Description: "A new contact was created. Carries the full self-describing contact snapshot (identity, funnel lifecycle, emails/phones, tags).",
 		Sample:      sampleContactSnapshot,
 	},
 	{
-		Type:        eventContactUpdated,
+		Kind:        eventContactUpdated,
+		Subject:     "/<contact id>",
 		Description: "An existing contact changed. Carries the full post-update contact snapshot in the same shape as contact.created.",
 		Sample:      sampleContactSnapshot,
 	},
 	{
-		Type:        eventContactTagged,
+		Kind:        eventContactTagged,
+		Subject:     "/<contact id>",
 		Description: "A tag was added to a contact (a segment-membership gain, e.g. joining the newsletter audience). One event per added tag.",
 		Sample:      contactTagPayload{ContactID: "01J9Z2K7P3QC8M4R6T0V2X5YA", Tag: "newsletter"},
 	},
 	{
-		Type:        eventContactUntagged,
+		Kind:        eventContactUntagged,
+		Subject:     "/<contact id>",
 		Description: "A tag was removed from a contact (a segment-membership loss). One event per removed tag.",
 		Sample:      contactTagPayload{ContactID: "01J9Z2K7P3QC8M4R6T0V2X5YA", Tag: "newsletter"},
 	},
@@ -135,7 +139,7 @@ func contactEvents(tx *sql.Tx, s Summary) ([]outbox.Event, error) {
 	if s.isCreate {
 		typ = eventContactCreated
 	}
-	events := []outbox.Event{{Type: typ, Payload: raw}}
+	events := []outbox.Event{{Kind: typ, Subject: "/" + s.ID, Payload: raw}}
 
 	for _, tag := range s.tagsAdded {
 		ev, err := contactTagEvent(eventContactTagged, s.ID, tag)
@@ -159,7 +163,7 @@ func contactTagEvent(typ, contactID, tag string) (outbox.Event, error) {
 	if err != nil {
 		return outbox.Event{}, fmt.Errorf("marshal %s payload: %w", typ, err)
 	}
-	return outbox.Event{Type: typ, Payload: raw}, nil
+	return outbox.Event{Kind: typ, Subject: "/" + contactID, Payload: raw}, nil
 }
 
 // loadContactSnapshot reads the just-written contact (on the same tx, before

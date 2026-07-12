@@ -629,10 +629,10 @@ func TestToolsCallErrorEnvelope(t *testing.T) {
 	}
 }
 
-// TestToolsCallReflection covers the reflection tool: the no-arg
-// index (the four published types, empty subscribes — crm is a producer), the
-// event_type detail (schema + example), and the corrective error for an unknown
-// type.
+// R-8IP7-FWJ5
+// TestToolsCallReflection covers the reflection tool: the no-arg index (the
+// four published families, empty subscribes — crm is a producer), the kind
+// detail (schema + example), and the corrective error for an unknown kind.
 func TestToolsCallReflection(t *testing.T) {
 	h := newTestHandler(t)
 
@@ -647,9 +647,12 @@ func TestToolsCallReflection(t *testing.T) {
 	for _, p := range publishes {
 		m := p.(map[string]any)
 		if m["description"] == "" {
-			t.Errorf("published type %v has empty description", m["type"])
+			t.Errorf("published kind %v has empty description", m["kind"])
 		}
-		got[m["type"].(string)] = true
+		if m["subject"] != "/<contact id>" {
+			t.Errorf("published subject = %q, want /<contact id>", m["subject"])
+		}
+		got[m["kind"].(string)] = true
 	}
 	for _, want := range []string{"contact.created", "contact.updated", "contact.tagged", "contact.untagged"} {
 		if !got[want] {
@@ -657,7 +660,7 @@ func TestToolsCallReflection(t *testing.T) {
 		}
 	}
 	if len(publishes) != 4 {
-		t.Fatalf("expected exactly 4 published types, got %d: %+v", len(publishes), publishes)
+		t.Fatalf("expected exactly 4 published kinds, got %d: %+v", len(publishes), publishes)
 	}
 
 	// crm is a producer: subscribes is present and empty.
@@ -671,8 +674,8 @@ func TestToolsCallReflection(t *testing.T) {
 
 	// event_type → the publish detail (schema + example).
 	detail := callOK(t, h, "reflection", map[string]any{"event_type": "contact.created"})
-	if detail["type"] != "contact.created" {
-		t.Fatalf("detail type mismatch: %+v", detail)
+	if detail["kind"] != "contact.created" || detail["subject"] != "/<contact id>" {
+		t.Fatalf("detail addressing mismatch: %+v", detail)
 	}
 	if detail["description"] == "" {
 		t.Fatalf("detail missing description: %+v", detail)
@@ -681,11 +684,18 @@ func TestToolsCallReflection(t *testing.T) {
 	if !ok || sch["type"] != "object" {
 		t.Fatalf("detail schema not an object schema: %+v", detail["schema"])
 	}
-	if _, ok := sch["properties"].(map[string]any); !ok {
+	props, ok := sch["properties"].(map[string]any)
+	if !ok {
 		t.Fatalf("detail schema missing properties: %+v", sch)
 	}
-	if _, ok := detail["example"].(map[string]any); !ok {
+	example, ok := detail["example"].(map[string]any)
+	if !ok {
 		t.Fatalf("detail missing example object: %+v", detail["example"])
+	}
+	for field := range example {
+		if _, ok := props[field]; !ok {
+			t.Errorf("example field %q absent from schema: %+v", field, sch)
+		}
 	}
 
 	// Unknown event_type -> corrective error listing valid types.

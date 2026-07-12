@@ -25,7 +25,8 @@ func withOutbox(t *testing.T, s *Service) *Service {
 }
 
 type outboxRow struct {
-	typ     string
+	kind    string
+	subject string
 	payload []byte
 }
 
@@ -33,7 +34,7 @@ type outboxRow struct {
 // Append happened on the tx that committed (PLAN.md §6).
 func readOutbox(t *testing.T, s *Service) []outboxRow {
 	t.Helper()
-	rows, err := s.DB.Query(`SELECT type, payload FROM outbox ORDER BY seq ASC`)
+	rows, err := s.DB.Query(`SELECT kind, subject, payload FROM outbox ORDER BY seq ASC`)
 	if err != nil {
 		t.Fatalf("query outbox: %v", err)
 	}
@@ -41,7 +42,7 @@ func readOutbox(t *testing.T, s *Service) []outboxRow {
 	var out []outboxRow
 	for rows.Next() {
 		var r outboxRow
-		if err := rows.Scan(&r.typ, &r.payload); err != nil {
+		if err := rows.Scan(&r.kind, &r.subject, &r.payload); err != nil {
 			t.Fatalf("scan outbox: %v", err)
 		}
 		out = append(out, r)
@@ -52,10 +53,10 @@ func readOutbox(t *testing.T, s *Service) []outboxRow {
 	return out
 }
 
-func eventTypes(rows []outboxRow) []string {
+func eventKinds(rows []outboxRow) []string {
 	types := make([]string, len(rows))
 	for i, r := range rows {
-		types[i] = r.typ
+		types[i] = r.kind
 	}
 	return types
 }
@@ -80,15 +81,15 @@ func TestEventContactCreatedWithTags(t *testing.T) {
 
 	rows := readOutbox(t, s)
 	if len(rows) != 3 {
-		t.Fatalf("expected 3 events (created + 2 tagged), got %d: %v", len(rows), eventTypes(rows))
+		t.Fatalf("expected 3 events (created + 2 tagged), got %d: %v", len(rows), eventKinds(rows))
 	}
-	if rows[0].typ != "contact.created" {
-		t.Fatalf("first event = %q, want contact.created", rows[0].typ)
+	if rows[0].kind != "contact.created" {
+		t.Fatalf("first event = %q, want contact.created", rows[0].kind)
 	}
 	tagged := map[string]bool{}
 	for _, r := range rows[1:] {
-		if r.typ != "contact.tagged" {
-			t.Fatalf("tag event = %q, want contact.tagged", r.typ)
+		if r.kind != "contact.tagged" {
+			t.Fatalf("tag event = %q, want contact.tagged", r.kind)
 		}
 		var p contactTagPayload
 		if err := json.Unmarshal(r.payload, &p); err != nil {
@@ -122,6 +123,7 @@ func TestEventContactCreatedWithTags(t *testing.T) {
 	}
 }
 
+// R-8HHB-24SG
 // TestEventContactUpdatedTagDelta: updating a contact's tag set emits
 // contact.updated plus a tagged event for the added tag and an untagged event
 // for the removed tag (the declarative-replace diff, PLAN.md §4/§6).
@@ -145,12 +147,26 @@ func TestEventContactUpdatedTagDelta(t *testing.T) {
 	rows := readOutbox(t, s)
 	// create: contact.created + contact.tagged(newsletter)
 	// update: contact.updated + contact.tagged(vip) + contact.untagged(newsletter)
-	got := eventTypes(rows)
+	got := eventKinds(rows)
 	if len(rows) != 5 {
 		t.Fatalf("expected 5 events, got %d: %v", len(rows), got)
 	}
 	if got[2] != "contact.updated" {
 		t.Fatalf("first update event = %q, want contact.updated", got[2])
+	}
+	for _, row := range rows {
+		if row.subject != "/"+created.ID {
+			t.Fatalf("event subject = %q, want /%s", row.subject, created.ID)
+		}
+	}
+	var snapshot map[string]any
+	if err := json.Unmarshal(rows[2].payload, &snapshot); err != nil {
+		t.Fatalf("unmarshal updated snapshot: %v", err)
+	}
+	for _, field := range []string{"id", "display_name", "given_name", "family_name", "title", "org_id", "lifecycle", "emails", "phones", "tags", "created_at", "updated_at"} {
+		if _, ok := snapshot[field]; !ok {
+			t.Errorf("snapshot payload missing %q: %v", field, snapshot)
+		}
 	}
 
 	var taggedTags, untaggedTags []string
@@ -159,13 +175,20 @@ func TestEventContactUpdatedTagDelta(t *testing.T) {
 		if err := json.Unmarshal(r.payload, &p); err != nil {
 			t.Fatalf("unmarshal: %v", err)
 		}
-		switch r.typ {
+		var raw map[string]any
+		if err := json.Unmarshal(r.payload, &raw); err != nil {
+			t.Fatalf("unmarshal raw tag payload: %v", err)
+		}
+		if len(raw) != 2 || raw["contact_id"] != created.ID || raw["tag"] == nil {
+			t.Fatalf("tag payload = %v, want exactly contact_id and tag", raw)
+		}
+		switch r.kind {
 		case "contact.tagged":
 			taggedTags = append(taggedTags, p.Tag)
 		case "contact.untagged":
 			untaggedTags = append(untaggedTags, p.Tag)
 		default:
-			t.Fatalf("unexpected update tag event %q", r.typ)
+			t.Fatalf("unexpected update tag event %q", r.kind)
 		}
 	}
 	if len(taggedTags) != 1 || taggedTags[0] != "vip" {
