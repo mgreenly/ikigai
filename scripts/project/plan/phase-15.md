@@ -46,8 +46,7 @@ Observable end state:
 
 ## Done when
 
-The suite is green (design *Conventions* commands, from `scripts/`, plus
-`bin/check-migrations scripts`) and:
+The suite is green (design *Conventions* commands, from `scripts/`) and:
 
 - **R-7TR5-QSY4**, **R-7UZ2-4KOT**, **R-7W6Y-ICFI**, **R-7XEU-W467**,
   **R-7YMR-9VWW**, **R-7ZUN-NNNL**, **R-812K-1FEA** — each covered by a

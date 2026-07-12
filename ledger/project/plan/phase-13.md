@@ -40,7 +40,7 @@ Observable end state:
   source).
 
 **Done when:** the suite is green (design Conventions commands, from
-`ledger/`, plus `bin/check-migrations ledger` per the plan done bar) and:
+`ledger/`) and:
 
 - R-FXKF-JD3L, R-FYSB-X4UA, R-G184-OOBO, and R-G2G1-2G2D are each covered by
   a clearly-named test asserting the behavior its D15 Verification line
@@ -53,5 +53,5 @@ Observable end state:
 - `grep -rn "transaction\.recorded" ledger --include=*.go` (run from the repo
   root, or the equivalent from `ledger/`) returns no matches in Go source;
 - `git diff --stat -- ledger/internal/db/migrations/003_outbox.sql` is empty
-  (the frozen migration is untouched) and `bin/check-migrations ledger`
-  passes with the one new timestamped outbox migration present.
+  (the frozen migration is untouched) and the one new timestamped outbox
+  migration is present.

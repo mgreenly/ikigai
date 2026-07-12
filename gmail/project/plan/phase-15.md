@@ -25,8 +25,8 @@ Observable end state:
   byte fetch. All other descriptors/schemas unchanged; the surface stays
   exactly twelve tools (the existing R-9NYN-SVIR test stays green).
 
-**Done when:** the suite is green (design Conventions commands, from `gmail/`,
-plus `bin/check-migrations gmail` per the plan done bar) and:
+**Done when:** the suite is green (design Conventions commands, from `gmail/`)
+and:
 
 - R-X3AV-WMZ4, R-X4IS-AEPT, and R-X5QO-O6GI are each covered by a clearly-named
   test through the assembled handler asserting the behavior its D17

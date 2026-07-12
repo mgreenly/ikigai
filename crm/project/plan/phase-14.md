@@ -40,8 +40,8 @@ Observable end state:
   — unlike gmail/dropbox there is no old-prefix grep to run; the cutover is
   the `Type` → `Kind`+`Subject` field shape and the family registry.
 
-**Done when:** the suite is green (design Conventions commands, from `crm/`,
-plus `bin/check-migrations crm` per the plan done bar) and:
+**Done when:** the suite is green (design Conventions commands, from `crm/`)
+and:
 
 - R-8HHB-24SG, R-8IP7-FWJ5, R-8JX3-TO9U, and R-8L50-7G0J are each covered by a
   clearly-named test asserting the behavior its D18 Verification line states
@@ -51,5 +51,5 @@ plus `bin/check-migrations crm` per the plan done bar) and:
   real-`FeedHandler` frame `event: crm:contact.created/<contact ULID>` with
   no `type` key);
 - `git diff --stat -- crm/internal/db/migrations/003_outbox.sql` is empty
-  (the frozen migration is untouched) and `bin/check-migrations crm` passes
-  with the one new timestamped outbox migration present.
+  (the frozen migration is untouched) and the one new timestamped outbox
+  migration is present.

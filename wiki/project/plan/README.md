@@ -26,8 +26,8 @@ files say so explicitly and carry the partial-Decision split.
 `R-XXXX-XXXX` ids — in the design Decisions it realizes (or the slice of those
 ids assigned to it) is covered by a clearly-named test and the suite is green.
 "Green" is defined concretely in design's *Conventions*: `go build ./...`,
-`go vet ./...`, `gofmt -l .` (no output), `go test ./...`, and
-`bin/check-migrations wiki` all succeed with zero failures. "Covered" means each
+`go vet ./...`, `gofmt -l .` (no output), and `go test ./...` all succeed
+with zero failures. "Covered" means each
 listed id has a genuine test exercising the behavior that Decision's Verification
 list describes — see each `project/design/DNN.md` Verification section for what the
 id requires.

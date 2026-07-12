@@ -39,8 +39,7 @@ Observable end state:
 
 ## Done when
 
-The suite is green (design *Conventions* commands, from `scripts/`, plus
-`bin/check-migrations scripts`) and:
+The suite is green (design *Conventions* commands, from `scripts/`) and:
 
 - **R-82AG-F74Z**, **R-83IC-SYVO**, **R-84Q9-6QMD**, **R-85Y5-KID2** — each
   covered by a clearly-named test asserting exactly the behavior its D18

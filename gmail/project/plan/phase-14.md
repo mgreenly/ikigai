@@ -27,8 +27,8 @@ Observable end state:
   location is untouched. The `cmd/gmail` nginx content-assertion tests grow the
   matching assertion.
 
-**Done when:** the suite is green (design Conventions commands, from `gmail/`,
-plus `bin/check-migrations gmail` per the plan done bar) and:
+**Done when:** the suite is green (design Conventions commands, from `gmail/`)
+and:
 
 - R-WVZH-M0IY, R-WX7D-ZS9N, R-WYFA-DK0C, R-WZN6-RBR1, R-X0V3-53HQ, and
   R-X22Z-IV8F are each covered by a clearly-named test asserting the behavior

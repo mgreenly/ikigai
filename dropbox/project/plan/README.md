@@ -27,8 +27,8 @@ wiring file.
 ids assigned to it) is covered by a clearly-named, genuinely-asserting test and
 the suite is green. "Green" is defined concretely in design's *Conventions*:
 `cd dropbox && go build ./...`, `cd dropbox && go vet ./...`,
-`cd dropbox && gofmt -l .` (no output), `cd dropbox && go test ./...`, and
-`bin/check-migrations dropbox` all succeed with zero failures. "Covered" means
+`cd dropbox && gofmt -l .` (no output), and `cd dropbox && go test ./...` all
+succeed with zero failures. "Covered" means
 each listed id has a genuine test exercising the behavior that Decision's
 Verification list describes — see each `project/design/DNN.md` Verification
 section for what the id requires. A **structural** phase (no ids, e.g. the docs

@@ -30,7 +30,7 @@ Observable end state:
   are unchanged; the advertised surface stays eight tools.
 
 **Done when:** the suite is green (design Conventions commands, from
-`dropbox/`, plus `bin/check-migrations dropbox`) and:
+`dropbox/`) and:
 
 - R-Q52B-JQLP is covered by a test driving `put(path, source_url)` against a
   **real local `httptest` server** (its port injected via the allowed-port

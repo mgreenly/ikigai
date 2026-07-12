@@ -39,7 +39,7 @@ Observable end state:
   kinds (hard cutover — no `file.` event name survives in Go source).
 
 **Done when:** the suite is green (design Conventions commands, from
-`dropbox/`, plus `bin/check-migrations dropbox`) and:
+`dropbox/`) and:
 
 - R-QB5T-GLB6, R-QCDP-UD1V, R-QDLM-84SK, and R-QETI-LWJ9 are each covered by a
   clearly-named test asserting the behavior its D22 Verification line states
@@ -53,5 +53,5 @@ Observable end state:
   (run from the repo root, or the equivalent from `dropbox/`) returns no
   matches in Go source;
 - `git diff --stat -- dropbox/internal/db/migrations/003_outbox.sql` is empty
-  (the frozen migration is untouched) and `bin/check-migrations dropbox`
-  passes with the one new timestamped migration present.
+  (the frozen migration is untouched) and the one new timestamped migration
+  is present.

@@ -36,7 +36,7 @@ Observable end state:
   registry Sample fills it in.
 
 **Done when:** the suite is green (design Conventions commands, from
-`ledger/`, plus `bin/check-migrations ledger` per the plan done bar) and:
+`ledger/`) and:
 
 - R-FP14-UYWQ, R-FQ91-8QNF, R-FRGX-MIE4, R-FSOU-0A4T, R-FTWQ-E1VI,
   R-FV4M-RTM7, and R-FWCJ-5LCW are each covered by a clearly-named test

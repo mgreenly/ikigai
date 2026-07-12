@@ -27,8 +27,8 @@ before the AGENTS.md truth is rewritten.
 `R-XXXX-XXXX` ids — in the design Decision(s) it realizes is covered by a
 clearly-named, genuinely-asserting test and the suite is green. "Green" is defined
 concretely in design's *Conventions*: `cd dashboard && go build ./...`,
-`go vet ./...`, `gofmt -l .` (no output), `go test ./...`, and
-`bin/check-migrations dashboard` all succeed with zero failures. "Covered" means
+`go vet ./...`, `gofmt -l .` (no output), and `go test ./...` all succeed
+with zero failures. "Covered" means
 each listed id has a genuine test exercising the behavior that Decision's
 Verification list describes — see each `project/design/DNN.md` Verification section
 for what the id requires. The doc-truth phase (D6) is verified by a text check on

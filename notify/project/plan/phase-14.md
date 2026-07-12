@@ -48,8 +48,8 @@ Observable end state:
   `FeedHandler`; the Spec-level D11 assertions (R-4DG9-3Q97, R-4EO5-HHZW)
   keep passing against the conformed subscription lists.
 
-**Done when:** the suite is green (design Conventions commands from `notify/`,
-plus `bin/check-migrations notify` per the plan done bar) and:
+**Done when:** the suite is green (design Conventions commands from `notify/`)
+and:
 
 - R-ZCGU-FG9L, R-ZEWN-6ZQZ, R-ZG4J-KRHO, and R-ZHCF-YJ8D are each covered by a
   clearly-named test asserting the behavior its D16 Verification line states

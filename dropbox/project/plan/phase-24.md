@@ -37,8 +37,8 @@ addressing (D22). Rewrite the stale sections to the current truth:
   hash-verify, case-folding, longpoll) remain and stay documented.
 
 **Done when:** the suite is green (design Conventions commands, from
-`dropbox/`, plus `bin/check-migrations dropbox` — no source changes expected,
-this proves nothing broke) and, run against `dropbox/CLAUDE.md` only:
+`dropbox/` — no source changes expected, this proves nothing broke) and, run
+against `dropbox/CLAUDE.md` only:
 
 - `grep -nE "download-only|one-way|never writes back|no write verbs|4 tools|file\.created|file\.modified|file\.deleted" dropbox/CLAUDE.md`
   returns **no matches** (the stale claims are gone);

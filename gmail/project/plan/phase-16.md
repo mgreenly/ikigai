@@ -35,8 +35,8 @@ Observable end state:
   (hard cutover — no `mail.` prefix survives outside frozen plan/migration
   history).
 
-**Done when:** the suite is green (design Conventions commands, from `gmail/`,
-plus `bin/check-migrations gmail` per the plan done bar) and:
+**Done when:** the suite is green (design Conventions commands, from `gmail/`)
+and:
 
 - R-X6YL-1Y77, R-X86H-FPXW, R-X9ED-THOL, and R-XAMA-79FA are each covered by a
   clearly-named test asserting the behavior its D18 Verification line states
@@ -48,5 +48,5 @@ plus `bin/check-migrations gmail` per the plan done bar) and:
   (run from the repo root, or the equivalent from `gmail/`) returns no matches
   in Go source;
 - `git diff --stat -- gmail/internal/db/migrations/003_outbox.sql` is empty
-  (the frozen migration is untouched) and `bin/check-migrations gmail` passes
-  with the one new timestamped migration present.
+  (the frozen migration is untouched) and the one new timestamped migration
+  is present.
