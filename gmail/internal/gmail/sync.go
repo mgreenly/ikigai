@@ -221,8 +221,8 @@ func (e *Engine) Poll(ctx context.Context) error {
 // messages are enriched with one messages.get each; a message that appears in
 // multiple history records is fetched and emitted at most once per drain (Gmail
 // can repeat a message across overlapping records). Derivation order: a
-// send-to-self yields both a SENT copy and an INBOX copy → both mail.sent and
-// mail.received (decisions §1).
+// send-to-self yields both a SENT copy and an INBOX copy → both sent and
+// received events (decisions §1).
 func (e *Engine) drain(ctx context.Context, cursor string) ([]MailEvent, string, error) {
 	var events []MailEvent
 	// Dedup added/trashed message ids across the whole drain so overlapping
@@ -243,7 +243,7 @@ func (e *Engine) drain(ctx context.Context, cursor string) ([]MailEvent, string,
 			return nil, "", err
 		}
 		for _, h := range res.History {
-			// messagesAdded → mail.received (INBOX) and/or mail.sent (SENT, not INBOX).
+			// messagesAdded → received (INBOX) and/or sent (SENT, not INBOX).
 			for _, ma := range h.MessagesAdded {
 				id := ma.Message.ID
 				if id == "" || seenAdded[id] {
@@ -266,7 +266,7 @@ func (e *Engine) drain(ctx context.Context, cursor string) ([]MailEvent, string,
 					events = append(events, derived...)
 				}
 			}
-			// labelsAdded: TRASH → mail.deleted.
+			// labelsAdded: TRASH → deleted.
 			for _, la := range h.LabelsAdded {
 				if !containsLabel(la.LabelIDs, LabelTrash) {
 					continue
@@ -314,22 +314,22 @@ func (e *Engine) getMessage(ctx context.Context, id string, cache map[string]*Me
 }
 
 // deriveAddedEvents maps an added message to its mail.* events (decisions §1
-// table): INBOX → mail.received, SENT → mail.sent. The two rules are INDEPENDENT,
+// table): INBOX → received, SENT → sent. The two rules are INDEPENDENT,
 // matching the decisions doc's explicit promise that a send-to-self "yields BOTH
-// a SENT copy and an INBOX copy → emits both mail.sent and mail.received." Gmail
+// a SENT copy and an INBOX copy → emits both sent and received events." Gmail
 // realizes a send-to-self as ONE message carrying BOTH SENT and INBOX labels
 // (verified live: a self-send lands [UNREAD, SENT, INBOX]) rather than two
 // separate copies, so both events must be derived from that single message; the
 // doc's "two copies" wording describes the intent, not the wire reality. A normal
-// outbound send (SENT, no INBOX) emits only mail.sent; a normal inbound (INBOX,
-// no SENT) emits only mail.received; a message with neither (e.g. a draft) emits
+// outbound send (SENT, no INBOX) emits only sent; a normal inbound (INBOX,
+// no SENT) emits only received; a message with neither (e.g. a draft) emits
 // nothing.
 func deriveAddedEvents(m *Message) []MailEvent {
 	occurred := internalDateToRFC3339Nano(m.InternalDate)
 	var out []MailEvent
 	if containsLabel(m.LabelIDs, LabelSent) {
 		out = append(out, MailEvent{
-			Type:       EventMailSent,
+			Type:       KindSent,
 			ID:         m.ID,
 			ThreadID:   m.ThreadID,
 			To:         header(m, "To"),
@@ -340,7 +340,7 @@ func deriveAddedEvents(m *Message) []MailEvent {
 	}
 	if containsLabel(m.LabelIDs, LabelInbox) {
 		out = append(out, MailEvent{
-			Type:       EventMailReceived,
+			Type:       KindReceived,
 			ID:         m.ID,
 			ThreadID:   m.ThreadID,
 			From:       header(m, "From"),
@@ -352,10 +352,10 @@ func deriveAddedEvents(m *Message) []MailEvent {
 	return out
 }
 
-// deriveDeletedEvent maps a trashed message to a mail.deleted event.
+// deriveDeletedEvent maps a trashed message to a deleted event.
 func deriveDeletedEvent(m *Message) MailEvent {
 	return MailEvent{
-		Type:       EventMailDeleted,
+		Type:       KindDeleted,
 		ID:         m.ID,
 		ThreadID:   m.ThreadID,
 		Subject:    header(m, "Subject"),

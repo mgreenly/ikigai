@@ -14,26 +14,26 @@ import (
 // cursor advance so the events are emitted iff the cursor moves (decisions §1,
 // the "emitted == recorded as emitted" pattern).
 //
-// The three event types — mail.received / mail.sent / mail.deleted — and their
+// The three event kinds — received / sent / deleted — and their
 // payload shapes are the producer's complete published set (decisions §1 table).
 // The published-event Registry used for reflection + Append-time validation
 // lives in internal/mcp (mcp.Events, wired via Spec.Events); the wire payload
 // structs here MUST match those registry Sample shapes field-for-field.
 
-// Event type names (decisions §1). These mirror the constants in internal/mcp;
+// Event kind names (decisions §1). These mirror the constants in internal/mcp;
 // kept here too so the producer engine has no import dependency on the mcp
 // package (mcp is the HTTP transport layer, the producer is the domain layer).
 const (
-	EventMailReceived = "mail.received"
-	EventMailSent     = "mail.sent"
-	EventMailDeleted  = "mail.deleted"
+	KindReceived = "received"
+	KindSent     = "sent"
+	KindDeleted  = "deleted"
 )
 
 // eventTimeFormat matches the suite's RFC3339Nano UTC rendering used across the
 // other producers' payload timestamps.
 const eventTimeFormat = "2006-01-02T15:04:05.000000000Z07:00"
 
-// mailReceivedPayload is the wire shape of a mail.received event (decisions §1
+// mailReceivedPayload is the wire shape of a received event (decisions §1
 // table): an inbound message that landed in INBOX.
 type mailReceivedPayload struct {
 	ID         string `json:"id"`
@@ -44,7 +44,7 @@ type mailReceivedPayload struct {
 	ReceivedAt string `json:"received_at"`
 }
 
-// mailSentPayload is the wire shape of a mail.sent event: a message carrying
+// mailSentPayload is the wire shape of a sent event: a message carrying
 // SENT (and not INBOX) — our own sends, via MCP or the Gmail UI.
 type mailSentPayload struct {
 	ID       string `json:"id"`
@@ -55,7 +55,7 @@ type mailSentPayload struct {
 	SentAt   string `json:"sent_at"`
 }
 
-// mailDeletedPayload is the wire shape of a mail.deleted event: a message moved
+// mailDeletedPayload is the wire shape of a deleted event: a message moved
 // to Trash (labelsAdded: TRASH), not a permanent expunge.
 type mailDeletedPayload struct {
 	ID        string `json:"id"`
@@ -70,13 +70,13 @@ type mailDeletedPayload struct {
 // Fields not relevant to a given Type are simply left empty (From for sent, To
 // for received, etc.). OccurredAt is RFC3339Nano UTC.
 type MailEvent struct {
-	Type       string // EventMailReceived | EventMailSent | EventMailDeleted
+	Type       string // KindReceived | KindSent | KindDeleted
 	ID         string
 	ThreadID   string
-	From       string // mail.received only
-	To         string // mail.sent only
+	From       string // received only
+	To         string // sent only
 	Subject    string
-	Snippet    string // mail.received / mail.sent only
+	Snippet    string // received / sent only
 	OccurredAt string
 }
 
@@ -86,7 +86,7 @@ type MailEvent struct {
 func buildPayload(ev MailEvent) (outbox.Event, error) {
 	var v any
 	switch ev.Type {
-	case EventMailReceived:
+	case KindReceived:
 		v = mailReceivedPayload{
 			ID:         ev.ID,
 			ThreadID:   ev.ThreadID,
@@ -95,7 +95,7 @@ func buildPayload(ev MailEvent) (outbox.Event, error) {
 			Snippet:    ev.Snippet,
 			ReceivedAt: ev.OccurredAt,
 		}
-	case EventMailSent:
+	case KindSent:
 		v = mailSentPayload{
 			ID:       ev.ID,
 			ThreadID: ev.ThreadID,
@@ -104,7 +104,7 @@ func buildPayload(ev MailEvent) (outbox.Event, error) {
 			Snippet:  ev.Snippet,
 			SentAt:   ev.OccurredAt,
 		}
-	case EventMailDeleted:
+	case KindDeleted:
 		v = mailDeletedPayload{
 			ID:        ev.ID,
 			ThreadID:  ev.ThreadID,
@@ -118,7 +118,7 @@ func buildPayload(ev MailEvent) (outbox.Event, error) {
 	if err != nil {
 		return outbox.Event{}, fmt.Errorf("marshal %s payload: %w", ev.Type, err)
 	}
-	return outbox.Event{Kind: ev.Type, Payload: raw}, nil
+	return outbox.Event{Kind: ev.Type, Subject: "", Payload: raw}, nil
 }
 
 // EventSink is the producer seam the engine appends to inside the per-poll tx.

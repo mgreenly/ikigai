@@ -26,15 +26,15 @@ func tool(verb string) string { return toolPrefix + verb }
 
 // ── published events (producer half) ─────────────────────────────────────────
 
-// Mail event type names (decisions §1). Emission lands in P3; the registry is
+// Mail event kind names (decisions §1). Emission lands in P3; the registry is
 // declared here in P1 so the reflection tool already self-describes the producer.
 const (
-	EventMailReceived = "mail.received"
-	EventMailSent     = "mail.sent"
-	EventMailDeleted  = "mail.deleted"
+	KindReceived = "received"
+	KindSent     = "sent"
+	KindDeleted  = "deleted"
 )
 
-// mailReceivedPayload is the wire shape of a mail.received event (decisions §1
+// mailReceivedPayload is the wire shape of a received event (decisions §1
 // table): an inbound message that landed in INBOX.
 type mailReceivedPayload struct {
 	ID         string `json:"id"`
@@ -45,7 +45,7 @@ type mailReceivedPayload struct {
 	ReceivedAt string `json:"received_at"`
 }
 
-// mailSentPayload is the wire shape of a mail.sent event: a message that carries
+// mailSentPayload is the wire shape of a sent event: a message that carries
 // SENT (and not INBOX) — our own sends, whether via MCP or the Gmail UI.
 type mailSentPayload struct {
 	ID       string `json:"id"`
@@ -56,7 +56,7 @@ type mailSentPayload struct {
 	SentAt   string `json:"sent_at"`
 }
 
-// mailDeletedPayload is the wire shape of a mail.deleted event: a message moved
+// mailDeletedPayload is the wire shape of a deleted event: a message moved
 // to Trash (labelsAdded: TRASH), not a permanent expunge.
 type mailDeletedPayload struct {
 	ID        string `json:"id"`
@@ -66,14 +66,15 @@ type mailDeletedPayload struct {
 }
 
 // Events is the published-event Registry for the reflection tool and (in P3)
-// Append-time validation, wired via Spec.Events. The three mail.* types are the
+// Append-time validation, wired via Spec.Events. The three mail kinds are the
 // producer's complete published set (decisions §1). Each entry carries a
 // filled-in Sample of its real payload struct — the single source for both the
 // reflected JSON Schema and the worked example, so schema/example/wire shape
 // can't diverge.
 var Events = outbox.Registry{
 	{
-		Kind:        EventMailReceived,
+		Kind:        KindReceived,
+		Subject:     "",
 		Description: "An inbound message arrived in the mailbox (Gmail History messagesAdded carrying the INBOX label). Carries message identity + envelope headers; fetch the full message via the read tool.",
 		Sample: mailReceivedPayload{
 			ID:         "18f2a1b3c4d5e6f7",
@@ -85,7 +86,8 @@ var Events = outbox.Registry{
 		},
 	},
 	{
-		Kind:        EventMailSent,
+		Kind:        KindSent,
+		Subject:     "",
 		Description: "A message was sent from the mailbox (Gmail History messagesAdded carrying the SENT label and not INBOX) — covers our own sends uniformly, whether via the send MCP tool or the Gmail UI.",
 		Sample: mailSentPayload{
 			ID:       "18f2a1b3c4d5e6f8",
@@ -97,7 +99,8 @@ var Events = outbox.Registry{
 		},
 	},
 	{
-		Kind:        EventMailDeleted,
+		Kind:        KindDeleted,
+		Subject:     "",
 		Description: "A message was moved to Trash (Gmail History labelsAdded: TRASH). This is the discard signal, not a permanent expunge — the message still exists in Trash, so its payload is still fetchable.",
 		Sample: mailDeletedPayload{
 			ID:        "18f2a1b3c4d5e6f9",
@@ -164,7 +167,7 @@ func Tools(client Client, contentBase string) []appkitmcp.Tool {
 		},
 		{
 			Name:        tool("send"),
-			Description: "Send an email. Composes an RFC-2822 message from the structured fields and sends it via Gmail. The send shows up as a mail.sent event on the next poll. Returns the created message {id, thread_id, label_ids}.",
+			Description: "Send an email. Composes an RFC-2822 message from the structured fields and sends it via Gmail. The send shows up as a sent event on the next poll. Returns the created message {id, thread_id, label_ids}.",
 			InputSchema: obj(map[string]any{
 				"to":      descTyp("string", "recipient email address (To: header)"),
 				"subject": descTyp("string", "the Subject: header"),
@@ -210,7 +213,7 @@ func Tools(client Client, contentBase string) []appkitmcp.Tool {
 		},
 		{
 			Name:        tool("trash"),
-			Description: "Move a message to Trash (RECOVERABLE). Emits a mail.deleted event on the next poll. Returns the updated message {id, label_ids}.",
+			Description: "Move a message to Trash (RECOVERABLE). Emits a deleted event on the next poll. Returns the updated message {id, label_ids}.",
 			InputSchema: obj(map[string]any{
 				"id": descTyp("string", "the message id to trash"),
 			}, "id"),
@@ -331,7 +334,7 @@ func (h *toolHandlers) toolLabels(ctx context.Context) (map[string]any, error) {
 }
 
 // toolSend composes an RFC-2822 message from {to, subject, body}, base64url-
-// encodes it, and sends it. The send surfaces as mail.sent on the next poll.
+// encodes it, and sends it. The send surfaces as a sent event on the next poll.
 func (h *toolHandlers) toolSend(ctx context.Context, raw json.RawMessage) (map[string]any, error) {
 	to, subject, body, errRes := h.composeArgs(raw)
 	if errRes != nil {
@@ -409,7 +412,7 @@ func (h *toolHandlers) modifyLabel(ctx context.Context, raw json.RawMessage, add
 	return appkitmcp.JSONResult(map[string]any{"id": m.ID, "label_ids": orEmpty(m.LabelIDs)})
 }
 
-// toolTrash moves a message to Trash (recoverable; emits mail.deleted next poll).
+// toolTrash moves a message to Trash (recoverable; emits deleted next poll).
 func (h *toolHandlers) toolTrash(ctx context.Context, raw json.RawMessage) (map[string]any, error) {
 	var a struct {
 		ID string `json:"id"`

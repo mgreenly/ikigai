@@ -1,9 +1,13 @@
 package gmail
 
 import (
+	"bufio"
 	"context"
 	"database/sql"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
 	appkitdatabase "appkit/db"
@@ -109,9 +113,9 @@ func newHarness(t *testing.T, fc *fakeClient) (*Engine, *sql.DB, *outbox.Outbox)
 // this keeps the test self-contained without an import cycle).
 func mailRegistry() outbox.Registry {
 	return outbox.Registry{
-		{Kind: EventMailReceived, Description: "x", Sample: mailReceivedPayload{}},
-		{Kind: EventMailSent, Description: "x", Sample: mailSentPayload{}},
-		{Kind: EventMailDeleted, Description: "x", Sample: mailDeletedPayload{}},
+		{Kind: KindReceived, Subject: "", Description: "x", Sample: mailReceivedPayload{}},
+		{Kind: KindSent, Subject: "", Description: "x", Sample: mailSentPayload{}},
+		{Kind: KindDeleted, Subject: "", Description: "x", Sample: mailDeletedPayload{}},
 	}
 }
 
@@ -130,24 +134,26 @@ func storedCursor(t *testing.T, conn *sql.DB) (string, bool) {
 	return id, ok
 }
 
-// outboxRows returns every (kind, payload) row in the outbox table in seq order.
+// outboxRows returns every (kind, subject, payload) row in the outbox table in seq order.
 func outboxRows(t *testing.T, conn *sql.DB) []struct {
-	Type    string
+	Kind    string
+	Subject string
 	Payload map[string]any
 } {
 	t.Helper()
-	rows, err := conn.Query(`SELECT kind, payload FROM outbox ORDER BY seq ASC`)
+	rows, err := conn.Query(`SELECT kind, subject, payload FROM outbox ORDER BY seq ASC`)
 	if err != nil {
 		t.Fatalf("query outbox: %v", err)
 	}
 	defer rows.Close()
 	var out []struct {
-		Type    string
+		Kind    string
+		Subject string
 		Payload map[string]any
 	}
 	for rows.Next() {
-		var typ, payload string
-		if err := rows.Scan(&typ, &payload); err != nil {
+		var kind, subject, payload string
+		if err := rows.Scan(&kind, &subject, &payload); err != nil {
 			t.Fatalf("scan: %v", err)
 		}
 		m := map[string]any{}
@@ -155,9 +161,10 @@ func outboxRows(t *testing.T, conn *sql.DB) []struct {
 			t.Fatalf("unmarshal payload: %v", err)
 		}
 		out = append(out, struct {
-			Type    string
+			Kind    string
+			Subject string
 			Payload map[string]any
-		}{typ, m})
+		}{kind, subject, m})
 	}
 	return out
 }
@@ -222,7 +229,7 @@ func TestPollDerivesEventsAndAdvancesCursorAtomically(t *testing.T) {
 		want      []string // expected event types in order
 	}{
 		{
-			name: "messagesAdded INBOX -> mail.received",
+			name: "messagesAdded INBOX -> received",
 			history: []History{{
 				ID:            "1001",
 				MessagesAdded: added("m-recv"),
@@ -232,10 +239,10 @@ func TestPollDerivesEventsAndAdvancesCursorAtomically(t *testing.T) {
 					map[string]string{"From": "alice@example.com", "Subject": "Hi"}, "snip", "1700000000000"),
 			},
 			newHistID: "1100",
-			want:      []string{EventMailReceived},
+			want:      []string{KindReceived},
 		},
 		{
-			name: "messagesAdded SENT (not INBOX) -> mail.sent",
+			name: "messagesAdded SENT (not INBOX) -> sent",
 			history: []History{{
 				ID:            "1002",
 				MessagesAdded: added("m-sent"),
@@ -245,7 +252,7 @@ func TestPollDerivesEventsAndAdvancesCursorAtomically(t *testing.T) {
 					map[string]string{"To": "bob@example.com", "Subject": "Out"}, "snip", "1700000001000"),
 			},
 			newHistID: "1100",
-			want:      []string{EventMailSent},
+			want:      []string{KindSent},
 		},
 		{
 			// Gmail realizes a send-to-self as ONE message carrying BOTH SENT and
@@ -260,10 +267,10 @@ func TestPollDerivesEventsAndAdvancesCursorAtomically(t *testing.T) {
 					map[string]string{"To": "me@example.com", "From": "me@example.com", "Subject": "self"}, "s", "1700000002000"),
 			},
 			newHistID: "1100",
-			want:      []string{EventMailSent, EventMailReceived},
+			want:      []string{KindSent, KindReceived},
 		},
 		{
-			name: "labelsAdded TRASH -> mail.deleted",
+			name: "labelsAdded TRASH -> deleted",
 			history: []History{{
 				ID:          "1004",
 				LabelsAdded: []HistoryLabelChange{labeled("m-del", LabelTrash)},
@@ -272,7 +279,7 @@ func TestPollDerivesEventsAndAdvancesCursorAtomically(t *testing.T) {
 				"m-del": msg("m-del", "t-4", []string{LabelTrash}, map[string]string{"Subject": "bye"}, "", "1700000003000"),
 			},
 			newHistID: "1100",
-			want:      []string{EventMailDeleted},
+			want:      []string{KindDeleted},
 		},
 		{
 			name: "labelsAdded non-TRASH -> nothing",
@@ -306,7 +313,7 @@ func TestPollDerivesEventsAndAdvancesCursorAtomically(t *testing.T) {
 				"m-dup": msg("m-dup", "t-7", []string{LabelInbox}, map[string]string{"From": "a@b.c", "Subject": "dup"}, "s", "1700000005000"),
 			},
 			newHistID: "1100",
-			want:      []string{EventMailReceived},
+			want:      []string{KindReceived},
 		},
 	}
 
@@ -331,7 +338,7 @@ func TestPollDerivesEventsAndAdvancesCursorAtomically(t *testing.T) {
 			rows := outboxRows(t, conn)
 			var gotTypes []string
 			for _, r := range rows {
-				gotTypes = append(gotTypes, r.Type)
+				gotTypes = append(gotTypes, r.Kind)
 			}
 			if !equalSlices(gotTypes, tc.want) {
 				t.Fatalf("event types: want %v, got %v", tc.want, gotTypes)
@@ -343,6 +350,125 @@ func TestPollDerivesEventsAndAdvancesCursorAtomically(t *testing.T) {
 				t.Fatalf("cursor: want %q, got %q ok=%v", tc.newHistID, id, ok)
 			}
 		})
+	}
+}
+
+func TestPollWritesSubjectlessRoutingKindsWithCursorAdvance(t *testing.T) {
+	// R-X6YL-1Y77
+	fc := &fakeClient{
+		profileHistoryID: "1000",
+		pages: map[string]HistoryListResult{"": {
+			History: []History{
+				{ID: "1001", MessagesAdded: added("inbound")},
+				{ID: "1002", MessagesAdded: added("outbound")},
+				{ID: "1003", LabelsAdded: []HistoryLabelChange{labeled("trashed", LabelTrash)}},
+			},
+			HistoryID: "2000",
+		}},
+		messages: map[string]Message{
+			"inbound":  msg("inbound", "t-in", []string{LabelInbox}, map[string]string{"From": "alice@example.com", "Subject": "hello"}, "hi", "1700000000000"),
+			"outbound": msg("outbound", "t-out", []string{LabelSent}, map[string]string{"To": "bob@example.com", "Subject": "reply"}, "hello", "1700000001000"),
+			"trashed":  msg("trashed", "t-trash", []string{LabelTrash}, map[string]string{"Subject": "old"}, "", "1700000002000"),
+		},
+	}
+	eng, conn, _ := newHarness(t, fc)
+	if err := eng.setCursor(context.Background(), "1000"); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+	if err := eng.Poll(context.Background()); err != nil {
+		t.Fatalf("poll: %v", err)
+	}
+
+	rows := outboxRows(t, conn)
+	if len(rows) != 3 {
+		t.Fatalf("outbox rows = %d, want 3: %v", len(rows), rows)
+	}
+	for i, want := range []string{KindReceived, KindSent, KindDeleted} {
+		if rows[i].Kind != want || rows[i].Subject != "" {
+			t.Fatalf("row %d = (%q, %q), want (%q, empty subject)", i, rows[i].Kind, rows[i].Subject, want)
+		}
+	}
+	if cursor, ok := storedCursor(t, conn); !ok || cursor != "2000" {
+		t.Fatalf("cursor = %q ok=%v, want committed advance to 2000 with outbox rows", cursor, ok)
+	}
+}
+
+func TestProducerFeedFramesCanonicalSubjectlessKey(t *testing.T) {
+	// R-XAMA-79FA
+	conn := openTestDB(t)
+	ob, err := outbox.New(conn, outbox.Options{
+		Source:         "gmail",
+		DBPath:         t.TempDir() + "/gmail.db",
+		GenerationPath: t.TempDir() + "/generation",
+		Registry:       mailRegistry(),
+	})
+	if err != nil {
+		t.Fatalf("outbox.New: %v", err)
+	}
+	producer := NewOutboxProducer(ob)
+	tx, err := conn.BeginTx(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("begin: %v", err)
+	}
+	if err := producer.AppendMailEvent(tx, MailEvent{Type: KindReceived, ID: "m1", ThreadID: "t1", From: "alice@example.com", Subject: "hello", Snippet: "hi", OccurredAt: "2026-01-01T00:00:00.000000000Z"}); err != nil {
+		t.Fatalf("append through producer: %v", err)
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatalf("commit: %v", err)
+	}
+	producer.Ring()
+
+	srv := httptest.NewServer(ob.FeedHandler())
+	t.Cleanup(srv.Close)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, srv.URL, nil)
+	if err != nil {
+		t.Fatalf("new feed request: %v", err)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("get feed: %v", err)
+	}
+	t.Cleanup(func() { resp.Body.Close() })
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("feed status = %d", resp.StatusCode)
+	}
+
+	scanner := bufio.NewScanner(resp.Body)
+	var event, data string
+	for scanner.Scan() {
+		line := scanner.Text()
+		if line == "" {
+			if event == "gmail:received" && data != "" {
+				break
+			}
+			event, data = "", ""
+			continue
+		}
+		if strings.HasPrefix(line, "event: ") {
+			event = strings.TrimPrefix(line, "event: ")
+		}
+		if strings.HasPrefix(line, "data: ") {
+			data = strings.TrimPrefix(line, "data: ")
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		t.Fatalf("read feed: %v", err)
+	}
+	if event != "gmail:received" {
+		t.Fatalf("SSE event = %q, want gmail:received", event)
+	}
+	var envelope map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(data), &envelope); err != nil {
+		t.Fatalf("decode feed envelope: %v (%s)", err, data)
+	}
+	if _, ok := envelope["type"]; ok {
+		t.Fatalf("feed envelope must not contain legacy type: %s", data)
+	}
+	if got := string(envelope["kind"]); got != `"received"` {
+		t.Fatalf("feed kind = %s, want received", got)
+	}
+	if got := string(envelope["subject"]); got != `""` {
+		t.Fatalf("feed subject = %s, want empty", got)
 	}
 }
 
@@ -376,14 +502,14 @@ func TestReceivedAndSentPayloadFields(t *testing.T) {
 		t.Fatalf("want 2 events, got %d: %v", len(rows), rows)
 	}
 	r := rows[0].Payload
-	if rows[0].Type != EventMailReceived || r["from"] != "alice@example.com" || r["subject"] != "Subj1" || r["snippet"] != "snip-r" || r["thread_id"] != "tr" || r["id"] != "recv" {
+	if rows[0].Kind != KindReceived || r["from"] != "alice@example.com" || r["subject"] != "Subj1" || r["snippet"] != "snip-r" || r["thread_id"] != "tr" || r["id"] != "recv" {
 		t.Fatalf("received payload wrong: %v", r)
 	}
 	if r["received_at"] == "" || r["received_at"] == nil {
 		t.Fatalf("received_at missing: %v", r)
 	}
 	s := rows[1].Payload
-	if rows[1].Type != EventMailSent || s["to"] != "bob@example.com" || s["subject"] != "Subj2" || s["snippet"] != "snip-s" || s["id"] != "sent" {
+	if rows[1].Kind != KindSent || s["to"] != "bob@example.com" || s["subject"] != "Subj2" || s["snippet"] != "snip-s" || s["id"] != "sent" {
 		t.Fatalf("sent payload wrong: %v", s)
 	}
 }
@@ -445,8 +571,8 @@ func TestEmitAndAdvanceAreOneTransaction(t *testing.T) {
 
 	// After commit BOTH moved: exactly one event AND the cursor at 2000. The
 	// commit() function (sync.go) is the single tx — both writes ride it.
-	if rows := outboxRows(t, conn); len(rows) != 1 || rows[0].Type != EventMailReceived {
-		t.Fatalf("want exactly one mail.received, got %v", rows)
+	if rows := outboxRows(t, conn); len(rows) != 1 || rows[0].Kind != KindReceived {
+		t.Fatalf("want exactly one received event, got %v", rows)
 	}
 	if id, _ := storedCursor(t, conn); id != "2000" {
 		t.Fatalf("cursor must advance to 2000 with the emission, got %q", id)

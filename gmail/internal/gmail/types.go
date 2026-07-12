@@ -51,7 +51,7 @@ type HistoryMessageChange struct {
 
 // HistoryLabelChange is one labelsAdded/labelsRemoved record: a message pointer
 // plus the label ids added/removed (decisions §1 — labelsAdded:TRASH drives
-// mail.deleted).
+// deleted).
 type HistoryLabelChange struct {
 	Message  MessageRef `json:"message"`
 	LabelIDs []string   `json:"labelIds"`

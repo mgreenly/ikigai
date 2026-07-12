@@ -231,11 +231,9 @@ func TestToolsList_ExactlyTwelve(t *testing.T) {
 	}
 }
 
-// TestReflection covers the reflection tool: the no-arg index (the
-// three published mail.* types, empty subscribes — gmail is a producer), the
-// event_type detail (schema + example), and the corrective error for an unknown
-// type.
+// TestReflection covers the reflection tool's subjectless family registry.
 func TestReflection(t *testing.T) {
+	// R-X86H-FPXW
 	h, _ := newHandler(t)
 
 	idx, isErr := callTool(t, h, "reflection", `{}`)
@@ -246,18 +244,19 @@ func TestReflection(t *testing.T) {
 	if !ok {
 		t.Fatalf("reflection index missing publishes array: %v", idx)
 	}
-	got := map[string]bool{}
+	got := map[string]map[string]any{}
 	for _, pe := range publishes {
 		p := pe.(map[string]any)
-		got[p["kind"].(string)] = true
+		got[p["kind"].(string)] = p
 	}
-	for _, want := range []string{"mail.received", "mail.sent", "mail.deleted"} {
-		if !got[want] {
+	for _, want := range []string{"received", "sent", "deleted"} {
+		p, ok := got[want]
+		if !ok || p["subject"] != "" {
 			t.Errorf("publishes missing %q (got %v)", want, got)
 		}
 	}
 	if len(publishes) != 3 {
-		t.Errorf("expected exactly 3 published types, got %d: %v", len(publishes), publishes)
+		t.Errorf("expected exactly 3 published families, got %d: %v", len(publishes), publishes)
 	}
 
 	subscribes, ok := idx["subscribes"].([]any)
@@ -268,25 +267,40 @@ func TestReflection(t *testing.T) {
 		t.Fatalf("expected empty subscribes for gmail, got %v", subscribes)
 	}
 
-	detail, isErr := callTool(t, h, "reflection", `{"kind":"mail.received"}`)
+	detail, isErr := callTool(t, h, "reflection", `{"kind":"received"}`)
 	if isErr {
 		t.Fatalf("reflection detail isError: %v", detail)
 	}
-	if detail["kind"] != "mail.received" {
+	if detail["kind"] != "received" || detail["subject"] != "" {
 		t.Fatalf("detail kind mismatch: %v", detail)
 	}
 	sch, ok := detail["schema"].(map[string]any)
 	if !ok || sch["type"] != "object" {
 		t.Fatalf("detail schema not an object schema: %v", detail["schema"])
 	}
+	example, ok := detail["example"].(map[string]any)
+	if !ok {
+		t.Fatalf("detail example is not an object: %v", detail["example"])
+	}
+	properties, ok := sch["properties"].(map[string]any)
+	if !ok {
+		t.Fatalf("detail schema properties missing: %v", sch)
+	}
+	for field := range example {
+		if _, ok := properties[field]; !ok {
+			t.Fatalf("example field %q missing from schema: %v", field, sch)
+		}
+	}
 
-	badErr, isErr := callTool(t, h, "reflection", `{"kind":"mail.nope"}`)
+	badErr, isErr := callTool(t, h, "reflection", `{"kind":"nope"}`)
 	if !isErr {
 		t.Fatalf("expected error for unknown event_type, got %v", badErr)
 	}
 	text, _ := badErr["_text"].(string)
-	if !strings.Contains(text, "unknown event kind") || !strings.Contains(text, "mail.received") {
-		t.Fatalf("expected corrective unknown kind error, got %v", badErr)
+	for _, want := range []string{"unknown event kind", "received", "sent", "deleted"} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("expected corrective unknown kind error naming declared kinds, got %v", badErr)
+		}
 	}
 }
 

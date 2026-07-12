@@ -400,7 +400,7 @@ func (c *Client) ThreadGet(ctx context.Context, id string) (Thread, error) {
 // MessagesSend sends a message. raw is the full RFC-2822 message, base64url
 // encoded (the caller encodes; Gmail's messages.send takes {"raw": ...}). It
 // returns the created message (carrying the SENT label, which the producer
-// observes as a mail.sent on the next poll — decisions §1).
+// observes as a sent event on the next poll — decisions §1).
 func (c *Client) MessagesSend(ctx context.Context, raw string) (Message, error) {
 	if raw == "" {
 		return Message{}, fmt.Errorf("%w: raw message required", ErrValidation)
@@ -462,7 +462,7 @@ func (c *Client) MessageModify(ctx context.Context, id string, add, remove []str
 }
 
 // MessageTrash moves a message to Trash (recoverable). The labelsAdded:TRASH
-// this produces is what the producer derives mail.deleted from (decisions §1).
+// this produces is what the producer derives deleted from (decisions §1).
 func (c *Client) MessageTrash(ctx context.Context, id string) (Message, error) {
 	if id == "" {
 		return Message{}, fmt.Errorf("%w: message id required", ErrValidation)

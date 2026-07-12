@@ -13,12 +13,20 @@ import (
 // frozen legacy outbox DDL to the eventplane library's current kind/subject
 // contract.
 func TestOutboxMigrationsMatchLibrarySchema(t *testing.T) {
-	body, err := migrationsFS.ReadFile("migrations/003_outbox.sql")
+	// R-X9ED-THOL
+	legacy, err := migrationsFS.ReadFile("migrations/003_outbox.sql")
 	if err != nil {
 		t.Fatalf("read 003_outbox.sql: %v", err)
 	}
-	if !strings.Contains(string(body), "type       TEXT    NOT NULL") {
+	if !strings.Contains(string(legacy), "type       TEXT    NOT NULL") {
 		t.Fatal("003_outbox.sql must retain the frozen legacy type column")
+	}
+	body, err := migrationsFS.ReadFile("migrations/20260712190007_outbox_routing.sql")
+	if err != nil {
+		t.Fatalf("read newest outbox migration: %v", err)
+	}
+	if !strings.Contains(string(body), outbox.SchemaSQL) {
+		t.Fatal("newest outbox migration must contain outbox.SchemaSQL verbatim")
 	}
 
 	conn, err := appkitdb.Open(":memory:")
@@ -62,11 +70,11 @@ func TestOutboxMigrationsMatchLibrarySchema(t *testing.T) {
 	}
 	var kind, subject string
 	if err := conn.QueryRow(`INSERT INTO outbox (event_id, kind, subject, payload, created_at)
-		VALUES ('event', 'mail.received', '/message', '{}', 'now')
+		VALUES ('event', 'received', '', '{}', 'now')
 		RETURNING kind, subject`).Scan(&kind, &subject); err != nil {
 		t.Fatalf("insert current outbox shape: %v", err)
 	}
-	if kind != "mail.received" || subject != "/message" {
-		t.Fatalf("routed row = (%q, %q), want (mail.received, /message)", kind, subject)
+	if kind != "received" || subject != "" {
+		t.Fatalf("routed row = (%q, %q), want (received, empty subject)", kind, subject)
 	}
 }
