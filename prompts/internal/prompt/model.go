@@ -78,9 +78,9 @@ type Prompt struct {
 // OwnerEmail is denormalized from the prompt at run start so the run stays
 // owner-addressable. PromptName is captured at run start for the outcome event.
 //
-// TriggerSource / TriggerType / TriggerEventID are the trigger context PERSISTED
+// TriggerSource / TriggerKind / TriggerSubject / TriggerEventID are the trigger context PERSISTED
 // on the run row. They are set from the event-triggered fire path (the upstream
-// source, fired event type, and upstream event id that started the run) and
+// source, fired event kind and subject, and upstream event id that started the run) and
 // become fields of the run.succeeded / run.failed outcome payload, which
 // FinishRun reads back from the run row. All three are empty for a manual
 // (MCP-initiated) run, the documented manual-run representation.
@@ -100,7 +100,6 @@ type Run struct {
 	TriggerSource  string `json:"trigger_source,omitempty"` // producer source id (cron|crm|ledger|dropbox|scripts|prompts)
 	TriggerKind    string `json:"trigger_kind,omitempty"`
 	TriggerSubject string `json:"trigger_subject,omitempty"`
-	TriggerType    string `json:"-"`
 	TriggerEventID string `json:"trigger_event_id,omitempty"` // the upstream event id
 }
 
@@ -108,19 +107,16 @@ type Run struct {
 // many — one per upstream event it reacts to. The cron-only staleness/retry
 // knobs are GONE (fire-and-forget, symmetric with scripts).
 type Trigger struct {
-	PromptID    string `json:"prompt_id"`
-	Source      string `json:"source"` // producer source id (cron|crm|ledger|dropbox|scripts|prompts)
-	Filter      string `json:"filter"`
-	EventFilter string `json:"-"`
-	CreatedAt   string `json:"created_at"`
+	PromptID  string `json:"prompt_id"`
+	Source    string `json:"source"` // producer source id (cron|crm|ledger|dropbox|scripts|prompts)
+	Filter    string `json:"filter"`
+	CreatedAt string `json:"created_at"`
 }
 
 // TriggerSpec is the create-time sugar: triggers passed to Create are applied
 // via SetTrigger after the prompt row is inserted (same validation).
 type TriggerSpec struct {
-	Filter      string `json:"filter"`
-	Source      string `json:"-"`
-	EventFilter string `json:"-"`
+	Filter string `json:"filter"`
 }
 
 // PromptDetail is a Prompt plus its derived run summary: RunningCount (the

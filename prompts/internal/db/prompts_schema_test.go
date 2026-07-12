@@ -10,6 +10,7 @@ import (
 // TestMigrate_CreatesPromptsSchema verifies 002_prompts.sql lands the prompts
 // and runs tables (and the run index) on a fresh DB, idempotently.
 func TestMigrate_CreatesPromptsSchema(t *testing.T) {
+	// R-6JDR-BVXT
 	ctx := context.Background()
 	conn, err := appkitdb.Open(tempDB(t))
 	if err != nil {
@@ -37,6 +38,32 @@ func TestMigrate_CreatesPromptsSchema(t *testing.T) {
 		if err != nil {
 			t.Fatalf("table %q missing after migrate: %v", tbl, err)
 		}
+	}
+	columns := func(table string) map[string]bool {
+		t.Helper()
+		rows, err := conn.QueryContext(ctx, `SELECT name FROM pragma_table_info(?)`, table)
+		if err != nil {
+			t.Fatalf("columns for %s: %v", table, err)
+		}
+		defer rows.Close()
+		out := map[string]bool{}
+		for rows.Next() {
+			var name string
+			if err := rows.Scan(&name); err != nil {
+				t.Fatalf("scan %s column: %v", table, err)
+			}
+			out[name] = true
+		}
+		return out
+	}
+	triggers := columns("prompt_triggers")
+	oldFilterColumn := "event" + "_filter"
+	if len(triggers) != 4 || !triggers["prompt_id"] || !triggers["source"] || !triggers["filter"] || !triggers["created_at"] || triggers[oldFilterColumn] {
+		t.Fatalf("prompt_triggers columns = %v, want prompt_id/source/filter/created_at", triggers)
+	}
+	runs := columns("runs")
+	if !runs["trigger_kind"] || !runs["trigger_subject"] || runs["trigger_type"] {
+		t.Fatalf("runs trigger columns = %v, want trigger_kind and trigger_subject without trigger_type", runs)
 	}
 
 	// The run index must exist.
@@ -86,7 +113,7 @@ func TestMigrate_CreatesPromptsSchema(t *testing.T) {
 		t.Fatalf("expected NO cascade: trigger should survive prompt delete (removed explicitly by service), got %d", n)
 	}
 
-	// The (source, event_filter) lookup index must exist.
+	// The source lookup index must exist.
 	var tidx string
 	if err := conn.QueryRowContext(ctx,
 		`SELECT name FROM sqlite_master WHERE type='index' AND name='idx_prompt_triggers_lookup'`,

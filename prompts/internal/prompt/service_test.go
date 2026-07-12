@@ -196,6 +196,7 @@ func TestRunUsesDurableSandboxAndRecreatedRunsDir(t *testing.T) {
 // triggering event to runs/<run_id>/input/event.json, and its contents
 // unmarshal to the canonical envelope (source/type/event_id/payload).
 func TestRunByEvent_WritesEventJSON(t *testing.T) {
+	// R-6QP5-MIDZ
 	t.Setenv("ANTHROPIC_API_KEY", "sk-test")
 	svc, _, _, runsDir := newTestService(t)
 	ctx := context.Background()
@@ -203,7 +204,7 @@ func TestRunByEvent_WritesEventJSON(t *testing.T) {
 	sess := mustCreate(t, svc, ownerA)
 
 	payload := json.RawMessage(`{"id":"c1"}`)
-	run, err := svc.RunByEvent(ctx, sess.ID, "crm", "contact.created", "01JEVENT", payload)
+	run, err := svc.RunByEvent(ctx, sess.ID, "crm", "contact.created", "/contacts/c1", "01JEVENT", payload)
 	if err != nil {
 		t.Fatalf("RunByEvent: %v", err)
 	}
@@ -216,11 +217,18 @@ func TestRunByEvent_WritesEventJSON(t *testing.T) {
 	if err := json.Unmarshal(b, &env); err != nil {
 		t.Fatalf("unmarshal event.json: %v", err)
 	}
-	if env.Source != "crm" || env.Kind != "contact.created" || env.EventID != "01JEVENT" {
+	if env.Source != "crm" || env.Kind != "contact.created" || env.Subject != "/contacts/c1" || env.EventID != "01JEVENT" {
 		t.Fatalf("envelope context = %+v", env)
 	}
 	if string(env.Payload) != `{"id":"c1"}` {
 		t.Fatalf("envelope payload = %s, want {\"id\":\"c1\"}", env.Payload)
+	}
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(b, &raw); err != nil {
+		t.Fatalf("decode raw envelope: %v", err)
+	}
+	if len(raw) != 5 || raw["type"] != nil {
+		t.Fatalf("event envelope keys = %v, want source/kind/subject/event_id/payload", raw)
 	}
 }
 

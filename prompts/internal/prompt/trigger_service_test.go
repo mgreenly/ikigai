@@ -6,26 +6,24 @@ import (
 	"testing"
 )
 
-// TestService_SetTrigger_ValidationAndOwnership covers the Service layer:
-// validation rejects an unknown source and an implausible event_filter, a
-// foreign-owned prompt is ErrNotFound (ownership enforced before any write), and
-// a valid binding upserts and is listed.
+// TestService_SetTrigger_ValidationAndOwnership covers canonical filters,
+// validation, ownership, and clearing one binding.
 func TestService_SetTrigger_ValidationAndOwnership(t *testing.T) {
 	ctx := context.Background()
 	svc, store, _, _ := newTestService(t)
 	p := seedPrompt(t, store, "owner@example.com")
 
 	// Valid binding on a real source.
-	trig, err := svc.SetTrigger(ctx, "owner@example.com", p.ID, "dropbox", "file.created")
+	trig, err := svc.SetTrigger(ctx, "owner@example.com", p.ID, "dropbox:create/bills/**")
 	if err != nil {
 		t.Fatalf("SetTrigger: %v", err)
 	}
-	if trig.Source != "dropbox" || trig.EventFilter != "file.created" || trig.CreatedAt == "" {
+	if trig.Source != "dropbox" || trig.Filter != "dropbox:create/bills/**" || trig.CreatedAt == "" {
 		t.Fatalf("unexpected trigger: %+v", trig)
 	}
 
 	// A second valid binding on a different source is additive (multi-source).
-	if _, err := svc.SetTrigger(ctx, "owner@example.com", p.ID, "scripts", "scripts.succeeded"); err != nil {
+	if _, err := svc.SetTrigger(ctx, "owner@example.com", p.ID, "scripts:succeeded"); err != nil {
 		t.Fatalf("second SetTrigger: %v", err)
 	}
 	got, err := store.ListTriggers(ctx, p.ID)
@@ -37,28 +35,26 @@ func TestService_SetTrigger_ValidationAndOwnership(t *testing.T) {
 	}
 
 	// Unknown source rejected with ErrValidation.
-	if _, err := svc.SetTrigger(ctx, "owner@example.com", p.ID, "nope", "x"); !errors.Is(err, ErrValidation) {
+	if _, err := svc.SetTrigger(ctx, "owner@example.com", p.ID, "nope:x"); !errors.Is(err, ErrValidation) {
 		t.Fatalf("expected ErrValidation for unknown source, got %v", err)
 	}
-	// An event_filter the producer never publishes is rejected.
-	if _, err := svc.SetTrigger(ctx, "owner@example.com", p.ID, "ledger", "file.created"); !errors.Is(err, ErrValidation) {
-		t.Fatalf("expected ErrValidation for implausible event_filter, got %v", err)
+	if _, err := svc.SetTrigger(ctx, "owner@example.com", p.ID, "ledger:nosuchkind/**"); !errors.Is(err, ErrValidation) {
+		t.Fatalf("expected ErrValidation for unsatisfiable filter, got %v", err)
 	}
-	// cron is dynamic: any cron.* filter is accepted.
-	if _, err := svc.SetTrigger(ctx, "owner@example.com", p.ID, "cron", "cron.nightly"); err != nil {
-		t.Fatalf("cron.nightly should be accepted, got %v", err)
+	if _, err := svc.SetTrigger(ctx, "owner@example.com", p.ID, "cron:tick/nightly"); err != nil {
+		t.Fatalf("cron tick should be accepted, got %v", err)
 	}
 
 	// Foreign owner cannot set/clear.
-	if _, err := svc.SetTrigger(ctx, "intruder@example.com", p.ID, "cron", "cron.nightly"); !errors.Is(err, ErrNotFound) {
+	if _, err := svc.SetTrigger(ctx, "intruder@example.com", p.ID, "cron:tick/nightly"); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("expected ErrNotFound for foreign owner, got %v", err)
 	}
-	if err := svc.ClearTrigger(ctx, "intruder@example.com", p.ID, "cron", "cron.nightly"); !errors.Is(err, ErrNotFound) {
+	if err := svc.ClearTrigger(ctx, "intruder@example.com", p.ID, "cron:tick/nightly"); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("expected ErrNotFound clearing foreign prompt, got %v", err)
 	}
 
 	// Owner clear of one binding works.
-	if err := svc.ClearTrigger(ctx, "owner@example.com", p.ID, "dropbox", "file.created"); err != nil {
+	if err := svc.ClearTrigger(ctx, "owner@example.com", p.ID, "dropbox:create/bills/**"); err != nil {
 		t.Fatalf("owner ClearTrigger: %v", err)
 	}
 }
@@ -90,8 +86,8 @@ func TestService_Create_InlineTriggers(t *testing.T) {
 		UserPrompt: "do the thing",
 		Config:     validConfig(),
 		Triggers: []TriggerSpec{
-			{Source: "dropbox", EventFilter: "file.created"},
-			{Source: "cron", EventFilter: "cron.nightly"},
+			{Filter: "dropbox:create/bills/**"},
+			{Filter: "cron:tick/nightly"},
 		},
 	})
 	if err != nil {
@@ -109,7 +105,7 @@ func TestService_Create_InlineTriggers(t *testing.T) {
 	_, err = svc.Create(ctx, "owner@example.com", CreateInput{
 		UserPrompt: "bad",
 		Config:     validConfig(),
-		Triggers:   []TriggerSpec{{Source: "ledger", EventFilter: "file.created"}},
+		Triggers:   []TriggerSpec{{Filter: "ledger:nosuchkind/**"}},
 	})
 	if !errors.Is(err, ErrValidation) {
 		t.Fatalf("expected ErrValidation for invalid inline trigger, got %v", err)
@@ -131,14 +127,14 @@ func TestService_RunByEvent_PopulatesTriggerContext(t *testing.T) {
 	svc, store, _, _ := newTestService(t)
 	p := seedPrompt(t, store, "owner@example.com")
 
-	run, err := svc.RunByEvent(ctx, p.ID, "dropbox", "file.created", "ev-123", []byte(`{"path":"/x"}`))
+	run, err := svc.RunByEvent(ctx, p.ID, "dropbox", "create", "/x", "ev-123", []byte(`{"path":"/x"}`))
 	if err != nil {
 		t.Fatalf("RunByEvent: %v", err)
 	}
 	if run.PromptID != p.ID || run.Status != RunRunning {
 		t.Fatalf("unexpected run: %+v", run)
 	}
-	if run.TriggerSource != "dropbox" || run.TriggerType != "file.created" || run.TriggerEventID != "ev-123" {
+	if run.TriggerSource != "dropbox" || run.TriggerKind != "create" || run.TriggerSubject != "/x" || run.TriggerEventID != "ev-123" {
 		t.Fatalf("trigger context not carried on run: %+v", run)
 	}
 
@@ -147,7 +143,7 @@ func TestService_RunByEvent_PopulatesTriggerContext(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetRun: %v", err)
 	}
-	if got.TriggerSource != "dropbox" || got.TriggerType != "file.created" || got.TriggerEventID != "ev-123" {
+	if got.TriggerSource != "dropbox" || got.TriggerKind != "create" || got.TriggerSubject != "/x" || got.TriggerEventID != "ev-123" {
 		t.Fatalf("trigger context not persisted: %+v", got)
 	}
 

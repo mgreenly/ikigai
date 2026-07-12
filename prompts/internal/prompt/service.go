@@ -70,8 +70,8 @@ func NewService(store *Store, sb *sandbox.Manager, runsDir string, runner Runner
 func (s *Service) nowStr() string { return s.now().UTC().Format(time.RFC3339Nano) }
 
 // CreateInput is the create payload. Triggers is the optional create-time sugar:
-// each (source, event_filter) binding is applied via SetTrigger after the prompt
-// row is inserted (same validation; an invalid one rejects the whole create).
+// each canonical filter is applied via SetTrigger after the prompt row is
+// inserted (same validation; an invalid one rejects the whole create).
 type CreateInput struct {
 	Name         string
 	UserPrompt   string
@@ -146,9 +146,6 @@ func (s *Service) Create(ctx context.Context, ownerEmail string, in CreateInput)
 	// Validate every inline trigger BEFORE inserting the prompt, so an invalid
 	// binding rejects the whole create without leaving a triggerless orphan.
 	for _, ts := range in.Triggers {
-		if ts.Filter == "" {
-			ts.Filter = canonicalFilter(ts.Source, ts.EventFilter)
-		}
 		if _, err := validateTrigger(ts.Filter); err != nil {
 			return Prompt{}, err
 		}
@@ -169,9 +166,6 @@ func (s *Service) Create(ctx context.Context, ownerEmail string, in CreateInput)
 	}
 	// Apply the inline triggers (already validated) via the store SetTrigger.
 	for _, ts := range in.Triggers {
-		if ts.Filter == "" {
-			ts.Filter = canonicalFilter(ts.Source, ts.EventFilter)
-		}
 		source, _ := validateTrigger(ts.Filter)
 		if err := s.store.SetTrigger(ctx, Trigger{
 			PromptID:  p.ID,
@@ -377,7 +371,6 @@ type eventEnvelope struct {
 	Source  string          `json:"source"`
 	Kind    string          `json:"kind"`
 	Subject string          `json:"subject"`
-	Type    string          `json:"-"`
 	EventID string          `json:"event_id"`
 	Payload json.RawMessage `json:"payload"`
 }
@@ -395,7 +388,6 @@ func (s *Service) startRun(ctx context.Context, p Prompt, source, kind, subject,
 		TriggerSource:  source,
 		TriggerKind:    kind,
 		TriggerSubject: subject,
-		TriggerType:    kind,
 		TriggerEventID: eventID,
 	}
 	// Pin the execution inputs to disk BEFORE the row exists / spawn happens.
@@ -581,23 +573,9 @@ func (s *Service) RunFsRead(ctx context.Context, ownerEmail, runID, path string,
 	return s.sandbox.Read(r.ID, path, offset, limit)
 }
 
-// SetTrigger attaches one (source, event_filter) binding to the owner's prompt.
-// Loading the prompt first enforces ownership (ErrNotFound if not owned).
-// validateTrigger rejects an unknown source or an event_filter that matches no
-// type the producer publishes (A12) with ErrValidation. May be called
-// repeatedly to attach several bindings; the composite key dedupes a repeat.
-func (s *Service) SetTrigger(ctx context.Context, ownerEmail, id string, filters ...string) (Trigger, error) {
-	var filter string
-	legacyFilter := ""
-	switch len(filters) {
-	case 1:
-		filter = filters[0]
-	case 2:
-		legacyFilter = filters[1]
-		filter = canonicalFilter(filters[0], filters[1])
-	default:
-		return Trigger{}, fmt.Errorf("%w: filter is required", ErrValidation)
-	}
+// SetTrigger attaches one canonical filter to the owner's prompt. Loading the
+// prompt first enforces ownership (ErrNotFound if not owned).
+func (s *Service) SetTrigger(ctx context.Context, ownerEmail, id, filter string) (Trigger, error) {
 	if _, err := s.store.GetPrompt(ctx, ownerEmail, id); err != nil {
 		return Trigger{}, err
 	}
@@ -606,11 +584,10 @@ func (s *Service) SetTrigger(ctx context.Context, ownerEmail, id string, filters
 		return Trigger{}, err
 	}
 	t := Trigger{
-		PromptID:    id,
-		Source:      source,
-		Filter:      filter,
-		EventFilter: legacyFilter,
-		CreatedAt:   s.nowStr(),
+		PromptID:  id,
+		Source:    source,
+		Filter:    filter,
+		CreatedAt: s.nowStr(),
 	}
 	if err := s.store.SetTrigger(ctx, t); err != nil {
 		return Trigger{}, err
@@ -618,37 +595,13 @@ func (s *Service) SetTrigger(ctx context.Context, ownerEmail, id string, filters
 	return t, nil
 }
 
-// ClearTrigger removes one (source, event_filter) binding from the owner's
-// prompt. Loading the prompt first enforces ownership. A binding that does not
-// exist returns ErrNotFound.
-func (s *Service) ClearTrigger(ctx context.Context, ownerEmail, id string, filters ...string) error {
-	var filter string
-	switch len(filters) {
-	case 1:
-		filter = filters[0]
-	case 2:
-		filter = canonicalFilter(filters[0], filters[1])
-	default:
-		return fmt.Errorf("%w: filter is required", ErrValidation)
-	}
+// ClearTrigger removes one canonical filter from the owner's prompt. Loading
+// the prompt first enforces ownership. A missing binding returns ErrNotFound.
+func (s *Service) ClearTrigger(ctx context.Context, ownerEmail, id, filter string) error {
 	if _, err := s.store.GetPrompt(ctx, ownerEmail, id); err != nil {
 		return err
 	}
 	return s.store.ClearTrigger(ctx, id, filter)
-}
-
-func canonicalFilter(source, filter string) string {
-	if strings.Contains(filter, ":") {
-		return filter
-	}
-	legacy := map[string]string{"file.created": "create", "file.modified": "modify", "file.deleted": "delete", "transaction.recorded": "recorded", "scripts.succeeded": "succeeded", "scripts.failed": "failed"}
-	if kind, ok := legacy[filter]; ok {
-		return source + ":" + kind
-	}
-	if source == "cron" {
-		return source + ":tick/" + filter
-	}
-	return source + ":" + filter
 }
 
 // PromptsForEvent returns every prompt id whose binding matches (source, evType)

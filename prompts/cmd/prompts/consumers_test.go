@@ -92,7 +92,7 @@ func TestPromptsSpecConsumerHandlerRunsMatchingPromptOnly(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
-	if _, err := svc.SetTrigger(ctx, "owner@example.com", p.ID, "dropbox", "file.created"); err != nil {
+	if _, err := svc.SetTrigger(ctx, "owner@example.com", p.ID, "dropbox:create/**"); err != nil {
 		t.Fatalf("SetTrigger: %v", err)
 	}
 
@@ -104,7 +104,8 @@ func TestPromptsSpecConsumerHandlerRunsMatchingPromptOnly(t *testing.T) {
 	}
 
 	matching := consumer.Event{
-		Kind:    "file.created",
+		Kind:    "create",
+		Subject: "/x",
 		ID:      "evt-match",
 		Source:  "dropbox",
 		Payload: json.RawMessage(`{"path":"/x"}`),
@@ -121,12 +122,13 @@ func TestPromptsSpecConsumerHandlerRunsMatchingPromptOnly(t *testing.T) {
 	if detail.LastRun == nil {
 		t.Fatal("matching event did not create a run")
 	}
-	if lr := detail.LastRun; lr.TriggerSource != "dropbox" || lr.TriggerType != "file.created" || lr.TriggerEventID != "evt-match" {
-		t.Fatalf("matching event run trigger context = %+v, want dropbox/file.created/evt-match", lr)
+	if lr := detail.LastRun; lr.TriggerSource != "dropbox" || lr.TriggerKind != "create" || lr.TriggerSubject != "/x" || lr.TriggerEventID != "evt-match" {
+		t.Fatalf("matching event run trigger context = %+v, want dropbox/create//x/evt-match", lr)
 	}
 
 	notMatching := consumer.Event{
-		Kind:    "file.deleted",
+		Kind:    "delete",
+		Subject: "/x",
 		ID:      "evt-miss",
 		Source:  "dropbox",
 		Payload: json.RawMessage(`{"path":"/x"}`),

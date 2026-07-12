@@ -377,6 +377,7 @@ func TestReflectionThroughAssembledHandlerReportsPromptsEventGraph(t *testing.T)
 // TestSetAndClearTrigger drives the two new MCP tools end-to-end: create a
 // session, set a trigger (defaults applied), then clear it.
 func TestSetAndClearTrigger(t *testing.T) {
+	// R-6RX2-0A4O
 	h, _, _ := newTestHandler(t)
 
 	created := call(t, h, "create", map[string]any{
@@ -396,6 +397,13 @@ func TestSetAndClearTrigger(t *testing.T) {
 	})
 	if isError(set) {
 		t.Fatalf("set_trigger returned isError: %+v", set)
+	}
+	legacyOnly := call(t, h, "set_trigger", map[string]any{
+		"prompt_id": cv.PromptID,
+		"source":    "dropbox",
+	})
+	if !isError(legacyOnly) {
+		t.Fatalf("set_trigger must not accept a source without filter: %+v", legacyOnly)
 	}
 	var tv struct {
 		Source    string `json:"source"`
@@ -425,9 +433,43 @@ func TestSetAndClearTrigger(t *testing.T) {
 	if isError(cleared) {
 		t.Fatalf("clear_trigger returned isError: %+v", cleared)
 	}
+	legacyClear := call(t, h, "clear_trigger", map[string]any{
+		"prompt_id": cv.PromptID,
+		"source":    "dropbox",
+	})
+	if !isError(legacyClear) {
+		t.Fatalf("clear_trigger must not accept a source without filter: %+v", legacyClear)
+	}
+
+	inline := call(t, h, "create", map[string]any{
+		"user_prompt": "inline trigger",
+		"config":      map[string]any{"model": "claude-haiku-4-5"},
+		"triggers":    []string{"dropbox:create/bills/**"},
+	})
+	if isError(inline) {
+		t.Fatalf("create with inline filter returned isError: %+v", inline)
+	}
+	badInline := call(t, h, "create", map[string]any{
+		"user_prompt": "bad inline trigger",
+		"config":      map[string]any{"model": "claude-haiku-4-5"},
+		"triggers":    []string{"github:push/**"},
+	})
+	if !isError(badInline) {
+		t.Fatalf("create with invalid inline filter must return isError: %+v", badInline)
+	}
+	for _, toolName := range []string{"set_trigger", "clear_trigger"} {
+		properties := findToolDescriptor(t, toolName)["inputSchema"].(map[string]any)["properties"].(map[string]any)
+		if _, ok := properties["source"]; ok {
+			t.Fatalf("%s schema exposes source: %#v", toolName, properties)
+		}
+		if _, ok := properties["event"+"_filter"]; ok {
+			t.Fatalf("%s schema exposes legacy filter: %#v", toolName, properties)
+		}
+	}
 }
 
 func TestDescribe(t *testing.T) {
+	// R-6QP5-MIDZ
 	h, _, _ := newTestHandler(t)
 	res := call(t, h, "describe", nil)
 	if isError(res) {
@@ -443,6 +485,14 @@ func TestDescribe(t *testing.T) {
 		if !strings.Contains(txt, want) {
 			t.Fatalf("describe text missing %q:\n%s", want, txt)
 		}
+	}
+	for _, want := range []string{"{source, kind, subject, event_id, payload}", "source:kind<subject>"} {
+		if !strings.Contains(txt, want) {
+			t.Fatalf("describe text missing %q:\n%s", want, txt)
+		}
+	}
+	if strings.Contains(txt, "{source, type, event_id, payload}") {
+		t.Fatalf("describe retains old event envelope:\n%s", txt)
 	}
 }
 

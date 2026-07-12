@@ -28,7 +28,7 @@ const (
 var Events = outbox.Registry{
 	{
 		Kind:        EventRunSucceeded,
-		Description: "A prompts run finished successfully. Carries the prompt identity, the human-readable task name, and the trigger context (the upstream source, fired event type, and upstream event id that started it, empty for a manual run).",
+		Description: "A prompts run finished successfully. Carries the prompt identity, the human-readable task name, and the trigger context (the upstream source, fired event kind and subject, and upstream event id that started it, empty for a manual run).",
 		Sample:      sampleOutcomeSuccess,
 	},
 	{
@@ -40,8 +40,8 @@ var Events = outbox.Registry{
 
 // outcomePayload is the run.succeeded / run.failed payload: the run's prompt
 // identity, the human-readable task name (prompt_name), the run id, and the
-// trigger context (trigger_source + trigger_type + trigger_event_id — the
-// upstream source, fired event type, and upstream event id that started the run,
+// trigger context (trigger_source + trigger_kind + trigger_subject +
+// trigger_event_id — the upstream source, fired event kind and subject, and upstream event id that started the run,
 // all empty/omitted for a manual run). error is present ONLY on run.failed
 // (omitempty drops it on the success path). The full report stays in prompts
 // (read via MCP); this is the minimal-for-now outcome shape.
@@ -50,7 +50,8 @@ type outcomePayload struct {
 	PromptName     string `json:"prompt_name"`
 	RunID          string `json:"run_id"`
 	TriggerSource  string `json:"trigger_source"`
-	TriggerType    string `json:"trigger_type"`
+	TriggerKind    string `json:"trigger_kind"`
+	TriggerSubject string `json:"trigger_subject"`
 	TriggerEventID string `json:"trigger_event_id"`
 	Error          string `json:"error,omitempty"`
 }
@@ -60,7 +61,8 @@ var sampleOutcomeSuccess = outcomePayload{
 	PromptName:     "nightly market scan",
 	RunID:          "01J9Z2M0XB4D7F9H1K3N5Q7RZ",
 	TriggerSource:  "cron",
-	TriggerType:    "cron.nightly",
+	TriggerKind:    "tick",
+	TriggerSubject: "/nightly",
 	TriggerEventID: "01J9Z2J5W8R3T6V9Y2B4D6F8GH",
 }
 
@@ -69,7 +71,8 @@ var sampleOutcomeFailure = outcomePayload{
 	PromptName:     "nightly market scan",
 	RunID:          "01J9Z2M0XB4D7F9H1K3N5Q7RZ",
 	TriggerSource:  "cron",
-	TriggerType:    "cron.nightly",
+	TriggerKind:    "tick",
+	TriggerSubject: "/nightly",
 	TriggerEventID: "01J9Z2J5W8R3T6V9Y2B4D6F8GH",
 	Error:          "run TTL exceeded",
 }
@@ -78,7 +81,7 @@ var sampleOutcomeFailure = outcomePayload{
 // run's terminal runs.status; only RunSucceeded / RunFailed produce an event
 // (the caller passes through other terminal states without emitting). errMsg is
 // carried only on the failed event.
-func outcomeEvent(status, promptID, promptName, runID, triggerSource, triggerType, triggerEventID, errMsg string) (outbox.Event, bool, error) {
+func outcomeEvent(status, promptID, promptName, runID, triggerSource, triggerKind, triggerSubject, triggerEventID, errMsg string) (outbox.Event, bool, error) {
 	var typ string
 	switch status {
 	case RunSucceeded:
@@ -95,7 +98,8 @@ func outcomeEvent(status, promptID, promptName, runID, triggerSource, triggerTyp
 		PromptName:     promptName,
 		RunID:          runID,
 		TriggerSource:  triggerSource,
-		TriggerType:    triggerType,
+		TriggerKind:    triggerKind,
+		TriggerSubject: triggerSubject,
 		TriggerEventID: triggerEventID,
 		Error:          errMsg,
 	})

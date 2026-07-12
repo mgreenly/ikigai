@@ -33,15 +33,16 @@ func TestValidateTriggerCanonicalFamilies(t *testing.T) {
 // may hold many canonical filter bindings; a repeat is an upsert.
 // key is an upsert (no duplicate row), while distinct keys insert distinct rows.
 func TestStore_SetTrigger_MultiSource(t *testing.T) {
+	// R-6N1G-H75W
 	ctx := context.Background()
 	store := newTestStore(t)
 	p := seedPrompt(t, store, "o@example.com")
 
-	mustSet(t, store, p.ID, "cron", "cron.nightly")
-	mustSet(t, store, p.ID, "dropbox", "file.created")
-	mustSet(t, store, p.ID, "scripts", "scripts.succeeded")
+	mustSet(t, store, p.ID, "cron:tick/nightly")
+	mustSet(t, store, p.ID, "dropbox:create/bills/**")
+	mustSet(t, store, p.ID, "scripts:succeeded")
 	// Repeat of an existing composite key — upsert, not a new row.
-	mustSet(t, store, p.ID, "cron", "cron.nightly")
+	mustSet(t, store, p.ID, "cron:tick/nightly")
 
 	got, err := store.ListTriggers(ctx, p.ID)
 	if err != nil {
@@ -60,25 +61,28 @@ func TestStore_SetTrigger_MultiSource(t *testing.T) {
 	if n != 3 {
 		t.Fatalf("expected exactly 3 trigger rows, got %d", n)
 	}
+	var source string
+	if err := store.db.QueryRowContext(ctx, `SELECT source FROM prompt_triggers WHERE prompt_id = ? AND filter = ?`, p.ID, "dropbox:create/bills/**").Scan(&source); err != nil {
+		t.Fatalf("read stored source: %v", err)
+	}
+	if source != "dropbox" {
+		t.Fatalf("stored source = %q, want dropbox", source)
+	}
 }
 
-// TestStore_PromptsForEvent_FanOut asserts the (source, type) fan-out returns
-// every prompt whose binding matches and excludes others — including a glob
-// binding and a same-type-different-source non-match.
+// TestStore_PromptsForEvent_FanOut asserts canonical-key fan-out uses the
+// shared doublestar matcher.
 func TestStore_PromptsForEvent_FanOut(t *testing.T) {
+	// R-6O9C-UYWL
 	ctx := context.Background()
 	store := newTestStore(t)
 	a := seedPrompt(t, store, "o@example.com")
 	b := seedPrompt(t, store, "o@example.com")
-	c := seedPrompt(t, store, "o@example.com")
-	d := seedPrompt(t, store, "o@example.com")
 
-	mustSet(t, store, a.ID, "dropbox", "file.created")
-	mustSet(t, store, b.ID, "dropbox", "file.*") // glob matches file.created
-	mustSet(t, store, c.ID, "dropbox", "file.deleted")
-	mustSet(t, store, d.ID, "crm", "contact.created")
+	mustSet(t, store, a.ID, "dropbox:create/bills/**/*.pdf")
+	mustSet(t, store, b.ID, "dropbox:**")
 
-	got, err := store.PromptsForEvent(ctx, "dropbox", "file.created")
+	got, err := store.PromptsForEvent(ctx, "dropbox", "dropbox:create/bills/aws/1.pdf")
 	if err != nil {
 		t.Fatalf("PromptsForEvent: %v", err)
 	}
@@ -89,14 +93,17 @@ func TestStore_PromptsForEvent_FanOut(t *testing.T) {
 	if !ids[a.ID] || !ids[b.ID] {
 		t.Fatalf("expected a (exact) and b (glob) to match file.created, got %v", got)
 	}
-	if ids[c.ID] {
-		t.Fatalf("file.deleted binding leaked into file.created fan-out")
-	}
-	if ids[d.ID] {
-		t.Fatalf("crm binding leaked into a dropbox fan-out")
-	}
 	if len(got) != 2 {
 		t.Fatalf("expected exactly 2 matches, got %d: %v", len(got), got)
+	}
+	got, err = store.PromptsForEvent(ctx, "dropbox", "dropbox:create/notes.txt")
+	if err != nil || len(got) != 1 || got[0] != b.ID {
+		t.Fatalf("notes fan-out = %v, %v; want only %s", got, err, b.ID)
+	}
+	mustSet(t, store, a.ID, "dropbox:create/bills/*.pdf")
+	got, err = store.PromptsForEvent(ctx, "dropbox", "dropbox:create/bills/aws/1.pdf")
+	if err != nil || len(got) != 2 {
+		t.Fatalf("single-star must not cross a slash: got %v, %v", got, err)
 	}
 }
 
@@ -106,10 +113,10 @@ func TestStore_ClearTrigger(t *testing.T) {
 	ctx := context.Background()
 	store := newTestStore(t)
 	p := seedPrompt(t, store, "o@example.com")
-	mustSet(t, store, p.ID, "cron", "cron.nightly")
-	mustSet(t, store, p.ID, "dropbox", "file.created")
+	mustSet(t, store, p.ID, "cron:tick/nightly")
+	mustSet(t, store, p.ID, "dropbox:create")
 
-	if err := store.ClearTrigger(ctx, p.ID, "cron", "cron.nightly"); err != nil {
+	if err := store.ClearTrigger(ctx, p.ID, "cron:tick/nightly"); err != nil {
 		t.Fatalf("ClearTrigger: %v", err)
 	}
 	got, err := store.ListTriggers(ctx, p.ID)
@@ -120,7 +127,7 @@ func TestStore_ClearTrigger(t *testing.T) {
 		t.Fatalf("expected only the dropbox binding to remain, got %+v", got)
 	}
 	// Clearing an absent binding is ErrNotFound.
-	if err := store.ClearTrigger(ctx, p.ID, "cron", "cron.nightly"); !errors.Is(err, ErrNotFound) {
+	if err := store.ClearTrigger(ctx, p.ID, "cron:tick/nightly"); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("expected ErrNotFound clearing absent binding, got %v", err)
 	}
 }
@@ -131,8 +138,8 @@ func TestStore_DeleteTriggers(t *testing.T) {
 	ctx := context.Background()
 	store := newTestStore(t)
 	p := seedPrompt(t, store, "o@example.com")
-	mustSet(t, store, p.ID, "cron", "cron.nightly")
-	mustSet(t, store, p.ID, "dropbox", "file.created")
+	mustSet(t, store, p.ID, "cron:tick/nightly")
+	mustSet(t, store, p.ID, "dropbox:create")
 
 	if err := store.DeleteTriggers(ctx, p.ID); err != nil {
 		t.Fatalf("DeleteTriggers: %v", err)
@@ -150,10 +157,14 @@ func TestStore_DeleteTriggers(t *testing.T) {
 	}
 }
 
-func mustSet(t *testing.T, store *Store, promptID, source, eventFilter string) {
+func mustSet(t *testing.T, store *Store, promptID, filter string) {
 	t.Helper()
+	source, err := validateTrigger(filter)
+	if err != nil {
+		t.Fatalf("validate trigger %q: %v", filter, err)
+	}
 	if err := store.SetTrigger(context.Background(), Trigger{
-		PromptID: promptID, Source: source, EventFilter: eventFilter,
+		PromptID: promptID, Source: source, Filter: filter,
 	}); err != nil {
 		t.Fatalf("SetTrigger: %v", err)
 	}

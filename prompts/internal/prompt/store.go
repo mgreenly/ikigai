@@ -197,7 +197,7 @@ func (s *Store) InsertRun(ctx context.Context, r Run) error {
 		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		r.ID, r.PromptID, r.OwnerEmail, nullStr(r.PromptName), r.Status, r.StartedAt,
 		nullStr(r.EndedAt), nullStr(r.UsageJSON), nullStr(r.Error),
-		nullStr(r.TriggerSource), nullStr(firstNonEmpty(r.TriggerKind, r.TriggerType)), nullStr(r.TriggerSubject), nullStr(r.TriggerEventID), r.LogPath,
+		nullStr(r.TriggerSource), nullStr(r.TriggerKind), nullStr(r.TriggerSubject), nullStr(r.TriggerEventID), r.LogPath,
 	)
 	if err != nil {
 		return fmt.Errorf("prompt: insert run: %w", err)
@@ -290,7 +290,7 @@ func (s *Store) UpdateRunTerminal(ctx context.Context, runID, status, endedAt, u
 
 // FinishRunInput carries everything FinishRun needs to write a run's terminal
 // state. The outcome-event fields (prompt_id, prompt_name, trigger_source,
-// trigger_type, trigger_event_id) are read FROM the run row inside the
+// trigger_kind, trigger_subject, trigger_event_id) are read FROM the run row inside the
 // transaction, so the runner no longer threads them in (A5).
 type FinishRunInput struct {
 	RunID     string // the run being finished
@@ -349,7 +349,7 @@ func (s *Store) FinishRun(ctx context.Context, in FinishRunInput) error {
 
 	emitted := false
 	if s.Outbox != nil {
-		ev, ok, err := outcomeEvent(in.Status, promptID, promptName.String, in.RunID, trigSource.String, trigKind.String, trigEventID.String, in.ErrMsg)
+		ev, ok, err := outcomeEvent(in.Status, promptID, promptName.String, in.RunID, trigSource.String, trigKind.String, trigSubject.String, trigEventID.String, in.ErrMsg)
 		if err != nil {
 			return err
 		}
@@ -456,7 +456,6 @@ func scanRun(sc scanner) (Run, error) {
 	r.Error = errMsg.String
 	r.TriggerSource = trigSource.String
 	r.TriggerKind = trigKind.String
-	r.TriggerType = trigKind.String
 	r.TriggerSubject = trigSubject.String
 	r.TriggerEventID = trigEventID.String
 	return r, nil

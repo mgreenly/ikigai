@@ -72,14 +72,25 @@ func staticLookup(ids []string, err error) LookupFunc {
 // exactly twice (once per prompt, with the event context forwarded) and the
 // handler returns nil.
 func TestHandlerFanOut(t *testing.T) {
+	// R-6PH9-8QNA
 	fire := &fireRecorder{}
 	fire.expect(2)
-	h := Handler(fire.fn, staticLookup([]string{"p1", "p2"}, nil), "crm", discardLogger())
+	var lookedUp string
+	h := Handler(fire.fn, func(_ context.Context, source, key string) ([]string, error) {
+		if source != "crm" {
+			t.Errorf("lookup source = %q, want crm", source)
+		}
+		lookedUp = key
+		return []string{"p1", "p2"}, nil
+	}, "crm", discardLogger())
 
 	payload := json.RawMessage(`{"id":"c1"}`)
-	ev := consumer.Event{Kind: "contact.created", ID: "01EVENT", Source: "crm", Payload: payload}
+	ev := consumer.Event{Kind: "contact.created", Subject: "/contacts/c1", ID: "01EVENT", Source: "crm", Payload: payload}
 	if err := h(context.Background(), ev); err != nil {
 		t.Fatalf("Handler returned %v, want nil", err)
+	}
+	if lookedUp != ev.Key() {
+		t.Fatalf("lookup key = %q, want event key %q", lookedUp, ev.Key())
 	}
 	fire.await(t)
 
@@ -90,7 +101,7 @@ func TestHandlerFanOut(t *testing.T) {
 	seen := map[string]bool{}
 	for _, c := range calls {
 		seen[c.promptID] = true
-		if c.source != "crm" || c.evType != "contact.created" || c.eventID != "01EVENT" {
+		if c.source != "crm" || c.evType != "contact.created" || c.subject != "/contacts/c1" || c.eventID != "01EVENT" {
 			t.Errorf("fire got wrong context: %+v", c)
 		}
 		if string(c.payload) != string(payload) {

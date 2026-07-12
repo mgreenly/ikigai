@@ -157,16 +157,11 @@ func Tools(svc *prompt.Service, contentBase string) []appkitmcp.Tool {
 		}, "prompt_id", "filter"),
 			func(ctx context.Context, args json.RawMessage, id server.Identity) (map[string]any, error) {
 				var in struct {
-					PromptID    string `json:"prompt_id"`
-					Filter      string `json:"filter"`
-					Source      string `json:"source"`
-					EventFilter string `json:"legacy_filter"`
+					PromptID string `json:"prompt_id"`
+					Filter   string `json:"filter"`
 				}
 				if err := parseArgs(args, &in); err != nil {
 					return nil, err
-				}
-				if in.Filter == "" {
-					in.Filter = canonicalWireFilter(in.Source, in.EventFilter)
 				}
 				trig, err := svc.SetTrigger(ctx, id.OwnerEmail, in.PromptID, in.Filter)
 				if err != nil {
@@ -180,16 +175,11 @@ func Tools(svc *prompt.Service, contentBase string) []appkitmcp.Tool {
 		}, "prompt_id", "filter"),
 			func(ctx context.Context, args json.RawMessage, id server.Identity) (map[string]any, error) {
 				var in struct {
-					PromptID    string `json:"prompt_id"`
-					Filter      string `json:"filter"`
-					Source      string `json:"source"`
-					EventFilter string `json:"legacy_filter"`
+					PromptID string `json:"prompt_id"`
+					Filter   string `json:"filter"`
 				}
 				if err := parseArgs(args, &in); err != nil {
 					return nil, err
-				}
-				if in.Filter == "" {
-					in.Filter = canonicalWireFilter(in.Source, in.EventFilter)
 				}
 				if err := svc.ClearTrigger(ctx, id.OwnerEmail, in.PromptID, in.Filter); err != nil {
 					return appkitmcp.ErrorResult(err.Error()), nil
@@ -445,14 +435,3 @@ func (c configInput) toConfig() prompt.Config {
 
 // triggerInput maps one wire trigger object to prompt.TriggerSpec.
 type triggerInput string
-
-func canonicalWireFilter(source, filter string) string {
-	legacy := map[string]string{"file.created": "create", "file.modified": "modify", "file.deleted": "delete", "transaction.recorded": "recorded", "scripts.succeeded": "succeeded", "scripts.failed": "failed"}
-	if kind, ok := legacy[filter]; ok {
-		return source + ":" + kind
-	}
-	if source == "cron" {
-		return source + ":tick/" + filter
-	}
-	return source + ":" + filter
-}

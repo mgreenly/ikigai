@@ -74,7 +74,7 @@ func TestSmoke_HandlerAgainstRealServiceAndDB(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
-	if _, err := svc.SetTrigger(ctx, "owner@example.com", p.ID, "dropbox", "file.created"); err != nil {
+	if _, err := svc.SetTrigger(ctx, "owner@example.com", p.ID, "dropbox:create/**"); err != nil {
 		t.Fatalf("SetTrigger: %v", err)
 	}
 
@@ -86,7 +86,7 @@ func TestSmoke_HandlerAgainstRealServiceAndDB(t *testing.T) {
 	}
 	h := Handler(fire, svc.PromptsForEvent, "dropbox", nil)
 
-	ev := consumer.Event{Kind: "file.created", ID: "e1", Source: "dropbox", Payload: json.RawMessage(`{"path":"/x"}`)}
+	ev := consumer.Event{Kind: "create", Subject: "/x", ID: "e1", Source: "dropbox", Payload: json.RawMessage(`{"path":"/x"}`)}
 
 	// First event: fires once, the prompt has a running run carrying the context.
 	if err := h(ctx, ev); err != nil {
@@ -101,7 +101,7 @@ func TestSmoke_HandlerAgainstRealServiceAndDB(t *testing.T) {
 	if detail.LastRun == nil || detail.LastRun.Status != prompt.RunRunning {
 		t.Fatalf("expected a running run after fire, got %+v", detail.LastRun)
 	}
-	if lr := detail.LastRun; lr.TriggerSource != "dropbox" || lr.TriggerType != "file.created" || lr.TriggerEventID != "e1" {
+	if lr := detail.LastRun; lr.TriggerSource != "dropbox" || lr.TriggerKind != "create" || lr.TriggerSubject != "/x" || lr.TriggerEventID != "e1" {
 		t.Fatalf("non-cron event must populate run trigger context, got %+v", lr)
 	}
 

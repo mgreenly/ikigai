@@ -33,10 +33,10 @@ func newProducerStore(t *testing.T) (*Store, *sql.DB) {
 // outcome-event fields (prompt_id, prompt_name, trigger context) now live on
 // the run row — FinishRun reads them from there — so they are pinned at seed.
 func seedRunningRun(t *testing.T, store *Store, name string) (Prompt, Run) {
-	return seedRunningRunTrig(t, store, name, "", "", "")
+	return seedRunningRunTrig(t, store, name, "", "", "", "")
 }
 
-func seedRunningRunTrig(t *testing.T, store *Store, name, triggerSource, triggerType, triggerEventID string) (Prompt, Run) {
+func seedRunningRunTrig(t *testing.T, store *Store, name, triggerSource, triggerKind, triggerSubject, triggerEventID string) (Prompt, Run) {
 	t.Helper()
 	ctx := context.Background()
 	now := store.nowStr()
@@ -61,7 +61,8 @@ func seedRunningRunTrig(t *testing.T, store *Store, name, triggerSource, trigger
 		StartedAt:      now,
 		LogPath:        "x",
 		TriggerSource:  triggerSource,
-		TriggerType:    triggerType,
+		TriggerKind:    triggerKind,
+		TriggerSubject: triggerSubject,
 		TriggerEventID: triggerEventID,
 	}
 	if err := store.InsertRun(ctx, run); err != nil {
@@ -108,7 +109,7 @@ func decodePayload(t *testing.T, raw string) map[string]any {
 func TestFinishRun_SuccessEmitsRunSucceeded(t *testing.T) {
 	store, conn := newProducerStore(t)
 	ctx := context.Background()
-	sess, run := seedRunningRunTrig(t, store, "nightly scan", "cron", "cron.nightly", "ev-001")
+	sess, run := seedRunningRunTrig(t, store, "nightly scan", "cron", "tick", "/nightly", "ev-001")
 
 	if err := store.FinishRun(ctx, FinishRunInput{
 		RunID:     run.ID,
@@ -140,7 +141,7 @@ func TestFinishRun_SuccessEmitsRunSucceeded(t *testing.T) {
 	if p["prompt_id"] != sess.ID || p["prompt_name"] != "nightly scan" {
 		t.Fatalf("identity fields wrong: %+v", p)
 	}
-	if p["trigger_source"] != "cron" || p["trigger_type"] != "cron.nightly" || p["trigger_event_id"] != "ev-001" {
+	if p["trigger_source"] != "cron" || p["trigger_kind"] != "tick" || p["trigger_subject"] != "/nightly" || p["trigger_event_id"] != "ev-001" {
 		t.Fatalf("trigger context wrong: %+v", p)
 	}
 	if p["run_id"] != run.ID {
@@ -156,7 +157,7 @@ func TestFinishRun_SuccessEmitsRunSucceeded(t *testing.T) {
 func TestFinishRun_FailureEmitsRunFailedWithError(t *testing.T) {
 	store, conn := newProducerStore(t)
 	ctx := context.Background()
-	_, run := seedRunningRunTrig(t, store, "nightly scan", "cron", "cron.nightly", "ev-001")
+	_, run := seedRunningRunTrig(t, store, "nightly scan", "cron", "tick", "/nightly", "ev-001")
 
 	if err := store.FinishRun(ctx, FinishRunInput{
 		RunID:   run.ID,
@@ -197,7 +198,7 @@ func TestFinishRun_ManualRunEmptyTriggerContext(t *testing.T) {
 		t.Fatalf("expected one event, got %+v", evs)
 	}
 	p := decodePayload(t, evs[0].Payload)
-	if p["trigger_source"] != "" || p["trigger_type"] != "" || p["trigger_event_id"] != "" {
+	if p["trigger_source"] != "" || p["trigger_kind"] != "" || p["trigger_subject"] != "" || p["trigger_event_id"] != "" {
 		t.Fatalf("manual run must carry empty trigger context: %+v", p)
 	}
 }

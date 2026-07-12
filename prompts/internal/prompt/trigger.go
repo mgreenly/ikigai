@@ -13,9 +13,6 @@ import (
 // SetTrigger upserts a canonical-key filter. Source is derived by Service after
 // validation and retained solely for the per-upstream lookup index.
 func (s *Store) SetTrigger(ctx context.Context, t Trigger) error {
-	if t.Filter == "" {
-		t.Filter = t.EventFilter
-	}
 	created := t.CreatedAt
 	if created == "" {
 		created = s.nowStr()
@@ -29,15 +26,7 @@ func (s *Store) SetTrigger(ctx context.Context, t Trigger) error {
 	return nil
 }
 
-func (s *Store) ClearTrigger(ctx context.Context, promptID string, filters ...string) error {
-	var filter string
-	if len(filters) == 1 {
-		filter = filters[0]
-	} else if len(filters) == 2 {
-		filter = filters[1]
-	} else {
-		return fmt.Errorf("%w: filter is required", ErrValidation)
-	}
+func (s *Store) ClearTrigger(ctx context.Context, promptID, filter string) error {
 	res, err := s.db.ExecContext(ctx, `DELETE FROM prompt_triggers WHERE prompt_id = ? AND filter = ?`, promptID, filter)
 	if err != nil {
 		return fmt.Errorf("prompt: clear trigger: %w", err)

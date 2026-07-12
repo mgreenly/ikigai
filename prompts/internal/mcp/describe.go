@@ -53,15 +53,17 @@ OUTPUT FORMAT
 
 TRIGGERS — MULTI-SOURCE
 - A prompt can be wired to event triggers so it runs automatically. Each trigger
-  is one (source, event_filter) binding; a prompt may hold several across several
+  is one canonical routing-key glob, source:kind<subject>, such as
+  dropbox:create/bills/**/*.pdf. The source before ':' is literal; * never
+  crosses a subject path segment and ** does. A prompt may hold several across
   upstream producers (cron|crm|ledger|dropbox|scripts|prompts, the last being
   prompts' own run.succeeded/run.failed for self-chaining). Attach with
-  set_trigger, remove with clear_trigger, or
-  pass an inline "triggers" array to create.
+  set_trigger, remove with clear_trigger, or pass an inline "triggers" array to
+  create.
 
 EVENT-TRIGGERED RUNS
 - When a trigger fires, the run's user message carries a SECOND block with the
-  triggering event as JSON: {source, type, event_id, payload}. payload is the
+  triggering event as JSON: {source, kind, subject, event_id, payload}. payload is the
   upstream producer's fact body — small by design (often just an id) — so write
   your user_prompt to read the event, then call the in-run suite tools to fetch
   any detail you need. e.g. "When triggered by crm contact.created, take
