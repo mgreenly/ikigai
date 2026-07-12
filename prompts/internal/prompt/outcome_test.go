@@ -1,9 +1,13 @@
 package prompt
 
 import (
+	"bufio"
 	"context"
 	"database/sql"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"eventplane/outbox"
@@ -71,23 +75,132 @@ func seedRunningRunTrig(t *testing.T, store *Store, name, triggerSource, trigger
 	return sess, run
 }
 
-// outboxRows reads every (kind, payload) from the outbox table in seq order.
-func outboxRows(t *testing.T, conn *sql.DB) []struct{ Kind, Payload string } {
+// outboxRows reads every routed event from the outbox table in seq order.
+func outboxRows(t *testing.T, conn *sql.DB) []struct{ Kind, Subject, Payload string } {
 	t.Helper()
-	rows, err := conn.Query(`SELECT kind, payload FROM outbox ORDER BY seq`)
+	rows, err := conn.Query(`SELECT kind, subject, payload FROM outbox ORDER BY seq`)
 	if err != nil {
 		t.Fatalf("query outbox: %v", err)
 	}
 	defer rows.Close()
-	var out []struct{ Kind, Payload string }
+	var out []struct{ Kind, Subject, Payload string }
 	for rows.Next() {
-		var typ, payload string
-		if err := rows.Scan(&typ, &payload); err != nil {
+		var kind, subject, payload string
+		if err := rows.Scan(&kind, &subject, &payload); err != nil {
 			t.Fatalf("scan outbox: %v", err)
 		}
-		out = append(out, struct{ Kind, Payload string }{typ, payload})
+		out = append(out, struct{ Kind, Subject, Payload string }{kind, subject, payload})
 	}
 	return out
+}
+
+func TestFinishRunRoutesOutcomeEventsByPromptName(t *testing.T) {
+	// R-6T4Y-E1VD
+	store, conn := newProducerStore(t)
+	ctx := context.Background()
+	prompt, succeeded := seedRunningRunTrig(t, store, "collect-bills", "cron", "tick", "/nightly", "ev-001")
+	failed := succeeded
+	failed.ID = ids.NewULID()
+	if err := store.InsertRun(ctx, failed); err != nil {
+		t.Fatalf("InsertRun failed: %v", err)
+	}
+	cancelled := succeeded
+	cancelled.ID = ids.NewULID()
+	if err := store.InsertRun(ctx, cancelled); err != nil {
+		t.Fatalf("InsertRun cancelled: %v", err)
+	}
+	for _, in := range []FinishRunInput{
+		{RunID: succeeded.ID, Status: RunSucceeded, EndedAt: store.nowStr()},
+		{RunID: failed.ID, Status: RunFailed, EndedAt: store.nowStr(), ErrMsg: "provider failed"},
+		{RunID: cancelled.ID, Status: RunCancelled, EndedAt: store.nowStr()},
+	} {
+		if err := store.FinishRun(ctx, in); err != nil {
+			t.Fatalf("FinishRun(%s): %v", in.Status, err)
+		}
+	}
+	evs := outboxRows(t, conn)
+	if len(evs) != 2 {
+		t.Fatalf("outbox events = %+v, want only succeeded and failed", evs)
+	}
+	for i, wantKind := range []string{EventRunSucceeded, EventRunFailed} {
+		if evs[i].Kind != wantKind || evs[i].Subject != "/collect-bills" {
+			t.Fatalf("event[%d] = %+v, want kind=%q subject=/collect-bills", i, evs[i], wantKind)
+		}
+		payload := decodePayload(t, evs[i].Payload)
+		if payload["prompt_id"] != prompt.ID || payload["trigger_kind"] != "tick" || payload["trigger_subject"] != "/nightly" {
+			t.Fatalf("event[%d] payload = %+v", i, payload)
+		}
+		if _, ok := payload["trigger_type"]; ok {
+			t.Fatalf("event[%d] payload retained trigger_type: %+v", i, payload)
+		}
+	}
+	if got := decodePayload(t, evs[1].Payload)["error"]; got != "provider failed" {
+		t.Fatalf("failed payload error = %v, want provider failed", got)
+	}
+
+	_, nameless := seedRunningRun(t, store, "")
+	if err := store.FinishRun(ctx, FinishRunInput{RunID: nameless.ID, Status: RunSucceeded, EndedAt: store.nowStr()}); err != nil {
+		t.Fatalf("FinishRun nameless: %v", err)
+	}
+	if got := outboxRows(t, conn)[2].Subject; got != "" {
+		t.Fatalf("nameless prompt subject = %q, want empty", got)
+	}
+	_, multiline := seedRunningRun(t, store, "billing\nreview")
+	if err := store.FinishRun(ctx, FinishRunInput{RunID: multiline.ID, Status: RunSucceeded, EndedAt: store.nowStr()}); err != nil {
+		t.Fatalf("FinishRun multiline: %v", err)
+	}
+	if got := outboxRows(t, conn)[3].Subject; got != "/billing review" {
+		t.Fatalf("multiline prompt subject = %q, want /billing review", got)
+	}
+}
+
+func TestFinishRunFeedFramesRoutedEnvelope(t *testing.T) {
+	// R-ZS8A-TVOF
+	store, _ := newProducerStore(t)
+	ctx := context.Background()
+	_, run := seedRunningRun(t, store, "collect-bills")
+	if err := store.FinishRun(ctx, FinishRunInput{RunID: run.ID, Status: RunSucceeded, EndedAt: store.nowStr()}); err != nil {
+		t.Fatalf("FinishRun: %v", err)
+	}
+	srv := httptest.NewServer(store.Outbox.FeedHandler())
+	defer srv.Close()
+	resp, err := srv.Client().Get(srv.URL)
+	if err != nil {
+		t.Fatalf("GET feed: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("feed status = %d, want 200", resp.StatusCode)
+	}
+	scanner := bufio.NewScanner(resp.Body)
+	var eventLine, dataLine string
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "event: prompts:run.succeeded/") {
+			eventLine = line
+			if !scanner.Scan() {
+				t.Fatal("feed ended before event data")
+			}
+			dataLine = scanner.Text()
+			break
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		t.Fatalf("read feed: %v", err)
+	}
+	if eventLine != "event: prompts:run.succeeded/collect-bills" {
+		t.Fatalf("event frame = %q", eventLine)
+	}
+	var envelope map[string]any
+	if err := json.Unmarshal([]byte(strings.TrimPrefix(dataLine, "data: ")), &envelope); err != nil {
+		t.Fatalf("decode envelope %q: %v", dataLine, err)
+	}
+	if envelope["kind"] != EventRunSucceeded || envelope["subject"] != "/collect-bills" || envelope["source"] != "prompts" {
+		t.Fatalf("envelope = %+v", envelope)
+	}
+	if _, ok := envelope["type"]; ok {
+		t.Fatalf("envelope retained type: %+v", envelope)
+	}
 }
 
 // decodePayload unmarshals an outcome payload into a generic map so a test can

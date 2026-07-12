@@ -339,6 +339,7 @@ func TestRunFsListReturnsLiveContentURLs(t *testing.T) {
 
 func TestReflectionThroughAssembledHandlerReportsPromptsEventGraph(t *testing.T) {
 	// R-DLYM-4QUF
+	// R-6UCU-RTM2
 	h, _, _ := newTestHandler(t)
 	res := call(t, h, "reflection", nil)
 	if isError(res) {
@@ -359,6 +360,53 @@ func TestReflectionThroughAssembledHandlerReportsPromptsEventGraph(t *testing.T)
 	wantPublishes := []string{"run.succeeded", "run.failed"}
 	if !equalStrings(gotPublishes, wantPublishes) {
 		t.Fatalf("publishes = %v, want %v", gotPublishes, wantPublishes)
+	}
+	for i, pub := range out.Publishes {
+		if got := stringField(t, pub, "subject"); got != "/<prompt name>" {
+			t.Fatalf("publishes[%d].subject = %q, want /<prompt name>", i, got)
+		}
+	}
+
+	detail := call(t, h, "reflection", map[string]any{"kind": "run.succeeded"})
+	if isError(detail) {
+		t.Fatalf("run.succeeded detail returned isError: %+v", detail)
+	}
+	var detailOut struct {
+		Kind    string         `json:"kind"`
+		Subject string         `json:"subject"`
+		Schema  map[string]any `json:"schema"`
+		Example map[string]any `json:"example"`
+	}
+	if err := json.Unmarshal([]byte(resultText(t, detail)), &detailOut); err != nil {
+		t.Fatalf("decode run.succeeded detail: %v", err)
+	}
+	if detailOut.Kind != "run.succeeded" || detailOut.Subject != "/<prompt name>" {
+		t.Fatalf("detail routing = %+v", detailOut)
+	}
+	properties, ok := detailOut.Schema["properties"].(map[string]any)
+	if !ok {
+		t.Fatalf("detail schema properties = %#v", detailOut.Schema)
+	}
+	for field := range detailOut.Example {
+		if _, ok := properties[field]; !ok {
+			t.Fatalf("example field %q missing from schema: %#v", field, detailOut.Schema)
+		}
+	}
+	for _, field := range []string{"trigger_kind", "trigger_subject"} {
+		if _, ok := detailOut.Example[field]; !ok {
+			t.Fatalf("example missing %q: %#v", field, detailOut.Example)
+		}
+	}
+	if _, ok := detailOut.Example["trigger_type"]; ok {
+		t.Fatalf("example retained trigger_type: %#v", detailOut.Example)
+	}
+	unknown := call(t, h, "reflection", map[string]any{"kind": "run.unknown"})
+	if !isError(unknown) {
+		t.Fatalf("unknown kind did not return tool error: %+v", unknown)
+	}
+	unknownText := resultText(t, unknown)
+	if !strings.Contains(unknownText, "run.succeeded") || !strings.Contains(unknownText, "run.failed") {
+		t.Fatalf("unknown-kind error did not name declared kinds: %q", unknownText)
 	}
 	if len(out.Subscribes) != len(testSources) {
 		t.Fatalf("subscribes count = %d, want %d: %+v", len(out.Subscribes), len(testSources), out.Subscribes)

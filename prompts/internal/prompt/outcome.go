@@ -3,6 +3,7 @@ package prompt
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"eventplane/outbox"
 )
@@ -28,11 +29,13 @@ const (
 var Events = outbox.Registry{
 	{
 		Kind:        EventRunSucceeded,
+		Subject:     "/<prompt name>",
 		Description: "A prompts run finished successfully. Carries the prompt identity, the human-readable task name, and the trigger context (the upstream source, fired event kind and subject, and upstream event id that started it, empty for a manual run).",
 		Sample:      sampleOutcomeSuccess,
 	},
 	{
 		Kind:        EventRunFailed,
+		Subject:     "/<prompt name>",
 		Description: "A prompts run terminated in failure. Same shape as run.succeeded plus an error string describing the terminal failure.",
 		Sample:      sampleOutcomeFailure,
 	},
@@ -106,5 +109,15 @@ func outcomeEvent(status, promptID, promptName, runID, triggerSource, triggerKin
 	if err != nil {
 		return outbox.Event{}, false, fmt.Errorf("prompt: marshal %s payload: %w", typ, err)
 	}
-	return outbox.Event{Kind: typ, Payload: raw}, true, nil
+	return outbox.Event{Kind: typ, Subject: outcomeSubject(promptName), Payload: raw}, true, nil
+}
+
+// outcomeSubject derives prompts' routing subject from its human routing handle.
+// A nameless prompt has no subject; otherwise the name is rooted and any line
+// break is made safe for the single-line event-routing grammar.
+func outcomeSubject(promptName string) string {
+	if promptName == "" {
+		return ""
+	}
+	return "/" + strings.NewReplacer("\r\n", " ", "\n", " ", "\r", " ").Replace(promptName)
 }
