@@ -118,7 +118,7 @@ func buildPayload(ev MailEvent) (outbox.Event, error) {
 	if err != nil {
 		return outbox.Event{}, fmt.Errorf("marshal %s payload: %w", ev.Type, err)
 	}
-	return outbox.Event{Type: ev.Type, Payload: raw}, nil
+	return outbox.Event{Kind: ev.Type, Payload: raw}, nil
 }
 
 // EventSink is the producer seam the engine appends to inside the per-poll tx.

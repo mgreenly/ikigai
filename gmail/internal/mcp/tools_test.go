@@ -241,7 +241,7 @@ func TestReflection(t *testing.T) {
 	got := map[string]bool{}
 	for _, pe := range publishes {
 		p := pe.(map[string]any)
-		got[p["type"].(string)] = true
+		got[p["kind"].(string)] = true
 	}
 	for _, want := range []string{"mail.received", "mail.sent", "mail.deleted"} {
 		if !got[want] {
@@ -260,25 +260,25 @@ func TestReflection(t *testing.T) {
 		t.Fatalf("expected empty subscribes for gmail, got %v", subscribes)
 	}
 
-	detail, isErr := callTool(t, h, "reflection", `{"event_type":"mail.received"}`)
+	detail, isErr := callTool(t, h, "reflection", `{"kind":"mail.received"}`)
 	if isErr {
 		t.Fatalf("reflection detail isError: %v", detail)
 	}
-	if detail["type"] != "mail.received" {
-		t.Fatalf("detail type mismatch: %v", detail)
+	if detail["kind"] != "mail.received" {
+		t.Fatalf("detail kind mismatch: %v", detail)
 	}
 	sch, ok := detail["schema"].(map[string]any)
 	if !ok || sch["type"] != "object" {
 		t.Fatalf("detail schema not an object schema: %v", detail["schema"])
 	}
 
-	badErr, isErr := callTool(t, h, "reflection", `{"event_type":"mail.nope"}`)
+	badErr, isErr := callTool(t, h, "reflection", `{"kind":"mail.nope"}`)
 	if !isErr {
 		t.Fatalf("expected error for unknown event_type, got %v", badErr)
 	}
 	text, _ := badErr["_text"].(string)
-	if !strings.Contains(text, "unknown event_type") || !strings.Contains(text, "mail.received") {
-		t.Fatalf("expected corrective unknown event_type error, got %v", badErr)
+	if !strings.Contains(text, "unknown event kind") || !strings.Contains(text, "mail.received") {
+		t.Fatalf("expected corrective unknown kind error, got %v", badErr)
 	}
 }
 

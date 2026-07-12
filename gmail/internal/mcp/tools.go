@@ -72,7 +72,7 @@ type mailDeletedPayload struct {
 // can't diverge.
 var Events = outbox.Registry{
 	{
-		Type:        EventMailReceived,
+		Kind:        EventMailReceived,
 		Description: "An inbound message arrived in the mailbox (Gmail History messagesAdded carrying the INBOX label). Carries message identity + envelope headers; fetch the full message via the read tool.",
 		Sample: mailReceivedPayload{
 			ID:         "18f2a1b3c4d5e6f7",
@@ -84,7 +84,7 @@ var Events = outbox.Registry{
 		},
 	},
 	{
-		Type:        EventMailSent,
+		Kind:        EventMailSent,
 		Description: "A message was sent from the mailbox (Gmail History messagesAdded carrying the SENT label and not INBOX) — covers our own sends uniformly, whether via the send MCP tool or the Gmail UI.",
 		Sample: mailSentPayload{
 			ID:       "18f2a1b3c4d5e6f8",
@@ -96,7 +96,7 @@ var Events = outbox.Registry{
 		},
 	},
 	{
-		Type:        EventMailDeleted,
+		Kind:        EventMailDeleted,
 		Description: "A message was moved to Trash (Gmail History labelsAdded: TRASH). This is the discard signal, not a permanent expunge — the message still exists in Trash, so its payload is still fetchable.",
 		Sample: mailDeletedPayload{
 			ID:        "18f2a1b3c4d5e6f9",

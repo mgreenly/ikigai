@@ -109,9 +109,9 @@ func newHarness(t *testing.T, fc *fakeClient) (*Engine, *sql.DB, *outbox.Outbox)
 // this keeps the test self-contained without an import cycle).
 func mailRegistry() outbox.Registry {
 	return outbox.Registry{
-		{Type: EventMailReceived, Description: "x", Sample: mailReceivedPayload{}},
-		{Type: EventMailSent, Description: "x", Sample: mailSentPayload{}},
-		{Type: EventMailDeleted, Description: "x", Sample: mailDeletedPayload{}},
+		{Kind: EventMailReceived, Description: "x", Sample: mailReceivedPayload{}},
+		{Kind: EventMailSent, Description: "x", Sample: mailSentPayload{}},
+		{Kind: EventMailDeleted, Description: "x", Sample: mailDeletedPayload{}},
 	}
 }
 
