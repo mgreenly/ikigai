@@ -21,6 +21,16 @@ stacked); the history of how it got here lives in the plan.
 >    `Spec.Consumers` table from which the chassis derives the manifest
 >    `CONSUMES=`, the reflection subscriptions, and the running
 >    `eventplane/consumer` loops — feed-URL/`From` env resolution included.
+> 4. **Event-routing conformance** (D11 + the D9 rewrite, active): appkit
+>    compiles and plumbs the suite's routing revision
+>    (`docs/event-routing-design.md`, specified in
+>    `eventplane/project/design/` D1–D4) — `Spec.Events` carries the
+>    family-based `outbox.Registry`, the chassis `reflection` tool speaks
+>    kinds (D9, rewritten in place), and every other eventplane coupling
+>    (feed pass-through, test fixtures) cuts over. **Externally ordered:**
+>    eventplane's plan phases 01–04 build first; appkit's conformance phase
+>    then precedes every service's own conformance phase (appkit is the hinge
+>    between eventplane and the services).
 >
 > appkit's other pre-existing surfaces — the verb dispatcher, migrations, the
 > loopback server's PRM/health/feed routes, the producer/worker seams — are
@@ -81,9 +91,16 @@ Shared facts every Decision leans on:
 - **Additivity guard (D5–D10):** none of the new Spec fields, Router accessors,
   or packages may change the behavior of a Spec that doesn't use them. The
   pre-existing appkit test suite passing unchanged is the standing proof.
-- **This design touches no schema and no `opsctl` code.**
+  **D11 is the deliberate exception:** the routing revision is a suite-wide
+  hard cutover (no compatibility period), so D11 revises fixtures and the
+  reflection wire surface rather than preserving them — additivity does not
+  apply to it.
+- **This design touches no schema and no `opsctl` code.** appkit is a library:
+  it owns no service database and no outbox table, so the routing revision's
+  outbox DDL change (D11) reaches services through their own migrations, never
+  through appkit.
 
-## Testing strategy (D5–D10)
+## Testing strategy (D5–D11)
 
 - **`appkit/config`** is pure over its injected `getenv`; www-root resolution is
   table-tested exactly like the existing DB-path composition.
@@ -106,6 +123,12 @@ Shared facts every Decision leans on:
   independence and delivery ordering are exactly the claims a stub cannot
   falsify. The manifest/reflection derivations reuse the existing manifest-emit
   and mcp-seam harnesses.
+- **Routing conformance (D11 + revised D9)** is proven on the real eventplane:
+  the gating and wire claims run `feed.Start` over a real `t.TempDir()` SQLite
+  database (`modernc.org/sqlite`) and drive the returned `Producer.Handler`
+  through `httptest`; the reflection claims go through the D8 `ServeHTTP` seam
+  with real family-shaped `outbox.Registry` values. Converted consumer-test
+  fixtures frame `kind`/`subject` envelopes with canonical-key `event:` lines.
 
 ## Layout
 

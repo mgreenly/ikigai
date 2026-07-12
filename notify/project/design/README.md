@@ -21,17 +21,27 @@ here lives in the plan.
 > 2. **Registry adoption** (D9–D10, built; narrowed by D11): notify resolves
 >    its **own** loopback port by name, with source-scan and deploy-artifact
 >    drift guards. Peer feed addresses are chassis-resolved.
-> 3. **The chassis conversion** (D11–D14, active): consumer loops declared
+> 3. **The chassis conversion** (D11–D14, built): consumer loops declared
 >    through `Spec.Consumers`, the web surface through `Spec.WWW`, the MCP
 >    surface through `appkit/mcp`, and the leftover chassis shims deleted —
 >    all behavior-preserving. appkit's `Spec.Consumers`/`Spec.WWW`/`appkit/mcp`
 >    surfaces (appkit design D5–D10) are fixed external contracts consumed
 >    through the committed `replace appkit => ../appkit`.
+> 4. **Event-routing conformance, consumer side** (D16, active): notify's
+>    handlers and declared subscriptions adopt the suite's revised event
+>    addressing (`docs/event-routing-design.md`) — `consumer.Event{Kind,
+>    Subject}` + `Key()` replace the deleted `Type`, subscription filters
+>    become canonical-key globs matched by `eventplane/routing.Match`, and the
+>    reflection `subscribes` surface restates the new keys. notify produces
+>    nothing, so there is no outbox and no migration. The revised eventplane
+>    (its design D1–D4) and the conformed appkit chassis are fixed external
+>    contracts, operator-sequenced ahead of the build.
 >
-> The rest of the notify domain (the `internal/push` ntfy semantics, the
-> event-protocol wire contract) is owned elsewhere (`notify/CLAUDE.md`, the
-> event-protocol docs) and is untouched. **No schema changes: no Decision here
-> adds a migration.**
+> The rest of the notify domain (the ntfy push mechanics —
+> `Client`/`Publish`/`Send` — and the event-plane wire contract itself) is
+> owned elsewhere (`notify/CLAUDE.md`, the event-protocol docs / the
+> eventplane spec) and is untouched. **No schema changes: no Decision here
+> adds a migration** (D16 explicitly confirms none is needed).
 
 ## Requirement ids
 
@@ -119,6 +129,11 @@ approach every Decision's Verification list assumes:
   with real event values against a mock ntfy server (the existing push-test
   substrate). The loop engine itself (SSE, cursors, reconnect) is appkit's
   proof (appkit D10), not re-proven here.
+- **Event matching runs the real matcher and the real plane.** Routing
+  conformance claims (D16) exercise the real `eventplane/routing` matcher —
+  never a reimplementation — and the end-to-end claim chains the real revised
+  outbox + `FeedHandler` + `consumer.Run` over `httptest` to the mock ntfy
+  server (the substrate the existing e2e push test already uses).
 - **The nginx fragment is proven by content assertion.** Tests read
   `notify/etc/nginx.conf` from disk and assert the session-gated locations and
   registry-derived proxy targets (D4, D8, D10) — a genuine assertion over the

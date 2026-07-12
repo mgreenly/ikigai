@@ -10,9 +10,10 @@ boundary keeps product, design, and plan from overlapping.
 
 > **Scope note.** This product doc covers **only** the new web-pages direction
 > for cron — the landing page. cron's existing scheduling domain (the crontab
-> CRUD MCP surface and the minute-aligned tick worker that emits `cron.<name>`
-> events) is owned by `cron/cmd/cron/main.go` and the domain notes; it is
-> untouched here. This mirrors the suite's `crm` landing-page template: the
+> CRUD MCP surface and the minute-aligned tick worker that emits
+> `cron:tick/<name>` events — addressing per the suite's event-routing
+> revision, design D14) is owned by `cron/cmd/cron/main.go` and the domain
+> notes; it is untouched here. This mirrors the suite's `crm` landing-page template: the
 > uniform v1 starting point stated precisely for a producer service.
 
 ## Problem

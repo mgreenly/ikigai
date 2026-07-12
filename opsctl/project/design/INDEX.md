@@ -15,6 +15,7 @@ Verification ids change.
 - D7 → `project/design/D07.md` — setup provisions the served `www` tree (`public`/`private`, no `working`) owned by the service user — owns `R-QFXB-VARQ`, `R-3K9X-IPJZ`, `R-AUAI-EX87`, `R-3LHT-WHAO`
 - D8 → `project/design/D08.md` — deploy's state-ownership chown already owns the served tree; no separate www step — owns `R-3MPQ-A91D`, `R-AXY7-K8GA`
 - D9 → `project/design/D09.md` — restore reconstitutes the served tree's ownership to the service user — owns `R-3NXM-O0S2`, `R-B0E0-BRXO`
+- D10 → `project/design/D10.md` — init-box installs the box-baseline PDF tooling (poppler-utils) — owns `R-WHC0-I9HL`, `R-WIJW-W18A`
 
 ## Verification ids → Decision
 
@@ -42,6 +43,8 @@ Verification ids change.
 - R-MXKA-OPC2 → D4 — `project/design/D04.md`
 - R-MYS7-2H2R → D4 — `project/design/D04.md`
 - R-QFXB-VARQ → D7 — `project/design/D07.md`
+- R-WHC0-I9HL → D10 — `project/design/D10.md`
+- R-WIJW-W18A → D10 — `project/design/D10.md`
 - R-WP3M-PO1V → D1 — `project/design/D01.md`
 - R-WQBJ-3FSK → D1 — `project/design/D01.md`
 - R-WRJF-H7J9 → D1 — `project/design/D01.md`

@@ -17,6 +17,7 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - D11 → `project/design/D11.md` — Adopt `registry`: resolve cron's port by name and guard the deploy artifacts against drift — owns R-LTAF-KVJU, R-LUIB-YNAJ, R-LVQ8-CF18
 - D12 → `project/design/D12.md` — Delete the chassis shims (`internal/db` wrappers) and true up the doctrine header — none (structural)
 - D13 → `project/design/D13.md` — The session-gated locations opt into the apex `@login_bounce`: a logged-out human navigation goes to sign-in, not a bare 401 (bearer tier deliberately excluded) — owns R-3V6H-7F1M, R-3WED-L6SB, R-3XM9-YYJ0
+- D14 → `project/design/D14.md` — Event-routing conformance: kind `tick`, subject `/<schedule name>`, live one-family reflection — owns R-PQH6-2RYI, R-PRP2-GJP7, R-PSWY-UBFW, R-PU4V-836L, R-PVCR-LUXA
 
 ## Verification ids → Decision
 
@@ -46,6 +47,11 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - R-NGNX-5D8E → D4 → `project/design/D04.md`
 - R-NGNX-7F1G → D4 → `project/design/D04.md`
 - R-NGNX-9H3J → D4 → `project/design/D04.md`
+- R-PQH6-2RYI → D14 → `project/design/D14.md`
+- R-PRP2-GJP7 → D14 → `project/design/D14.md`
+- R-PSWY-UBFW → D14 → `project/design/D14.md`
+- R-PU4V-836L → D14 → `project/design/D14.md`
+- R-PVCR-LUXA → D14 → `project/design/D14.md`
 - R-ROUT-2P8Q → D2 → `project/design/D02.md`
 - R-ROUT-4R1S → D2 → `project/design/D02.md`
 - R-ROUT-6T3U → D2 → `project/design/D02.md`

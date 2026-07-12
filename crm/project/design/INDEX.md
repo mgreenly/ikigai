@@ -21,12 +21,17 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - D15 → `project/design/D15.md` — Adopt `registry`: resolve crm's own loopback port by name at the composition root (`registry.MustPort("crm")`) — owns R-X04D-MBGE
 - D16 → `project/design/D16.md` — Prove no `127.0.0.1:30xx` literal survives (source-scan guard) and re-point the manifest/nginx tests at `registry` so a renumber fails a crm test — owns R-X1CA-0373, R-X2K6-DUXS
 - D17 → `project/design/D17.md` — The session-gated locations opt into the apex `@login_bounce`: a logged-out human navigation goes to sign-in, not a bare 401 (bearer tier deliberately excluded) — owns R-3BO3-336I, R-3CVZ-GUX7, R-3E3V-UMNW
+- D18 → `project/design/D18.md` — Event-routing conformance: kinds keep `contact.*`, subject = `/<contact id>`, family registry, new outbox migration — owns R-8HHB-24SG, R-8IP7-FWJ5, R-8JX3-TO9U, R-8L50-7G0J
 
 ## Verification ids → Decision
 
 - R-3BO3-336I → D17 → `project/design/D17.md`
 - R-3CVZ-GUX7 → D17 → `project/design/D17.md`
 - R-3E3V-UMNW → D17 → `project/design/D17.md`
+- R-8HHB-24SG → D18 → `project/design/D18.md`
+- R-8IP7-FWJ5 → D18 → `project/design/D18.md`
+- R-8JX3-TO9U → D18 → `project/design/D18.md`
+- R-8L50-7G0J → D18 → `project/design/D18.md`
 - R-ASST-2B8C → D3 → `project/design/D03.md`
 - R-ASST-4D1E → D3 → `project/design/D03.md`
 - R-ASST-6F3G → D3 → `project/design/D03.md`

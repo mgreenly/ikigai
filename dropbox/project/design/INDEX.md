@@ -22,9 +22,10 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - D16 → `project/design/D16.md` — The filesystem write API: `Service` write methods + loopback routes (PUT/DELETE `/content`, `/mkdir`, `/move`, `/stat`) — owns R-K4RH-93AV, R-K5ZD-MV1K, R-K77A-0MS9, R-K8F6-EEIY, R-K9N2-S69N, R-KAUZ-5Y0C
 - D17 → `project/design/D17.md` — Push-up: durable upload queue + Dropbox write client + uploader worker (overwrite, coalescing, echo suppression, poison/health) — owns R-KC2V-JPR1, R-KDAR-XHHQ, R-KEIO-B98F, R-KFQK-P0Z4, R-KGYH-2SPT, R-KJE9-UC77, R-KKM6-83XW, R-KLU2-LVOL, R-KN1Y-ZNFA
 - D18 → `project/design/D18.md` — Origin-tagged file events (`origin` payload field: writing client id, or `dropbox`) — owns R-KO9V-DF5Z, R-KPHR-R6WO, R-KQPO-4YND
-- D19 → `project/design/D19.md` — MCP write tools (`put`/`mkdir`/`delete`/`move`; capped base64 small-file convenience) — owns R-KRXK-IQE2, R-KT5G-WI4R, R-KUDD-A9VG
+- D19 → `project/design/D19.md` — MCP write tools: reference-based `put` (`source_url`, loopback-confined server-side fetch) + capped inline convenience; `mkdir`/`delete`/`move` — owns R-KRXK-IQE2, R-KT5G-WI4R, R-KUDD-A9VG, R-Q52B-JQLP, R-Q6A7-XICE, R-Q8Q0-P1TS, R-Q9XX-2TKH
 - D20 → `project/design/D20.md` — The `dropbox/docs/` filesystem-API reference + route-coverage guard — owns R-KVL9-O1M5, R-KWT6-1TCU
 - D21 → `project/design/D21.md` — The session-gated locations opt into the apex `@login_bounce`: a logged-out human navigation goes to sign-in, not a bare 401 (bearer tier deliberately excluded) — owns R-3MN6-J0UR, R-3NV2-WSLG, R-3P2Z-AKC5
+- D22 → `project/design/D22.md` — Event-routing conformance: kinds `create`/`modify`/`delete`, subject = mirror path, family registry, new outbox migration — owns R-QB5T-GLB6, R-QCDP-UD1V, R-QDLM-84SK, R-QETI-LWJ9
 
 ## Verification ids → Decision
 
@@ -78,6 +79,14 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - R-NGNX-4R6S → D4 → `project/design/D04.md`
 - R-NGNX-6T8U → D4 → `project/design/D04.md`
 - R-NGNX-8V1W → D4 → `project/design/D04.md`
+- R-Q52B-JQLP → D19 → `project/design/D19.md`
+- R-Q6A7-XICE → D19 → `project/design/D19.md`
+- R-Q8Q0-P1TS → D19 → `project/design/D19.md`
+- R-Q9XX-2TKH → D19 → `project/design/D19.md`
+- R-QB5T-GLB6 → D22 → `project/design/D22.md`
+- R-QCDP-UD1V → D22 → `project/design/D22.md`
+- R-QDLM-84SK → D22 → `project/design/D22.md`
+- R-QETI-LWJ9 → D22 → `project/design/D22.md`
 - R-QJ8F-AXWP → D9 → `project/design/D09.md`
 - R-QKGB-OPNE → D9 → `project/design/D09.md`
 - R-QLO8-2HE3 → D10 → `project/design/D10.md`

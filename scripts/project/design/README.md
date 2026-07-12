@@ -23,10 +23,19 @@ here lives in the plan.
 > and the `internal/db` open/migrate shim is deleted (**D14**). Those conversions are
 > **behavior-preserving** except where D13 states otherwise (it adds the chassis
 > `reflection` tool scripts never exposed and surfaces the runtime contract on HTTP
-> `/health`). The `python3`-exec runner, the script/run data model, the event
-> semantics (`internal/consume` fan-out, the producer outbox), and the migrations
-> themselves are unchanged. No schema changes: none of these Decisions add a
-> migration.
+> `/health`); within D11–D14 the `python3`-exec runner, the script/run data model,
+> the event semantics, and the migrations are unchanged and no migration is added.
+> The design now also carries the **event-routing conformance** (**D17–D18**,
+> mirroring prompts' D23–D24 per `docs/event-routing-design.md`): triggers become
+> single canonical filter strings matched by the shared `eventplane/routing`
+> matcher and the consumer conforms to the kind/subject envelope (**D17**), and
+> the producer's completion events become kinds `succeeded`/`failed` with subject
+> `/` + the script's name, published from a family registry (**D18**). D17 and
+> D18 are **not** behavior-preserving (they are the suite-wide hard cutover) and
+> each adds one new timestamped migration (`trigger_filters`, `outbox_routing`);
+> the frozen `002_scripts.sql` and `004_outbox.sql` stay untouched. Both are
+> gated on the revised eventplane library being built first (see each Decision's
+> external-ordering banner).
 
 ## Requirement ids
 
@@ -72,7 +81,8 @@ Shared facts every Decision leans on:
   `App:"scripts"`, `Mount:"/srv/scripts/"`, `Port: registry.MustPort("scripts")`
   (== `3003`, resolved by name per **D10**; was a `3003` literal), `MCP:true`,
   `WWW:true` (web surface from `share/www` through the chassis, **D12**),
-  `Feed:"/feed"` (event-plane **producer** of `scripts.succeeded`/`scripts.failed`),
+  `Feed:"/feed"` (event-plane **producer** of the completion kinds
+  `succeeded`/`failed`, keys `scripts:succeeded|failed/<script name>`, **D18**),
   the `Consumers` table (five upstream entries — `cron`/`crm`/`ledger`/`dropbox`/
   `prompts` — chassis-owned per **D11**, replacing the legacy `Consumes` +
   `Subscriptions` fields and the hand-rolled consumer `Workers`), `Health` (the

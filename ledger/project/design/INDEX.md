@@ -17,6 +17,8 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - D11 → `project/design/D11.md` — MCP surface over `appkit/mcp`: `internal/mcp` becomes the seven-domain-tool table — owns R-52PA-OE6N
 - D12 → `project/design/D12.md` — Delete the chassis shims (`internal/db` wrappers) and true up the doctrine doc — none (structural)
 - D13 → `project/design/D13.md` — The session-gated locations opt into the apex `@login_bounce`: a logged-out human navigation goes to sign-in, not a bare 401 (bearer tier deliberately excluded) — owns R-3FBS-8EEL, R-3GJO-M65A, R-3HRK-ZXVZ
+- D14 → `project/design/D14.md` — `external_ref`: opt-in idempotency for derived transactions (nullable column + partial unique index, `duplicate_ref` error, event-payload field, reverse interaction) — owns R-FP14-UYWQ, R-FQ91-8QNF, R-FRGX-MIE4, R-FSOU-0A4T, R-FTWQ-E1VI, R-FV4M-RTM7, R-FWCJ-5LCW
+- D15 → `project/design/D15.md` — Event-routing conformance: kind `recorded`, empty subject (`ledger:recorded`), family registry, new outbox migration — owns R-FXKF-JD3L, R-FYSB-X4UA, R-G184-OOBO, R-G2G1-2G2D
 
 ## Verification ids → Decision
 
@@ -38,6 +40,17 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - R-ASST-3T7V → D3 → `project/design/D03.md`
 - R-ASST-5W9X → D3 → `project/design/D03.md`
 - R-ASST-7Y2Z → D3 → `project/design/D03.md`
+- R-FP14-UYWQ → D14 → `project/design/D14.md`
+- R-FQ91-8QNF → D14 → `project/design/D14.md`
+- R-FRGX-MIE4 → D14 → `project/design/D14.md`
+- R-FSOU-0A4T → D14 → `project/design/D14.md`
+- R-FTWQ-E1VI → D14 → `project/design/D14.md`
+- R-FV4M-RTM7 → D14 → `project/design/D14.md`
+- R-FWCJ-5LCW → D14 → `project/design/D14.md`
+- R-FXKF-JD3L → D15 → `project/design/D15.md`
+- R-FYSB-X4UA → D15 → `project/design/D15.md`
+- R-G184-OOBO → D15 → `project/design/D15.md`
+- R-G2G1-2G2D → D15 → `project/design/D15.md`
 - R-HOME-4M6R → D7 → `project/design/D07.md`
 - R-LAND-3C9D → D1 → `project/design/D01.md`
 - R-LAND-5E1F → D1 → `project/design/D01.md`

@@ -19,6 +19,7 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - D13 → `project/design/D13.md` — MCP surface over `appkit/mcp`: `internal/mcp` becomes the `send` tool table — owns R-4IBU-MT7Z
 - D14 → `project/design/D14.md` — Delete the chassis shims (`internal/db` wrappers) and true up the doctrine doc — none (structural)
 - D15 → `project/design/D15.md` — The session-gated locations opt into the apex `@login_bounce`: a logged-out human navigation goes to sign-in, not a bare 401 (bearer tier deliberately excluded) — owns R-3IZH-DPMO, R-3K7D-RHDD, R-3LFA-5942
+- D16 → `project/design/D16.md` — Event-routing conformance (consumer side): canonical-key subscription filters, kind/subject handler matching — owns R-ZCGU-FG9L, R-ZEWN-6ZQZ, R-ZG4J-KRHO, R-ZHCF-YJ8D
 
 ## Verification ids → Decision
 
@@ -53,3 +54,7 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - R-ROUT-4G2Q → D2 → `project/design/D02.md`
 - R-ROUT-6H5R → D2 → `project/design/D02.md`
 - R-ROUT-8J7S → D2 → `project/design/D02.md`
+- R-ZCGU-FG9L → D16 → `project/design/D16.md`
+- R-ZEWN-6ZQZ → D16 → `project/design/D16.md`
+- R-ZG4J-KRHO → D16 → `project/design/D16.md`
+- R-ZHCF-YJ8D → D16 → `project/design/D16.md`

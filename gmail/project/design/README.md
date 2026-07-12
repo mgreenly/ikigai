@@ -13,15 +13,22 @@ stay true (stale decisions are removed, not stacked); the history of how it got
 here lives in the plan.
 
 > **Scope.** This design covers gmail's web landing page and the seam it
-> establishes (D1–D8) **plus** the appkit-chassis conversion (D9–D14): serving the
+> establishes (D1–D8), the appkit-chassis conversion (D9–D14): serving the
 > web surface from `share/www` through `Spec.WWW` (D9), the MCP surface over
 > `appkit/mcp` (D10), `registry` port adoption + drift guards (D11–D12),
 > composition-root normalization (D13), and the `internal/db` shim deletion + doc
-> truth-up (D14). The conversion is **behavior-preserving**: the normal-mailbox MCP
-> tool surface (the ten mailbox verbs), the History-API poll daemon (`Workers`),
-> the `mail.*` outbox producer (`Producer`/`Feed`), and the migrations keep their
-> observable contracts — only their wiring moves onto the shared chassis. **No
-> schema changes: this work adds no migration.**
+> truth-up (D14) — **plus** two suite-protocol conformances: the **content
+> plane** (D16 — the loopback-private `GET /attachment` holder endpoint; D17 —
+> `attachment_id` + `content_url` references in the `read`/`thread` results,
+> realizing gmail's row in `docs/content-plane-design.md`) and the **event
+> routing revision** (D18 — the kind/subject envelope over the revised
+> eventplane API, kinds `received`/`sent`/`deleted`, realizing gmail's row in
+> `docs/event-routing-design.md`; D18 adds gmail's one outbox schema
+> migration and externally depends on the eventplane revision being built
+> first). The D9–D14 conversion was **behavior-preserving** (wiring moved onto
+> the shared chassis with observable contracts intact); D16–D18 change the
+> observable surface deliberately: attachments become fetchable by reference,
+> and the published events are re-addressed.
 
 ## Requirement ids
 

@@ -37,6 +37,18 @@ here lives in the plan.
 >    write API + loopback routes (D16), the push-up queue/client/uploader (D17),
 >    origin-tagged events (D18), MCP write tools (D19), and a `dropbox/docs/`
 >    integrator reference (D20).
+> 5. **Suite-protocol conformance** (D19 revised + D22, active): the **content
+>    plane** (`docs/content-plane-design.md`) — MCP `put` becomes
+>    reference-based (`source_url`, fetched server-side, confined to loopback +
+>    registry ports), with the capped base64 form kept as the inline
+>    convenience (D19); and the **event-routing revision**
+>    (`docs/event-routing-design.md`) — the `file.created`/`modified`/`deleted`
+>    types become kinds `create`/`modify`/`delete` with the mirror path as
+>    subject, the registry becomes `outbox.Family` entries, and the outbox
+>    converts by a new timestamped migration (D22). D22 consumes the revised
+>    eventplane API (`eventplane/project/design/` D1–D4) — spec'd but not yet
+>    built; its phase is operator-sequenced behind eventplane plan phases
+>    01–04.
 >
 > The pre-existing **download** engine and its load-bearing correctness rules
 > (crash/replay ordering, per-page cursor advance, poison bound, download
@@ -44,8 +56,9 @@ here lives in the plan.
 > **extends** the domain (adds the write direction) rather than replacing it, and
 > preserves every download invariant (`dropbox/CLAUDE.md` documents them). Thread
 > 4 **does** add schema: two additive, timestamped migrations (a `directories`
-> table, D15; an `upload_queue` table, D17) created via `bin/create-migration` —
-> the frozen `001`–`003` are untouched. **Wiring the suite's *other* services to
+> table, D15; an `upload_queue` table, D17) created via `bin/create-migration`,
+> and thread 5 adds a third (the outbox kind/subject rebuild, D22) — the frozen
+> `001`–`003` are untouched. **Wiring the suite's *other* services to
 > call this API is out of scope** — each service adopts it in its own `project/`
 > later; this design builds only dropbox's side.
 
@@ -134,9 +147,9 @@ approach every Decision's Verification list assumes:
   pattern) and drive `tools/list`/`tools/call` through the real `appkit/mcp`
   `ServeHTTP` seam, keeping the pre-conversion `list`/`get` behavioral assertions
   (path scoping, cursor pagination, the 25 MiB `too_large` cap, the rev-pin
-  conflict, base64 bodies, the sentinel→code error envelope). The four-tool
-  partition (`list`/`get` declared + chassis `health`/`reflection`) is asserted
-  at the same seam.
+  conflict, base64 bodies, the sentinel→code error envelope). The table/chassis
+  partition (the dropbox-declared domain tools + chassis `health`/`reflection`,
+  currently the eight-tool surface pinned by D19) is asserted at the same seam.
 - **The nginx fragment is proven by content assertion.** The session-gate
   fragment is config, not Go, so its behavior is pinned by a test that reads
   `dropbox/etc/nginx.conf` from disk and asserts the exact-match `= /srv/dropbox/`
@@ -172,6 +185,22 @@ approach every Decision's Verification list assumes:
   it is a distinct, reachable check (`go test -tags live ./...`) the D17 build
   phases require be run once; the phases that own those ids state it in their
   "Done when".
+- **The `source_url` fetch is proven against a real local HTTP server.** The
+  reference-based MCP `put` (D19) is tested with a real `httptest` server on
+  loopback serving known bytes — the fetch, the 404/409/refused failure
+  mapping, and the no-mutation-on-failure claims all run against that real
+  substrate. The **confinement check takes its allowed-port set as data**
+  (injected in tests, derived from `registry.Services` at the composition
+  root), and the registry derivation is proven separately against the real
+  `registry.Services` table — so the confinement tests are discriminating
+  without needing to bind registered ports.
+- **Routing conformance is proven on real substrates** (the gmail D18
+  pattern): kind/subject rows are read back by SQL from a real temp SQLite
+  database migrated through the full embedded set; the canonical-key frame
+  (`event: dropbox:create/notes/meeting.md`) is asserted through the real
+  eventplane `FeedHandler` over `httptest`; the family registry through the
+  assembled MCP reflection surface. D22's phase additionally depends on the
+  revised eventplane API being built (external ordering, operator-sequenced).
 
 ## Layout
 
@@ -188,7 +217,7 @@ Decision it realizes:
 
 **Package shape after D9–D13.** dropbox carries `internal/dropbox` (the sync
 engine, store, mirror, service, events, `/content`/`/list` handlers — untouched),
-`internal/db` (embedded migrations + the load and `003_outbox.sql` byte-equality
+`internal/db` (embedded migrations + the load and outbox byte-equality
 guards only; the `Open`/`Migrate` wrappers deleted by D13), and `internal/mcp`
 (the `list`+`get` domain-tool table over `appkit/mcp`, plus `Instructions` and
 `NewHandler` — D12). There is **no** `internal/web` (deleted by D11 — the landing
@@ -210,9 +239,23 @@ mutating `Service` methods (`Write`/`Mkdir`/`Delete`/`Move`, D16), the Dropbox
 (`events.go`, D18). `cmd/dropbox/main.go` mounts the new loopback routes
 (`PUT`/`DELETE /content`, `POST /mkdir`, `POST /move`, `GET /stat`) beside the
 existing byte routes and starts the uploader through the `Spec.Workers` hook.
-`internal/mcp` grows four write tools (`put`/`mkdir`/`delete`/`move`, D19). A new
-shipped `dropbox/docs/` tree carries the filesystem-API integrator reference
-(D20). The frozen `001`–`003` migrations are untouched; `004`/`005` are additive.
+`internal/mcp` grows four write tools (`put`/`mkdir`/`delete`/`move`, D19), with
+`put` reference-based first (`source_url` fetched server-side through an
+allowed-port seam threaded from the composition root; capped base64 kept as the
+inline convenience). The frozen `001`–`003` migrations are untouched; the
+timestamped `directories`/`upload_queue` migrations are additive. A new shipped
+`dropbox/docs/` tree carries the filesystem-API integrator reference (D20).
+
+**Package shape additions (thread 5, D22).** `internal/dropbox/events.go`
+replaces the `file.*` type constants with kind constants
+(`KindCreate`/`KindModify`/`KindDelete`), emits `outbox.Event{Kind, Subject:
+<display path>, Payload}` (the payload drops its `event` discriminator field;
+the other seven fields are unchanged), and reshapes `dropbox.Events` into three
+`outbox.Family` entries. One further timestamped migration
+(`bin/create-migration dropbox outbox_routing`) rebuilds the outbox table per
+the revised `outbox.SchemaSQL`; the byte-equality drift guard in
+`internal/db/migrations_outbox_test.go` re-points at that newest migration
+while the frozen `003_outbox.sql` stays untouched.
 
 Design is **rewritten in place**, not append-only (history lives in the plan): a
 changed Decision is rewritten in its `DNN.md` and `INDEX.md` is regenerated; a

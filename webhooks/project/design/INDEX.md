@@ -8,7 +8,7 @@ Verification ids change.
 ## Decisions
 
 - D1 → `project/design/D01.md` — Service skeleton, seams & composition root — R-IC14-FKIK, R-ID90-TC99
-- D2 → `project/design/D02.md` — Data model & migrations — R-SZ8I-R4EY, R-T0GF-4W5N, R-T1OB-INWC, R-T2W7-WFN1
+- D2 → `project/design/D02.md` — Data model & migrations — R-SZ8I-R4EY, R-T0GF-4W5N, R-T1OB-INWC
 - D3 → `project/design/D03.md` — Webhook identity & secret lifecycle — R-37GT-C05G, R-38OP-PRW5, R-39WM-3JMU, R-3CCE-V348, R-3DKB-8UUX, R-3ES7-MMLM
 - D4 → `project/design/D04.md` — Public ingress endpoint (/in/<name>) — R-7ISQ-ZZCF, R-7K0N-DR34, R-7L8J-RITT, R-7MGG-5AKI, R-7NOC-J2B7
 - D5 → `project/design/D05.md` — Event production (durable-before-ack) — R-GTUZ-AIGW, R-GV2V-OA7L, R-GWAS-21YA, R-GXIO-FTOZ, R-GYQK-TLFO
@@ -21,6 +21,7 @@ Verification ids change.
 - D12 → `project/design/D12.md` — MCP surface over `appkit/mcp` (`internal/mcp` becomes the tool table) — R-0JBF-690N
 - D13 → `project/design/D13.md` — Delete the `internal/db` shim, normalize the composition root, true up the doctrine — (structural; no ids)
 - D14 → `project/design/D14.md` — The session-gated locations opt into the apex `@login_bounce`: a logged-out human navigation goes to sign-in, not a bare 401 (bearer tier deliberately excluded) — R-4B16-6FON, R-4C92-K7FC, R-4DGY-XZ61
+- D15 → `project/design/D15.md` — Event-routing conformance: kind `received`, subject = `/` + hook name — R-A3FB-J3ZK, R-A4N7-WVQ9, R-A5V4-ANGY, R-A730-OF7N
 
 ## Verification ids → Decision
 
@@ -50,6 +51,10 @@ Verification ids change.
 - R-7L8J-RITT → D4 — `project/design/D04.md`
 - R-7MGG-5AKI → D4 — `project/design/D04.md`
 - R-7NOC-J2B7 → D4 — `project/design/D04.md`
+- R-A3FB-J3ZK → D15 — `project/design/D15.md`
+- R-A4N7-WVQ9 → D15 — `project/design/D15.md`
+- R-A5V4-ANGY → D15 — `project/design/D15.md`
+- R-A730-OF7N → D15 — `project/design/D15.md`
 - R-GTUZ-AIGW → D5 — `project/design/D05.md`
 - R-GV2V-OA7L → D5 — `project/design/D05.md`
 - R-GWAS-21YA → D5 — `project/design/D05.md`
@@ -64,7 +69,6 @@ Verification ids change.
 - R-SZ8I-R4EY → D2 — `project/design/D02.md`
 - R-T0GF-4W5N → D2 — `project/design/D02.md`
 - R-T1OB-INWC → D2 — `project/design/D02.md`
-- R-T2W7-WFN1 → D2 — `project/design/D02.md`
 - R-TMJH-V1NP → D9 — `project/design/D09.md`
 - R-TNRE-8TEE → D9 — `project/design/D09.md`
 - R-TOZA-ML53 → D9 — `project/design/D09.md`

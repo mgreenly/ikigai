@@ -24,9 +24,14 @@ boundary keeps product, design, and plan from overlapping.
 > behavior is identical to before, so **no promise or outcome in this document
 > changes** — a viewer, an operator, and an MCP client all see exactly what they
 > see now. The only outcome is internal correctness/operability: shared facts
-> are written down once, so drift can no longer reach deploy silently. This is
-> noted here only so the product doc does not appear to contradict a Decision in
-> the same backlog; it adds no user-facing promise of its own.
+> are written down once, so drift can no longer reach deploy silently. The same
+> holds for the suite-wide **event-routing revision** (D16): notify's consumer
+> loops adopt the revised event addressing (`kind`/`subject` routing keys in
+> place of the flat `type`), and the owner still receives exactly the same
+> pushes for the same facts — a new contact created, a prompt run succeeding or
+> failing. This is noted here only so the product doc does not appear to
+> contradict a Decision in the same backlog; it adds no user-facing promise of
+> its own.
 
 ## Problem
 

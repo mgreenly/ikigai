@@ -19,6 +19,9 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - D13 → `project/design/D13.md` — Composition-root normalization: the `appkit.Spec` inline in `cmd/gmail/main.go` — none (structural)
 - D14 → `project/design/D14.md` — Delete the chassis shims (`internal/db` wrappers) and true up the doctrine doc — none (structural)
 - D15 → `project/design/D15.md` — The session-gated locations opt into the apex `@login_bounce`: a logged-out human navigation goes to sign-in, not a bare 401 (bearer tier deliberately excluded) — owns R-3YU6-CQ9P, R-4022-QI0E, R-419Z-49R3
+- D16 → `project/design/D16.md` — Attachment content endpoint: loopback `GET /attachment` (content plane holder) — owns R-WVZH-M0IY, R-WX7D-ZS9N, R-WYFA-DK0C, R-WZN6-RBR1, R-X0V3-53HQ, R-X22Z-IV8F
+- D17 → `project/design/D17.md` — Attachment references in `read`/`thread` results (content plane references) — owns R-X3AV-WMZ4, R-X4IS-AEPT, R-X5QO-O6GI
+- D18 → `project/design/D18.md` — Event-routing conformance: kinds `received`/`sent`/`deleted`, empty subject — owns R-X6YL-1Y77, R-X86H-FPXW, R-X9ED-THOL, R-XAMA-79FA
 
 ## Verification ids → Decision
 
@@ -51,3 +54,16 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - R-ROUT-4M6Q → D2 → `project/design/D02.md`
 - R-ROUT-6N8R → D2 → `project/design/D02.md`
 - R-ROUT-8P1S → D2 → `project/design/D02.md`
+- R-WVZH-M0IY → D16 → `project/design/D16.md`
+- R-WX7D-ZS9N → D16 → `project/design/D16.md`
+- R-WYFA-DK0C → D16 → `project/design/D16.md`
+- R-WZN6-RBR1 → D16 → `project/design/D16.md`
+- R-X0V3-53HQ → D16 → `project/design/D16.md`
+- R-X22Z-IV8F → D16 → `project/design/D16.md`
+- R-X3AV-WMZ4 → D17 → `project/design/D17.md`
+- R-X4IS-AEPT → D17 → `project/design/D17.md`
+- R-X5QO-O6GI → D17 → `project/design/D17.md`
+- R-X6YL-1Y77 → D18 → `project/design/D18.md`
+- R-X86H-FPXW → D18 → `project/design/D18.md`
+- R-X9ED-THOL → D18 → `project/design/D18.md`
+- R-XAMA-79FA → D18 → `project/design/D18.md`

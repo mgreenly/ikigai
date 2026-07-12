@@ -73,6 +73,11 @@ producer's job, not opsctl's.
   restoring it from a snapshot — silently revokes that access. The operator does
   not deploy a service only to find its already-published pages have gone
   unreachable, with the deploy having reported success.
+- **Provisioning a box equips it with the suite's shared PDF tooling.** Once the
+  operator has provisioned a box, the tools that turn PDF files into text and
+  images are present for the suite's sandboxed agent runs to rely on — with no
+  per-service flag or manual install step to remember, and re-provisioning never
+  disturbs them.
 
 ## Success criteria (outcomes)
 
@@ -96,3 +101,6 @@ producer's job, not opsctl's.
   it: provisioning grants the front door read access, and deploying or restoring
   that service leaves that access intact — a published page that returned success
   before the operation still does after it, with no manual repair.
+- After box provisioning runs on a fresh box, converting a PDF to text on that box
+  succeeds using the tooling provisioning put in place; running provisioning again
+  completes successfully with the tooling still working.

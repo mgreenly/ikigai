@@ -11,9 +11,9 @@ boundary keeps product, design, and plan from overlapping.
 > **Scope note.** This product doc covers **only** the new web-pages direction
 > for scripts — the landing page. scripts's existing domain (the deterministic
 > `python3`-exec script runner, the `ikigenba_scripts_*` MCP surface, the
-> event-plane producer `scripts.succeeded`/`scripts.failed`, and the
-> multi-upstream consumer) is owned by `scripts/project/notes/` and is untouched
-> here. This mirrors the **template** the suite's other simple services copy, so
+> event-plane producer of run-completion events (`scripts:succeeded|failed/…`),
+> and the multi-upstream consumer) is owned by `scripts/project/notes/` and is
+> untouched here. This mirrors the **template** the suite's other simple services copy, so
 > it states the uniform v1 starting point precisely.
 
 > **Registry-adoption note (no promise change).** A separate, behavior-preserving
@@ -144,7 +144,7 @@ Promised values the design must honor verbatim and never re-declare:
 - **Agents are unaffected** — the bearer-gated `/mcp` endpoint, the PRM
   well-known, `/health`, and the loopback `/feed` behave exactly as before; the
   landing page is added beside them, shadowing none of them. The event plane —
-  scripts' `scripts.succeeded`/`scripts.failed` producer feed and its
+  scripts' run-completion producer feed (`scripts:succeeded|failed/…`) and its
   cron/crm/ledger/dropbox/prompts consumer loops — is untouched.
 - **The page looks like the rest of the suite** — same fonts, same neutral
   palette, same single blue signal color, same spacing grid as the dashboard and

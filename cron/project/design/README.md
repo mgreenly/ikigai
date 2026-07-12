@@ -1,10 +1,13 @@
 # cron — Design
 
 **Authority: shape and its proof.** This document and the `project/design/`
-directory it heads own *how* cron's web landing page is built **and how cron
+directory it heads own *how* cron's web landing page is built, **how cron
 conforms to the appkit chassis reference shape** (the `share/www` web surface,
 the `appkit/mcp` tool table, `registry` ports, the inline composition root, the
-`internal/db` shim deletion) — and *how each behavior is proven*. The product (`project/product/README.md`) owns the *why*,
+`internal/db` shim deletion), **and how cron conforms to the suite's revised
+event routing** (`docs/event-routing-design.md`: kind `tick` + subject
+`/<schedule name>` replacing the packed `cron.<name>` type — D14) — and *how
+each behavior is proven*. The product (`project/product/README.md`) owns the *why*,
 *for whom*, and the user-facing promises; design states the **exact, checkable
 form** of those promises and never re-declares the why. Design *uses* the
 product's contractual constants by value (the page lives at the mount root only;
@@ -18,12 +21,17 @@ here lives in the plan.
 > to the appkit chassis reference shape** — the on-disk `share/www` web surface
 > (D9), the `appkit/mcp` tool-table MCP surface (D10), `registry`-resolved
 > ports (D11), the inline composition root in `cmd/cron/main.go` (D8), and the
-> `internal/db` shim deletion + doctrine truth-up (D12). The crontab scheduling
-> **domain behavior** — the CRUD tool semantics, the minute-aligned tick worker
-> that Appends `cron.<name>` events to the outbox, the LIVE `Publishes` provider,
-> and the migration SQL — is **unchanged** by any of this; the chassis conversion
-> moves *where* and *how* those surfaces are wired, never *what* they do. No schema
-> changes: the conversion adds **no migration**.
+> `internal/db` shim deletion + doctrine truth-up (D12) — **plus the
+> event-routing conformance (D14)**: the tick event's address becomes kind
+> `tick` + subject `/<schedule name>` (canonical key `cron:tick/<name>`), the
+> LIVE `Publishes` provider becomes a one-family registry with a live schedule
+> enumeration, and the outbox table converts to the revised `outbox.SchemaSQL`
+> by **one new timestamped migration** (the sole schema change in this design;
+> the chassis conversion itself added none). The crontab scheduling **domain
+> behavior** — the CRUD tool semantics, the minute-aligned tick worker's
+> at-most-once (schedule, slot) firing, and the `{name, scheduled_for,
+> fired_at}` payload — is **unchanged**: the conversion and the routing
+> revision move *how events are addressed and wired*, never *what fires when*.
 
 ## Requirement ids
 
@@ -116,7 +124,8 @@ approach every Decision's Verification list assumes:
   store on a temp DB, threading the live `Publishes` provider through a real
   `server.Router`) and drive `tools/list` and `tools/call`, asserting the
   exactly-seven-tool partition and the crontab behaviors (expr validation, CRUD
-  round-trip, live `cron.<name>` reflection) unchanged (D10's `R-LS2J-73T5`).
+  round-trip, live tick-family reflection per D14) unchanged (D10's
+  `R-LS2J-73T5`).
 - **The nginx fragment is proven by content assertion.** The session-gate
   fragment is config, not Go, so its behavior is pinned by a test (relocated to
   `cmd/cron` by D9) that reads `cron/etc/nginx.conf` from disk and asserts the
@@ -155,8 +164,12 @@ render helper — lives **inline in `cmd/cron/main.go`** (D8; there is no
 (`Instructions` + `Tools(store)` + `NewHandler`) over the shared `appkit/mcp`
 transport (D10), not a hand-rolled JSON-RPC handler. `cron/internal/db` holds
 **only** the embedded migration set (`FS`) and its app-side guard tests — appkit
-owns DB opening and the migration run (D12). The domain packages `internal/crontab`,
-`internal/cron`, `internal/event`, and `internal/tick` are unchanged.
+owns DB opening and the migration run (D12); D14 adds one new timestamped
+outbox migration beside the frozen originals and re-points the DDL drift guard
+at it. The domain packages `internal/crontab`, `internal/cron`, and
+`internal/tick` keep their shapes; `internal/event` carries D14's revised
+event contract (kind `tick`, `Subject(name)`, the one-family live `Publishes`
+provider).
 
 Design is **rewritten in place**, not append-only (history lives in the plan): a
 changed Decision is rewritten in its `DNN.md` and `INDEX.md` is regenerated; a

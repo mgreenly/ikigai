@@ -1,18 +1,18 @@
 # ledger — Design
 
 **Authority: shape and its proof.** This document and the `project/design/`
-directory it heads own *how* the ledger landing page is built and *how each
-behavior is proven*. The product (`project/product/README.md`) owns the *why*,
+directory it heads own *how* the governed ledger surfaces are built and *how
+each behavior is proven*. The product (`project/product/README.md`) owns the *why*,
 *for whom*, and the user-facing promises; design states the **exact, checkable
 form** of those promises and never re-declares the why. Design *uses* the
 product's contractual constants by value (the page lives at the mount root only;
 v1 content is service name + version; the gate is `/_session-authn` and coarse;
 the visual system is Carbon) but does **not** own them. This is the single,
-current statement of the landing-page architecture — it is rewritten in place to
+current statement of the governed ledger design — it is rewritten in place to
 stay true (stale decisions are removed, not stacked); the history of how it got
 here lives in the plan.
 
-> **Scope.** This design's Decisions cover two threads:
+> **Scope.** This design's Decisions cover three threads:
 >
 > 1. **The web landing page** (D1–D8, built; substrate moved by D10): the page's
 >    content, route, session gate, canonical markup, and self-served assets — now
@@ -27,10 +27,22 @@ here lives in the plan.
 >    (appkit design D5–D10) are fixed external contracts consumed through the
 >    committed `replace appkit => ../appkit`.
 >
-> The existing ledger bookkeeping **domain** (the immutable journal, the domain
-> tool bodies, the outbox producer, the migration *contents*) is owned elsewhere
-> (`ledger/CLAUDE.md`) and is untouched. **No schema changes: no Decision here adds
-> a migration.**
+> 3. **The domain extensions** (D14–D15): the `record`/`reverse` verbs gain an
+>    optional `external_ref` — opt-in idempotency for derived transactions,
+>    enforced by a partial unique index on a new nullable `transactions`
+>    column, with the `duplicate_ref` wire error (D14); and the
+>    `transaction.recorded` event conforms to the suite's routing revision
+>    (`docs/event-routing-design.md`): kind `recorded`, empty subject, canonical
+>    key `ledger:recorded`, family-shaped registry, and a new outbox migration
+>    per the revised `outbox.SchemaSQL` (D15 — externally ordered on the
+>    eventplane revision).
+>
+> The rest of the ledger bookkeeping **domain** (the immutable journal, the
+> seven-verb contract, the report reads) stands as described in
+> `ledger/CLAUDE.md` and is touched only where D14/D15 name it. Schema changes
+> land **only** as new timestamped migrations minted with
+> `bin/create-migration ledger <name>` — committed migrations are immutable and
+> are never edited or renumbered.
 
 ## Requirement ids
 
@@ -49,8 +61,7 @@ here lives in the plan.
 Shared facts every Decision leans on:
 
 - **Language / toolchain:** Go **1.26**, single module `module ledger` rooted at
-  `ledger/`. Pure-Go SQLite driver `modernc.org/sqlite` (no cgo). The landing page
-  itself touches no SQLite, but the module/build facts are unchanged.
+  `ledger/`. Pure-Go SQLite driver `modernc.org/sqlite` (no cgo).
 - **Build / typecheck command:** `cd ledger && go build ./...` and
   `cd ledger && go vet ./...`. The production build adds
   `CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GOWORK=off -buildvcs=false` (driven by
@@ -117,6 +128,13 @@ approach every Decision's Verification list assumes:
   artifact, runnable in the same `go test ./...`.
 - **Determinism.** The landing handler takes name/version as plain strings and the
   MCP handler runs over an in-memory DB; no clock, no network in the web/MCP tests.
+- **Domain, schema, and event claims run over the real substrate.** Every
+  D14/D15 claim runs against a real SQLite database migrated through ledger's
+  full embedded migration set (`db.FS` via the appkit runner) — uniqueness is
+  proven by the real partial index (including by direct SQL that bypasses the
+  service), outbox rows are read back by SQL, and the feed claim drives the
+  real eventplane `FeedHandler` over `net/http/httptest`. No mock stands in
+  for the schema or the wire.
 
 ## Layout
 
@@ -133,7 +151,9 @@ Decision it realizes:
 
 **Package shape after D9–D12.** ledger carries `internal/ledger` (the immutable
 double-entry domain), `internal/ids` (ULID generation), `internal/db` (the embedded
-migration set `FS` plus the load + outbox-DDL byte-equality guard tests only — DB
+migration set `FS` plus the load + outbox-DDL drift guard tests only — the guard
+asserts the **newest** outbox migration contains `outbox.SchemaSQL` verbatim
+(D15); DB
 open and the migration runner are `appkit/db`, D12), and `internal/mcp` (the seven
 domain tools' declaration — `Instructions` + `Tools(svc)` + `NewHandler` — over the
 `appkit/mcp` transport, D11). There is **no** `internal/web` (deleted by D10 — the

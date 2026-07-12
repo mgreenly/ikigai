@@ -13,17 +13,21 @@ per-entity tool) but does **not** own them. This is the single, current statemen
 of the architecture — it is rewritten in place to stay true (stale decisions are
 removed, not stacked); the history of how it got here lives in the plan.
 
-> **Scope.** This design covers three crm surfaces: **(1)** the web landing page
+> **Scope.** This design covers five crm threads: **(1)** the web landing page
 > and the seam it establishes (D1–D8), **(2)** the agent-facing **MCP discovery
 > surface** — the service `instructions`, the per-tool descriptions, and the
-> read-only `guide` tool (D9–D11), and **(3)** the **chassis adoption** that
+> read-only `guide` tool (D9–D11), **(3)** the **chassis adoption** that
 > makes crm the suite's reference service shape — web assets served from the
 > on-disk `share/www` root through `appkit/web`, the MCP transport and standard
-> tools supplied by `appkit/mcp`, and the local shims deleted (D12–D14). crm's
-> CRM **domain behavior** — the five entities, the verb semantics, validation,
-> the outbox producer, the migrations — is owned elsewhere (`crm/CLAUDE.md`) and
-> is **unchanged** by all three threads. No schema changes on any surface: this
-> design adds **no migration**.
+> tools supplied by `appkit/mcp`, and the local shims deleted (D12–D14),
+> **(4)** the **port-registry adoption** (D15–D16), and **(5)** the
+> **event-routing conformance** to the suite's revised `kind`/`subject`
+> addressing — the family registry, the emit sites, and one new timestamped
+> outbox migration (D18). crm's CRM **domain behavior** — the five entities,
+> the verb semantics, validation, the domain migrations — is owned elsewhere
+> (`crm/CLAUDE.md`) and is **unchanged** by all five threads; the only schema
+> change this design makes is D18's outbox re-creation migration (the event
+> *addressing* changes; payload shapes do not).
 
 ## Requirement ids
 

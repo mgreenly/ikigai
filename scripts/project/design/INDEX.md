@@ -20,6 +20,8 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - D14 → `project/design/D14.md` — Delete the `internal/db` open/migrate shim and true up the doctrine — none (structural)
 - D15 → `project/design/D15.md` — The session-gated locations opt into the apex `@login_bounce`: a logged-out human navigation goes to sign-in, not a bare 401 (bearer tier deliberately excluded) — owns R-465K-NCPV, R-47DH-14GK, R-49T9-SNXY
 - D16 → `project/design/D16.md` — Rename the bearer tier's prompts-named identity plumbing (`$prompts_owner`/`$prompts_client`/`@prompts_authn_500`) to scripts-owned names — owns R-4EOV-BQWQ, R-4FWR-PINF
+- D17 → `project/design/D17.md` — Event-routing conformance: triggers become canonical filter strings (trigger surface + consumer) — owns R-7TR5-QSY4, R-7UZ2-4KOT, R-7W6Y-ICFI, R-7XEU-W467, R-7YMR-9VWW, R-7ZUN-NNNL, R-812K-1FEA
+- D18 → `project/design/D18.md` — Event-routing conformance: producer kinds `succeeded`/`failed`, subject = /<script name>, family registry, outbox migration — owns R-82AG-F74Z, R-83IC-SYVO, R-84Q9-6QMD, R-85Y5-KID2
 
 ## Verification ids → Decision
 
@@ -28,6 +30,17 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - R-49T9-SNXY → D15 → `project/design/D15.md`
 - R-4EOV-BQWQ → D16 → `project/design/D16.md`
 - R-4FWR-PINF → D16 → `project/design/D16.md`
+- R-7TR5-QSY4 → D17 → `project/design/D17.md`
+- R-7UZ2-4KOT → D17 → `project/design/D17.md`
+- R-7W6Y-ICFI → D17 → `project/design/D17.md`
+- R-7XEU-W467 → D17 → `project/design/D17.md`
+- R-7YMR-9VWW → D17 → `project/design/D17.md`
+- R-7ZUN-NNNL → D17 → `project/design/D17.md`
+- R-812K-1FEA → D17 → `project/design/D17.md`
+- R-82AG-F74Z → D18 → `project/design/D18.md`
+- R-83IC-SYVO → D18 → `project/design/D18.md`
+- R-84Q9-6QMD → D18 → `project/design/D18.md`
+- R-85Y5-KID2 → D18 → `project/design/D18.md`
 - R-8WN1-0VQI → D11 → `project/design/D11.md`
 - R-8XUX-ENH7 → D11 → `project/design/D11.md`
 - R-8Z2T-SF7W → D12 → `project/design/D12.md`

@@ -56,8 +56,10 @@ loopback endpoints; the human surface is the landing page.
   creates, reads, overwrites, deletes, moves, and lists files and directories by
   calling dropbox.
 - **An off-box agent, over MCP.** An agent with no local mount browses, fetches,
-  and now also creates, overwrites, deletes, and moves files through dropbox's
-  MCP tools (small files; large transfers are the services' loopback path).
+  and also creates, overwrites, deletes, and moves files through dropbox's MCP
+  tools. Writes are **reference-based**: the agent names a file another suite
+  service holds and dropbox moves the bytes itself, so the file never passes
+  through the agent; small inline writes remain a convenience.
 - **The owner and other people, through Dropbox directly.** They see the folder
   as any Dropbox user does. By convention they treat it as read-only, or add
   files only in designated **inbox** folders; the suite is the authority on the
@@ -120,8 +122,11 @@ Promised values the design must honor verbatim and never re-declare:
 - **A write is durable locally before it is on Dropbox.** The write returns on
   local commit; the upload is asynchronous, coalescing (only the latest version
   of a path need reach Dropbox), and never silently dropped on failure.
-- **The MCP write path is for small files.** MCP `put` is capped at **25 MiB**
-  (like `get`); larger transfers use the services' loopback path.
+- **Agent writes are reference-based; bytes never cross the agent.** MCP `put`
+  primarily takes a reference to bytes another suite service holds, and dropbox
+  fetches them itself — from the box's own services only, never the open
+  internet — so a referenced file's size is not bounded by the agent. The
+  inline convenience form is capped at **25 MiB** (like `get`).
 - **The filesystem-API reference ships under `dropbox/docs/`.** It covers the
   filesystem-interaction endpoints only, and its completeness is mechanically
   enforced.
@@ -151,8 +156,16 @@ Promised values the design must honor verbatim and never re-declare:
 - **Consumers can tell who changed a file** — each change event says whether a
   service wrote it (and which one) or whether it came from Dropbox, so a service
   can ignore its own writes.
-- **An off-box agent can now write, not just read** — through MCP it can create,
-  overwrite, delete, and move small files, symmetric with browsing and fetching.
+- **An off-box agent can write, not just read** — through MCP it can create,
+  overwrite, delete, and move files, symmetric with browsing and fetching. It
+  can hand `put` a reference to a file another suite service holds and the file
+  lands in the folder whatever its size; it can also inline small content it
+  authored itself. A reference pointing anywhere but the box's own services is
+  refused.
+- **Consumers can subscribe precisely** — each change event is addressed by the
+  operation and the file's place in the folder, so a consumer (a trigger, a
+  workflow) can select exactly the files it cares about — e.g. only PDFs
+  created under `/bills` — and is not woken by every other change on the box.
 - **A future integrator has a complete API reference** — `dropbox/docs/`
   documents every filesystem endpoint, its parameters, and its behavior, and the
   reference cannot silently fall out of date as endpoints are added.
@@ -183,7 +196,13 @@ running service:
 - A consumer reading the event feed can see, for each change, whether it was
   written by a specific service or came from Dropbox.
 - An off-box agent uses the MCP `put`/`mkdir`/`delete`/`move` tools to change the
-  folder; a `put` over 25 MiB is refused as too large.
+  folder; a `put` given a reference to a file held by another suite service
+  lands that file's exact bytes without them passing through the agent, while a
+  reference to anything outside the box's own services is refused; an inline
+  `put` over 25 MiB is refused as too large.
+- A consumer subscribed to one folder pattern (e.g. PDFs created under
+  `/bills`) receives the event for a matching file and receives nothing for a
+  file created elsewhere in the folder.
 - `dropbox/docs/` documents every filesystem-interaction endpoint, and adding a
   new such endpoint without documenting it fails a check.
 - As a logged-in dashboard user I open `/srv/dropbox/` and see a Carbon-styled

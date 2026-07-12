@@ -1,8 +1,8 @@
 # ledger — Plan
 
 **Authority: construction order and history.** This document and the
-`project/plan/` directory it heads own the **build order** of the ledger landing
-page and the **record of what has been built**. The plan is **append-only**:
+`project/plan/` directory it heads own the **build order** of the governed
+ledger work and the **record of what has been built**. The plan is **append-only**:
 completed phases are never rewritten or deleted, so the plan doubles as the
 construction history. To extend the work, update the product
 (`project/product/README.md`) and design (`project/design/README.md` +

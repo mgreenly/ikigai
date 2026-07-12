@@ -121,16 +121,20 @@ consistent with product's no-exactly-once non-goal; duplicates are the consumer'
 problem to absorb via the ULID.
 
 **For webhooks, on a valid `/in/<name>` call:** open a tx → (optionally record the
-hit) → `Append(tx, Event{Type: <webhook event type>, Payload: <marshaled
+hit) → `Append(tx, Event{Kind, Subject, Payload: <marshaled
 {name, owner, body, received_at}>})` → `Commit` → `Ring` → return 2xx. The
 durable-before-ack promise is satisfied because the 2xx is returned only after a
 successful commit.
 
-**Event-type naming:** suite convention is `<domain>.<event>`, lowercase, dot,
-**past tense** (e.g. crm's `contact.created`). A single type (e.g.
-`webhook.received`) with the webhook **name carried in the payload** matches
-product's "single event type discriminated by name." Design mints the exact
-string (a contractual-ish constant for consumers).
+**Event addressing:** the suite's addressing model is the event-routing
+revision (`docs/event-routing-design.md`): an event is addressed by a routing
+key `<source>:<kind><subject>`, where `kind` is the fact class with the
+redundant noun prefix dropped (`source` already names the domain) and
+`subject` is a `/`-rooted producer-chosen routing name. The suite key map
+records webhooks' direction as `webhooks:received/<hook name>` — a single
+kind, per-hook precision carried by the subject (the name also stays in the
+payload as detail). Design pins the exact kind/subject (a contractual-ish
+constant for consumers).
 
 **Caution:** one exploration cited a `dropbox` "webhook event builder" — treat as
 **illustrative only**; dropbox is a folder-mirror producer and is not an
@@ -300,8 +304,9 @@ References: `bin/start`, `bin/stop`, `nginx/run`, `bin/registry`, `bin/ship`,
   unknown-name and bad-secret to resist enumeration; reject over-cap payloads.
 - **Payload cap** → enforce in the handler (authoritative), value TBD (e.g. 64KB–1MB);
   optionally mirror with nginx `client_max_body_size`.
-- **Event type string** → single past-tense `webhook.received`; webhook `name`,
-  `owner`, raw `body` (size-capped), and `received_at` in the payload.
+- **Event addressing** → single kind `received`, subject `/` + hook name (key
+  `webhooks:received/<hook name>`, per the event-routing revision); webhook
+  `name`, `owner`, raw `body` (size-capped), and `received_at` in the payload.
 - **Secret format** → `ms_wh_` prefix + 2×`ids.New()`; SHA-256 hex verifier at
   rest; show-once; rotation replaces the hash, name/URL unchanged.
 - **Name** → `ids.New()` (128-bit base32) by default; allow a user-chosen name but
