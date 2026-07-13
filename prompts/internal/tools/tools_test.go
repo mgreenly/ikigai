@@ -20,11 +20,11 @@ import (
 	"github.com/ikigenba/agentkit"
 )
 
-func TestAllReturnsNineBuiltInTools(t *testing.T) {
-	// R-64QY-QN1H
+func TestAllReturnsThirteenBuiltInTools(t *testing.T) {
+	// R-F5X1-XH6C
 	got := All(t.TempDir(), func(int) bool { return false }, ShareConfig{})
-	if len(got) != 9 {
-		t.Fatalf("All returned %d tools, want 9", len(got))
+	if len(got) != 13 {
+		t.Fatalf("All returned %d tools, want 13", len(got))
 	}
 
 	gotNames := make([]string, 0, len(got))
@@ -54,9 +54,82 @@ func TestAllReturnsNineBuiltInTools(t *testing.T) {
 		}
 	}
 
-	wantNames := []string{nameRead, nameBash, nameWrite, nameEdit, nameGlob, nameGrep, nameFetch, nameFileGet, nameFilePut}
+	wantNames := []string{nameBash, nameRead, nameWrite, nameEdit, nameGlob, nameGrep, nameFetch, nameFileList, nameFileGet, nameFilePut, nameFileDelete, nameFileMove, nameFileMkdir}
 	if !reflect.DeepEqual(gotNames, wantNames) {
 		t.Fatalf("All tool names = %v, want %v", gotNames, wantNames)
+	}
+	for _, tool := range got[7:] {
+		if !strings.Contains(tool.Description(), "account's file share") {
+			t.Fatalf("file-share tool %q description = %q, want account's file share", tool.Name(), tool.Description())
+		}
+	}
+}
+
+func TestFileListPassesPaginationAndReturnsShareJSON(t *testing.T) {
+	// R-FASN-GK54
+	response := `{"entries":[{"path":"/invoices/june.pdf","kind":"file","size":42,"content_hash":"hash-1","rev":"rev-1","updated_at":"2026-06-01T00:00:00Z"}],"cursor":"next cursor"}`
+	wantQuery := url.Values{"path": {"/invoices 2026"}, "cursor": {"page 2"}, "limit": {"25"}}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertShareIdentityHeaders(t, r)
+		if r.Method != http.MethodGet || r.URL.Path != "/list" {
+			t.Errorf("request = %s %s, want GET /list", r.Method, r.URL.Path)
+		}
+		if got := r.URL.Query(); !reflect.DeepEqual(got, wantQuery) {
+			t.Errorf("query = %v, want %v", got, wantQuery)
+		}
+		_, _ = io.WriteString(w, response)
+	}))
+	defer server.Close()
+
+	tool := findTool(t, All(t.TempDir(), func(int) bool { return false }, ShareConfig{BaseURL: server.URL, ClientID: "prompts:prompt_123"}), nameFileList)
+	raw := callTool(t, context.Background(), tool, map[string]any{"path": "/invoices 2026", "cursor": "page 2", "limit": 25})
+	if raw != response {
+		t.Fatalf("FileList result = %q, want share JSON %q", raw, response)
+	}
+}
+
+func TestFileShareMutationsUsePinnedRoutesAndResults(t *testing.T) {
+	// R-FC0J-UBVT
+	requests := map[string]int{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assertShareIdentityHeaders(t, r)
+		requests[r.Method+" "+r.URL.Path]++
+		switch r.Method + " " + r.URL.Path {
+		case "DELETE /content":
+			if got := r.URL.Query(); !reflect.DeepEqual(got, url.Values{"path": {"/old report.pdf"}}) {
+				t.Errorf("delete query = %v", got)
+			}
+		case "POST /move":
+			if got := r.URL.Query(); !reflect.DeepEqual(got, url.Values{"from": {"/old report.pdf"}, "to": {"/archive/new report.pdf"}}) {
+				t.Errorf("move query = %v", got)
+			}
+		case "POST /mkdir":
+			if got := r.URL.Query(); !reflect.DeepEqual(got, url.Values{"path": {"/archive 2026"}}) {
+				t.Errorf("mkdir query = %v", got)
+			}
+		default:
+			t.Errorf("unexpected request %s %s", r.Method, r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	builtins := All(t.TempDir(), func(int) bool { return false }, ShareConfig{BaseURL: server.URL, ClientID: "prompts:prompt_123"})
+	if got := callTool(t, context.Background(), findTool(t, builtins, nameFileDelete), map[string]any{"share_path": "/old report.pdf"}); got != `{"deleted":"/old report.pdf"}` {
+		t.Fatalf("FileDelete result = %s", got)
+	}
+	if got := callTool(t, context.Background(), findTool(t, builtins, nameFileMove), map[string]any{"from": "/old report.pdf", "to": "/archive/new report.pdf"}); got != `{"moved":"/old report.pdf","to":"/archive/new report.pdf"}` {
+		t.Fatalf("FileMove result = %s", got)
+	}
+	if got := callTool(t, context.Background(), findTool(t, builtins, nameFileMkdir), map[string]any{"share_path": "/archive 2026"}); got != `{"created":"/archive 2026"}` {
+		t.Fatalf("FileMkdir result = %s", got)
+	}
+	for request, count := range requests {
+		if count != 1 {
+			t.Fatalf("%s count = %d, want 1", request, count)
+		}
+	}
+	if len(requests) != 3 {
+		t.Fatalf("mutation requests = %v, want exactly three routes", requests)
 	}
 }
 
@@ -485,6 +558,19 @@ func expectEscapeError(t *testing.T, tool agentkit.Tool, input map[string]any) {
 	}
 	if !strings.Contains(err.Error(), "escapes sandbox") {
 		t.Fatalf("%s.Call(%v) error = %v, want escapes sandbox", tool.Name(), input, err)
+	}
+}
+
+func assertShareIdentityHeaders(t *testing.T, r *http.Request) {
+	t.Helper()
+	if got := r.Header.Get("X-Client-Id"); got != "prompts:prompt_123" {
+		t.Errorf("X-Client-Id = %q, want prompts:prompt_123", got)
+	}
+	if got := r.Header.Get("X-Owner-Email"); got != "" {
+		t.Errorf("X-Owner-Email = %q, want empty", got)
+	}
+	if got := r.Header.Get("X-Forwarded-Proto"); got != "" {
+		t.Errorf("X-Forwarded-Proto = %q, want empty", got)
 	}
 }
 

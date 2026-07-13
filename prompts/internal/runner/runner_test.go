@@ -391,6 +391,7 @@ func TestSpawn_SystemFramesDeferredToolsWithoutServiceEnumeration(t *testing.T) 
 	// R-9OJA-B2KU
 	// R-6AUG-NHQY
 	// R-6I5U-Y474
+	// R-FEGC-LVD7
 	fp := &fakeProvider{}
 	runsDir := t.TempDir()
 	r, store := newTestRunner(t, time.Minute, fp)
@@ -418,10 +419,20 @@ func TestSpawn_SystemFramesDeferredToolsWithoutServiceEnumeration(t *testing.T) 
 	if strings.Contains(req.System, "ikigenba_") {
 		t.Fatalf("system prompt enumerates suite tool names: %q", req.System)
 	}
-	for _, phrase := range []string{"bash, read, write, edit, glob, grep, and fetch", "Fetch takes a suite content URL", "pdftotext", "pdftoppm", "pdfinfo"} {
+	for _, phrase := range []string{
+		"file list, file get, file put, file delete, file move, and file mkdir",
+		"Fetch takes a suite content URL",
+		"The account's file share is its durable, shared file store",
+		"Your own folder stays private to this prompt; use the file tools as the channel",
+		"You have NO network access from bash: do not attempt to fetch anything from the internet.",
+		"pdftotext", "pdftoppm", "pdfinfo",
+	} {
 		if !strings.Contains(req.System, phrase) {
 			t.Fatalf("system prompt = %q, missing %q", req.System, phrase)
 		}
+	}
+	if strings.Contains(strings.ToLower(req.System), "dropbox") {
+		t.Fatalf("system prompt names an individual service: %q", req.System)
 	}
 }
 

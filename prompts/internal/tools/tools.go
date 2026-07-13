@@ -25,15 +25,19 @@ import (
 )
 
 const (
-	nameBash    = "Bash"
-	nameRead    = "Read"
-	nameWrite   = "Write"
-	nameEdit    = "Edit"
-	nameGlob    = "Glob"
-	nameGrep    = "Grep"
-	nameFetch   = "Fetch"
-	nameFileGet = "FileGet"
-	nameFilePut = "FilePut"
+	nameBash       = "Bash"
+	nameRead       = "Read"
+	nameWrite      = "Write"
+	nameEdit       = "Edit"
+	nameGlob       = "Glob"
+	nameGrep       = "Grep"
+	nameFetch      = "Fetch"
+	nameFileList   = "FileList"
+	nameFileGet    = "FileGet"
+	nameFilePut    = "FilePut"
+	nameFileDelete = "FileDelete"
+	nameFileMove   = "FileMove"
+	nameFileMkdir  = "FileMkdir"
 )
 
 // ShareConfig locates the account file share's loopback filesystem API.
@@ -45,11 +49,11 @@ type ShareConfig struct {
 // All returns the built-in tools confined to sandboxRoot.
 func All(sandboxRoot string, sourcePortAllowed func(port int) bool, share ShareConfig) []agentkit.Tool {
 	return []agentkit.Tool{
-		agentkit.NewTool(nameRead, "Read a file inside the sandbox.", func(ctx context.Context, in readInput) (string, error) {
-			return readFile(sandboxRoot, in)
-		}),
 		agentkit.NewTool(nameBash, "Run a foreground shell command from the sandbox root.", func(ctx context.Context, in bashInput) (string, error) {
 			return runBash(ctx, sandboxRoot, in)
+		}),
+		agentkit.NewTool(nameRead, "Read a file inside the sandbox.", func(ctx context.Context, in readInput) (string, error) {
+			return readFile(sandboxRoot, in)
 		}),
 		agentkit.NewTool(nameWrite, "Write a file inside the sandbox.", func(ctx context.Context, in writeInput) (string, error) {
 			return writeFile(sandboxRoot, in)
@@ -66,11 +70,23 @@ func All(sandboxRoot string, sourcePortAllowed func(port int) bool, share ShareC
 		agentkit.NewTool(nameFetch, "Fetch a suite content URL into the sandbox.", func(ctx context.Context, in fetchInput) (string, error) {
 			return fetchFile(ctx, sandboxRoot, sourcePortAllowed, in)
 		}),
+		agentkit.NewTool(nameFileList, "List entries in the account's file share.", func(ctx context.Context, in fileListInput) (string, error) {
+			return fileList(ctx, share, in)
+		}),
 		agentkit.NewTool(nameFileGet, "Copy a file from the account's file share into the sandbox.", func(ctx context.Context, in fileGetInput) (string, error) {
 			return fileGet(ctx, sandboxRoot, share, in)
 		}),
 		agentkit.NewTool(nameFilePut, "Copy a sandbox file to the account's file share.", func(ctx context.Context, in filePutInput) (string, error) {
 			return filePut(ctx, sandboxRoot, share, in)
+		}),
+		agentkit.NewTool(nameFileDelete, "Delete a file or folder in the account's file share.", func(ctx context.Context, in fileDeleteInput) (string, error) {
+			return fileDelete(ctx, share, in)
+		}),
+		agentkit.NewTool(nameFileMove, "Move or rename an entry in the account's file share.", func(ctx context.Context, in fileMoveInput) (string, error) {
+			return fileMove(ctx, share, in)
+		}),
+		agentkit.NewTool(nameFileMkdir, "Create a folder in the account's file share.", func(ctx context.Context, in fileMkdirInput) (string, error) {
+			return fileMkdir(ctx, share, in)
 		}),
 	}
 }
@@ -121,6 +137,87 @@ type fileGetInput struct {
 type filePutInput struct {
 	SourcePath string `json:"source_path" jsonschema:"required,description=Sandbox file to copy, relative to the sandbox root"`
 	SharePath  string `json:"share_path" jsonschema:"required,description=Destination path in the share (overwrites)"`
+}
+
+type fileListInput struct {
+	Path   string `json:"path,omitempty" jsonschema:"description=Share folder to list (default: the share root)"`
+	Cursor string `json:"cursor,omitempty" jsonschema:"description=Continuation cursor from a previous FileList result"`
+	Limit  int    `json:"limit,omitempty" jsonschema:"description=Maximum entries to return"`
+}
+
+type fileDeleteInput struct {
+	SharePath string `json:"share_path" jsonschema:"required,description=Share file or folder to delete"`
+}
+
+type fileMoveInput struct {
+	From string `json:"from" jsonschema:"required,description=Current share path"`
+	To   string `json:"to" jsonschema:"required,description=New share path"`
+}
+
+type fileMkdirInput struct {
+	SharePath string `json:"share_path" jsonschema:"required,description=Share folder to create"`
+}
+
+func fileList(ctx context.Context, share ShareConfig, in fileListInput) (string, error) {
+	resp, err := shareRouteRequest(ctx, share, http.MethodGet, "/list", url.Values{
+		"path":   {in.Path},
+		"cursor": {in.Cursor},
+		"limit":  {strconv.Itoa(in.Limit)},
+	}, nil)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	if err := shareStatusError(resp); err != nil {
+		return "", err
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("source_unavailable: read file share response: %w", err)
+	}
+	return string(body), nil
+}
+
+func fileDelete(ctx context.Context, share ShareConfig, in fileDeleteInput) (string, error) {
+	resp, err := shareRouteRequest(ctx, share, http.MethodDelete, "/content", url.Values{"path": {in.SharePath}}, nil)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	if err := shareStatusError(resp); err != nil {
+		return "", err
+	}
+	return smallResult("deleted", in.SharePath)
+}
+
+func fileMove(ctx context.Context, share ShareConfig, in fileMoveInput) (string, error) {
+	resp, err := shareRouteRequest(ctx, share, http.MethodPost, "/move", url.Values{"from": {in.From}, "to": {in.To}}, nil)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	if err := shareStatusError(resp); err != nil {
+		return "", err
+	}
+	result, err := json.Marshal(map[string]string{"moved": in.From, "to": in.To})
+	return string(result), err
+}
+
+func fileMkdir(ctx context.Context, share ShareConfig, in fileMkdirInput) (string, error) {
+	resp, err := shareRouteRequest(ctx, share, http.MethodPost, "/mkdir", url.Values{"path": {in.SharePath}}, nil)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	if err := shareStatusError(resp); err != nil {
+		return "", err
+	}
+	return smallResult("created", in.SharePath)
+}
+
+func smallResult(key, value string) (string, error) {
+	result, err := json.Marshal(map[string]string{key: value})
+	return string(result), err
 }
 
 func fileGet(ctx context.Context, root string, share ShareConfig, in fileGetInput) (string, error) {
@@ -203,13 +300,15 @@ func filePut(ctx context.Context, root string, share ShareConfig, in filePutInpu
 }
 
 func shareRequest(ctx context.Context, share ShareConfig, method, sharePath string, body io.Reader) (*http.Response, error) {
-	u, err := url.Parse(strings.TrimRight(share.BaseURL, "/") + "/content")
+	return shareRouteRequest(ctx, share, method, "/content", url.Values{"path": {sharePath}}, body)
+}
+
+func shareRouteRequest(ctx context.Context, share ShareConfig, method, route string, query url.Values, body io.Reader) (*http.Response, error) {
+	u, err := url.Parse(strings.TrimRight(share.BaseURL, "/") + route)
 	if err != nil || u.Scheme == "" || u.Host == "" {
 		return nil, fmt.Errorf("source_unavailable: invalid file share base URL")
 	}
-	q := u.Query()
-	q.Set("path", sharePath)
-	u.RawQuery = q.Encode()
+	u.RawQuery = query.Encode()
 	req, err := http.NewRequestWithContext(ctx, method, u.String(), body)
 	if err != nil {
 		return nil, fmt.Errorf("source_unavailable: create file share request: %w", err)
