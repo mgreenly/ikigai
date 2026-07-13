@@ -25,17 +25,25 @@ import (
 )
 
 const (
-	nameBash  = "Bash"
-	nameRead  = "Read"
-	nameWrite = "Write"
-	nameEdit  = "Edit"
-	nameGlob  = "Glob"
-	nameGrep  = "Grep"
-	nameFetch = "Fetch"
+	nameBash    = "Bash"
+	nameRead    = "Read"
+	nameWrite   = "Write"
+	nameEdit    = "Edit"
+	nameGlob    = "Glob"
+	nameGrep    = "Grep"
+	nameFetch   = "Fetch"
+	nameFileGet = "FileGet"
+	nameFilePut = "FilePut"
 )
 
-// All returns the seven built-in tools confined to sandboxRoot.
-func All(sandboxRoot string, sourcePortAllowed func(port int) bool) []agentkit.Tool {
+// ShareConfig locates the account file share's loopback filesystem API.
+type ShareConfig struct {
+	BaseURL  string
+	ClientID string
+}
+
+// All returns the built-in tools confined to sandboxRoot.
+func All(sandboxRoot string, sourcePortAllowed func(port int) bool, share ShareConfig) []agentkit.Tool {
 	return []agentkit.Tool{
 		agentkit.NewTool(nameRead, "Read a file inside the sandbox.", func(ctx context.Context, in readInput) (string, error) {
 			return readFile(sandboxRoot, in)
@@ -57,6 +65,12 @@ func All(sandboxRoot string, sourcePortAllowed func(port int) bool) []agentkit.T
 		}),
 		agentkit.NewTool(nameFetch, "Fetch a suite content URL into the sandbox.", func(ctx context.Context, in fetchInput) (string, error) {
 			return fetchFile(ctx, sandboxRoot, sourcePortAllowed, in)
+		}),
+		agentkit.NewTool(nameFileGet, "Copy a file from the account's file share into the sandbox.", func(ctx context.Context, in fileGetInput) (string, error) {
+			return fileGet(ctx, sandboxRoot, share, in)
+		}),
+		agentkit.NewTool(nameFilePut, "Copy a sandbox file to the account's file share.", func(ctx context.Context, in filePutInput) (string, error) {
+			return filePut(ctx, sandboxRoot, share, in)
 		}),
 	}
 }
@@ -97,6 +111,137 @@ type grepInput struct {
 type fetchInput struct {
 	ContentURL string `json:"content_url" jsonschema:"required,description=A suite loopback content URL (e.g. from an event payload or a tool result)"`
 	DestPath   string `json:"dest_path" jsonschema:"required,description=Destination file path, relative to the sandbox root"`
+}
+
+type fileGetInput struct {
+	SharePath string `json:"share_path" jsonschema:"required,description=Path of the share file to copy"`
+	DestPath  string `json:"dest_path" jsonschema:"required,description=Destination file path, relative to the sandbox root"`
+}
+
+type filePutInput struct {
+	SourcePath string `json:"source_path" jsonschema:"required,description=Sandbox file to copy, relative to the sandbox root"`
+	SharePath  string `json:"share_path" jsonschema:"required,description=Destination path in the share (overwrites)"`
+}
+
+func fileGet(ctx context.Context, root string, share ShareConfig, in fileGetInput) (string, error) {
+	dest, err := confinePath(root, in.DestPath)
+	if err != nil {
+		return "", fmt.Errorf("validation: destination path must stay inside the sandbox: %w", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
+		return "", fmt.Errorf("source_unavailable: prepare destination: %w", err)
+	}
+	base, err := sandboxRoot(root)
+	if err != nil {
+		return "", fmt.Errorf("source_unavailable: resolve sandbox: %w", err)
+	}
+	tmp, err := os.CreateTemp(base, ".fileget-*")
+	if err != nil {
+		return "", fmt.Errorf("source_unavailable: create temporary file: %w", err)
+	}
+	tmpName := tmp.Name()
+	defer os.Remove(tmpName)
+
+	resp, err := shareRequest(ctx, share, http.MethodGet, in.SharePath, nil)
+	if err != nil {
+		_ = tmp.Close()
+		return "", err
+	}
+	defer resp.Body.Close()
+	if err := shareStatusError(resp); err != nil {
+		_ = tmp.Close()
+		return "", err
+	}
+	hash := sha256.New()
+	size, err := io.Copy(tmp, io.TeeReader(resp.Body, hash))
+	if closeErr := tmp.Close(); err == nil {
+		err = closeErr
+	}
+	if err != nil {
+		return "", fmt.Errorf("source_unavailable: stream file share content: %w", err)
+	}
+	if err := os.Rename(tmpName, dest); err != nil {
+		return "", fmt.Errorf("source_unavailable: finalize file share content: %w", err)
+	}
+	result, err := json.Marshal(struct {
+		Path        string `json:"path"`
+		Size        int64  `json:"size"`
+		ContentHash string `json:"content_hash"`
+	}{in.DestPath, size, fmt.Sprintf("%x", hash.Sum(nil))})
+	if err != nil {
+		return "", err
+	}
+	return string(result), nil
+}
+
+func filePut(ctx context.Context, root string, share ShareConfig, in filePutInput) (string, error) {
+	source, err := confinePath(root, in.SourcePath)
+	if err != nil {
+		return "", fmt.Errorf("validation: source path must stay inside the sandbox: %w", err)
+	}
+	file, err := os.Open(source)
+	if os.IsNotExist(err) {
+		return "", fmt.Errorf("not_found: sandbox source path is absent: %s", in.SourcePath)
+	}
+	if err != nil {
+		return "", fmt.Errorf("source_unavailable: open sandbox source: %w", err)
+	}
+	defer file.Close()
+	resp, err := shareRequest(ctx, share, http.MethodPut, in.SharePath, file)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	if err := shareStatusError(resp); err != nil {
+		return "", err
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("source_unavailable: read file share response: %w", err)
+	}
+	return string(body), nil
+}
+
+func shareRequest(ctx context.Context, share ShareConfig, method, sharePath string, body io.Reader) (*http.Response, error) {
+	u, err := url.Parse(strings.TrimRight(share.BaseURL, "/") + "/content")
+	if err != nil || u.Scheme == "" || u.Host == "" {
+		return nil, fmt.Errorf("source_unavailable: invalid file share base URL")
+	}
+	q := u.Query()
+	q.Set("path", sharePath)
+	u.RawQuery = q.Encode()
+	req, err := http.NewRequestWithContext(ctx, method, u.String(), body)
+	if err != nil {
+		return nil, fmt.Errorf("source_unavailable: create file share request: %w", err)
+	}
+	req.Header.Set("X-Client-Id", share.ClientID)
+	client := &http.Client{Transport: &http.Transport{
+		DialContext:           (&net.Dialer{Timeout: 10 * time.Second}).DialContext,
+		ResponseHeaderTimeout: 10 * time.Second,
+	}}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("source_unavailable: file share request: %w", err)
+	}
+	return resp, nil
+}
+
+func shareStatusError(resp *http.Response) error {
+	if resp.StatusCode >= http.StatusOK && resp.StatusCode < http.StatusMultipleChoices {
+		return nil
+	}
+	detail, _ := io.ReadAll(resp.Body)
+	text := strings.TrimSpace(string(detail))
+	switch resp.StatusCode {
+	case http.StatusBadRequest:
+		return fmt.Errorf("validation: %s", text)
+	case http.StatusNotFound:
+		return fmt.Errorf("not_found: the path is stale or absent — re-derive it, e.g. with FileList: %s", text)
+	case http.StatusConflict:
+		return fmt.Errorf("conflict: %s", text)
+	default:
+		return fmt.Errorf("source_unavailable: file share returned HTTP %d: %s", resp.StatusCode, text)
+	}
 }
 
 func fetchFile(ctx context.Context, root string, sourcePortAllowed func(int) bool, in fetchInput) (string, error) {

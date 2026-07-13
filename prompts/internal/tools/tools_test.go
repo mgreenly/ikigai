@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -19,11 +20,11 @@ import (
 	"github.com/ikigenba/agentkit"
 )
 
-func TestAllReturnsSevenBuiltInTools(t *testing.T) {
+func TestAllReturnsNineBuiltInTools(t *testing.T) {
 	// R-64QY-QN1H
-	got := All(t.TempDir(), func(int) bool { return false })
-	if len(got) != 7 {
-		t.Fatalf("All returned %d tools, want 7", len(got))
+	got := All(t.TempDir(), func(int) bool { return false }, ShareConfig{})
+	if len(got) != 9 {
+		t.Fatalf("All returned %d tools, want 9", len(got))
 	}
 
 	gotNames := make([]string, 0, len(got))
@@ -53,7 +54,7 @@ func TestAllReturnsSevenBuiltInTools(t *testing.T) {
 		}
 	}
 
-	wantNames := []string{nameRead, nameBash, nameWrite, nameEdit, nameGlob, nameGrep, nameFetch}
+	wantNames := []string{nameRead, nameBash, nameWrite, nameEdit, nameGlob, nameGrep, nameFetch, nameFileGet, nameFilePut}
 	if !reflect.DeepEqual(gotNames, wantNames) {
 		t.Fatalf("All tool names = %v, want %v", gotNames, wantNames)
 	}
@@ -65,8 +66,8 @@ func TestAllThreadsSandboxRootPerCall(t *testing.T) {
 	rootA := t.TempDir()
 	rootB := t.TempDir()
 
-	toolsA := All(rootA, func(int) bool { return false })
-	toolsB := All(rootB, func(int) bool { return false })
+	toolsA := All(rootA, func(int) bool { return false }, ShareConfig{})
+	toolsB := All(rootB, func(int) bool { return false }, ShareConfig{})
 
 	callTool(t, ctx, findTool(t, toolsA, nameWrite), map[string]any{
 		"file_path": "same.txt",
@@ -163,7 +164,7 @@ func TestAllRejectsSymlinkEscapes(t *testing.T) {
 		t.Skipf("symlink unavailable: %v", err)
 	}
 
-	builtins := All(root, func(int) bool { return false })
+	builtins := All(root, func(int) bool { return false }, ShareConfig{})
 	expectEscapeError(t, findTool(t, builtins, nameRead), map[string]any{
 		"file_path": "outside/secret.txt",
 	})
@@ -206,7 +207,7 @@ func TestFetchStreamsAllowedContentIntoSandbox(t *testing.T) {
 	defer server.Close()
 	port := serverPort(t, server.URL)
 	root := t.TempDir()
-	tool := findTool(t, All(root, func(got int) bool { return got == port }), nameFetch)
+	tool := findTool(t, All(root, func(got int) bool { return got == port }, ShareConfig{}), nameFetch)
 	raw := callTool(t, context.Background(), tool, map[string]any{"content_url": server.URL + "/content", "dest_path": "incoming/invoice.pdf"})
 	var result struct {
 		Path        string `json:"path"`
@@ -233,7 +234,7 @@ func TestFetchRejectsUnconfinedURLsAndDestinationsBeforeRequest(t *testing.T) {
 	defer server.Close()
 	port := serverPort(t, server.URL)
 	root := t.TempDir()
-	tool := findTool(t, All(root, func(got int) bool { return got == port }), nameFetch)
+	tool := findTool(t, All(root, func(got int) bool { return got == port }, ShareConfig{}), nameFetch)
 	for _, input := range []map[string]any{
 		{"content_url": "http://10.0.0.5:3202/file", "dest_path": "x"},
 		{"content_url": fmt.Sprintf("http://localhost:%d/file", port), "dest_path": "x"},
@@ -255,6 +256,144 @@ func TestFetchRejectsUnconfinedURLsAndDestinationsBeforeRequest(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(filepath.Dir(root), "outside.bin")); !os.IsNotExist(err) {
 		t.Fatalf("escaping destination exists: %v", err)
+	}
+}
+
+func TestFileGetStreamsShareContentAndRejectsEscapingDestination(t *testing.T) {
+	// R-F74Y-B8X1
+	// R-F8CU-P0NQ
+	body := []byte("known share invoice bytes\n")
+	requests := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		if r.Method != http.MethodGet || r.URL.Path != "/content" {
+			t.Errorf("request = %s %s, want GET /content", r.Method, r.URL.Path)
+		}
+		if r.URL.RawQuery != "path="+url.QueryEscape("/invoices/june 2026.pdf") {
+			t.Errorf("raw query = %q", r.URL.RawQuery)
+		}
+		if got := r.Header.Get("X-Client-Id"); got != "prompts:prompt_123" {
+			t.Errorf("X-Client-Id = %q", got)
+		}
+		if got := r.Header.Get("X-Owner-Email"); got != "" {
+			t.Errorf("X-Owner-Email = %q, want empty", got)
+		}
+		if got := r.Header.Get("X-Forwarded-Proto"); got != "" {
+			t.Errorf("X-Forwarded-Proto = %q, want empty", got)
+		}
+		_, _ = w.Write(body)
+	}))
+	defer server.Close()
+	root := t.TempDir()
+	tool := findTool(t, All(root, func(int) bool { return false }, ShareConfig{BaseURL: server.URL, ClientID: "prompts:prompt_123"}), nameFileGet)
+	raw := callTool(t, context.Background(), tool, map[string]any{"share_path": "/invoices/june 2026.pdf", "dest_path": "inbox/june.pdf"})
+	var result struct {
+		Path        string `json:"path"`
+		Size        int64  `json:"size"`
+		ContentHash string `json:"content_hash"`
+	}
+	if err := json.Unmarshal([]byte(raw), &result); err != nil {
+		t.Fatalf("result JSON: %v", err)
+	}
+	if result.Path != "inbox/june.pdf" || result.Size != int64(len(body)) || result.ContentHash != fmt.Sprintf("%x", sha256.Sum256(body)) {
+		t.Fatalf("result = %+v", result)
+	}
+	assertFileContent(t, filepath.Join(root, "inbox", "june.pdf"), string(body))
+	_, err := tool.Call(context.Background(), mustJSON(t, map[string]any{"share_path": "/ignored", "dest_path": "../outside.bin"}))
+	if err == nil || !strings.HasPrefix(err.Error(), "validation:") {
+		t.Fatalf("escape error = %v, want validation", err)
+	}
+	if requests != 1 {
+		t.Fatalf("request count = %d, want 1", requests)
+	}
+	if _, err := os.Stat(filepath.Join(filepath.Dir(root), "outside.bin")); !os.IsNotExist(err) {
+		t.Fatalf("escaping destination exists: %v", err)
+	}
+}
+
+func TestFilePutStreamsSandboxContentAndRejectsInvalidSources(t *testing.T) {
+	// R-F74Y-B8X1
+	// R-F9KR-2SEF
+	root := t.TempDir()
+	body := []byte("extraction artifact\n")
+	if err := os.WriteFile(filepath.Join(root, "result.json"), body, 0o644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	requests := 0
+	response := `{"path":"/results/result.json","size":19,"content_hash":"opaque-rev-hash","rev":"rev-7"}`
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		if r.Method != http.MethodPut || r.URL.Path != "/content" {
+			t.Errorf("request = %s %s, want PUT /content", r.Method, r.URL.Path)
+		}
+		if r.URL.RawQuery != "path="+url.QueryEscape("/results/result.json") {
+			t.Errorf("raw query = %q", r.URL.RawQuery)
+		}
+		gotBody, err := io.ReadAll(r.Body)
+		if err != nil || string(gotBody) != string(body) {
+			t.Errorf("body = %q, err = %v", gotBody, err)
+		}
+		if got := r.Header.Get("X-Client-Id"); got != "prompts:prompt_123" {
+			t.Errorf("X-Client-Id = %q", got)
+		}
+		if r.Header.Get("X-Owner-Email") != "" || r.Header.Get("X-Forwarded-Proto") != "" {
+			t.Errorf("unexpected nginx identity headers")
+		}
+		_, _ = io.WriteString(w, response)
+	}))
+	defer server.Close()
+	tool := findTool(t, All(root, func(int) bool { return false }, ShareConfig{BaseURL: server.URL, ClientID: "prompts:prompt_123"}), nameFilePut)
+	if got := callTool(t, context.Background(), tool, map[string]any{"source_path": "result.json", "share_path": "/results/result.json"}); got != response {
+		t.Fatalf("result = %q, want verbatim %q", got, response)
+	}
+	for _, source := range []string{"../outside.json", "missing.json"} {
+		_, err := tool.Call(context.Background(), mustJSON(t, map[string]any{"source_path": source, "share_path": "/ignored"}))
+		want := "not_found:"
+		if source == "../outside.json" {
+			want = "validation:"
+		}
+		if err == nil || !strings.HasPrefix(err.Error(), want) {
+			t.Fatalf("source %q error = %v, want %s", source, err, want)
+		}
+	}
+	if requests != 1 {
+		t.Fatalf("request count = %d, want 1", requests)
+	}
+}
+
+func TestFileShareFailureMapping(t *testing.T) {
+	// R-FD8G-83MI
+	root := t.TempDir()
+	status := http.StatusBadRequest
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(status)
+		_, _ = io.WriteString(w, "share detail")
+	}))
+	defer server.Close()
+	get := findTool(t, All(root, func(int) bool { return false }, ShareConfig{BaseURL: server.URL, ClientID: "prompts:p"}), nameFileGet)
+	for _, tc := range []struct {
+		status int
+		prefix string
+	}{{http.StatusBadRequest, "validation:"}, {http.StatusNotFound, "not_found:"}, {http.StatusConflict, "conflict:"}} {
+		status = tc.status
+		_, err := get.Call(context.Background(), mustJSON(t, map[string]any{"share_path": "/missing", "dest_path": "failed.bin"}))
+		if err == nil || !strings.HasPrefix(err.Error(), tc.prefix) {
+			t.Fatalf("HTTP %d error = %v, want %s", tc.status, err, tc.prefix)
+		}
+		if tc.status == http.StatusBadRequest && !strings.Contains(err.Error(), "share detail") {
+			t.Fatalf("400 error omitted detail: %v", err)
+		}
+		if _, statErr := os.Stat(filepath.Join(root, "failed.bin")); !os.IsNotExist(statErr) {
+			t.Fatalf("failed FileGet left destination: %v", statErr)
+		}
+	}
+	put := findTool(t, All(root, func(int) bool { return false }, ShareConfig{BaseURL: "http://127.0.0.1:1", ClientID: "prompts:p"}), nameFilePut)
+	if err := os.WriteFile(filepath.Join(root, "source.bin"), []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, err := put.Call(context.Background(), mustJSON(t, map[string]any{"source_path": "source.bin", "share_path": "/x"}))
+	if err == nil || !strings.HasPrefix(err.Error(), "source_unavailable:") {
+		t.Fatalf("connection-refused error = %v", err)
 	}
 }
 
@@ -282,7 +421,7 @@ func TestFetchMapsSourceFailuresWithoutDestinationFile(t *testing.T) {
 	closedPort := closed.Addr().(*net.TCPAddr).Port
 	_ = closed.Close()
 	root := t.TempDir()
-	tool := findTool(t, All(root, func(got int) bool { return got == port || got == closedPort }), nameFetch)
+	tool := findTool(t, All(root, func(got int) bool { return got == port || got == closedPort }, ShareConfig{}), nameFetch)
 	for path, prefix := range map[string]string{"/missing": "not_found:", "/conflict": "conflict:", "/redirect": "source_unavailable:"} {
 		dest := "failed" + strings.ReplaceAll(path, "/", "_")
 		_, err := tool.Call(context.Background(), mustJSON(t, map[string]any{"content_url": source.URL + path, "dest_path": dest}))

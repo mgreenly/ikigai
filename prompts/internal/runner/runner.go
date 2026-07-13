@@ -48,6 +48,8 @@ type Runner struct {
 	discover func(ctx context.Context, owner, promptID string) []agentkit.DeferredToolGroup
 	// sourcePortAllowed confines Fetch to registered loopback services.
 	sourcePortAllowed func(port int) bool
+	// shareBaseURL locates the account file share for the File* tools.
+	shareBaseURL string
 
 	mu      sync.Mutex
 	cancels map[string]context.CancelFunc
@@ -61,7 +63,7 @@ type Runner struct {
 // every run's wall-clock; on expiry the run ends failed with a TTL error.
 // manifestRoot is the box inventory root (PROMPTS_MANIFEST_ROOT) threaded into
 // the default suite-discovery closure.
-func New(store *prompt.Store, sb *sandbox.Manager, ttl time.Duration, manifestRoot string, sourcePortAllowed func(int) bool) *Runner {
+func New(store *prompt.Store, sb *sandbox.Manager, ttl time.Duration, manifestRoot string, sourcePortAllowed func(int) bool, shareBaseURL string) *Runner {
 	return &Runner{
 		store:         store,
 		sandbox:       sb,
@@ -71,6 +73,7 @@ func New(store *prompt.Store, sb *sandbox.Manager, ttl time.Duration, manifestRo
 			return suite.Discover(ctx, manifestRoot, owner, promptID)
 		},
 		sourcePortAllowed: sourcePortAllowed,
+		shareBaseURL:      shareBaseURL,
 		cancels:           make(map[string]context.CancelFunc),
 		userCancelled:     make(map[string]bool),
 	}
@@ -227,7 +230,7 @@ func (r *Runner) execute(run prompt.Run) {
 		Log:               logSink,
 		Gen:               genSettings(cfg),
 		Retry:             retryPolicy(cfg),
-		Tools:             runtools.All(sandboxRoot, r.sourcePortAllowed),
+		Tools:             runtools.All(sandboxRoot, r.sourcePortAllowed, runtools.ShareConfig{BaseURL: r.shareBaseURL, ClientID: "prompts:" + run.PromptID}),
 		DeferredTools:     r.discover(ctx, run.OwnerEmail, run.PromptID),
 		MaxToolIterations: cfg.ToolLoopLimit,
 	}

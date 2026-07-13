@@ -162,7 +162,7 @@ func newTestRunner(t *testing.T, ttl time.Duration, fp agentkit.Provider) (*Runn
 		t.Fatalf("sandbox.New: %v", err)
 	}
 
-	r := New(store, sb, ttl, t.TempDir(), func(int) bool { return false })
+	r := New(store, sb, ttl, t.TempDir(), func(int) bool { return false }, "")
 	r.buildProvider = func(prompt.Config, func(string) string) (agentkit.Provider, error) { return fp, nil }
 	return r, store
 }
@@ -686,7 +686,7 @@ func TestNew_DefaultDiscoverWired(t *testing.T) {
 		t.Fatalf("sandbox.New: %v", err)
 	}
 
-	r := New(prompt.NewStore(conn), sb, time.Minute, t.TempDir(), func(int) bool { return false })
+	r := New(prompt.NewStore(conn), sb, time.Minute, t.TempDir(), func(int) bool { return false }, "")
 	if r.discover == nil {
 		t.Fatalf("New left discover seam nil")
 	}
