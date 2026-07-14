@@ -3,11 +3,14 @@ package gh
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
 	"strings"
 	"testing"
+
+	"appkit/server"
 )
 
 func TestPRHandlerLoopbackReturnsPRDetailR_EPVL_Z2UI(t *testing.T) {
@@ -56,36 +59,54 @@ func TestPRHandlerLoopbackReturnsPRDetailR_EPVL_Z2UI(t *testing.T) {
 	}
 }
 
-func TestPRHandlerIdentityHeaders404R_ER3I_CUL7(t *testing.T) {
-	// R-ER3I-CUL7
-	tests := []struct {
-		name   string
-		header string
-	}{
-		{name: "owner email", header: "X-Owner-Email"},
-		{name: "forwarded proto", header: "X-Forwarded-Proto"},
+func TestPRHandlerChassisLoopbackGuardR_FT0R_PBSD(t *testing.T) {
+	// R-FT0R-PBSD
+	c := newPRRouteNoTransportClient(t)
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/pr?repo=widgets&number=7", nil)
+	req.Header.Set("X-Forwarded-Proto", "https")
+	newPRRouteServer(t, c).ServeHTTP(rr, req)
+	if rr.Code != http.StatusNotFound || rr.Body.String() != "404 page not found\n" {
+		t.Fatalf("forwarded request = %d %q, want bare 404", rr.Code, rr.Body.String())
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c := newPRRouteNoTransportClient(t)
-			rr := httptest.NewRecorder()
-			req := httptest.NewRequest(http.MethodGet, "/pr?repo=widgets&number=7", nil)
-			req.Header.Set(tt.header, "present")
-
-			c.PRHandler().ServeHTTP(rr, req)
-
-			if rr.Code != http.StatusNotFound {
-				t.Fatalf("status = %d, want 404; body %q", rr.Code, rr.Body.String())
-			}
-			body := rr.Body.String()
-			for _, forbidden := range []string{"Add thing", "html_url", "files", "main.go"} {
-				if strings.Contains(body, forbidden) {
-					t.Fatalf("404 body leaked PR data %q in %q", forbidden, body)
-				}
-			}
-		})
+	c = newRESTTestClient(t, func(req *http.Request) (*http.Response, error) {
+		switch req.URL.Path {
+		case "/repos/acme/widgets/pulls/7":
+			return jsonResponse(http.StatusOK, `{"number":7,"title":"Add thing","state":"open","body":"ready","html_url":"https://example.test/pr/7"}`), nil
+		case "/repos/acme/widgets/pulls/7/files":
+			return jsonResponse(http.StatusOK, `[]`), nil
+		default:
+			t.Fatalf("unexpected path %s", req.URL.Path)
+			return nil, nil
+		}
+	})
+	rr = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodGet, "/pr?repo=widgets&number=7", nil)
+	req.Header.Set("X-Owner-Email", "owner@example.com")
+	newPRRouteServer(t, c).ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK || !strings.Contains(rr.Body.String(), `"number":7`) {
+		t.Fatalf("loopback identity request = %d %q, want PR JSON", rr.Code, rr.Body.String())
 	}
+}
+
+func newPRRouteServer(t *testing.T, c *Client) http.Handler {
+	t.Helper()
+	srv, err := server.New(server.Options{
+		Addr:    "127.0.0.1:0",
+		Logger:  slog.New(slog.DiscardHandler),
+		Apex:    true,
+		Version: "test",
+		Service: "github",
+		Register: func(rt *server.Router) error {
+			rt.HandleLoopback("GET /pr", c.PRHandler())
+			return nil
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return srv.Handler
 }
 
 func TestPRHandlerBadInputAndNotFoundR_ETJB_4E2L(t *testing.T) {

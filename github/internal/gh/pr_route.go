@@ -11,11 +11,6 @@ import (
 // PRHandler returns the loopback GET /pr handler.
 func (c *Client) PRHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if hasIdentityHeader(r.Header, "X-Owner-Email") || hasIdentityHeader(r.Header, "X-Forwarded-Proto") {
-			http.NotFound(w, r)
-			return
-		}
-
 		repo := strings.TrimSpace(r.URL.Query().Get("repo"))
 		number, err := strconv.Atoi(strings.TrimSpace(r.URL.Query().Get("number")))
 		if repo == "" || err != nil || number <= 0 {
@@ -38,13 +33,4 @@ func (c *Client) PRHandler() http.Handler {
 			http.Error(w, "encode response", http.StatusInternalServerError)
 		}
 	})
-}
-
-func hasIdentityHeader(h http.Header, name string) bool {
-	for key := range h {
-		if strings.EqualFold(key, name) {
-			return true
-		}
-	}
-	return false
 }

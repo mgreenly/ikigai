@@ -266,7 +266,7 @@ func TestCompositionRootMountsLandingUngatedAndKeepsMCPWiring(t *testing.T) {
 	for _, want := range []string{
 		`rt.Handle("GET /{$}", web.LandingHandler(rt.Service(), rt.Version()))`,
 		`rt.Handle("POST /mcp", rt.RequireIdentity(`,
-		`mcp.NewHandler(client, rt.Version(), rt.Service(), health, rt.Logger()))`,
+		`mcp.NewHandler(client, rt)`,
 	} {
 		if !strings.Contains(spec, want) {
 			t.Fatalf("internal/githubapp/spec.go missing %q", want)

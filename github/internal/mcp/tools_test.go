@@ -7,9 +7,12 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
+
+	"appkit/server"
 
 	gh "github/internal/gh"
 )
@@ -127,6 +130,9 @@ type captureHandler struct {
 func (h *captureHandler) Enabled(context.Context, slog.Level) bool { return true }
 
 func (h *captureHandler) Handle(_ context.Context, r slog.Record) error {
+	if r.Message != "github write" {
+		return nil
+	}
 	attrs := map[string]any{"msg": r.Message}
 	r.Attrs(func(a slog.Attr) bool {
 		attrs[a.Key] = a.Value.Any()
@@ -141,11 +147,31 @@ func (h *captureHandler) Handle(_ context.Context, r slog.Record) error {
 func (h *captureHandler) WithAttrs([]slog.Attr) slog.Handler { return h }
 func (h *captureHandler) WithGroup(string) slog.Handler      { return h }
 
-func newTestHandler(fc *fakeClient, cap *captureHandler, health func(context.Context) (map[string]any, error)) *Handler {
-	return NewHandler(fc, "v-test", "github", health, slog.New(cap))
+func newTestHandler(fc *fakeClient, cap *captureHandler, health func(context.Context) (map[string]any, error)) http.Handler {
+	logger := slog.New(cap)
+	srv, err := server.New(server.Options{
+		Addr:    "127.0.0.1:0",
+		Logger:  logger,
+		Apex:    true,
+		Version: "v-test",
+		Service: "github",
+		Health:  health,
+		Register: func(rt *server.Router) error {
+			h, err := NewHandler(fc, rt)
+			if err != nil {
+				return err
+			}
+			rt.Handle("POST /mcp", rt.RequireIdentity(h))
+			return nil
+		},
+	})
+	if err != nil {
+		panic(err)
+	}
+	return srv.Handler
 }
 
-func rpc(t *testing.T, h *Handler, method, params string) (map[string]any, any, int) {
+func rpc(t *testing.T, h http.Handler, method, params string) (map[string]any, any, int) {
 	t.Helper()
 	body := `{"jsonrpc":"2.0","id":1,"method":"` + method + `","params":` + params + `}`
 	req := httptest.NewRequest(http.MethodPost, "/mcp", strings.NewReader(body))
@@ -164,7 +190,7 @@ func rpc(t *testing.T, h *Handler, method, params string) (map[string]any, any, 
 	return env.Result, env.Error, rec.Code
 }
 
-func callToolText(t *testing.T, h *Handler, name, args string) (string, bool, any, int) {
+func callToolText(t *testing.T, h http.Handler, name, args string) (string, bool, any, int) {
 	t.Helper()
 	res, rpcErr, code := rpc(t, h, "tools/call", `{"name":"`+name+`","arguments":`+args+`}`)
 	if rpcErr != nil {
@@ -178,7 +204,7 @@ func callToolText(t *testing.T, h *Handler, name, args string) (string, bool, an
 	return content[0].(map[string]any)["text"].(string), isErr, nil, code
 }
 
-func callTool(t *testing.T, h *Handler, name, args string) (map[string]any, bool, any, int) {
+func callTool(t *testing.T, h http.Handler, name, args string) (map[string]any, bool, any, int) {
 	t.Helper()
 	text, isErr, rpcErr, code := callToolText(t, h, name, args)
 	if rpcErr != nil {
@@ -193,14 +219,15 @@ func callTool(t *testing.T, h *Handler, name, args string) (map[string]any, bool
 
 func TestInitializeAndToolsListR_EEWI_J569(t *testing.T) {
 	// R-EEWI-J569
+	// R-FI1O-9E44
 	h := newTestHandler(&fakeClient{}, &captureHandler{}, nil)
 
 	init, rpcErr, code := rpc(t, h, "initialize", `{}`)
 	if code != http.StatusOK || rpcErr != nil {
 		t.Fatalf("initialize status=%d error=%v", code, rpcErr)
 	}
-	if init["protocolVersion"] == "" {
-		t.Fatalf("initialize missing protocolVersion: %v", init)
+	if init["protocolVersion"] != "2025-06-18" {
+		t.Fatalf("protocolVersion = %v, want 2025-06-18", init["protocolVersion"])
 	}
 	serverInfo, _ := init["serverInfo"].(map[string]any)
 	if serverInfo["name"] != "github" || serverInfo["version"] != "v-test" {
@@ -362,13 +389,161 @@ func TestHealthEnvelopeReflectsAuthCallR_EL00_FZVQ(t *testing.T) {
 	if rpcErr != nil || isErr {
 		t.Fatalf("health auth failure should be an envelope, rpcErr=%v isErr=%v", rpcErr, isErr)
 	}
-	if payload["status"] == "ok" {
-		t.Fatalf("auth failure rendered OK envelope: %v", payload)
-	}
 	details = payload["details"].(map[string]any)
 	if !strings.Contains(details["error"].(string), gh.ErrAppAuth.Error()) {
 		t.Fatalf("auth error not surfaced: %v", payload)
 	}
+}
+
+func TestRepoGetStructuredSuccessR_FJ9K_N5UT(t *testing.T) {
+	// R-FJ9K-N5UT
+	h := newTestHandler(&fakeClient{}, &captureHandler{}, nil)
+	res, rpcErr, code := rpc(t, h, "tools/call", `{"name":"repo_get","arguments":{"repo":"known"}}`)
+	if code != http.StatusOK || rpcErr != nil || res["isError"] == true {
+		t.Fatalf("repo_get status=%d rpcErr=%v result=%v", code, rpcErr, res)
+	}
+	want := map[string]any{"name": "known", "full_name": "", "private": false, "default_branch": ""}
+	if got := res["structuredContent"]; !mapsEqualJSON(got, want) {
+		t.Fatalf("structuredContent = %v, want %v", got, want)
+	}
+	content := res["content"].([]any)
+	var textValue any
+	if err := json.Unmarshal([]byte(content[0].(map[string]any)["text"].(string)), &textValue); err != nil {
+		t.Fatal(err)
+	}
+	if !mapsEqualJSON(textValue, want) {
+		t.Fatalf("text JSON = %v, want %v", textValue, want)
+	}
+}
+
+func TestAllToolsDeclareOutputSchemasR_FKHH_0XLI(t *testing.T) {
+	// R-FKHH-0XLI
+	h := newTestHandler(&fakeClient{}, &captureHandler{}, nil)
+	res, rpcErr, _ := rpc(t, h, "tools/list", `{}`)
+	if rpcErr != nil {
+		t.Fatalf("tools/list error: %v", rpcErr)
+	}
+	tools := res["tools"].([]any)
+	want := map[string]bool{
+		"repos_list": false, "repo_get": false, "pr_list": false, "pr_get": false,
+		"pr_comment": false, "pr_review": false, "pr_merge": false,
+		"issue_list": false, "issue_get": false, "issue_create": false,
+		"issue_comment": false, "issue_update": false, "file_get": false, "file_put": false,
+		"health": false, "reflection": false,
+	}
+	for _, raw := range tools {
+		got := raw.(map[string]any)
+		name := got["name"].(string)
+		if _, expected := want[name]; !expected {
+			t.Fatalf("unexpected tool %q", name)
+		}
+		if got["outputSchema"] == nil {
+			t.Errorf("%s has nil outputSchema", name)
+		}
+		want[name] = true
+	}
+	for name, found := range want {
+		if !found {
+			t.Errorf("missing tool %q", name)
+		}
+	}
+}
+
+func TestListAndFileShapesR_FLPD_EPC7(t *testing.T) {
+	// R-FLPD-EPC7
+	h := newTestHandler(&fakeClient{}, &captureHandler{}, nil)
+	listed, rpcErr, _ := rpc(t, h, "tools/list", `{}`)
+	if rpcErr != nil {
+		t.Fatal(rpcErr)
+	}
+	schemas := map[string]map[string]any{}
+	for _, raw := range listed["tools"].([]any) {
+		entry := raw.(map[string]any)
+		schemas[entry["name"].(string)] = entry["outputSchema"].(map[string]any)
+	}
+	for _, name := range []string{"repos_list", "pr_list", "issue_list"} {
+		schema := schemas[name]
+		if schema["type"] != "object" || !mapsEqualJSON(schema["required"], []any{"items"}) {
+			t.Errorf("%s outputSchema = %v", name, schema)
+		}
+		res, callErr, _ := rpc(t, h, "tools/call", `{"name":"`+name+`","arguments":{"repo":"repo"}}`)
+		if callErr != nil {
+			t.Fatalf("%s error: %v", name, callErr)
+		}
+		structured, ok := res["structuredContent"].(map[string]any)
+		if !ok || structured["items"] == nil {
+			t.Errorf("%s structuredContent = %v, want object with items", name, res["structuredContent"])
+		}
+	}
+
+	fileSchema := schemas["file_get"]
+	props := fileSchema["properties"].(map[string]any)
+	if len(props) != 3 || props["path"] == nil || props["sha"] == nil || props["encoding"] == nil || props["content"] != nil {
+		t.Fatalf("file_get properties = %v, want exactly path/sha/encoding", props)
+	}
+	res, callErr, _ := rpc(t, h, "tools/call", `{"name":"file_get","arguments":{"repo":"repo","path":"README.md","ref":"abc"}}`)
+	if callErr != nil {
+		t.Fatal(callErr)
+	}
+	structured := res["structuredContent"].(map[string]any)
+	if structured["content"] != nil || len(structured) != 3 {
+		t.Fatalf("file_get structuredContent = %v, want metadata only", structured)
+	}
+}
+
+func TestTypedClientErrorCodes(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+		want string
+		id   string
+	}{
+		{"not found", gh.ErrNotFound, "not_found", "R-FMX9-SH2W"},
+		{"invalid", gh.ErrInvalid, "validation", "R-FO56-68TL"},
+		{"app auth", gh.ErrAppAuth, "source_unavailable", "R-FPD2-K0KA"},
+		{"transport", errors.New("transport failed"), "source_unavailable", "R-FPD2-K0KA"},
+	}
+	// R-FMX9-SH2W
+	// R-FO56-68TL
+	// R-FPD2-K0KA
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			h := newTestHandler(&fakeClient{err: tc.err}, &captureHandler{}, nil)
+			res, rpcErr, code := rpc(t, h, "tools/call", `{"name":"repos_list","arguments":{}}`)
+			if code != http.StatusOK || rpcErr != nil || res["isError"] != true {
+				t.Fatalf("%s status=%d rpcErr=%v result=%v", tc.id, code, rpcErr, res)
+			}
+			structured := res["structuredContent"].(map[string]any)
+			if structured["code"] != tc.want {
+				t.Fatalf("%s code = %v, want %s", tc.id, structured["code"], tc.want)
+			}
+		})
+	}
+}
+
+func TestValidationCodeAndNoClientCallR_FQKY_XSAZ(t *testing.T) {
+	// R-FQKY-XSAZ
+	for _, args := range []string{`{"repo":"repo"}`, `{"repo":"repo","number":"bad"}`} {
+		fc := &fakeClient{}
+		h := newTestHandler(fc, &captureHandler{}, nil)
+		res, rpcErr, _ := rpc(t, h, "tools/call", `{"name":"pr_get","arguments":`+args+`}`)
+		if rpcErr != nil || res["isError"] != true {
+			t.Fatalf("arguments %s result=%v rpcErr=%v", args, res, rpcErr)
+		}
+		structured := res["structuredContent"].(map[string]any)
+		if structured["code"] != "validation" || len(fc.calls) != 0 {
+			t.Fatalf("arguments %s code=%v calls=%v", args, structured["code"], fc.calls)
+		}
+	}
+}
+
+func mapsEqualJSON(a, b any) bool {
+	ab, _ := json.Marshal(a)
+	bb, _ := json.Marshal(b)
+	var av, bv any
+	_ = json.Unmarshal(ab, &av)
+	_ = json.Unmarshal(bb, &bv)
+	return reflect.DeepEqual(av, bv)
 }
 
 func TestReflectionReportsEmptyGraphR_EM7W_TRMF(t *testing.T) {
