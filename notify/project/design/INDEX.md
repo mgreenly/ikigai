@@ -20,6 +20,7 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - D14 → `project/design/D14.md` — Delete the chassis shims (`internal/db` wrappers) and true up the doctrine doc — none (structural)
 - D15 → `project/design/D15.md` — The session-gated locations opt into the apex `@login_bounce`: a logged-out human navigation goes to sign-in, not a bare 401 (bearer tier deliberately excluded) — owns R-3IZH-DPMO, R-3K7D-RHDD, R-3LFA-5942
 - D16 → `project/design/D16.md` — Event-routing conformance (consumer side): canonical-key subscription filters, kind/subject handler matching — owns R-ZCGU-FG9L, R-ZEWN-6ZQZ, R-ZG4J-KRHO, R-ZHCF-YJ8D
+- D17 → `project/design/D17.md` — Structured MCP adoption: `send` returns `structuredContent`, declares an `outputSchema`, and carries typed error codes (`validation`, `source_unavailable`) from the closed vocabulary — owns R-A918-YY6H, R-AA95-CPX6, R-ACOY-49EK, R-ADWU-I159
 
 ## Verification ids → Decision
 
@@ -36,6 +37,10 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - R-8M7T-A9VB → D8 → `project/design/D08.md`
 - R-8NFP-O1M0 → D8 → `project/design/D08.md`
 - R-8ONM-1TCP → D8 → `project/design/D08.md`
+- R-A918-YY6H → D17 → `project/design/D17.md`
+- R-AA95-CPX6 → D17 → `project/design/D17.md`
+- R-ACOY-49EK → D17 → `project/design/D17.md`
+- R-ADWU-I159 → D17 → `project/design/D17.md`
 - R-ASST-3K9T → D3 → `project/design/D03.md`
 - R-ASST-5L2V → D3 → `project/design/D03.md`
 - R-ASST-7M4W → D3 → `project/design/D03.md`

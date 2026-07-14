@@ -12,7 +12,7 @@ single, current statement of the architecture — it is rewritten in place to
 stay true (stale decisions are removed, not stacked); the history of how it got
 here lives in the plan.
 
-> **Scope.** This design's Decisions cover three threads:
+> **Scope.** This design's Decisions cover five threads:
 >
 > 1. **The web landing page** (D1–D8, built; substrate moved by D12): the
 >    page's content, route, session gate, canonical markup, and self-served
@@ -36,6 +36,15 @@ here lives in the plan.
 >    nothing, so there is no outbox and no migration. The revised eventplane
 >    (its design D1–D4) and the conformed appkit chassis are fixed external
 >    contracts, operator-sequenced ahead of the build.
+> 5. **Structured MCP adoption** (D17, active): the `send` tool adopts the
+>    suite's structured-MCP contract (`docs/structured-mcp-design.md`) — a
+>    `StructuredResult` success carrying `structuredContent`, a declared
+>    `outputSchema`, and typed error codes from the closed vocabulary
+>    (`validation`, and `source_unavailable` for an ntfy rejection/unreachable —
+>    the retired `upstream` code is gone). No domain behavior changes; no guard
+>    swap (notify holds no hand-copied loopback guard); no migration. appkit's
+>    revised `appkit/mcp` (protocol `2025-06-18`, `StructuredResult`,
+>    `ErrorResult(code, msg)`, `Tool.OutputSchema`) is a fixed external contract.
 >
 > The rest of the notify domain (the ntfy push mechanics —
 > `Client`/`Publish`/`Send` — and the event-plane wire contract itself) is
@@ -121,8 +130,11 @@ approach every Decision's Verification list assumes:
 - **The MCP surface is tested through the assembled chassis handler.** The
   `internal/mcp` tests build `NewHandler` over a mock-ntfy `push.Client` and
   drive `tools/list`/`tools/call` through the real appkit/mcp `ServeHTTP` seam,
-  keeping the pre-conversion behavioral assertions (header mapping, validation
-  rejections, no secret leakage).
+  keeping the behavioral assertions (header mapping, validation rejections, no
+  secret leakage) and — per D17 — asserting the structured-MCP shapes over that
+  same seam: `send`'s success `structuredContent` (`{"ok":true}`), its declared
+  `outputSchema` in `tools/list`, and the typed error codes (`validation`,
+  `source_unavailable`) in the error `structuredContent`.
 - **The consumer declaration is tested at the Spec and handler seams.** The
   Spec's `Consumers` table is asserted directly (sources, order, subscription
   lists); each handler factory is invoked with a Router and its handler driven
