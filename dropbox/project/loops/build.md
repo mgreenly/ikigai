@@ -1,6 +1,6 @@
 ---
 harness: codex
-model: gpt-5.6-terra
+model: gpt-5.6-sol
 ---
 # build — advance the current phase, closing verify's gaps first
 

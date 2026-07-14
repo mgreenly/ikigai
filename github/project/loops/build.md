@@ -1,3 +1,7 @@
+---
+harness: codex
+model: gpt-5.6-sol
+---
 # Loop: build
 
 You run from the **service root** (`github/`), in a fresh, isolated context. You
