@@ -34,21 +34,23 @@ Shared facts every Decision leans on.
 - **Package layout.** `cmd/github/main.go` is the composition root (`appkit.Main`
   over the Spec); domain packages live under `internal/`:
   `internal/githubapp` (the appkit Spec), `internal/gh` (the GitHub auth + REST
-  client), `internal/mcp` (the JSON-RPC tool surface), `internal/db` (the embedded
-  migration set), `internal/web` (the landing page + embedded assets). The
-  loopback PR route lives in `internal/gh`.
+  client), `internal/mcp` (the domain tool registrations over the shared
+  `appkit/mcp` transport — D8), `internal/db` (the embedded migration set),
+  `internal/web` (the landing page + embedded assets). The loopback PR route lives
+  in `internal/gh`.
 - **Non-secret config, read at the composition root.** `internal/githubapp.Spec`'s
   `Handlers` hook reads `IKIGENBA_APP_ID`, `IKIGENBA_GITHUB_ORG`, and
   `IKIGENBA_APP_PRIVATE_KEY` from the environment once, at the boundary, and passes
   them into the client. The private key value is **never logged**. No package below
   the composition root reads the environment. (`IKIGENBA_APP_CLIENT_SECRET` exists
   but is unused in v1.)
-- **Zero new third-party dependencies.** The GitHub client, the RS256 app-JWT
-  signing, and the JSON-RPC transport use only the Go standard library
-  (`crypto/rsa`, `crypto/x509`, `crypto/sha256`, `encoding/pem`, `encoding/base64`,
-  `encoding/json`, `net/http`). No `go-github`, no JWT library, no `x/oauth2`. The
-  module's dependency set matches the chassis's existing closure (sqlite via
-  appkit) and adds nothing.
+- **Zero new third-party dependencies.** The GitHub client and the RS256 app-JWT
+  signing use only the Go standard library (`crypto/rsa`, `crypto/x509`,
+  `crypto/sha256`, `encoding/pem`, `encoding/base64`, `encoding/json`,
+  `net/http`); the JSON-RPC transport is the shared `appkit/mcp` (D8), not
+  hand-rolled here. No `go-github`, no JWT library, no `x/oauth2`. The module's
+  dependency set matches the chassis's existing closure (sqlite via appkit) and
+  adds nothing.
 - **Build / typecheck command.** `GOWORK=off go build ./...` from the module root
   (`github/`). Forcing `GOWORK=off` matches the deterministic production build and
   proves the module resolves standalone via its `replace` directives.

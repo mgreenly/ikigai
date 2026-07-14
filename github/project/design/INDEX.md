@@ -11,9 +11,10 @@ Verification ids change.
 - D2 → `project/design/D02.md` — App authentication: the installation-token source — owns `R-DLMX-CNDL`, `R-DMUT-QF4A`, `R-DO2Q-46UZ`, `R-DPAM-HYLO`, `R-DQII-VQCD`, `R-DRQF-9I32`
 - D3 → `project/design/D03.md` — The typed GitHub REST v3 client — owns `R-DVE4-ETB5`, `R-DWM0-SL1U`, `R-DXTX-6CSJ`, `R-DZ1T-K4J8`, `R-E09P-XW9X`, `R-E1HM-BO0M`, `R-E2PI-PFRB`, `R-E3XF-37I0`, `R-E55B-GZ8P`, `R-E6D7-UQZE`, `R-E7L4-8IQ3`, `R-EA0X-027H`, `R-EB8T-DTY6`, `R-ECGP-RLOV`, `R-D0IM-VQ7H`
 - D4 → `project/design/D04.md` — The MCP tool surface — owns `R-EEWI-J569`, `R-EHCB-AONN`, `R-EIK7-OGEC`, `R-EJS4-2851`, `R-EL00-FZVQ`, `R-EM7W-TRMF`, `R-ENFT-7JD4`
-- D5 → `project/design/D05.md` — The loopback `GET /pr` twin for scripts — owns `R-EPVL-Z2UI`, `R-ER3I-CUL7`, `R-ETJB-4E2L`
+- D5 → `project/design/D05.md` — The loopback `GET /pr` twin for scripts — owns `R-EPVL-Z2UI`, `R-ETJB-4E2L`
 - D6 → `project/design/D06.md` — The landing page and nginx fragment — owns `R-EVZ3-VXJZ`, `R-XSOU-THYE`, `R-XTWR-79P3`, `R-7NJI-UTHM`, `R-7PZB-MCZ0`, `R-EX70-9PAO`, `R-XV4N-L1FS`, `R-XWCJ-YT6H`, `R-XXKG-CKX6`, `R-XYSC-QCNV`, `R-EYEW-NH1D`
 - D7 → `project/design/D07.md` — The session-gated locations opt into the apex `@login_bounce`: a logged-out human navigation goes to sign-in, not a bare 401 (bearer tier deliberately excluded) — owns `R-42HV-I1HS`, `R-43PR-VT8H`, `R-44XO-9KZ6`
+- D8 → `project/design/D08.md` — Structured MCP adoption — owns `R-FI1O-9E44`, `R-FJ9K-N5UT`, `R-FKHH-0XLI`, `R-FLPD-EPC7`, `R-FMX9-SH2W`, `R-FO56-68TL`, `R-FPD2-K0KA`, `R-FQKY-XSAZ`, `R-FT0R-PBSD`
 
 ## Verification ids → Decision
 
@@ -51,11 +52,19 @@ Verification ids change.
 - R-EM7W-TRMF → D4 — `project/design/D04.md`
 - R-ENFT-7JD4 → D4 — `project/design/D04.md`
 - R-EPVL-Z2UI → D5 — `project/design/D05.md`
-- R-ER3I-CUL7 → D5 — `project/design/D05.md`
 - R-ETJB-4E2L → D5 — `project/design/D05.md`
 - R-EVZ3-VXJZ → D6 — `project/design/D06.md`
 - R-EX70-9PAO → D6 — `project/design/D06.md`
 - R-EYEW-NH1D → D6 — `project/design/D06.md`
+- R-FI1O-9E44 → D8 — `project/design/D08.md`
+- R-FJ9K-N5UT → D8 — `project/design/D08.md`
+- R-FKHH-0XLI → D8 — `project/design/D08.md`
+- R-FLPD-EPC7 → D8 — `project/design/D08.md`
+- R-FMX9-SH2W → D8 — `project/design/D08.md`
+- R-FO56-68TL → D8 — `project/design/D08.md`
+- R-FPD2-K0KA → D8 — `project/design/D08.md`
+- R-FQKY-XSAZ → D8 — `project/design/D08.md`
+- R-FT0R-PBSD → D8 — `project/design/D08.md`
 - R-XSOU-THYE → D6 — `project/design/D06.md`
 - R-XTWR-79P3 → D6 — `project/design/D06.md`
 - R-XV4N-L1FS → D6 — `project/design/D06.md`
