@@ -18,6 +18,7 @@ Decision is added or its Verification ids change.
 - D4 → `D04.md` — Consumer surface: routing fields on `consumer.Event`,
   Subscription cutover — R-3VDM-JK38, R-3WLI-XBTX, R-3XTF-B3KM, R-3Z1B-OVBB,
   R-4098-2N20, R-95KP-1QIO
+- D5 → `D05.md` — Feed guard ownership moves to the chassis — R-Z8Y5-5R0C
 
 ## Verification ids → Decision
 
@@ -46,3 +47,4 @@ Decision is added or its Verification ids change.
 - R-41H4-GESP — D2 (`D02.md`)
 - R-42P0-U6JE — D1 (`D01.md`)
 - R-95KP-1QIO — D4 (`D04.md`)
+- R-Z8Y5-5R0C — D5 (`D05.md`)

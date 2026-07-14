@@ -9,8 +9,8 @@ form, the glob dialect) by value but does not own them. This is the single
 current statement of the design, rewritten in place; history lives in the
 plan.
 
-**Scope note — revision over a baseline.** This spec covers only the routing
-revision. The as-built library — outbox atomicity, the SSE transport and
+**Scope note — revision over a baseline.** This spec covers the routing
+revision plus the feed-guard removal (D5). The as-built library — outbox atomicity, the SSE transport and
 control frames, cursors and the epoch token, all four resync reasons,
 reconnect backoff, retention, and the handler-return cursor gate
 (nil/ErrSkip/stall) — is the baseline described in `eventplane/CLAUDE.md` and
@@ -62,3 +62,5 @@ Current Decisions:
   matcher.
 - **D3** — Producer families: registry, reflection, and filter validation.
 - **D4** — Consumer surface: routing fields on `consumer.Event`.
+- **D5** — Feed guard ownership moves to the chassis: `FeedHandler` checks no
+  headers itself.
