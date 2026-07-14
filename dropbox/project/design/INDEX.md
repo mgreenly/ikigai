@@ -26,12 +26,18 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - D20 → `project/design/D20.md` — The `dropbox/docs/` filesystem-API reference + route-coverage guard — owns R-KVL9-O1M5, R-KWT6-1TCU
 - D21 → `project/design/D21.md` — The session-gated locations opt into the apex `@login_bounce`: a logged-out human navigation goes to sign-in, not a bare 401 (bearer tier deliberately excluded) — owns R-3MN6-J0UR, R-3NV2-WSLG, R-3P2Z-AKC5
 - D22 → `project/design/D22.md` — Event-routing conformance: kinds `create`/`modify`/`delete`, subject = mirror path, family registry, new outbox migration — owns R-QB5T-GLB6, R-QCDP-UD1V, R-QDLM-84SK, R-QETI-LWJ9
+- D23 → `project/design/D23.md` — Structured MCP adoption: `StructuredResult` + declared `outputSchema` on all six domain tools, typed `ErrorResult` codes, shared chassis loopback guard — owns R-7PKS-A5KE, R-7QSO-NXB3, R-7S0L-1P1S, R-7T8H-FGSH, R-7UGD-T8J6
 
 ## Verification ids → Decision
 
 - R-3MN6-J0UR → D21 → `project/design/D21.md`
 - R-3NV2-WSLG → D21 → `project/design/D21.md`
 - R-3P2Z-AKC5 → D21 → `project/design/D21.md`
+- R-7PKS-A5KE → D23 → `project/design/D23.md`
+- R-7QSO-NXB3 → D23 → `project/design/D23.md`
+- R-7S0L-1P1S → D23 → `project/design/D23.md`
+- R-7T8H-FGSH → D23 → `project/design/D23.md`
+- R-7UGD-T8J6 → D23 → `project/design/D23.md`
 - R-ASST-3H6J → D3 → `project/design/D03.md`
 - R-BZLK-E9VW → D16 → `project/design/D16.md`
 - R-C0TG-S1ML → D16 → `project/design/D16.md`

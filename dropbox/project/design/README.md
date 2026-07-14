@@ -121,8 +121,10 @@ Shared facts every Decision leans on:
   clients are gated by an opaque bearer (`auth_request /_authn`). The landing
   page is the **cookie-gated human** door; the existing `/mcp` is the
   **bearer-gated agent** door, unchanged. (The loopback `/content`/`/list` byte
-  routes are a third, private-to-the-box door, self-guarded in-handler and
-  unaffected by this work.)
+  routes are a third, private-to-the-box door; since the structured-MCP adoption
+  (D23) they are guarded by the shared chassis loopback wrapper
+  (`rt.HandleLoopback` / `server.LoopbackOnly`, keyed on `X-Forwarded-Proto`
+  only) rather than a per-handler predicate.)
 
 ## Testing strategy
 
