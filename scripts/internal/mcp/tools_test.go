@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -711,5 +712,240 @@ func TestErrorMapping(t *testing.T) {
 	res := call(t, h, tool("get"), map[string]any{"script_id": "nope"})
 	if !isError(res) {
 		t.Fatalf("get unknown: want isError, got %+v", res)
+	}
+}
+
+func listedTools(t *testing.T, h http.Handler) map[string]map[string]any {
+	t.Helper()
+	body, _ := json.Marshal(map[string]any{"jsonrpc": "2.0", "id": 1, "method": "tools/list"})
+	rr := do(t, h, body)
+	var resp struct {
+		Result struct {
+			Tools []map[string]any `json:"tools"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(rr.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("decode tools/list: %v", err)
+	}
+	tools := make(map[string]map[string]any, len(resp.Result.Tools))
+	for _, descriptor := range resp.Result.Tools {
+		name, _ := descriptor["name"].(string)
+		tools[name] = descriptor
+	}
+	return tools
+}
+
+func assertStructuredMirrorsText(t *testing.T, name string, result map[string]any) {
+	t.Helper()
+	structured, ok := result["structuredContent"].(map[string]any)
+	if !ok {
+		t.Fatalf("%s structuredContent = %#v, want object", name, result["structuredContent"])
+	}
+	var mirrored map[string]any
+	if err := json.Unmarshal([]byte(resultText(t, result)), &mirrored); err != nil {
+		t.Fatalf("%s mirrored text is not a JSON object: %v", name, err)
+	}
+	if !mapsEqual(structured, mirrored) {
+		t.Fatalf("%s structuredContent differs from mirrored text:\nstructured=%#v\ntext=%#v", name, structured, mirrored)
+	}
+}
+
+func mapsEqual(a, b map[string]any) bool {
+	aJSON, errA := json.Marshal(a)
+	bJSON, errB := json.Marshal(b)
+	return errA == nil && errB == nil && bytes.Equal(aJSON, bJSON)
+}
+
+func TestStructuredToolsMirrorMachineAndTextResults(t *testing.T) {
+	// R-C0G0-V0QL
+	h := newTestHarness(t)
+	h.svc.Fetcher = fakeFetcher{data: []byte("print('imported')\n")}
+	h.runner.cancelOK = true
+	scriptID := createScript(t, h.mcpHandler)
+	deleteID := createScript(t, h.mcpHandler)
+
+	runResult := call(t, h.mcpHandler, tool("run"), map[string]any{"script_id": scriptID})
+	runID := runResult["structuredContent"].(map[string]any)["run_id"].(string)
+	runDir := filepath.Join(h.runsDir, runID)
+	if err := os.MkdirAll(runDir, 0o755); err != nil {
+		t.Fatalf("mkdir run dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(runDir, "result.txt"), []byte("result\n"), 0o644); err != nil {
+		t.Fatalf("write run file: %v", err)
+	}
+
+	cases := []struct {
+		name string
+		args map[string]any
+	}{
+		{"create", map[string]any{"name": "created", "body": "print(1)"}},
+		{"import", map[string]any{"source_path": "/scripts/imported.py"}},
+		{"list", nil},
+		{"get", map[string]any{"script_id": scriptID}},
+		{"update", map[string]any{"script_id": scriptID, "name": "updated"}},
+		{"delete", map[string]any{"script_id": deleteID}},
+		{"set_trigger", map[string]any{"script_id": scriptID, "filter": "crm:contact.created"}},
+		{"clear_trigger", map[string]any{"script_id": scriptID, "filter": "crm:contact.created"}},
+		{"run", map[string]any{"script_id": scriptID}},
+		{"run_list", map[string]any{"script_id": scriptID}},
+		{"run_get", map[string]any{"run_id": runID}},
+		{"run_fs_list", map[string]any{"run_id": runID}},
+		{"run_cancel", map[string]any{"run_id": runID}},
+	}
+	assertStructuredMirrorsText(t, "run", runResult)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := call(t, h.mcpHandler, tool(tc.name), tc.args)
+			if isError(result) {
+				t.Fatalf("%s returned error: %#v", tc.name, result)
+			}
+			assertStructuredMirrorsText(t, tc.name, result)
+		})
+	}
+}
+
+func TestProseToolsRemainTextOnly(t *testing.T) {
+	// R-C1NX-8SHA
+	h := newTestHarness(t)
+	scriptID := createScript(t, h.mcpHandler)
+	run := call(t, h.mcpHandler, tool("run"), map[string]any{"script_id": scriptID})
+	runID := run["structuredContent"].(map[string]any)["run_id"].(string)
+	runDir := filepath.Join(h.runsDir, runID)
+	if err := os.MkdirAll(runDir, 0o755); err != nil {
+		t.Fatalf("mkdir run dir: %v", err)
+	}
+	for name, content := range map[string]string{"stdout.log": "stdout\n", "stderr.log": "", "note.txt": "note\n"} {
+		if err := os.WriteFile(filepath.Join(runDir, name), []byte(content), 0o644); err != nil {
+			t.Fatalf("write %s: %v", name, err)
+		}
+	}
+	for _, tc := range []struct {
+		name string
+		args map[string]any
+	}{
+		{"describe", nil},
+		{"run_output", map[string]any{"run_id": runID, "stream": "stdout"}},
+		{"run_fs_read", map[string]any{"run_id": runID, "path": "note.txt"}},
+	} {
+		result := call(t, h.mcpHandler, tool(tc.name), tc.args)
+		if _, present := result["structuredContent"]; present {
+			t.Errorf("%s unexpectedly returned structuredContent: %#v", tc.name, result)
+		}
+		if resultText(t, result) == "" {
+			t.Errorf("%s returned empty text", tc.name)
+		}
+	}
+}
+
+func TestToolOutputSchemaPartition(t *testing.T) {
+	// R-C2VT-MK7Z
+	h, _, _ := newTestHandler(t)
+	descriptors := listedTools(t, h)
+	structured := []string{"create", "import", "list", "get", "update", "delete", "set_trigger", "clear_trigger", "run", "run_list", "run_get", "run_cancel", "run_fs_list"}
+	for _, name := range structured {
+		schema, ok := descriptors[tool(name)]["outputSchema"].(map[string]any)
+		if !ok || len(schema) == 0 {
+			t.Errorf("%s outputSchema = %#v, want non-empty object", name, descriptors[tool(name)]["outputSchema"])
+		}
+	}
+	for _, name := range []string{"describe", "run_output", "run_fs_read"} {
+		if _, present := descriptors[tool(name)]["outputSchema"]; present {
+			t.Errorf("%s unexpectedly declares outputSchema", name)
+		}
+	}
+}
+
+func TestOutputSchemasMatchScriptAndRunWireCasing(t *testing.T) {
+	// R-C43Q-0BYO
+	h := newTestHarness(t)
+	scriptID := createScript(t, h.mcpHandler)
+	update := call(t, h.mcpHandler, tool("update"), map[string]any{"script_id": scriptID, "name": "updated"})
+	run := call(t, h.mcpHandler, tool("run"), map[string]any{"script_id": scriptID})
+	runID := run["structuredContent"].(map[string]any)["run_id"].(string)
+	runGet := call(t, h.mcpHandler, tool("run_get"), map[string]any{"run_id": runID})
+	descriptors := listedTools(t, h.mcpHandler)
+
+	checks := []struct {
+		name     string
+		result   map[string]any
+		required []string
+	}{
+		{"update", update, []string{"ID", "OwnerEmail", "Name", "Body", "Config", "SourcePath", "CreatedAt", "UpdatedAt"}},
+		{"run_get", runGet, []string{"id", "script_id", "exit_code", "started_at", "elapsed_secs"}},
+	}
+	for _, check := range checks {
+		properties := descriptors[tool(check.name)]["outputSchema"].(map[string]any)["properties"].(map[string]any)
+		for key := range check.result["structuredContent"].(map[string]any) {
+			if _, declared := properties[key]; !declared {
+				t.Errorf("%s wire key %q absent from outputSchema", check.name, key)
+			}
+		}
+		for _, key := range check.required {
+			if _, declared := properties[key]; !declared {
+				t.Errorf("%s outputSchema missing casing-sensitive key %q", check.name, key)
+			}
+		}
+	}
+}
+
+func TestStructuredErrorCodesFollowDomainSentinels(t *testing.T) {
+	// R-C5BM-E3PD
+	// R-C6JI-RVG2
+	h, _, _ := newTestHandler(t)
+	for _, tc := range []struct {
+		name string
+		args map[string]any
+		code string
+	}{
+		{"create", map[string]any{"name": "", "body": "print(1)"}, "validation"},
+		{"get", map[string]any{"script_id": "unknown"}, "not_found"},
+	} {
+		result := call(t, h, tool(tc.name), tc.args)
+		if !isError(result) {
+			t.Fatalf("%s result = %#v, want isError", tc.name, result)
+		}
+		structured, ok := result["structuredContent"].(map[string]any)
+		if !ok || structured["code"] != tc.code {
+			t.Errorf("%s error structuredContent = %#v, want code %q", tc.name, structured, tc.code)
+		}
+	}
+}
+
+func TestUnknownDomainErrorDefaultsToInternalCode(t *testing.T) {
+	// R-C7RF-5N6R
+	h := newTestHandlerWithFetcher(t, fakeFetcher{err: errors.New("mirror unavailable")})
+	result := call(t, h, tool("import"), map[string]any{"source_path": "/scripts/fail.py"})
+	if !isError(result) {
+		t.Fatalf("import result = %#v, want isError", result)
+	}
+	structured, ok := result["structuredContent"].(map[string]any)
+	if !ok || structured["code"] != "internal" {
+		t.Fatalf("import error structuredContent = %#v, want internal", structured)
+	}
+}
+
+func TestNonTestSourceUsesStructuredResultOnly(t *testing.T) {
+	// R-CA77-X6O5
+	legacy := "JSON" + "Result"
+	for _, root := range []string{"..", "../../cmd"} {
+		err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if info.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
+				return nil
+			}
+			source, err := os.ReadFile(path)
+			if err != nil {
+				return err
+			}
+			if bytes.Contains(source, []byte(legacy)) {
+				t.Errorf("%s retains legacy result helper %q", path, legacy)
+			}
+			return nil
+		})
+		if err != nil {
+			t.Fatalf("walk %s: %v", root, err)
+		}
 	}
 }

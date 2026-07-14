@@ -142,7 +142,40 @@ func Tools(svc *script.Service) []appkitmcp.Tool {
 }
 
 func desc(name, description string, schema map[string]any, handler func(context.Context, json.RawMessage, server.Identity) (map[string]any, error)) appkitmcp.Tool {
-	return appkitmcp.Tool{Name: name, Description: description, InputSchema: schema, Handler: handler}
+	return appkitmcp.Tool{Name: name, Description: description, InputSchema: schema, OutputSchema: outputSchema(name), Handler: handler}
+}
+
+func outputSchema(name string) map[string]any {
+	switch name {
+	case tool("create"):
+		return objSchema(map[string]any{"script_id": typ("string")}, "script_id")
+	case tool("import"):
+		return objSchema(map[string]any{"script_id": typ("string"), "name": typ("string")}, "script_id", "name")
+	case tool("list"):
+		return objSchema(map[string]any{"scripts": arraySchema(openObjectSchema())}, "scripts")
+	case tool("get"):
+		return scriptDetailSchema()
+	case tool("update"):
+		return scriptSchema()
+	case tool("delete"):
+		return objSchema(map[string]any{"deleted": typ("string")}, "deleted")
+	case tool("set_trigger"):
+		return triggerSchema()
+	case tool("clear_trigger"):
+		return objSchema(map[string]any{"cleared": typ("string")}, "cleared")
+	case tool("run"):
+		return objSchema(map[string]any{"run_id": typ("string"), "status": typ("string"), "started_at": typ("string")}, "run_id", "status", "started_at")
+	case tool("run_list"):
+		return objSchema(map[string]any{"runs": arraySchema(runSchema())}, "runs")
+	case tool("run_get"):
+		return runSchema()
+	case tool("run_cancel"):
+		return objSchema(map[string]any{"cancelled": typ("string")}, "cancelled")
+	case tool("run_fs_list"):
+		return objSchema(map[string]any{"entries": arraySchema(fileEntrySchema())}, "entries")
+	default:
+		return nil
+	}
 }
 
 func obj(props map[string]any, required ...string) map[string]any {
@@ -154,6 +187,61 @@ func obj(props map[string]any, required ...string) map[string]any {
 }
 
 func typ(t string) map[string]any { return map[string]any{"type": t} }
+
+func objSchema(props map[string]any, required ...string) map[string]any {
+	o := obj(props, required...)
+	o["additionalProperties"] = true
+	return o
+}
+
+func openObjectSchema() map[string]any {
+	return map[string]any{"type": "object", "additionalProperties": true}
+}
+
+func nullable(schema map[string]any) map[string]any {
+	return map[string]any{"anyOf": []any{schema, map[string]any{"type": "null"}}}
+}
+
+func arraySchema(items map[string]any) map[string]any {
+	return map[string]any{"type": "array", "items": items}
+}
+
+func scriptSchema() map[string]any {
+	props := map[string]any{}
+	for _, key := range []string{"ID", "OwnerEmail", "Name", "Body", "SourcePath", "CreatedAt", "UpdatedAt"} {
+		props[key] = typ("string")
+	}
+	props["Config"] = openObjectSchema()
+	return objSchema(props, "ID", "OwnerEmail", "Name", "Body", "Config", "SourcePath", "CreatedAt", "UpdatedAt")
+}
+
+func scriptDetailSchema() map[string]any {
+	props := map[string]any{}
+	for key, schema := range scriptSchema()["properties"].(map[string]any) {
+		props[key] = schema
+	}
+	props["RunningCount"] = typ("integer")
+	props["LastRun"] = nullable(openObjectSchema())
+	return objSchema(props, "ID", "OwnerEmail", "Name", "Body", "Config", "SourcePath", "CreatedAt", "UpdatedAt", "RunningCount", "LastRun")
+}
+
+func triggerSchema() map[string]any {
+	return objSchema(map[string]any{"ScriptID": typ("string"), "Source": typ("string"), "Filter": typ("string"), "CreatedAt": typ("string")}, "ScriptID", "Source", "Filter", "CreatedAt")
+}
+
+func runSchema() map[string]any {
+	props := map[string]any{}
+	for _, key := range []string{"id", "script_id", "status", "started_at", "ended_at", "error", "trigger_source", "trigger_kind", "trigger_subject", "trigger_event_id", "stdout_path", "stderr_path"} {
+		props[key] = typ("string")
+	}
+	props["exit_code"] = nullable(typ("integer"))
+	props["elapsed_secs"] = typ("integer")
+	return objSchema(props, "id", "script_id", "status", "exit_code", "started_at", "ended_at", "error", "trigger_source", "trigger_kind", "trigger_subject", "trigger_event_id", "stdout_path", "stderr_path", "elapsed_secs")
+}
+
+func fileEntrySchema() map[string]any {
+	return objSchema(map[string]any{"path": typ("string"), "is_dir": typ("boolean"), "size": typ("integer")}, "path", "is_dir", "size")
+}
 
 // configSchema is the shared script.Config input schema (minimal day-one).
 func configSchema() map[string]any {
@@ -214,7 +302,7 @@ func (h *toolHandlers) dispatchTool(ctx context.Context, name string, id server.
 			Config: in.Config.toConfig(),
 		})
 		if err != nil {
-			return toolResultErr(err.Error()), nil
+			return structuredError(err), nil
 		}
 		return toolResultJSON(map[string]any{"script_id": sc.ID})
 
@@ -228,14 +316,14 @@ func (h *toolHandlers) dispatchTool(ctx context.Context, name string, id server.
 		}
 		sc, err := svc.Import(ctx, owner, in.SourcePath, in.Name)
 		if err != nil {
-			return toolResultErr(err.Error()), nil
+			return structuredError(err), nil
 		}
 		return toolResultJSON(map[string]any{"script_id": sc.ID, "name": sc.Name})
 
 	case tool("list"):
 		scripts, err := svc.List(ctx, owner)
 		if err != nil {
-			return toolResultErr(err.Error()), nil
+			return structuredError(err), nil
 		}
 		return toolResultJSON(map[string]any{"scripts": scripts})
 
@@ -248,7 +336,7 @@ func (h *toolHandlers) dispatchTool(ctx context.Context, name string, id server.
 		}
 		detail, err := svc.Get(ctx, owner, in.ScriptID)
 		if err != nil {
-			return toolResultErr(err.Error()), nil
+			return structuredError(err), nil
 		}
 		return toolResultJSON(detail)
 
@@ -269,7 +357,7 @@ func (h *toolHandlers) dispatchTool(ctx context.Context, name string, id server.
 		}
 		sc, err := svc.Update(ctx, owner, in.ScriptID, upd)
 		if err != nil {
-			return toolResultErr(err.Error()), nil
+			return structuredError(err), nil
 		}
 		return toolResultJSON(sc)
 
@@ -281,7 +369,7 @@ func (h *toolHandlers) dispatchTool(ctx context.Context, name string, id server.
 			return nil, err
 		}
 		if err := svc.Delete(ctx, owner, in.ScriptID); err != nil {
-			return toolResultErr(err.Error()), nil
+			return structuredError(err), nil
 		}
 		return toolResultJSON(map[string]any{"deleted": in.ScriptID})
 
@@ -295,7 +383,7 @@ func (h *toolHandlers) dispatchTool(ctx context.Context, name string, id server.
 		}
 		trig, err := svc.SetTrigger(ctx, owner, in.ScriptID, in.Filter)
 		if err != nil {
-			return toolResultErr(err.Error()), nil
+			return structuredError(err), nil
 		}
 		return toolResultJSON(trig)
 
@@ -308,7 +396,7 @@ func (h *toolHandlers) dispatchTool(ctx context.Context, name string, id server.
 			return nil, err
 		}
 		if err := svc.ClearTrigger(ctx, owner, in.ScriptID, in.Filter); err != nil {
-			return toolResultErr(err.Error()), nil
+			return structuredError(err), nil
 		}
 		return toolResultJSON(map[string]any{"cleared": in.ScriptID})
 
@@ -321,7 +409,7 @@ func (h *toolHandlers) dispatchTool(ctx context.Context, name string, id server.
 		}
 		run, err := svc.Run(ctx, owner, in.ScriptID)
 		if err != nil {
-			return toolResultErr(err.Error()), nil
+			return structuredError(err), nil
 		}
 		return toolResultJSON(map[string]any{"run_id": run.ID, "status": run.Status, "started_at": run.StartedAt})
 
@@ -335,7 +423,7 @@ func (h *toolHandlers) dispatchTool(ctx context.Context, name string, id server.
 		}
 		runs, err := svc.RunList(ctx, owner, in.ScriptID, in.Status)
 		if err != nil {
-			return toolResultErr(err.Error()), nil
+			return structuredError(err), nil
 		}
 		return toolResultJSON(map[string]any{"runs": runs})
 
@@ -348,7 +436,7 @@ func (h *toolHandlers) dispatchTool(ctx context.Context, name string, id server.
 		}
 		run, err := svc.RunGet(ctx, owner, in.RunID)
 		if err != nil {
-			return toolResultErr(err.Error()), nil
+			return structuredError(err), nil
 		}
 		return toolResultJSON(run)
 
@@ -364,7 +452,7 @@ func (h *toolHandlers) dispatchTool(ctx context.Context, name string, id server.
 		}
 		out, err := svc.RunOutput(ctx, owner, in.RunID, in.Stream, in.Offset, in.Limit)
 		if err != nil {
-			return toolResultErr(err.Error()), nil
+			return structuredError(err), nil
 		}
 		return toolResultText(out), nil
 
@@ -376,7 +464,7 @@ func (h *toolHandlers) dispatchTool(ctx context.Context, name string, id server.
 			return nil, err
 		}
 		if err := svc.RunCancel(ctx, owner, in.RunID); err != nil {
-			return toolResultErr(err.Error()), nil
+			return structuredError(err), nil
 		}
 		return toolResultJSON(map[string]any{"cancelled": in.RunID})
 
@@ -390,7 +478,7 @@ func (h *toolHandlers) dispatchTool(ctx context.Context, name string, id server.
 		}
 		entries, err := svc.RunFsList(ctx, owner, in.RunID, in.Path)
 		if err != nil {
-			return toolResultErr(err.Error()), nil
+			return structuredError(err), nil
 		}
 		return toolResultJSON(map[string]any{"entries": entries})
 
@@ -406,7 +494,7 @@ func (h *toolHandlers) dispatchTool(ctx context.Context, name string, id server.
 		}
 		out, err := svc.RunFsRead(ctx, owner, in.RunID, in.Path, in.Offset, in.Limit)
 		if err != nil {
-			return toolResultErr(err.Error()), nil
+			return structuredError(err), nil
 		}
 		return toolResultText(out), nil
 
@@ -421,10 +509,16 @@ func toolResultText(text string) map[string]any {
 	return appkitmcp.TextResult(text)
 }
 
-func toolResultErr(msg string) map[string]any {
-	return appkitmcp.ErrorResult(msg)
+func structuredError(err error) map[string]any {
+	code := appkitmcp.ErrInternal
+	if errors.Is(err, script.ErrNotFound) {
+		code = appkitmcp.ErrNotFound
+	} else if errors.Is(err, script.ErrValidation) {
+		code = appkitmcp.ErrValidation
+	}
+	return appkitmcp.ErrorResult(code, err.Error())
 }
 
 func toolResultJSON(v any) (map[string]any, error) {
-	return appkitmcp.JSONResult(v)
+	return appkitmcp.StructuredResult(v)
 }
