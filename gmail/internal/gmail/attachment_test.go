@@ -1,6 +1,7 @@
 package gmail
 
 import (
+	"appkit/server"
 	"context"
 	"errors"
 	"net/http"
@@ -39,18 +40,35 @@ func attachmentRequest(messageID, partID string) *http.Request {
 	return httptest.NewRequest(http.MethodGet, "/attachment?"+q.Encode(), nil)
 }
 
-func TestAttachmentHandlerIdentityGuard(t *testing.T) {
-	// R-WX7D-ZS9N
-	src := &fakeAttachmentSource{message: Message{Payload: MessagePart{PartID: "1", MimeType: "application/pdf", Body: Body{AttachmentID: "a"}}}, attachment: []byte("pdf")}
-	h := AttachmentHandler(src)
-	for header, value := range map[string]string{"X-Owner-Email": "a@b.c", "X-Forwarded-Proto": "https"} {
-		r := attachmentRequest("m", "1")
-		r.Header.Set(header, value)
-		rec := httptest.NewRecorder()
-		h.ServeHTTP(rec, r)
-		if rec.Code != http.StatusNotFound {
-			t.Fatalf("%s guard status = %d, want 404", header, rec.Code)
-		}
+func TestAttachmentLoopbackGuardUsesForwardedProtoOnly(t *testing.T) {
+	// R-8Q5R-R9T8
+	bytes := []byte("pdf")
+	src := &fakeAttachmentSource{
+		message:    Message{Payload: MessagePart{PartID: "1", MimeType: "application/pdf", Body: Body{AttachmentID: "a"}}},
+		attachment: bytes,
+	}
+	h := server.LoopbackOnly(AttachmentHandler(src))
+
+	frontDoorRequest := attachmentRequest("m", "1")
+	frontDoorRequest.Header.Set("X-Forwarded-Proto", "https")
+	frontDoorResponse := httptest.NewRecorder()
+	h.ServeHTTP(frontDoorResponse, frontDoorRequest)
+	if frontDoorResponse.Code != http.StatusNotFound {
+		t.Fatalf("front-door status = %d, want 404", frontDoorResponse.Code)
+	}
+	if src.messageCalls != 0 || src.attachmentCalls != 0 {
+		t.Fatalf("front-door source calls = %d/%d, want 0/0", src.messageCalls, src.attachmentCalls)
+	}
+
+	loopbackRequest := attachmentRequest("m", "1")
+	loopbackRequest.Header.Set("X-Owner-Email", "a@b.c")
+	loopbackResponse := httptest.NewRecorder()
+	h.ServeHTTP(loopbackResponse, loopbackRequest)
+	if loopbackResponse.Code != http.StatusOK || loopbackResponse.Body.String() != string(bytes) {
+		t.Fatalf("identity-bearing loopback response = %d %q, want 200 %q", loopbackResponse.Code, loopbackResponse.Body.String(), bytes)
+	}
+	if src.messageCalls != 1 || src.attachmentCalls != 1 {
+		t.Fatalf("identity-bearing loopback source calls = %d/%d, want 1/1", src.messageCalls, src.attachmentCalls)
 	}
 }
 

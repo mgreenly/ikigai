@@ -17,11 +17,6 @@ type AttachmentSource interface {
 // AttachmentHandler returns the loopback-only GET /attachment handler.
 func AttachmentHandler(src AttachmentSource) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("X-Owner-Email") != "" || r.Header.Get("X-Forwarded-Proto") != "" {
-			http.Error(w, "not found", http.StatusNotFound)
-			return
-		}
-
 		messageID := r.URL.Query().Get("message_id")
 		partID := r.URL.Query().Get("part_id")
 		if messageID == "" || partID == "" {

@@ -106,7 +106,7 @@ func gmailSpec() appkit.Spec {
 				Interval: interval,
 			})
 
-			rt.Handle("GET /attachment", gm.AttachmentHandler(client))
+			rt.HandleLoopback("GET /attachment", gm.AttachmentHandler(client))
 			rt.Handle("GET /{$}", landingHandler(rt.WWW(), rt.Service(), rt.Version()))
 			handler, err := mcp.NewHandler(client, contentBase, rt)
 			if err != nil {
