@@ -18,6 +18,7 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - D12 → `project/design/D12.md` — Delete the chassis shims (`internal/db` wrappers) and true up the doctrine header — none (structural)
 - D13 → `project/design/D13.md` — The session-gated locations opt into the apex `@login_bounce`: a logged-out human navigation goes to sign-in, not a bare 401 (bearer tier deliberately excluded) — owns R-3V6H-7F1M, R-3WED-L6SB, R-3XM9-YYJ0
 - D14 → `project/design/D14.md` — Event-routing conformance: kind `tick`, subject `/<schedule name>`, live one-family reflection — owns R-PQH6-2RYI, R-PRP2-GJP7, R-PSWY-UBFW, R-PU4V-836L, R-PVCR-LUXA
+- D15 → `project/design/D15.md` — Structured MCP adoption: `StructuredResult` + mirrored text, per-tool `outputSchema`, closed-vocabulary error codes — owns R-6TVE-C4AC, R-6V3A-PW11, R-6WB7-3NRQ, R-6XJ3-HFIF, R-6YQZ-V794, R-6ZYW-8YZT, R-716S-MQQI
 
 ## Verification ids → Decision
 
@@ -29,6 +30,13 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - R-3V6H-7F1M → D13 → `project/design/D13.md`
 - R-3WED-L6SB → D13 → `project/design/D13.md`
 - R-3XM9-YYJ0 → D13 → `project/design/D13.md`
+- R-6TVE-C4AC → D15 → `project/design/D15.md`
+- R-6V3A-PW11 → D15 → `project/design/D15.md`
+- R-6WB7-3NRQ → D15 → `project/design/D15.md`
+- R-6XJ3-HFIF → D15 → `project/design/D15.md`
+- R-6YQZ-V794 → D15 → `project/design/D15.md`
+- R-6ZYW-8YZT → D15 → `project/design/D15.md`
+- R-716S-MQQI → D15 → `project/design/D15.md`
 - R-ASST-3V7W → D3 → `project/design/D03.md`
 - R-ASST-5X9Y → D3 → `project/design/D03.md`
 - R-ASST-7Z2A → D3 → `project/design/D03.md`
