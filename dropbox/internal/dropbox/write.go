@@ -10,10 +10,6 @@ import (
 // WriteHandler serves the loopback PUT and DELETE /content mutations.
 func (s *Service) WriteHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if loopbackRejected(r) {
-			http.Error(w, "not found", http.StatusNotFound)
-			return
-		}
 		path := r.URL.Query().Get("path")
 		switch r.Method {
 		case http.MethodPut:
@@ -38,10 +34,6 @@ func (s *Service) WriteHandler() http.Handler {
 // MkdirHandler serves POST /mkdir.
 func (s *Service) MkdirHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if loopbackRejected(r) {
-			http.Error(w, "not found", http.StatusNotFound)
-			return
-		}
 		if err := s.Mkdir(context.Background(), r.URL.Query().Get("path"), r.Header.Get("X-Client-Id")); err != nil {
 			writeMutationError(w, err)
 			return
@@ -53,10 +45,6 @@ func (s *Service) MkdirHandler() http.Handler {
 // MoveHandler serves POST /move.
 func (s *Service) MoveHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if loopbackRejected(r) {
-			http.Error(w, "not found", http.StatusNotFound)
-			return
-		}
 		if err := s.Move(context.Background(), r.URL.Query().Get("from"), r.URL.Query().Get("to"), r.Header.Get("X-Client-Id")); err != nil {
 			writeMutationError(w, err)
 			return
@@ -68,10 +56,6 @@ func (s *Service) MoveHandler() http.Handler {
 // StatHandler serves GET /stat for either indexed entry kind.
 func (s *Service) StatHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if loopbackRejected(r) {
-			http.Error(w, "not found", http.StatusNotFound)
-			return
-		}
 		entry, err := s.Stat(r.URL.Query().Get("path"))
 		if errors.Is(err, ErrNotFound) {
 			http.Error(w, "not found", http.StatusNotFound)
@@ -83,10 +67,6 @@ func (s *Service) StatHandler() http.Handler {
 		}
 		writeJSON(w, http.StatusOK, entry)
 	})
-}
-
-func loopbackRejected(r *http.Request) bool {
-	return r.Header.Get("X-Owner-Email") != "" || r.Header.Get("X-Forwarded-Proto") != ""
 }
 
 func writeMutationError(w http.ResponseWriter, err error) {

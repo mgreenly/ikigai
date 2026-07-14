@@ -3,9 +3,12 @@ package main
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -17,9 +20,17 @@ import (
 	"testing"
 	"time"
 
+	appkitdatabase "appkit/db"
 	"appkit/manifest"
+	appkitserver "appkit/server"
 	appweb "appkit/web"
+
+	"dropbox/internal/db"
+	dropboxservice "dropbox/internal/dropbox"
+
 	"registry"
+
+	_ "modernc.org/sqlite"
 )
 
 func TestRegistrySourcePortsIncludesEveryRegisteredServiceAndNoExtras(t *testing.T) {
@@ -100,6 +111,98 @@ func TestDefaultMirrorPathHonorsExplicitOverride(t *testing.T) {
 	}
 }
 
+func TestMountedFilesystemRoutesUseSharedLoopbackGuard(t *testing.T) {
+	// R-7UGD-T8J6
+	conn, err := sql.Open("sqlite", "file:"+filepath.Join(t.TempDir(), "dropbox.db")+"?_pragma=foreign_keys(ON)")
+	if err != nil {
+		t.Fatal(err)
+	}
+	conn.SetMaxOpenConns(1)
+	t.Cleanup(func() { conn.Close() })
+	migrations, err := appkitdatabase.LoadMigrations(db.FS, "migrations")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := appkitdatabase.Migrate(context.Background(), conn, migrations); err != nil {
+		t.Fatal(err)
+	}
+	mirror, err := dropboxservice.NewMirror(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	svc := dropboxservice.NewService(conn)
+	svc.Mirror = mirror
+	for _, path := range []string{"/seed.txt", "/delete.txt", "/move-source.txt"} {
+		if _, err := svc.Write(context.Background(), path, strings.NewReader(path), "seed"); err != nil {
+			t.Fatalf("seed %s: %v", path, err)
+		}
+	}
+
+	srv, err := appkitserver.New(appkitserver.Options{
+		Addr:       "127.0.0.1:0",
+		Logger:     slog.New(slog.NewTextHandler(io.Discard, nil)),
+		ResourceID: "https://int.ikigenba.com/srv/dropbox/mcp",
+		AuthServer: "https://int.ikigenba.com",
+		Version:    "test",
+		Service:    "dropbox",
+		DB:         conn,
+		Register: func(rt *appkitserver.Router) error {
+			mountLoopbackRoutes(rt, svc)
+			return nil
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	type route struct {
+		method string
+		url    string
+		body   string
+		status int
+	}
+	routes := []route{
+		{method: http.MethodGet, url: "/content?path=%2Fseed.txt", status: http.StatusOK},
+		{method: http.MethodPut, url: "/content?path=%2Fput.txt", body: "put", status: http.StatusOK},
+		{method: http.MethodDelete, url: "/content?path=%2Fdelete.txt", status: http.StatusNoContent},
+		{method: http.MethodPost, url: "/mkdir?path=%2Fdir", status: http.StatusNoContent},
+		{method: http.MethodPost, url: "/move?from=%2Fmove-source.txt&to=%2Fmove-target.txt", status: http.StatusNoContent},
+		{method: http.MethodGet, url: "/list", status: http.StatusOK},
+		{method: http.MethodGet, url: "/stat?path=%2Fseed.txt", status: http.StatusOK},
+	}
+
+	for _, tc := range routes {
+		req := httptest.NewRequest(tc.method, tc.url, strings.NewReader(tc.body))
+		req.Header.Set("X-Forwarded-Proto", "https")
+		rec := httptest.NewRecorder()
+		srv.Handler.ServeHTTP(rec, req)
+		if rec.Code != http.StatusNotFound || rec.Body.String() != "404 page not found\n" {
+			t.Fatalf("forwarded %s %s = %d %q, want bare 404", tc.method, tc.url, rec.Code, rec.Body.String())
+		}
+	}
+	for _, path := range []string{"/put.txt", "/dir", "/move-target.txt"} {
+		if _, err := svc.Stat(path); !errors.Is(err, dropboxservice.ErrNotFound) {
+			t.Fatalf("blocked route mutated %s: %v", path, err)
+		}
+	}
+	for _, path := range []string{"/delete.txt", "/move-source.txt"} {
+		if _, err := svc.Stat(path); err != nil {
+			t.Fatalf("blocked route removed %s: %v", path, err)
+		}
+	}
+
+	for _, tc := range routes {
+		req := httptest.NewRequest(tc.method, tc.url, strings.NewReader(tc.body))
+		req.Header.Set("X-Owner-Email", "machine@example.com")
+		req.Header.Set("X-Client-Id", "loopback-machine")
+		rec := httptest.NewRecorder()
+		srv.Handler.ServeHTTP(rec, req)
+		if rec.Code != tc.status {
+			t.Fatalf("owner-bearing loopback %s %s = %d %q, want %d", tc.method, tc.url, rec.Code, rec.Body.String(), tc.status)
+		}
+	}
+}
+
 // R-4LKF-FB23
 func TestDropboxBootsFromOpsctlLayoutAndServesHealth(t *testing.T) {
 	root := t.TempDir()
@@ -161,7 +264,7 @@ func TestDropboxBootsFromOpsctlLayoutAndServesHealth(t *testing.T) {
 	}
 
 	binary := filepath.Join(libexecDir, "dropbox-"+version)
-	build := exec.Command("go", "build", "-o", binary, ".")
+	build := exec.Command("go", "build", "-buildvcs=false", "-o", binary, ".")
 	build.Env = os.Environ()
 	if out, err := build.CombinedOutput(); err != nil {
 		t.Fatalf("go build dropbox: %v\n%s", err, out)
@@ -558,8 +661,8 @@ func TestCompositionRootEnablesChassisWWWAndKeepsDomainWiring(t *testing.T) {
 		`Service string`,
 		`Version string`,
 		`rt.Handle("POST /mcp", rt.RequireIdentity(`,
-		`rt.Handle("GET /content", svc.ContentHandler())`,
-		`rt.Handle("GET /list", svc.ListHandler())`,
+		`rt.HandleLoopback("GET /content", svc.ContentHandler())`,
+		`rt.HandleLoopback("GET /list", svc.ListHandler())`,
 	} {
 		if !strings.Contains(main, want) {
 			t.Fatalf("cmd/dropbox/main.go missing %q", want)

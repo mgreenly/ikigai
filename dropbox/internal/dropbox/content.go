@@ -10,13 +10,9 @@ import (
 // byte-delivery route consumers use to fetch the current mirror bytes for a file
 // referenced by a `file.*` event's content_url.
 //
-// Trust model (mirrors GET /feed exactly): the route is UNAUTHENTICATED and
-// loopback-only — one box is one owner, so there is no second principal and the
-// perimeter is "it is on 127.0.0.1". The HANDLER is the primary guard: any
-// nginx-injected identity header (X-Owner-Email OR X-Forwarded-Proto — nginx
-// always sets the latter) means the request was proxied through the public,
-// authenticated front door, which must never reach /content; we 404 it. This is
-// the same defence copied verbatim from eventplane/outbox/feed.go (~line 50).
+// Trust model: the route is UNAUTHENTICATED and loopback-only — one box is one
+// owner, so there is no second principal and the perimeter is "it is on
+// 127.0.0.1". The composition root applies the chassis loopback guard.
 //
 // Resolution: the `path` query value is URL-encoded (it is also URL-encoded in
 // the event content_url); Go's net/http decodes it into r.URL.Query(). We then
@@ -32,13 +28,6 @@ import (
 //   - stale rev (ErrRevMismatch)                      → 409
 func (s *Service) ContentHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Primary guard, copied from eventplane/outbox/feed.go:50 — keep the
-		// public side out by the handler, not by nginx.
-		if r.Header.Get("X-Owner-Email") != "" || r.Header.Get("X-Forwarded-Proto") != "" {
-			http.Error(w, "not found", http.StatusNotFound)
-			return
-		}
-
 		// The path query value is percent-decoded by net/http's query parser.
 		path := r.URL.Query().Get("path")
 		if path == "" {

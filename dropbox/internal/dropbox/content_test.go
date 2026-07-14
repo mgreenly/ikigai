@@ -184,13 +184,13 @@ func TestContentHandler_MatchingRevServes(t *testing.T) {
 	}
 }
 
-func TestContentHandler_IdentityHeaderGuardIs404(t *testing.T) {
+func TestContentHandler_LeavesLoopbackGuardToCompositionRoot(t *testing.T) {
 	svc, conn, mirror := newContentService(t)
 	seedFile(t, svc, conn, mirror, "/inbox/report.pdf", "rev1", []byte("bytes"))
 	h := svc.ContentHandler()
 
-	// Even for a VALID path, an nginx-injected identity header means the request
-	// was proxied through the public front door → 404 (mirrors feed.go:50).
+	// Transport headers are deliberately not interpreted by the domain handler;
+	// the composition root owns the shared loopback guard.
 	for _, hdr := range []string{"X-Forwarded-Proto", "X-Owner-Email"} {
 		q := url.Values{}
 		q.Set("path", "/inbox/report.pdf")
@@ -198,8 +198,8 @@ func TestContentHandler_IdentityHeaderGuardIs404(t *testing.T) {
 		req.Header.Set(hdr, "set")
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, req)
-		if rec.Code != http.StatusNotFound {
-			t.Fatalf("with %s present: status = %d, want 404", hdr, rec.Code)
+		if rec.Code != http.StatusOK || rec.Body.String() != "bytes" {
+			t.Fatalf("with %s present: response = %d %q, want domain handler response", hdr, rec.Code, rec.Body.String())
 		}
 	}
 }

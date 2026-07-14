@@ -70,6 +70,17 @@ func Tools(svc *dropbox.Service, sourcePortAllowed func(port int) bool) []appkit
 				"cursor": descTyp("string", "optional; the opaque next_cursor from a previous page. Omit for the first page."),
 				"limit":  descTyp("integer", "optional; page size, default 1000, clamped to 1..1000."),
 			}),
+			OutputSchema: obj(map[string]any{
+				"files": arrayOf(obj(map[string]any{
+					"path":       typ("string"),
+					"kind":       typ("string"),
+					"size":       typ("integer"),
+					"hash":       typ("string"),
+					"rev":        typ("string"),
+					"updated_at": typ("string"),
+				}, "path", "kind", "size", "hash", "rev", "updated_at")),
+				"next_cursor": typ("string"),
+			}, "files"),
 			Handler: func(ctx context.Context, args json.RawMessage, _ server.Identity) (map[string]any, error) {
 				return h.toolList(ctx, args)
 			},
@@ -81,6 +92,14 @@ func Tools(svc *dropbox.Service, sourcePortAllowed func(port int) bool) []appkit
 				"path": descTyp("string", "required; the file path to fetch (case-insensitive)."),
 				"rev":  descTyp("string", "optional; pin a revision. A mismatch with the indexed rev returns a conflict."),
 			}, "path"),
+			OutputSchema: obj(map[string]any{
+				"path":           typ("string"),
+				"size":           typ("integer"),
+				"content_hash":   typ("string"),
+				"rev":            typ("string"),
+				"updated_at":     typ("string"),
+				"content_base64": typ("string"),
+			}, "path", "size", "content_hash", "rev", "updated_at", "content_base64"),
 			Handler: func(ctx context.Context, args json.RawMessage, _ server.Identity) (map[string]any, error) {
 				return h.toolGet(ctx, args)
 			},
@@ -93,6 +112,12 @@ func Tools(svc *dropbox.Service, sourcePortAllowed func(port int) bool) []appkit
 				"source_url":     descTyp("string", "optional; allowed 127.0.0.1 or ::1 http URL with an explicitly allowed port; fetched server-side."),
 				"content_base64": descTyp("string", "optional; standard base64 file bytes, limited to 25 MiB decoded."),
 			}, "path"),
+			OutputSchema: obj(map[string]any{
+				"path":         typ("string"),
+				"size":         typ("integer"),
+				"content_hash": typ("string"),
+				"rev":          typ("string"),
+			}, "path", "size", "content_hash", "rev"),
 			Handler: func(ctx context.Context, args json.RawMessage, id server.Identity) (map[string]any, error) {
 				return h.toolPut(ctx, args, id.ClientID)
 			},
@@ -103,6 +128,7 @@ func Tools(svc *dropbox.Service, sourcePortAllowed func(port int) bool) []appkit
 			InputSchema: obj(map[string]any{
 				"path": descTyp("string", "required; directory path to create."),
 			}, "path"),
+			OutputSchema: obj(map[string]any{"path": typ("string")}, "path"),
 			Handler: func(ctx context.Context, args json.RawMessage, id server.Identity) (map[string]any, error) {
 				return h.toolMkdir(ctx, args, id.ClientID)
 			},
@@ -113,6 +139,7 @@ func Tools(svc *dropbox.Service, sourcePortAllowed func(port int) bool) []appkit
 			InputSchema: obj(map[string]any{
 				"path": descTyp("string", "required; file or directory path to delete."),
 			}, "path"),
+			OutputSchema: obj(map[string]any{"removed": typ("integer")}, "removed"),
 			Handler: func(ctx context.Context, args json.RawMessage, id server.Identity) (map[string]any, error) {
 				return h.toolDelete(ctx, args, id.ClientID)
 			},
@@ -123,6 +150,10 @@ func Tools(svc *dropbox.Service, sourcePortAllowed func(port int) bool) []appkit
 			InputSchema: obj(map[string]any{
 				"from": descTyp("string", "required; existing file or directory path."),
 				"to":   descTyp("string", "required; destination path."),
+			}, "from", "to"),
+			OutputSchema: obj(map[string]any{
+				"from": typ("string"),
+				"to":   typ("string"),
 			}, "from", "to"),
 			Handler: func(ctx context.Context, args json.RawMessage, id server.Identity) (map[string]any, error) {
 				return h.toolMove(ctx, args, id.ClientID)
@@ -143,6 +174,12 @@ func obj(props map[string]any, required ...string) map[string]any {
 
 func descTyp(t, description string) map[string]any {
 	return map[string]any{"type": t, "description": description}
+}
+
+func typ(t string) map[string]any { return map[string]any{"type": t} }
+
+func arrayOf(items map[string]any) map[string]any {
+	return map[string]any{"type": "array", "items": items}
 }
 
 // ── tool implementations ─────────────────────────────────────────────────
@@ -191,7 +228,7 @@ func (h *toolHandlers) toolList(ctx context.Context, raw json.RawMessage) (map[s
 	if len(rows) == limit {
 		out["next_cursor"] = rows[len(rows)-1].PathLower
 	}
-	return appkitmcp.JSONResult(out)
+	return appkitmcp.StructuredResult(out)
 }
 
 // toolGet fetches one file's bytes + metadata for the `get` tool (DECISIONS §5).
@@ -218,8 +255,8 @@ func (h *toolHandlers) toolGet(ctx context.Context, raw json.RawMessage) (map[st
 		return toolErr(err), nil
 	}
 	if row.Size > maxGetBytes {
-		return appkitmcp.ErrorResult(toolErrorJSON("too_large",
-			"file is larger than the 25 MiB get limit; fetch it via /content instead")), nil
+		return appkitmcp.ErrorResult(appkitmcp.ErrTooLarge,
+			"file is larger than the 25 MiB get limit; fetch it via /content instead"), nil
 	}
 	f, _, err := h.svc.Mirror.Open(row.Path)
 	if err != nil {
@@ -231,10 +268,10 @@ func (h *toolHandlers) toolGet(ctx context.Context, raw json.RawMessage) (map[st
 		return toolErr(err), nil
 	}
 	if int64(len(data)) > maxGetBytes {
-		return appkitmcp.ErrorResult(toolErrorJSON("too_large",
-			"file is larger than the 25 MiB get limit; fetch it via /content instead")), nil
+		return appkitmcp.ErrorResult(appkitmcp.ErrTooLarge,
+			"file is larger than the 25 MiB get limit; fetch it via /content instead"), nil
 	}
-	return appkitmcp.JSONResult(map[string]any{
+	return appkitmcp.StructuredResult(map[string]any{
 		"path":           row.Path,
 		"size":           row.Size,
 		"content_hash":   row.ContentHash,
@@ -267,14 +304,14 @@ func (h *toolHandlers) toolPut(ctx context.Context, raw json.RawMessage, clientI
 		return toolErr(dropbox.ErrValidation), nil
 	}
 	if int64(len(decoded)) > maxGetBytes {
-		return appkitmcp.ErrorResult(toolErrorJSON("too_large",
-			"file is larger than the 25 MiB put limit; upload it via /content instead")), nil
+		return appkitmcp.ErrorResult(appkitmcp.ErrTooLarge,
+			"file is larger than the 25 MiB put limit; upload it via /content instead"), nil
 	}
 	row, err := h.svc.Write(ctx, a.Path, bytes.NewReader(decoded), clientID)
 	if err != nil {
 		return toolErr(err), nil
 	}
-	return appkitmcp.JSONResult(map[string]any{
+	return appkitmcp.StructuredResult(map[string]any{
 		"path":         row.Path,
 		"size":         row.Size,
 		"content_hash": row.ContentHash,
@@ -321,7 +358,7 @@ func (h *toolHandlers) putSourceURL(ctx context.Context, path, sourceURL, client
 		}
 		return sourceUnavailable(sourceURL), nil
 	}
-	return appkitmcp.JSONResult(map[string]any{
+	return appkitmcp.StructuredResult(map[string]any{
 		"path":         row.Path,
 		"size":         row.Size,
 		"content_hash": row.ContentHash,
@@ -330,7 +367,7 @@ func (h *toolHandlers) putSourceURL(ctx context.Context, path, sourceURL, client
 }
 
 func sourceUnavailable(sourceURL string) map[string]any {
-	return appkitmcp.ErrorResult(toolErrorJSON("source_unavailable", "source URL is unavailable: "+sourceURL))
+	return appkitmcp.ErrorResult(appkitmcp.ErrSourceUnavailable, "source URL is unavailable: "+sourceURL)
 }
 
 func (h *toolHandlers) toolMkdir(ctx context.Context, raw json.RawMessage, clientID string) (map[string]any, error) {
@@ -346,7 +383,7 @@ func (h *toolHandlers) toolMkdir(ctx context.Context, raw json.RawMessage, clien
 	if err := h.svc.Mkdir(ctx, a.Path, clientID); err != nil {
 		return toolErr(err), nil
 	}
-	return appkitmcp.JSONResult(map[string]any{"path": a.Path})
+	return appkitmcp.StructuredResult(map[string]any{"path": a.Path})
 }
 
 func (h *toolHandlers) toolDelete(ctx context.Context, raw json.RawMessage, clientID string) (map[string]any, error) {
@@ -363,7 +400,7 @@ func (h *toolHandlers) toolDelete(ctx context.Context, raw json.RawMessage, clie
 	if err != nil {
 		return toolErr(err), nil
 	}
-	return appkitmcp.JSONResult(map[string]any{"removed": removed})
+	return appkitmcp.StructuredResult(map[string]any{"removed": removed})
 }
 
 func (h *toolHandlers) toolMove(ctx context.Context, raw json.RawMessage, clientID string) (map[string]any, error) {
@@ -380,36 +417,25 @@ func (h *toolHandlers) toolMove(ctx context.Context, raw json.RawMessage, client
 	if err := h.svc.Move(ctx, a.From, a.To, clientID); err != nil {
 		return toolErr(err), nil
 	}
-	return appkitmcp.JSONResult(map[string]any{"from": a.From, "to": a.To})
+	return appkitmcp.StructuredResult(map[string]any{"from": a.From, "to": a.To})
 }
 
-// toolErr maps a domain sentinel to the shared tool-error envelope
-// {error:{code,message}} with isError:true. Unrecognized errors fall through to
-// the internal code so they never leak as a bare transport error.
+// toolErr maps a domain sentinel to the shared typed tool-error envelope.
+// Unrecognized errors fall through to internal so they never leak as a bare
+// transport error.
 func toolErr(err error) map[string]any {
-	code := "internal"
+	code := appkitmcp.ErrInternal
 	switch {
 	case errors.Is(err, dropbox.ErrNotFound):
-		code = "not_found"
+		code = appkitmcp.ErrNotFound
 	case errors.Is(err, dropbox.ErrRevMismatch):
-		code = "conflict"
+		code = appkitmcp.ErrConflict
 	case errors.Is(err, dropbox.ErrValidation):
-		code = "validation"
+		code = appkitmcp.ErrValidation
 	case errors.Is(err, dropbox.ErrPathEscape):
-		code = "validation"
+		code = appkitmcp.ErrValidation
 	}
-	return appkitmcp.ErrorResult(toolErrorJSON(code, err.Error()))
-}
-
-// toolErrorJSON marshals the {error:{code,message}} body shared by the
-// tool-error results.
-func toolErrorJSON(code, message string) string {
-	env := map[string]any{"error": map[string]any{
-		"code":    code,
-		"message": message,
-	}}
-	b, _ := json.Marshal(env)
-	return string(b)
+	return appkitmcp.ErrorResult(code, err.Error())
 }
 
 // firstN returns the first n chars of s, or all of s when it is shorter — used

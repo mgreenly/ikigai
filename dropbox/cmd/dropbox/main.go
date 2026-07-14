@@ -101,8 +101,8 @@ func main() {
 		// DB handle, then mounts the routes dropbox owns: the gated dropbox_* MCP
 		// surface (POST /mcp) and the UNAUTHENTICATED, loopback-only private byte
 		// routes — GET /content (one file's bytes) and GET /list (its enumeration
-		// twin, ADR-import-sync §3). Each byte route is the primary guard, 404ing any
-		// nginx-injected identity header, exactly like /feed. The secrets + non-secret
+		// twin, ADR-import-sync §3). The chassis guards these routes from requests
+		// that crossed nginx. The secrets + non-secret
 		// sync knobs are read here at dropbox's own composition root; appkit never
 		// reads them.
 		Handlers: func(r *appkit.Router) error {
@@ -188,18 +188,7 @@ func main() {
 				return err
 			}
 			rt.Handle("POST /mcp", rt.RequireIdentity(handler))
-			// /content and /list are unauthenticated + loopback-only (each handler
-			// self-guards, 404ing any nginx-injected identity header), so they are
-			// registered verbatim, NOT behind RequireIdentity. /content delivers a
-			// file's bytes; /list is its enumeration twin (the loopback peer-walk
-			// route sites' `sync` consumes, ADR-import-sync §3).
-			rt.Handle("GET /content", svc.ContentHandler())
-			rt.Handle("PUT /content", svc.WriteHandler())
-			rt.Handle("DELETE /content", svc.WriteHandler())
-			rt.Handle("POST /mkdir", svc.MkdirHandler())
-			rt.Handle("POST /move", svc.MoveHandler())
-			rt.Handle("GET /list", svc.ListHandler())
-			rt.Handle("GET /stat", svc.StatHandler())
+			mountLoopbackRoutes(rt, svc)
 			return nil
 		},
 		// Producer fires after Handlers: wrap the outbox with the content base so
@@ -234,6 +223,16 @@ func main() {
 			},
 		},
 	})
+}
+
+func mountLoopbackRoutes(rt *appkit.Router, svc *dropbox.Service) {
+	rt.HandleLoopback("GET /content", svc.ContentHandler())
+	rt.HandleLoopback("PUT /content", svc.WriteHandler())
+	rt.HandleLoopback("DELETE /content", svc.WriteHandler())
+	rt.HandleLoopback("POST /mkdir", svc.MkdirHandler())
+	rt.HandleLoopback("POST /move", svc.MoveHandler())
+	rt.HandleLoopback("GET /list", svc.ListHandler())
+	rt.HandleLoopback("GET /stat", svc.StatHandler())
 }
 
 // registrySourcePorts is the composition-root confinement seam for MCP source

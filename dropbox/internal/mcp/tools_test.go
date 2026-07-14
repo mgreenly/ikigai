@@ -16,6 +16,7 @@ import (
 	"testing"
 
 	appkitdatabase "appkit/db"
+	appkitmcp "appkit/mcp"
 	"appkit/server"
 
 	"dropbox/internal/db"
@@ -146,15 +147,16 @@ func callToolText(t *testing.T, h http.Handler, name, args string) (string, bool
 	return content[0].(map[string]any)["text"].(string), isErr
 }
 
-// callTool invokes tools/call and returns the decoded JSON text payload plus the
+// callTool invokes tools/call and returns its structured payload plus the
 // isError flag.
 func callTool(t *testing.T, h http.Handler, name, args string) (map[string]any, bool) {
 	t.Helper()
-	text, isErr := callToolText(t, h, name, args)
-	var payload map[string]any
-	if err := json.Unmarshal([]byte(text), &payload); err != nil {
-		t.Fatalf("%s: decode payload %q: %v", name, text, err)
+	res := rpc(t, h, "tools/call", `{"name":"`+name+`","arguments":`+args+`}`)
+	payload, ok := res["structuredContent"].(map[string]any)
+	if !ok {
+		t.Fatalf("%s: missing structuredContent object: %v", name, res)
 	}
+	isErr, _ := res["isError"].(bool)
 	return payload, isErr
 }
 
@@ -194,6 +196,163 @@ func TestToolsListComposesDropboxToolsWithChassisTools(t *testing.T) {
 		default:
 			t.Errorf("unexpected tool %q in tools/list: %v", name, names)
 		}
+	}
+}
+
+func TestDomainToolsReturnMatchingStructuredAndTextResults(t *testing.T) {
+	// R-7PKS-A5KE
+	h, _ := newMirrorHandler(t)
+	calls := []struct {
+		name string
+		args string
+	}{
+		{name: "put", args: `{"path":"/a.txt","content_base64":"YQ=="}`},
+		{name: "get", args: `{"path":"/a.txt"}`},
+		{name: "list", args: `{}`},
+		{name: "mkdir", args: `{"path":"/work"}`},
+		{name: "move", args: `{"from":"/a.txt","to":"/b.txt"}`},
+		{name: "delete", args: `{"path":"/b.txt"}`},
+	}
+	for _, tc := range calls {
+		t.Run(tc.name, func(t *testing.T) {
+			res := rpc(t, h, "tools/call", `{"name":"`+tc.name+`","arguments":`+tc.args+`}`)
+			if isErr, _ := res["isError"].(bool); isErr {
+				t.Fatalf("result isError: %v", res)
+			}
+			structured, ok := res["structuredContent"].(map[string]any)
+			if !ok {
+				t.Fatalf("structuredContent is not an object: %v", res)
+			}
+			content, ok := res["content"].([]any)
+			if !ok || len(content) != 1 {
+				t.Fatalf("content = %v, want one text block", res["content"])
+			}
+			block, ok := content[0].(map[string]any)
+			if !ok || block["type"] != "text" {
+				t.Fatalf("content[0] = %v, want text block", content[0])
+			}
+			wantText, err := json.Marshal(structured)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if block["text"] != string(wantText) {
+				t.Fatalf("text = %q, want identical structured JSON %q", block["text"], wantText)
+			}
+		})
+	}
+}
+
+func TestDomainToolOutputSchemasMatchEmittedKeys(t *testing.T) {
+	// R-7QSO-NXB3
+	h := newHandler(t)
+	res := rpc(t, h, "tools/list", `{}`)
+	descriptors := map[string]map[string]any{}
+	for _, raw := range res["tools"].([]any) {
+		d := raw.(map[string]any)
+		descriptors[d["name"].(string)] = d
+	}
+	wants := map[string][]string{
+		"list":   {"files"},
+		"get":    {"path", "size", "content_hash", "rev", "updated_at", "content_base64"},
+		"put":    {"path", "size", "content_hash", "rev"},
+		"mkdir":  {"path"},
+		"delete": {"removed"},
+		"move":   {"from", "to"},
+	}
+	for name, want := range wants {
+		schema, ok := descriptors[name]["outputSchema"].(map[string]any)
+		if !ok || schema["type"] != "object" {
+			t.Fatalf("%s outputSchema = %v, want object", name, descriptors[name]["outputSchema"])
+		}
+		assertStringSet(t, name+" required", schema["required"], want)
+	}
+
+	listSchema := descriptors["list"]["outputSchema"].(map[string]any)
+	props := listSchema["properties"].(map[string]any)
+	files := props["files"].(map[string]any)
+	if files["type"] != "array" {
+		t.Fatalf("list files schema = %v, want array", files)
+	}
+	item := files["items"].(map[string]any)
+	if item["type"] != "object" {
+		t.Fatalf("list files item schema = %v, want object", item)
+	}
+	assertStringSet(t, "list file required", item["required"], []string{"path", "kind", "size", "hash", "rev", "updated_at"})
+}
+
+func assertStringSet(t *testing.T, label string, got any, want []string) {
+	t.Helper()
+	values, ok := got.([]any)
+	if !ok {
+		t.Fatalf("%s = %T(%v), want array", label, got, got)
+	}
+	seen := map[string]bool{}
+	for _, value := range values {
+		s, ok := value.(string)
+		if !ok || seen[s] {
+			t.Fatalf("%s contains invalid or duplicate value %v", label, value)
+		}
+		seen[s] = true
+	}
+	if len(seen) != len(want) {
+		t.Fatalf("%s = %v, want exactly %v", label, seen, want)
+	}
+	for _, value := range want {
+		if !seen[value] {
+			t.Fatalf("%s = %v, missing %q", label, seen, value)
+		}
+	}
+}
+
+func TestDomainToolErrorsUseFlatTypedChassisEnvelope(t *testing.T) {
+	// R-7S0L-1P1S
+	h, _ := newMirrorHandler(t)
+	res := rpc(t, h, "tools/call", `{"name":"get","arguments":{"path":"/missing"}}`)
+	if res["isError"] != true {
+		t.Fatalf("isError = %v, want true: %v", res["isError"], res)
+	}
+	structured, ok := res["structuredContent"].(map[string]any)
+	if !ok || len(structured) != 2 || structured["code"] != "not_found" {
+		t.Fatalf("structuredContent = %v, want flat not_found code and message", res["structuredContent"])
+	}
+	if _, nested := structured["error"]; nested {
+		t.Fatalf("structuredContent retained nested error body: %v", structured)
+	}
+	message, ok := structured["message"].(string)
+	if !ok || message == "" {
+		t.Fatalf("error message = %v, want non-empty string", structured["message"])
+	}
+	content := res["content"].([]any)
+	block := content[0].(map[string]any)
+	if block["type"] != "text" || block["text"] != message {
+		t.Fatalf("content[0] = %v, want human message %q", block, message)
+	}
+}
+
+func TestToolErrMapsDomainSentinelsToClosedCodes(t *testing.T) {
+	// R-7T8H-FGSH
+	cases := []struct {
+		name string
+		err  error
+		want appkitmcp.ErrorCode
+	}{
+		{name: "not found", err: dropbox.ErrNotFound, want: appkitmcp.ErrNotFound},
+		{name: "revision mismatch", err: dropbox.ErrRevMismatch, want: appkitmcp.ErrConflict},
+		{name: "validation", err: dropbox.ErrValidation, want: appkitmcp.ErrValidation},
+		{name: "path escape", err: dropbox.ErrPathEscape, want: appkitmcp.ErrValidation},
+		{name: "other", err: errors.New("transport detail"), want: appkitmcp.ErrInternal},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := toolErr(tc.err)
+			if result["isError"] != true {
+				t.Fatalf("isError = %v, want true", result["isError"])
+			}
+			structured := result["structuredContent"].(map[string]any)
+			if structured["code"] != tc.want || structured["message"] != tc.err.Error() {
+				t.Fatalf("structuredContent = %v, want code %q and sentinel message", structured, tc.want)
+			}
+		})
 	}
 }
 
@@ -541,7 +700,7 @@ func TestGet_NotFound(t *testing.T) {
 	if !isErr {
 		t.Fatalf("expected isError for unknown path, got %v", p)
 	}
-	em := p["error"].(map[string]any)
+	em := p
 	if em["code"] != "not_found" {
 		t.Errorf("code = %v, want not_found", em["code"])
 	}
@@ -554,7 +713,7 @@ func TestGet_Conflict(t *testing.T) {
 	if !isErr {
 		t.Fatalf("expected isError for rev mismatch, got %v", p)
 	}
-	em := p["error"].(map[string]any)
+	em := p
 	if em["code"] != "conflict" {
 		t.Errorf("code = %v, want conflict", em["code"])
 	}
@@ -570,7 +729,7 @@ func TestGet_TooLarge(t *testing.T) {
 	if !isErr {
 		t.Fatalf("expected isError for oversize, got %v", p)
 	}
-	em := p["error"].(map[string]any)
+	em := p
 	if em["code"] != "too_large" {
 		t.Errorf("code = %v, want too_large", em["code"])
 	}
@@ -582,7 +741,7 @@ func TestGet_MissingPath(t *testing.T) {
 	if !isErr {
 		t.Fatalf("expected isError for missing path, got %v", p)
 	}
-	em := p["error"].(map[string]any)
+	em := p
 	if em["code"] != "validation" {
 		t.Errorf("code = %v, want validation", em["code"])
 	}
@@ -620,7 +779,7 @@ func TestPut_WritesBase64BytesEnqueuesUploadAndRejectsOversize(t *testing.T) {
 	if !isErr {
 		t.Fatalf("oversize put should be an error: %v", tooLarge)
 	}
-	if code := tooLarge["error"].(map[string]any)["code"]; code != "too_large" {
+	if code := tooLarge["code"]; code != "too_large" {
 		t.Errorf("oversize put code = %v, want too_large", code)
 	}
 }
@@ -694,7 +853,7 @@ func TestPut_SourceURLConfinementAndExclusiveArguments(t *testing.T) {
 		`{"path":"/bad"}`,
 	} {
 		out, isErr := callTool(t, h, "put", args)
-		if !isErr || out["error"].(map[string]any)["code"] != "validation" {
+		if !isErr || out["code"] != "validation" {
 			t.Errorf("put %s = %v, isError=%t; want validation", args, out, isErr)
 		}
 	}
@@ -719,7 +878,7 @@ func TestPut_SourceURLFailureMappingLeavesNoMutation(t *testing.T) {
 			h = newHandlerWithSourceAllowed(t, svc, nil, func(p int) bool { return p == sourcePort(t, source.URL) })
 			out, isErr := callTool(t, h, "put", `{"path":"/failed.txt","source_url":"`+source.URL+`/missing"}`)
 			want := map[int]string{http.StatusNotFound: "not_found", http.StatusConflict: "conflict"}[status]
-			if !isErr || out["error"].(map[string]any)["code"] != want {
+			if !isErr || out["code"] != want {
 				t.Fatalf("source status %d = %v, isError=%t; want %s", status, out, isErr, want)
 			}
 			assertNoFailedSourceMutation(t, svc)
@@ -733,7 +892,7 @@ func TestPut_SourceURLFailureMappingLeavesNoMutation(t *testing.T) {
 	h, svc := newMirrorHandler(t)
 	h = newHandlerWithSourceAllowed(t, svc, nil, func(p int) bool { return p == sourcePort(t, closedURL) })
 	out, isErr := callTool(t, h, "put", `{"path":"/failed.txt","source_url":"`+closedURL+`/gone"}`)
-	if !isErr || out["error"].(map[string]any)["code"] != "source_unavailable" {
+	if !isErr || out["code"] != "source_unavailable" {
 		t.Fatalf("closed source = %v, isError=%t; want source_unavailable", out, isErr)
 	}
 	assertNoFailedSourceMutation(t, svc)
@@ -793,7 +952,7 @@ func TestMkdirDeleteMove_HaveLoopbackWriteSemanticsAndErrorEnvelope(t *testing.T
 	if !isErr {
 		t.Fatalf("invalid move should be an error: %v", bad)
 	}
-	if code := bad["error"].(map[string]any)["code"]; code != "validation" {
+	if code := bad["code"]; code != "validation" {
 		t.Errorf("invalid move code = %v, want validation", code)
 	}
 }

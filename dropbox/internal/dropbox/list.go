@@ -12,13 +12,9 @@ import (
 // going through the identity-gated, off-box MCP `list` tool. This route gives
 // it that — a thin wrapper over Service.List, cursor-paginated.
 //
-// Trust model (mirrors GET /content / GET /feed exactly): the route is
-// UNAUTHENTICATED and loopback-only — one box is one owner, so the perimeter is
-// "it is on 127.0.0.1". The HANDLER is the primary guard: any nginx-injected
-// identity header (X-Owner-Email OR X-Forwarded-Proto — nginx always sets the
-// latter) means the request was proxied through the public, authenticated front
-// door, which must never reach /list; we 404 it. This is the same defence copied
-// verbatim from content.go (and eventplane/outbox/feed.go ~line 50).
+// Trust model: the route is UNAUTHENTICATED and loopback-only — one box is one
+// owner, so the perimeter is "it is on 127.0.0.1". The composition root applies
+// the chassis loopback guard.
 //
 // Query params: `path` (a display-path prefix; empty or "/" lists everything),
 // `cursor` (an opaque value, = a prior response's next_cursor), and `limit`
@@ -39,13 +35,6 @@ import (
 // rather than masked as a 404.
 func (s *Service) ListHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Primary guard, copied from content.go — keep the public side out by the
-		// handler, not by nginx.
-		if r.Header.Get("X-Owner-Email") != "" || r.Header.Get("X-Forwarded-Proto") != "" {
-			http.Error(w, "not found", http.StatusNotFound)
-			return
-		}
-
 		q := r.URL.Query()
 		path := q.Get("path")
 		cursor := q.Get("cursor")

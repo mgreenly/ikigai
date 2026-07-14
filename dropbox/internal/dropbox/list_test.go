@@ -30,20 +30,20 @@ func doList(t *testing.T, h http.Handler, q url.Values) *httptest.ResponseRecord
 	return rec
 }
 
-func TestListHandler_IdentityHeaderGuardIs404(t *testing.T) {
+func TestListHandler_LeavesLoopbackGuardToCompositionRoot(t *testing.T) {
 	svc, conn, mirror := newContentService(t)
 	seedFile(t, svc, conn, mirror, "/a.txt", "rev1", []byte("a"))
 	h := svc.ListHandler()
 
-	// Even with valid data present, an nginx-injected identity header means the
-	// request was proxied through the public front door → 404 (mirrors content.go).
+	// Transport headers are deliberately not interpreted by the domain handler;
+	// the composition root owns the shared loopback guard.
 	for _, hdr := range []string{"X-Forwarded-Proto", "X-Owner-Email"} {
 		req := httptest.NewRequest(http.MethodGet, "/list", nil)
 		req.Header.Set(hdr, "set")
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, req)
-		if rec.Code != http.StatusNotFound {
-			t.Fatalf("with %s present: status = %d, want 404", hdr, rec.Code)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("with %s present: status = %d, want domain handler response", hdr, rec.Code)
 		}
 	}
 }

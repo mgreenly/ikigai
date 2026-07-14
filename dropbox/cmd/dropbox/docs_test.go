@@ -13,7 +13,7 @@ type filesystemRoute struct {
 }
 
 // filesystemAPIRoutes is the canonical filesystem route list mounted by
-// Handlers in main.go. Keep it aligned with the rt.Handle registrations.
+// Handlers in main.go. Keep it aligned with the rt.HandleLoopback registrations.
 var filesystemAPIRoutes = []filesystemRoute{
 	{method: "GET", path: "/content"},
 	{method: "PUT", path: "/content"},
@@ -59,7 +59,7 @@ func TestFilesystemAPIDocumentationCoversRegisteredRoutesAndExcludesPlumbing(t *
 		t.Fatalf("read composition root: %v", err)
 	}
 	for _, route := range filesystemAPIRoutes {
-		registration := `rt.Handle("` + route.method + " " + route.path + `"`
+		registration := `rt.HandleLoopback("` + route.method + " " + route.path + `"`
 		if !strings.Contains(string(mainSource), registration) {
 			t.Fatalf("canonical filesystem route %s %s is not registered in main.go", route.method, route.path)
 		}
