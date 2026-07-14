@@ -31,6 +31,19 @@ stacked); the history of how it got here lives in the plan.
 >    eventplane's plan phases 01–04 build first; appkit's conformance phase
 >    then precedes every service's own conformance phase (appkit is the hinge
 >    between eventplane and the services).
+> 5. **Structured MCP results + the loopback route class** (D8/D9 revised +
+>    D12, active): appkit implements the suite's structured-results contract
+>    (`docs/structured-mcp-design.md`) — protocol `2025-06-18`,
+>    `Tool.OutputSchema`, `StructuredResult` (replacing `JSONResult`, deleted),
+>    the typed `ErrorCode` vocabulary in a re-signed `ErrorResult`, the
+>    `-32603` handler-fault mapping, structured `health`/`reflection` — and
+>    hoists the loopback-only guard into a chassis route class
+>    (`LoopbackOnly` / `Router.HandleLoopback`, `/feed` mount wrapped), with
+>    the predicate narrowed to `X-Forwarded-Proto` per the caller-asserted
+>    identity contract. **Externally ordered:** appkit builds first; every
+>    service's adoption phase (result-helper conversion, output schemas,
+>    `HandleLoopback`) and eventplane's inline-guard deletion follow; the
+>    suite deploys together.
 >
 > appkit's other pre-existing surfaces — the verb dispatcher, migrations, the
 > loopback server's PRM/health/feed routes, the producer/worker seams — are
@@ -94,13 +107,17 @@ Shared facts every Decision leans on:
   **D11 is the deliberate exception:** the routing revision is a suite-wide
   hard cutover (no compatibility period), so D11 revises fixtures and the
   reflection wire surface rather than preserving them — additivity does not
-  apply to it.
+  apply to it. **The structured-results revision (D8/D9 revised, D12) is the
+  same kind of exception:** `JSONResult` is deleted and `ErrorResult`'s
+  signature changes, so services do not compile until their adoption phases
+  convert them — a deliberate singular move under the coordinated-deploy
+  rule, not drift. appkit's own suite stays the green bar.
 - **This design touches no schema and no `opsctl` code.** appkit is a library:
   it owns no service database and no outbox table, so the routing revision's
   outbox DDL change (D11) reaches services through their own migrations, never
   through appkit.
 
-## Testing strategy (D5–D11)
+## Testing strategy (D5–D12)
 
 - **`appkit/config`** is pure over its injected `getenv`; www-root resolution is
   table-tested exactly like the existing DB-path composition.
@@ -129,6 +146,16 @@ Shared facts every Decision leans on:
   through `httptest`; the reflection claims go through the D8 `ServeHTTP` seam
   with real family-shaped `outbox.Registry` values. Converted consumer-test
   fixtures frame `kind`/`subject` envelopes with canonical-key `event:` lines.
+- **Structured results (revised D8/D9)** stay on the D8 `ServeHTTP` seam:
+  result-shape claims parse the JSON-RPC response and compare
+  `structuredContent` against the parsed text block (the no-drift property
+  asserted between the two renderings, never against a string fixture);
+  descriptor claims assert `outputSchema` presence/absence keys in
+  `tools/list`.
+- **The loopback route class (D12)** is proven through `httptest` against the
+  real handler and the real `server.New` mux (recording inner handlers for
+  the not-invoked claims); the `/feed`-mount claim drives the real route
+  table with `Options.Feed` set.
 
 ## Layout
 
@@ -152,6 +179,12 @@ auto-mounted static route, the `Router.WWW()` accessor).
 Spec field live in the root `appkit` package beside `Workers`; the
 feed-URL/`From` env resolution extends `appkit/config`; the manifest and
 reflection derivations extend the existing emit/tool paths.
+
+**Structured results + loopback class (revised D8/D9, D12).** No new package:
+the result contract lives in `appkit/mcp` (protocol constant, `OutputSchema`
+field, `StructuredResult`/`ErrorCode`/`ErrorResult`, dispatch error mapping,
+standard-tool schemas); the route class extends `appkit/server`
+(`LoopbackOnly`, `Router.HandleLoopback`, the wrapped `/feed` mount).
 
 Design is rewritten in place, not append-only (history lives in the plan): a
 changed Decision is rewritten in its `DNN.md` and `INDEX.md` is regenerated; a new
