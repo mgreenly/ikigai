@@ -95,8 +95,8 @@ func TestInitializeAdvertisesWikiMCPServer(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
 		t.Fatalf("response JSON: %v", err)
 	}
-	if got.Result.ProtocolVersion != "2025-03-26" {
-		t.Fatalf("protocolVersion = %q, want 2025-03-26", got.Result.ProtocolVersion)
+	if got.Result.ProtocolVersion != "2025-06-18" {
+		t.Fatalf("protocolVersion = %q, want 2025-06-18", got.Result.ProtocolVersion)
 	}
 	if got.Result.Capabilities.Tools == nil {
 		t.Fatal("capabilities.tools is nil")
@@ -121,6 +121,7 @@ func TestToolsListAdvertisesConfiguredWikiSurface(t *testing.T) {
 	// R-JKMR-5MV1
 	// R-MUQ4-K1JS
 	// R-YF06-03HO
+	// R-ENK6-P4KR
 	h := gatedHandler(t, newTestHandler(t,
 		WithIngestService(&capturingWiki{}),
 		WithJobStatusService(&capturingWiki{}),
@@ -144,8 +145,9 @@ func TestToolsListAdvertisesConfiguredWikiSurface(t *testing.T) {
 	var got struct {
 		Result struct {
 			Tools []struct {
-				Name        string         `json:"name"`
-				InputSchema map[string]any `json:"inputSchema"`
+				Name         string         `json:"name"`
+				InputSchema  map[string]any `json:"inputSchema"`
+				OutputSchema map[string]any `json:"outputSchema"`
 			} `json:"tools"`
 		} `json:"result"`
 	}
@@ -158,6 +160,12 @@ func TestToolsListAdvertisesConfiguredWikiSurface(t *testing.T) {
 		names[tool.Name] = true
 		if tool.InputSchema["type"] != "object" {
 			t.Fatalf("%s schema type = %v, want object", tool.Name, tool.InputSchema["type"])
+		}
+		if tool.Name == "guide" && tool.OutputSchema != nil {
+			t.Fatalf("guide outputSchema = %#v, want omitted", tool.OutputSchema)
+		}
+		if tool.Name != "guide" && tool.Name != "health" && tool.Name != "reflection" && tool.OutputSchema == nil {
+			t.Fatalf("%s outputSchema is nil", tool.Name)
 		}
 	}
 	want := map[string]bool{
@@ -195,6 +203,7 @@ func TestToolsListAdvertisesConfiguredWikiSurface(t *testing.T) {
 
 func TestGuideIsInputFreeSuccessfulAndDoesNotCallDomainServices(t *testing.T) {
 	// R-YDS9-MBQZ
+	// R-EPZZ-GO25
 	wiki := &capturingWiki{jobCount: 41}
 	before := *wiki
 	h := gatedHandler(t, newTestHandler(t,
@@ -223,9 +232,11 @@ func TestGuideIsInputFreeSuccessfulAndDoesNotCallDomainServices(t *testing.T) {
 		var got struct {
 			Result struct {
 				Content []struct {
+					Type string `json:"type"`
 					Text string `json:"text"`
 				} `json:"content"`
-				IsError bool `json:"isError"`
+				StructuredContent any  `json:"structuredContent"`
+				IsError           bool `json:"isError"`
 			} `json:"result"`
 		}
 		decodeJSON(t, rec.Body.Bytes(), &got)
@@ -235,12 +246,132 @@ func TestGuideIsInputFreeSuccessfulAndDoesNotCallDomainServices(t *testing.T) {
 		if len(got.Result.Content) != 1 || strings.TrimSpace(got.Result.Content[0].Text) == "" {
 			t.Fatalf("guide content = %#v, want one non-empty document", got.Result.Content)
 		}
+		if got.Result.Content[0].Type != "text" || got.Result.StructuredContent != nil {
+			t.Fatalf("guide result = %#v, want text only", got.Result)
+		}
 		if got.Result.Content[0].Text != guideDoc {
 			t.Fatal("guide result does not match embedded document")
 		}
 	}
 	if !reflect.DeepEqual(*wiki, before) {
 		t.Fatalf("domain service state changed from %#v to %#v", before, *wiki)
+	}
+}
+
+func TestDomainOutputSchemasMirrorRepresentativeStructuredResults(t *testing.T) {
+	// R-ER7V-UFSU
+	wiki := &capturingWiki{
+		status:       jobStatus{Status: "done"},
+		pathSubjects: map[string]subject{"entity/from": {ID: "from"}, "entity/to": {ID: "to"}},
+		page:         page{Title: "Title", Body: "Body"},
+	}
+	tools := Tools(
+		WithIngestService(wiki), WithJobStatusService(wiki), WithJobAbortService(wiki),
+		WithJobRerunService(wiki), WithJobListService(wiki), WithJobsCountService(wiki),
+		WithMergeService(wiki, wiki), WithMergeListService(wiki),
+		WithAskFunc((&capturingAsker{}).Ask), WithSubjectListService(wiki),
+		WithClaimListService(wiki), WithPagePathService(wiki), WithLLMCallListService(&capturingCalls{}),
+	)
+	args := map[string]string{
+		"ingest": `{"text":"source"}`, "status": `{"job_id":"job"}`, "abort": `{"job_id":"job"}`,
+		"rerun": `{"job_id":"job"}`, "jobs": `{}`, "jobs_count": `{}`,
+		"merge": `{"from":"entity/from","to":"entity/to"}`, "merges": `{}`,
+		"ask": `{"question":"question"}`, "subjects": `{}`, "claims": `{"subject":"entity/from"}`,
+		"page": `{"subject":"entity/from"}`, "llm_calls": `{}`,
+	}
+	nested := map[string]map[string][]string{
+		"jobs":      {"jobs": {"id", "owner", "title", "tags", "status", "received_at", "started_at", "finished_at", "error"}},
+		"merges":    {"merges": {"norm_name", "subject_id", "name", "created_by", "created_at"}},
+		"subjects":  {"subjects": {"path", "type", "name", "has_page"}},
+		"claims":    {"claims": {"id", "text", "job"}},
+		"llm_calls": {"llm_calls": {"id", "stage", "job_id", "attempt", "provider", "model", "params", "request", "response", "usage", "error", "started_at", "ended_at"}},
+		"ask":       {"citations": {"url", "title"}},
+	}
+	identity := server.Identity{OwnerEmail: "owner@example.com"}
+	seen := 0
+	for _, tool := range tools {
+		raw, ok := args[tool.Name]
+		if !ok {
+			continue
+		}
+		seen++
+		result, err := tool.Handler(context.Background(), json.RawMessage(raw), identity)
+		if err != nil {
+			t.Fatalf("%s handler: %v", tool.Name, err)
+		}
+		encoded, err := json.Marshal(result["structuredContent"])
+		if err != nil {
+			t.Fatalf("%s marshal structuredContent: %v", tool.Name, err)
+		}
+		var payload map[string]any
+		decodeJSON(t, encoded, &payload)
+		properties := tool.OutputSchema["properties"].(map[string]any)
+		if !maps.EqualFunc(properties, payload, func(any, any) bool { return true }) {
+			t.Fatalf("%s schema keys = %#v, payload keys = %#v", tool.Name, properties, payload)
+		}
+		for _, required := range stringValues(tool.OutputSchema["required"]) {
+			if _, ok := payload[required]; !ok {
+				t.Fatalf("%s required field %q missing from payload %#v", tool.Name, required, payload)
+			}
+		}
+		for field, wantFields := range nested[tool.Name] {
+			arraySchema := properties[field].(map[string]any)
+			itemProperties := arraySchema["items"].(map[string]any)["properties"].(map[string]any)
+			for _, want := range wantFields {
+				if _, ok := itemProperties[want]; !ok {
+					t.Fatalf("%s.%s item schema missing %s", tool.Name, field, want)
+				}
+			}
+		}
+	}
+	if seen != 13 {
+		t.Fatalf("exercised %d domain tools, want 13", seen)
+	}
+}
+
+func TestDomainValidationErrorsCarryTypedWellFormedEnvelopes(t *testing.T) {
+	// R-ESFS-87JJ
+	// R-EXBD-RAIB
+	wiki := &capturingWiki{pathSubjects: map[string]subject{
+		"entity/one": {ID: "same"}, "entity/two": {ID: "same"},
+	}}
+	h := gatedHandler(t, newTestHandler(t,
+		WithIngestService(wiki), WithJobStatusService(wiki), WithJobAbortService(wiki),
+		WithJobRerunService(wiki), WithJobListService(wiki), WithMergeService(wiki, wiki),
+		WithAskFunc((&capturingAsker{}).Ask), WithClaimListService(wiki), WithPagePathService(wiki),
+	))
+	cases := map[string]string{
+		"malformed arguments": `{"name":"ingest","arguments":[]}`,
+		"ingest text":         `{"name":"ingest","arguments":{}}`,
+		"merge from":          `{"name":"merge","arguments":{"to":"entity/two"}}`,
+		"merge to":            `{"name":"merge","arguments":{"from":"entity/one"}}`,
+		"status job":          `{"name":"status","arguments":{}}`,
+		"abort job":           `{"name":"abort","arguments":{}}`,
+		"rerun job":           `{"name":"rerun","arguments":{}}`,
+		"ask question":        `{"name":"ask","arguments":{}}`,
+		"claims subject":      `{"name":"claims","arguments":{}}`,
+		"page subject":        `{"name":"page","arguments":{}}`,
+		"since":               `{"name":"jobs","arguments":{"since":"yesterday"}}`,
+		"until":               `{"name":"jobs","arguments":{"until":"tomorrow"}}`,
+		"cursor":              `{"name":"jobs","arguments":{"cursor":"invalid"}}`,
+		"same subject":        `{"name":"merge","arguments":{"from":"entity/one","to":"entity/two"}}`,
+	}
+	closed := map[string]bool{"validation": true, "not_found": true, "conflict": true, "too_large": true, "source_unavailable": true, "internal": true}
+	for name, params := range cases {
+		t.Run(name, func(t *testing.T) {
+			request := `{"jsonrpc":"2.0","id":"validation","method":"tools/call","params":` + params + `}`
+			result := decodeToolResult(t, callMCP(t, h, request, "owner@example.com").Body.Bytes())
+			code, _ := result.StructuredContent["code"].(string)
+			if !result.IsError || code != "validation" {
+				t.Fatalf("result = %#v, want validation error", result)
+			}
+			if len(result.Content) != 1 || result.Content[0].Type != "text" || strings.TrimSpace(result.Content[0].Text) == "" {
+				t.Fatalf("content = %#v, want one human text message", result.Content)
+			}
+			if !closed[code] {
+				t.Fatalf("code = %q, outside closed vocabulary", code)
+			}
+		})
 	}
 }
 
@@ -386,16 +517,22 @@ func TestReflectionToolReturnsEmptyEventEdges(t *testing.T) {
 	}
 }
 
-func TestUnknownReadsReturnCleanNotFoundResults(t *testing.T) {
+func TestUnknownDomainResourcesReturnTypedNotFoundErrors(t *testing.T) {
+	// R-ETNO-LZA8
 	wiki := &capturingWiki{
 		statusErr: sql.ErrNoRows,
 		claimsErr: sql.ErrNoRows,
 		pageErr:   sql.ErrNoRows,
+		pathErrs:  map[string]error{"entity/missing": sql.ErrNoRows},
 	}
+	missing := missingJobs{}
 	h := gatedHandler(t, newTestHandler(t,
 		WithJobStatusService(wiki),
+		WithJobAbortService(missing),
+		WithJobRerunService(missing),
 		WithClaimsService(wiki),
 		WithPagePathService(wiki),
+		WithMergeService(wiki, wiki),
 	))
 	for _, tc := range []struct {
 		name string
@@ -406,6 +543,18 @@ func TestUnknownReadsReturnCleanNotFoundResults(t *testing.T) {
 		{
 			name: "status",
 			body: `{"jsonrpc":"2.0","id":"status","method":"tools/call","params":{"name":"status","arguments":{"job_id":"job-missing"}}}`,
+			kind: "job",
+			id:   "job-missing",
+		},
+		{
+			name: "abort",
+			body: `{"jsonrpc":"2.0","id":"abort","method":"tools/call","params":{"name":"abort","arguments":{"job_id":"job-missing"}}}`,
+			kind: "job",
+			id:   "job-missing",
+		},
+		{
+			name: "rerun",
+			body: `{"jsonrpc":"2.0","id":"rerun","method":"tools/call","params":{"name":"rerun","arguments":{"job_id":"job-missing"}}}`,
 			kind: "job",
 			id:   "job-missing",
 		},
@@ -421,29 +570,27 @@ func TestUnknownReadsReturnCleanNotFoundResults(t *testing.T) {
 			kind: "subject",
 			id:   "entity/missing",
 		},
+		{
+			name: "merge",
+			body: `{"jsonrpc":"2.0","id":"merge","method":"tools/call","params":{"name":"merge","arguments":{"from":"entity/missing","to":"entity/other"}}}`,
+			kind: "subject",
+			id:   "entity/missing",
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rec := callMCP(t, h, tc.body, "owner@example.com")
 			if rec.Code != http.StatusOK {
 				t.Fatalf("status = %d, want 200", rec.Code)
 			}
-			var body struct {
-				Found bool   `json:"found"`
-				Kind  string `json:"kind"`
-				ID    string `json:"id"`
-			}
-			decodeToolText(t, rec.Body.Bytes(), &body)
-			if body.Found || body.Kind != tc.kind || body.ID != tc.id {
-				t.Fatalf("not found = %#v, want %s %s found=false", body, tc.kind, tc.id)
-			}
 			var raw struct {
 				Result struct {
-					IsError bool `json:"isError"`
+					IsError           bool           `json:"isError"`
+					StructuredContent map[string]any `json:"structuredContent"`
 				} `json:"result"`
 			}
 			decodeJSON(t, rec.Body.Bytes(), &raw)
-			if raw.Result.IsError {
-				t.Fatal("result isError = true, want clean not-found result")
+			if !raw.Result.IsError || raw.Result.StructuredContent["code"] != "not_found" {
+				t.Fatalf("result = %#v, want typed not_found error", raw.Result)
 			}
 		})
 	}
@@ -452,6 +599,7 @@ func TestUnknownReadsReturnCleanNotFoundResults(t *testing.T) {
 func TestIngestToolUsesAuthenticatedIdentity(t *testing.T) {
 	// R-MVY0-XTAH
 	// R-YINV-5EPR
+	// R-EMCA-BCU2
 	wiki := &capturingWiki{ingestID: "job-123"}
 	h := gatedHandler(t, newTestHandler(t, WithIngestService(wiki)))
 	rec := callMCP(t, h, `{
@@ -482,6 +630,29 @@ func TestIngestToolUsesAuthenticatedIdentity(t *testing.T) {
 	decodeToolText(t, rec.Body.Bytes(), &body)
 	if body.JobID != "job-123" {
 		t.Fatalf("job_id = %q, want job-123", body.JobID)
+	}
+	result := decodeToolResult(t, rec.Body.Bytes())
+	want := map[string]any{"job_id": "job-123"}
+	if !reflect.DeepEqual(result.StructuredContent, want) {
+		t.Fatalf("structuredContent = %#v, want %#v", result.StructuredContent, want)
+	}
+	var mirrored map[string]any
+	decodeJSON(t, []byte(result.Content[0].Text), &mirrored)
+	if !reflect.DeepEqual(mirrored, want) {
+		t.Fatalf("text content = %#v, want %#v", mirrored, want)
+	}
+}
+
+func TestOpaqueDomainFailureReturnsInternalError(t *testing.T) {
+	// R-EW3H-DIRM
+	h := gatedHandler(t, newTestHandler(t, WithIngestService(failingIngest{err: errors.New("backend unavailable")})))
+	rec := callMCP(t, h, `{"jsonrpc":"2.0","id":"ingest","method":"tools/call","params":{"name":"ingest","arguments":{"text":"source"}}}`, "owner@example.com")
+	result := decodeToolResult(t, rec.Body.Bytes())
+	if !result.IsError || result.StructuredContent["code"] != "internal" {
+		t.Fatalf("result = %#v, want typed internal error", result)
+	}
+	if len(result.Content) != 1 || !strings.Contains(result.Content[0].Text, "backend unavailable") {
+		t.Fatalf("content = %#v, want opaque backend message", result.Content)
 	}
 }
 
@@ -1313,10 +1484,9 @@ func TestMergeToolReportsResolveAndEnqueueErrors(t *testing.T) {
 
 		rec := callMCP(t, h, `{"jsonrpc":"2.0","id":"merge","method":"tools/call","params":{"name":"merge","arguments":{"from":"entity/missing","to":"entity/new-name"}}}`, "owner@example.com")
 
-		var body map[string]any
-		decodeToolText(t, rec.Body.Bytes(), &body)
-		if body["found"] != false || body["kind"] != "subject" || body["id"] != "entity/missing" {
-			t.Fatalf("resolve error body = %#v, want subject not-found for missing path", body)
+		result := decodeToolResult(t, rec.Body.Bytes())
+		if !result.IsError || result.StructuredContent["code"] != "not_found" {
+			t.Fatalf("resolve error = %#v, want subject not_found", result)
 		}
 		if wiki.mergeFrom != "" || wiki.mergeTo != "" {
 			t.Fatalf("merge called with %q -> %q, want no enqueue after resolve failure", wiki.mergeFrom, wiki.mergeTo)
@@ -1697,6 +1867,22 @@ type capturingWiki struct {
 	subjectNext    string
 }
 
+type missingJobs struct{}
+
+func (missingJobs) Abort(context.Context, string) (abortResult, error) {
+	return abortResult{}, sql.ErrNoRows
+}
+
+func (missingJobs) Rerun(context.Context, string) (rerunResult, error) {
+	return rerunResult{}, sql.ErrNoRows
+}
+
+type failingIngest struct{ err error }
+
+func (f failingIngest) Ingest(context.Context, string, string, string, []string) (string, error) {
+	return "", f.err
+}
+
 func (w *capturingWiki) Ingest(_ context.Context, owner, text, title string, tags []string) (string, error) {
 	w.ingestOwner = owner
 	w.ingestText = text
@@ -2061,6 +2247,24 @@ func decodeToolText(t *testing.T, raw []byte, dst any) {
 	decodeJSON(t, []byte(toolTextString(t, raw)), dst)
 }
 
+type toolResult struct {
+	Content []struct {
+		Type string `json:"type"`
+		Text string `json:"text"`
+	} `json:"content"`
+	StructuredContent map[string]any `json:"structuredContent"`
+	IsError           bool           `json:"isError"`
+}
+
+func decodeToolResult(t *testing.T, raw []byte) toolResult {
+	t.Helper()
+	var got struct {
+		Result toolResult `json:"result"`
+	}
+	decodeJSON(t, raw, &got)
+	return got.Result
+}
+
 func toolTextString(t *testing.T, raw []byte) string {
 	t.Helper()
 	var got struct {
@@ -2105,4 +2309,21 @@ func containsJSONValue(values []any, want string) bool {
 		}
 	}
 	return false
+}
+
+func stringValues(value any) []string {
+	switch values := value.(type) {
+	case []string:
+		return values
+	case []any:
+		out := make([]string, 0, len(values))
+		for _, value := range values {
+			if text, ok := value.(string); ok {
+				out = append(out, text)
+			}
+		}
+		return out
+	default:
+		return nil
+	}
 }

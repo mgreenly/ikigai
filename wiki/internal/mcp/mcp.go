@@ -405,20 +405,24 @@ func NewHandler(rt *appkit.Router, opts ...Option) (http.Handler, error) {
 }
 
 func domainTool(desc map[string]any, handler func(context.Context, json.RawMessage, server.Identity) (map[string]any, error)) appkitmcp.Tool {
-	return appkitmcp.Tool{
+	tool := appkitmcp.Tool{
 		Name:        desc["name"].(string),
 		Description: desc["description"].(string),
 		InputSchema: desc["inputSchema"].(map[string]any),
 		Handler:     handler,
 	}
+	if schema, ok := desc["outputSchema"].(map[string]any); ok {
+		tool.OutputSchema = schema
+	}
+	return tool
 }
 
 func (h *Handler) handleIngestCall(ctx context.Context, raw json.RawMessage, id server.Identity) (map[string]any, error) {
 	if h.ingest == nil {
-		return toolError("ingest tool is not configured"), nil
+		return internalError("ingest tool is not configured"), nil
 	}
 	if strings.TrimSpace(id.OwnerEmail) == "" {
-		return toolError("missing authenticated identity"), nil
+		return validationError("missing authenticated identity"), nil
 	}
 	var args struct {
 		Text  string   `json:"text"`
@@ -426,212 +430,212 @@ func (h *Handler) handleIngestCall(ctx context.Context, raw json.RawMessage, id 
 		Tags  []string `json:"tags"`
 	}
 	if err := decodeArgs(raw, &args); err != nil {
-		return toolError(err.Error()), nil
+		return validationError(err.Error()), nil
 	}
 	if strings.TrimSpace(args.Text) == "" {
-		return toolError("text is required"), nil
+		return validationError("text is required"), nil
 	}
 	jobID, err := h.ingest(ctx, id.OwnerEmail, args.Text, args.Title, args.Tags)
 	if err != nil {
-		return toolError(err.Error()), nil
+		return internalError(err.Error()), nil
 	}
-	return appkitmcp.JSONResult(map[string]string{"job_id": jobID})
+	return appkitmcp.StructuredResult(map[string]string{"job_id": jobID})
 }
 
 func (h *Handler) handleJobStatusCall(ctx context.Context, raw json.RawMessage, _ server.Identity) (map[string]any, error) {
 	if h.status == nil {
-		return toolError("job_status tool is not configured"), nil
+		return internalError("job_status tool is not configured"), nil
 	}
 	var args struct {
 		JobID string `json:"job_id"`
 	}
 	if err := decodeArgs(raw, &args); err != nil {
-		return toolError(err.Error()), nil
+		return validationError(err.Error()), nil
 	}
 	if strings.TrimSpace(args.JobID) == "" {
-		return toolError("job_id is required"), nil
+		return validationError("job_id is required"), nil
 	}
 	status, err := h.status(ctx, args.JobID)
 	if errors.Is(err, sql.ErrNoRows) {
-		return appkitmcp.JSONResult(notFound("job", args.JobID))
+		return notFoundError("job", args.JobID), nil
 	}
 	if err != nil {
-		return toolError(err.Error()), nil
+		return internalError(err.Error()), nil
 	}
-	return appkitmcp.JSONResult(publicStatusResult(status))
+	return appkitmcp.StructuredResult(publicStatusResult(status))
 }
 
 func (h *Handler) handleJobAbortCall(ctx context.Context, raw json.RawMessage, _ server.Identity) (map[string]any, error) {
 	if h.abort == nil {
-		return toolError("abort tool is not configured"), nil
+		return internalError("abort tool is not configured"), nil
 	}
 	args, err := decodeJobIDArgs(raw)
 	if err != nil {
-		return toolError(err.Error()), nil
+		return validationError(err.Error()), nil
 	}
 	result, err := h.abort(ctx, args.JobID)
 	if errors.Is(err, sql.ErrNoRows) {
-		return appkitmcp.JSONResult(notFound("job", args.JobID))
+		return notFoundError("job", args.JobID), nil
 	}
 	if err != nil {
-		return toolError(err.Error()), nil
+		return internalError(err.Error()), nil
 	}
-	return appkitmcp.JSONResult(publicAbortResult(result))
+	return appkitmcp.StructuredResult(publicAbortResult(result))
 }
 
 func (h *Handler) handleJobRerunCall(ctx context.Context, raw json.RawMessage, _ server.Identity) (map[string]any, error) {
 	if h.rerun == nil {
-		return toolError("rerun tool is not configured"), nil
+		return internalError("rerun tool is not configured"), nil
 	}
 	args, err := decodeJobIDArgs(raw)
 	if err != nil {
-		return toolError(err.Error()), nil
+		return validationError(err.Error()), nil
 	}
 	result, err := h.rerun(ctx, args.JobID)
 	if errors.Is(err, sql.ErrNoRows) {
-		return appkitmcp.JSONResult(notFound("job", args.JobID))
+		return notFoundError("job", args.JobID), nil
 	}
 	if err != nil {
-		return toolError(err.Error()), nil
+		return internalError(err.Error()), nil
 	}
-	return appkitmcp.JSONResult(publicRerunResult(result))
+	return appkitmcp.StructuredResult(publicRerunResult(result))
 }
 
 func (h *Handler) handleJobsCall(ctx context.Context, raw json.RawMessage, _ server.Identity) (map[string]any, error) {
 	if h.jobs == nil {
-		return toolError("jobs tool is not configured"), nil
+		return internalError("jobs tool is not configured"), nil
 	}
 	filter, limit, cursor, err := decodeJobsArgs(raw, true)
 	if err != nil {
-		return toolError(err.Error()), nil
+		return validationError(err.Error()), nil
 	}
 	jobs, next, err := h.jobs(ctx, filter, paging.Params{Limit: limit, Cursor: cursor})
 	if err != nil {
-		return toolError(err.Error()), nil
+		return internalError(err.Error()), nil
 	}
-	return appkitmcp.JSONResult(pagedResult("jobs", publicJobsResult(jobs), next))
+	return appkitmcp.StructuredResult(pagedResult("jobs", publicJobsResult(jobs), next))
 }
 
 func (h *Handler) handleJobsCountCall(ctx context.Context, raw json.RawMessage, _ server.Identity) (map[string]any, error) {
 	if h.jobsCount == nil {
-		return toolError("jobs_count tool is not configured"), nil
+		return internalError("jobs_count tool is not configured"), nil
 	}
 	filter, _, _, err := decodeJobsArgs(raw, false)
 	if err != nil {
-		return toolError(err.Error()), nil
+		return validationError(err.Error()), nil
 	}
 	count, err := h.jobsCount(ctx, filter)
 	if err != nil {
-		return toolError(err.Error()), nil
+		return internalError(err.Error()), nil
 	}
-	return appkitmcp.JSONResult(map[string]int{"count": count})
+	return appkitmcp.StructuredResult(map[string]int{"count": count})
 }
 
 func (h *Handler) handleMergeCall(ctx context.Context, raw json.RawMessage, id server.Identity) (map[string]any, error) {
 	if h.resolve == nil || h.merge == nil {
-		return toolError("merge tool is not configured"), nil
+		return internalError("merge tool is not configured"), nil
 	}
 	if strings.TrimSpace(id.OwnerEmail) == "" {
-		return toolError("missing authenticated identity"), nil
+		return validationError("missing authenticated identity"), nil
 	}
 	var args struct {
 		From string `json:"from"`
 		To   string `json:"to"`
 	}
 	if err := decodeArgs(raw, &args); err != nil {
-		return toolError(err.Error()), nil
+		return validationError(err.Error()), nil
 	}
 	fromPath := strings.TrimSpace(args.From)
 	toPath := strings.TrimSpace(args.To)
 	if fromPath == "" {
-		return toolError("from is required"), nil
+		return validationError("from is required"), nil
 	}
 	if toPath == "" {
-		return toolError("to is required"), nil
+		return validationError("to is required"), nil
 	}
 	from, err := h.resolve(ctx, fromPath)
 	if errors.Is(err, sql.ErrNoRows) {
-		return appkitmcp.JSONResult(notFound("subject", fromPath))
+		return notFoundError("subject", fromPath), nil
 	}
 	if err != nil {
-		return toolError(err.Error()), nil
+		return internalError(err.Error()), nil
 	}
 	to, err := h.resolve(ctx, toPath)
 	if errors.Is(err, sql.ErrNoRows) {
-		return appkitmcp.JSONResult(notFound("subject", toPath))
+		return notFoundError("subject", toPath), nil
 	}
 	if err != nil {
-		return toolError(err.Error()), nil
+		return internalError(err.Error()), nil
 	}
 	fromID := stringField(indirect(reflect.ValueOf(from)), "ID")
 	toID := stringField(indirect(reflect.ValueOf(to)), "ID")
 	if fromID == toID {
-		return toolError("from and to resolve to the same subject"), nil
+		return validationError("from and to resolve to the same subject"), nil
 	}
 	jobID, err := h.merge(ctx, fromID, toID)
 	if err != nil {
-		return toolError(err.Error()), nil
+		return internalError(err.Error()), nil
 	}
-	return appkitmcp.JSONResult(map[string]string{"job_id": jobID})
+	return appkitmcp.StructuredResult(map[string]string{"job_id": jobID})
 }
 
 func (h *Handler) handleMergesCall(ctx context.Context, raw json.RawMessage, _ server.Identity) (map[string]any, error) {
 	if h.merges == nil {
-		return toolError("merges tool is not configured"), nil
+		return internalError("merges tool is not configured"), nil
 	}
 	var args struct {
 		Limit  int    `json:"limit"`
 		Cursor string `json:"cursor"`
 	}
 	if err := decodeArgs(raw, &args); err != nil {
-		return toolError(err.Error()), nil
+		return validationError(err.Error()), nil
 	}
 	if strings.TrimSpace(args.Cursor) != "" {
 		if _, ok := paging.DecodeCursor(args.Cursor); !ok {
-			return toolError("cursor is invalid"), nil
+			return validationError("cursor is invalid"), nil
 		}
 	}
 	merges, next, err := h.merges(ctx, paging.Params{Limit: args.Limit, Cursor: args.Cursor})
 	if err != nil {
-		return toolError(err.Error()), nil
+		return internalError(err.Error()), nil
 	}
-	return appkitmcp.JSONResult(pagedResult("merges", publicMergesResult(merges), next))
+	return appkitmcp.StructuredResult(pagedResult("merges", publicMergesResult(merges), next))
 }
 
 func (h *Handler) handleAskCall(ctx context.Context, raw json.RawMessage, id server.Identity) (map[string]any, error) {
 	if h.ask == nil {
-		return toolError("ask tool is not configured"), nil
+		return internalError("ask tool is not configured"), nil
 	}
 	if strings.TrimSpace(id.OwnerEmail) == "" {
-		return toolError("missing authenticated identity"), nil
+		return validationError("missing authenticated identity"), nil
 	}
 	var args struct {
 		Question string `json:"question"`
 	}
 	if err := decodeArgs(raw, &args); err != nil {
-		return toolError(err.Error()), nil
+		return validationError(err.Error()), nil
 	}
 	if strings.TrimSpace(args.Question) == "" {
-		return toolError("question is required"), nil
+		return validationError("question is required"), nil
 	}
 	answer, err := h.ask(ctx, id.OwnerEmail, args.Question)
 	if err != nil {
-		return toolError(err.Error()), nil
+		return internalError(err.Error()), nil
 	}
 	result := askToolResult(answer, h.pageBase)
 	if h.linkify != nil {
 		text, err := h.linkify(ctx, result["answer"].(string), h.pageBase, "")
 		if err != nil {
-			return toolError(err.Error()), nil
+			return internalError(err.Error()), nil
 		}
 		result["answer"] = text
 	}
-	return appkitmcp.JSONResult(result)
+	return appkitmcp.StructuredResult(result)
 }
 
 func (h *Handler) handleSubjectsCall(ctx context.Context, raw json.RawMessage, _ server.Identity) (map[string]any, error) {
 	if h.subjects == nil {
-		return toolError("subjects tool is not configured"), nil
+		return internalError("subjects tool is not configured"), nil
 	}
 	var args struct {
 		Type   string `json:"type"`
@@ -640,18 +644,18 @@ func (h *Handler) handleSubjectsCall(ctx context.Context, raw json.RawMessage, _
 		Cursor string `json:"cursor"`
 	}
 	if err := decodeArgs(raw, &args); err != nil {
-		return toolError(err.Error()), nil
+		return validationError(err.Error()), nil
 	}
 	subjects, next, err := h.subjects(ctx, args.Type, args.Name, paging.Params{Limit: args.Limit, Cursor: args.Cursor})
 	if err != nil {
-		return toolError(err.Error()), nil
+		return internalError(err.Error()), nil
 	}
-	return appkitmcp.JSONResult(pagedResult("subjects", publicSubjectsResult(subjects), next))
+	return appkitmcp.StructuredResult(pagedResult("subjects", publicSubjectsResult(subjects), next))
 }
 
 func (h *Handler) handleClaimsCall(ctx context.Context, raw json.RawMessage, _ server.Identity) (map[string]any, error) {
 	if h.claims == nil {
-		return toolError("claims tool is not configured"), nil
+		return internalError("claims tool is not configured"), nil
 	}
 	var args struct {
 		Subject string `json:"subject"`
@@ -660,66 +664,66 @@ func (h *Handler) handleClaimsCall(ctx context.Context, raw json.RawMessage, _ s
 		Cursor  string `json:"cursor"`
 	}
 	if err := decodeArgs(raw, &args); err != nil {
-		return toolError(err.Error()), nil
+		return validationError(err.Error()), nil
 	}
 	subject := strings.TrimSpace(args.Subject)
 	if subject == "" {
 		subject = strings.TrimSpace(args.Path)
 	}
 	if subject == "" {
-		return toolError("subject is required"), nil
+		return validationError("subject is required"), nil
 	}
 	claims, next, err := h.claims(ctx, subject, paging.Params{Limit: args.Limit, Cursor: args.Cursor})
 	if errors.Is(err, sql.ErrNoRows) {
-		return appkitmcp.JSONResult(notFound("subject", subject))
+		return notFoundError("subject", subject), nil
 	}
 	if err != nil {
-		return toolError(err.Error()), nil
+		return internalError(err.Error()), nil
 	}
-	return appkitmcp.JSONResult(pagedResult("claims", publicClaimsResult(claims), next))
+	return appkitmcp.StructuredResult(pagedResult("claims", publicClaimsResult(claims), next))
 }
 
 func (h *Handler) handlePageCall(ctx context.Context, raw json.RawMessage, _ server.Identity) (map[string]any, error) {
 	if h.page == nil {
-		return toolError("page tool is not configured"), nil
+		return internalError("page tool is not configured"), nil
 	}
 	var args struct {
 		Subject string `json:"subject"`
 		Path    string `json:"path"`
 	}
 	if err := decodeArgs(raw, &args); err != nil {
-		return toolError(err.Error()), nil
+		return validationError(err.Error()), nil
 	}
 	subject := strings.TrimSpace(args.Subject)
 	if subject == "" {
 		subject = strings.TrimSpace(args.Path)
 	}
 	if subject == "" {
-		return toolError("subject is required"), nil
+		return validationError("subject is required"), nil
 	}
 	page, err := h.page(ctx, subject)
 	if errors.Is(err, sql.ErrNoRows) {
-		return appkitmcp.JSONResult(notFound("subject", subject))
+		return notFoundError("subject", subject), nil
 	}
 	if err != nil {
-		return toolError(err.Error()), nil
+		return internalError(err.Error()), nil
 	}
 	result := publicPageResult(page, subject)
 	footer := stringField(indirect(reflect.ValueOf(page)), "Footer")
 	if h.linkify != nil {
 		body, err := h.linkify(ctx, result["body"], h.pageBase, stringField(indirect(reflect.ValueOf(page)), "SubjectID"))
 		if err != nil {
-			return toolError(err.Error()), nil
+			return internalError(err.Error()), nil
 		}
 		result["body"] = body
 	}
 	result["body"] += footer
-	return appkitmcp.JSONResult(result)
+	return appkitmcp.StructuredResult(result)
 }
 
 func (h *Handler) handleLLMCallsCall(ctx context.Context, raw json.RawMessage, _ server.Identity) (map[string]any, error) {
 	if h.calls == nil {
-		return toolError("llm_calls tool is not configured"), nil
+		return internalError("llm_calls tool is not configured"), nil
 	}
 	var args struct {
 		JobID  string `json:"job_id"`
@@ -730,21 +734,21 @@ func (h *Handler) handleLLMCallsCall(ctx context.Context, raw json.RawMessage, _
 		Cursor string `json:"cursor"`
 	}
 	if err := decodeArgs(raw, &args); err != nil {
-		return toolError(err.Error()), nil
+		return validationError(err.Error()), nil
 	}
 	since, err := parseOptionalTime(args.Since)
 	if err != nil {
-		return toolError("since must be RFC3339"), nil
+		return validationError("since must be RFC3339"), nil
 	}
 	until, err := parseOptionalTime(args.Until)
 	if err != nil {
-		return toolError("until must be RFC3339"), nil
+		return validationError("until must be RFC3339"), nil
 	}
 	calls, next, err := h.calls(ctx, LLMCallFilter{JobID: args.JobID, Stage: args.Stage, Since: since, Until: until}, paging.Params{Limit: args.Limit, Cursor: args.Cursor})
 	if err != nil {
-		return toolError(err.Error()), nil
+		return internalError(err.Error()), nil
 	}
-	return appkitmcp.JSONResult(pagedResult("llm_calls", publicLLMCallsResult(calls), next))
+	return appkitmcp.StructuredResult(pagedResult("llm_calls", publicLLMCallsResult(calls), next))
 }
 
 func handleGuideCall(context.Context, json.RawMessage, server.Identity) (map[string]any, error) {
@@ -760,6 +764,7 @@ func ingestTool() map[string]any {
 			"title": map[string]any{"type": "string"},
 			"tags":  map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
 		}, []string{"text"}),
+		"outputSchema": objectSchema(map[string]any{"job_id": stringSchema()}, []string{"job_id"}),
 	}
 }
 
@@ -770,6 +775,10 @@ func jobStatusTool() map[string]any {
 		"inputSchema": objectSchema(map[string]any{
 			"job_id": map[string]any{"type": "string"},
 		}, []string{"job_id"}),
+		"outputSchema": objectSchema(map[string]any{
+			"status": stringSchema(), "received_at": nullableStringSchema(), "started_at": nullableStringSchema(),
+			"finished_at": nullableStringSchema(), "error": stringSchema(), "subjects": stringArraySchema(),
+		}, []string{"status"}),
 	}
 }
 
@@ -780,6 +789,7 @@ func jobAbortTool() map[string]any {
 		"inputSchema": objectSchema(map[string]any{
 			"job_id": map[string]any{"type": "string"},
 		}, []string{"job_id"}),
+		"outputSchema": objectSchema(map[string]any{"aborted": boolSchema(), "status": stringSchema()}, []string{"aborted", "status"}),
 	}
 }
 
@@ -790,6 +800,7 @@ func jobRerunTool() map[string]any {
 		"inputSchema": objectSchema(map[string]any{
 			"job_id": map[string]any{"type": "string"},
 		}, []string{"job_id"}),
+		"outputSchema": objectSchema(map[string]any{"requeued": boolSchema(), "status": stringSchema()}, []string{"requeued", "status"}),
 	}
 }
 
@@ -803,6 +814,11 @@ func jobsTool() map[string]any {
 			"since":  map[string]any{"type": "string"},
 			"until":  map[string]any{"type": "string"},
 		}),
+		"outputSchema": pagedOutputSchema("jobs", objectArraySchema(map[string]any{
+			"id": stringSchema(), "owner": stringSchema(), "title": stringSchema(), "tags": stringArraySchema(),
+			"status": stringSchema(), "received_at": nullableStringSchema(), "started_at": nullableStringSchema(),
+			"finished_at": nullableStringSchema(), "error": stringSchema(),
+		})),
 	}
 }
 
@@ -816,6 +832,7 @@ func jobsCountTool() map[string]any {
 			"since":  map[string]any{"type": "string"},
 			"until":  map[string]any{"type": "string"},
 		}, nil),
+		"outputSchema": objectSchema(map[string]any{"count": map[string]any{"type": "integer"}}, []string{"count"}),
 	}
 }
 
@@ -827,6 +844,7 @@ func mergeTool() map[string]any {
 			"from": map[string]any{"type": "string"},
 			"to":   map[string]any{"type": "string"},
 		}, []string{"from", "to"}),
+		"outputSchema": objectSchema(map[string]any{"job_id": stringSchema()}, []string{"job_id"}),
 	}
 }
 
@@ -835,6 +853,10 @@ func mergesTool() map[string]any {
 		"name":        "merges",
 		"description": "Merge alias audit history. Paginate with limit/cursor; returns folded names, survivor subject IDs, and next_cursor.",
 		"inputSchema": listSchema(map[string]any{}),
+		"outputSchema": pagedOutputSchema("merges", objectArraySchema(map[string]any{
+			"norm_name": stringSchema(), "subject_id": stringSchema(), "name": stringSchema(),
+			"created_by": stringSchema(), "created_at": stringSchema(),
+		})),
 	}
 }
 
@@ -855,6 +877,10 @@ func askTool() map[string]any {
 		"inputSchema": objectSchema(map[string]any{
 			"question": map[string]any{"type": "string"},
 		}, []string{"question"}),
+		"outputSchema": objectSchema(map[string]any{
+			"found": boolSchema(), "answer": stringSchema(),
+			"citations": objectArraySchema(map[string]any{"url": stringSchema(), "title": stringSchema()}),
+		}, []string{"found", "answer", "citations"}),
 	}
 }
 
@@ -935,6 +961,9 @@ func subjectsTool() map[string]any {
 			"type": map[string]any{"type": "string"},
 			"name": map[string]any{"type": "string"},
 		}),
+		"outputSchema": pagedOutputSchema("subjects", objectArraySchema(map[string]any{
+			"path": stringSchema(), "type": stringSchema(), "name": stringSchema(), "has_page": boolSchema(),
+		})),
 	}
 }
 
@@ -947,6 +976,9 @@ func claimsTool() map[string]any {
 			"limit":   map[string]any{"type": "integer"},
 			"cursor":  map[string]any{"type": "string"},
 		}, []string{"subject"}),
+		"outputSchema": pagedOutputSchema("claims", objectArraySchema(map[string]any{
+			"id": stringSchema(), "text": stringSchema(), "job": stringSchema(),
+		})),
 	}
 }
 
@@ -957,6 +989,9 @@ func pageTool() map[string]any {
 		"inputSchema": objectSchema(map[string]any{
 			"subject": map[string]any{"type": "string"},
 		}, []string{"subject"}),
+		"outputSchema": objectSchema(map[string]any{
+			"subject": stringSchema(), "title": stringSchema(), "body": stringSchema(),
+		}, []string{"subject", "title", "body"}),
 	}
 }
 
@@ -970,6 +1005,11 @@ func llmCallsTool() map[string]any {
 			"since":  map[string]any{"type": "string"},
 			"until":  map[string]any{"type": "string"},
 		}),
+		"outputSchema": pagedOutputSchema("llm_calls", objectArraySchema(map[string]any{
+			"id": stringSchema(), "stage": stringSchema(), "job_id": stringSchema(), "attempt": map[string]any{"type": "integer"},
+			"provider": stringSchema(), "model": stringSchema(), "params": stringSchema(), "request": stringSchema(),
+			"response": stringSchema(), "usage": stringSchema(), "error": stringSchema(), "started_at": stringSchema(), "ended_at": stringSchema(),
+		})),
 	}
 }
 
@@ -1000,6 +1040,26 @@ func objectSchema(properties map[string]any, required []string) map[string]any {
 		schema["required"] = required
 	}
 	return schema
+}
+
+func stringSchema() map[string]any { return map[string]any{"type": "string"} }
+
+func boolSchema() map[string]any { return map[string]any{"type": "boolean"} }
+
+func nullableStringSchema() map[string]any {
+	return map[string]any{"type": []string{"string", "null"}}
+}
+
+func stringArraySchema() map[string]any {
+	return map[string]any{"type": "array", "items": stringSchema()}
+}
+
+func objectArraySchema(properties map[string]any) map[string]any {
+	return map[string]any{"type": "array", "items": objectSchema(properties, nil)}
+}
+
+func pagedOutputSchema(name string, values map[string]any) map[string]any {
+	return objectSchema(map[string]any{name: values, "next_cursor": stringSchema()}, nil)
 }
 
 //go:embed guide.md
@@ -1371,14 +1431,6 @@ func sliceValue(v reflect.Value) reflect.Value {
 	return v
 }
 
-func notFound(kind, id string) map[string]any {
-	return map[string]any{
-		"found": false,
-		"kind":  kind,
-		"id":    id,
-	}
-}
-
 func decodeArgs(raw json.RawMessage, dst any) error {
 	if len(raw) == 0 {
 		raw = []byte(`{}`)
@@ -1389,6 +1441,14 @@ func decodeArgs(raw json.RawMessage, dst any) error {
 	return nil
 }
 
-func toolError(text string) map[string]any {
-	return appkitmcp.ErrorResult(text)
+func validationError(text string) map[string]any {
+	return appkitmcp.ErrorResult(appkitmcp.ErrValidation, text)
+}
+
+func notFoundError(kind, id string) map[string]any {
+	return appkitmcp.ErrorResult(appkitmcp.ErrNotFound, fmt.Sprintf("%s %s not found", kind, id))
+}
+
+func internalError(text string) map[string]any {
+	return appkitmcp.ErrorResult(appkitmcp.ErrInternal, text)
 }
