@@ -17,7 +17,7 @@ import (
 	"eventplane/outbox"
 )
 
-const protocolVersion = "2025-03-26"
+const protocolVersion = "2025-06-18"
 
 var reservedToolNames = map[string]struct{}{
 	"health":     {},
@@ -26,11 +26,24 @@ var reservedToolNames = map[string]struct{}{
 
 // Tool is one declared MCP tool: its wire descriptor plus its handler.
 type Tool struct {
-	Name        string
-	Description string
-	InputSchema map[string]any
-	Handler     func(ctx context.Context, args json.RawMessage, id server.Identity) (map[string]any, error)
+	Name         string
+	Description  string
+	InputSchema  map[string]any
+	OutputSchema map[string]any
+	Handler      func(ctx context.Context, args json.RawMessage, id server.Identity) (map[string]any, error)
 }
+
+// ErrorCode is the closed vocabulary for errors returned inside tool results.
+type ErrorCode string
+
+const (
+	ErrValidation        ErrorCode = "validation"
+	ErrNotFound          ErrorCode = "not_found"
+	ErrConflict          ErrorCode = "conflict"
+	ErrTooLarge          ErrorCode = "too_large"
+	ErrSourceUnavailable ErrorCode = "source_unavailable"
+	ErrInternal          ErrorCode = "internal"
+)
 
 // Options assembles a service's MCP surface.
 type Options struct {
@@ -133,11 +146,17 @@ func (h *Handler) handleToolCall(ctx context.Context, w http.ResponseWriter, req
 	}
 	result, err := h.dispatchTool(ctx, p.Name, p.Arguments, id)
 	if err != nil {
-		writeJSONRPCError(w, req.ID, -32602, err.Error())
+		code := -32603
+		if errors.Is(err, errUnknownTool) {
+			code = -32602
+		}
+		writeJSONRPCError(w, req.ID, code, err.Error())
 		return
 	}
 	writeJSONRPCResult(w, req.ID, result)
 }
+
+var errUnknownTool = errors.New("unknown tool")
 
 func (h *Handler) dispatchTool(ctx context.Context, name string, args json.RawMessage, id server.Identity) (map[string]any, error) {
 	switch name {
@@ -148,7 +167,7 @@ func (h *Handler) dispatchTool(ctx context.Context, name string, args json.RawMe
 	}
 	tool, ok := h.toolByName[name]
 	if !ok {
-		return nil, fmt.Errorf("unknown tool: %s", name)
+		return nil, fmt.Errorf("%w: %s", errUnknownTool, name)
 	}
 	if tool.Handler == nil {
 		return nil, fmt.Errorf("tool %s has no handler", name)
@@ -175,11 +194,15 @@ func (h *Handler) toolDescriptors() []map[string]any {
 		},
 	}
 	for _, tool := range h.tools {
-		descriptors = append(descriptors, map[string]any{
+		descriptor := map[string]any{
 			"name":        tool.Name,
 			"description": tool.Description,
 			"inputSchema": tool.InputSchema,
-		})
+		}
+		if tool.OutputSchema != nil {
+			descriptor["outputSchema"] = tool.OutputSchema
+		}
+		descriptors = append(descriptors, descriptor)
 	}
 	return descriptors
 }
@@ -197,7 +220,7 @@ func (h *Handler) toolHealth(ctx context.Context, id server.Identity) (map[strin
 	envelope := appkit.Envelope(h.version, h.service, details)
 	envelope["owner_email"] = id.OwnerEmail
 	envelope["client_id"] = id.ClientID
-	return JSONResult(envelope)
+	return StructuredResult(envelope)
 }
 
 func (h *Handler) toolReflection(args json.RawMessage) (map[string]any, error) {
@@ -218,13 +241,13 @@ func (h *Handler) toolReflection(args json.RawMessage) (map[string]any, error) {
 		if err != nil {
 			var unknown *outbox.UnknownKindError
 			if errors.As(err, &unknown) {
-				return ErrorResult(fmt.Sprintf("unknown event kind %q; known kinds: %s", unknown.Kind, strings.Join(unknown.Valid, ", "))), nil
+				return ErrorResult(ErrNotFound, fmt.Sprintf("unknown event kind %q; known kinds: %s", unknown.Kind, strings.Join(unknown.Valid, ", "))), nil
 			}
 			return nil, err
 		}
-		return JSONResult(detail)
+		return StructuredResult(detail)
 	}
-	return JSONResult(map[string]any{
+	return StructuredResult(map[string]any{
 		"publishes":  events.Index(),
 		"subscribes": renderSubscriptions(h.subscriptions),
 	})
@@ -294,25 +317,31 @@ func TextResult(text string) map[string]any {
 	return map[string]any{"content": []map[string]any{{"type": "text", "text": text}}}
 }
 
-// JSONResult marshals v into one MCP text content item.
-func JSONResult(v any) (map[string]any, error) {
+// StructuredResult returns matching machine-readable and text JSON renderings.
+func StructuredResult(v any) (map[string]any, error) {
 	b, err := json.Marshal(v)
 	if err != nil {
 		return nil, err
 	}
-	return TextResult(string(b)), nil
+	result := TextResult(string(b))
+	result["structuredContent"] = v
+	return result, nil
 }
 
-func jsonResultFrom(v map[string]any, err error) (map[string]any, error) {
+func structuredResultFrom(v map[string]any, err error) (map[string]any, error) {
 	if err != nil {
 		return nil, err
 	}
-	return JSONResult(v)
+	return StructuredResult(v)
 }
 
 // ErrorResult returns an MCP tool error envelope.
-func ErrorResult(msg string) map[string]any {
+func ErrorResult(code ErrorCode, msg string) map[string]any {
 	result := TextResult(msg)
 	result["isError"] = true
+	result["structuredContent"] = map[string]any{
+		"code":    code,
+		"message": msg,
+	}
 	return result
 }

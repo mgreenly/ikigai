@@ -156,6 +156,11 @@ func TestInitializeReturnsOptions(t *testing.T) {
 		t.Fatalf("serverInfo missing or not object: %#v", result["serverInfo"])
 	}
 
+	// R-WPNN-6Q9E
+	if result["protocolVersion"] != "2025-06-18" {
+		t.Errorf("protocolVersion = %v, want 2025-06-18", result["protocolVersion"])
+	}
+
 	// R-MCJJ-NXJR
 	if serverInfo["name"] != "ledger" {
 		t.Errorf("serverInfo.name = %v, want ledger", serverInfo["name"])
@@ -176,12 +181,19 @@ func TestToolsListIncludesDeclaredTools(t *testing.T) {
 		},
 		"required": []string{"query"},
 	}
+	outputSchema := map[string]any{
+		"type": "object",
+		"properties": map[string]any{
+			"records": map[string]any{"type": "array"},
+		},
+	}
 	h := newHandler(t, mcp.Options{
 		Tools: []mcp.Tool{
 			{
-				Name:        "search",
-				Description: "Search records.",
-				InputSchema: schema,
+				Name:         "search",
+				Description:  "Search records.",
+				InputSchema:  schema,
+				OutputSchema: outputSchema,
 				Handler: func(ctx context.Context, args json.RawMessage, id server.Identity) (map[string]any, error) {
 					return mcp.TextResult("ok"), nil
 				},
@@ -211,12 +223,71 @@ func TestToolsListIncludesDeclaredTools(t *testing.T) {
 	if !reflect.DeepEqual(gotSearch["inputSchema"], normalizeJSON(t, schema)) {
 		t.Errorf("search schema = %#v, want %#v", gotSearch["inputSchema"], normalizeJSON(t, schema))
 	}
+	// R-WQVJ-KI03
+	if !reflect.DeepEqual(gotSearch["outputSchema"], normalizeJSON(t, outputSchema)) {
+		t.Errorf("search output schema = %#v, want %#v", gotSearch["outputSchema"], normalizeJSON(t, outputSchema))
+	}
 	gotSave, ok := byName["save"]
 	if !ok {
 		t.Fatalf("save descriptor missing from %#v", byName)
 	}
 	if gotSave["description"] != "Save records." {
 		t.Errorf("save description = %v, want exact declared description", gotSave["description"])
+	}
+	if _, exists := gotSave["outputSchema"]; exists {
+		t.Errorf("save descriptor has outputSchema for nil declaration: %#v", gotSave)
+	}
+}
+
+func TestStructuredResultRenderingsMatchOnWire(t *testing.T) {
+	want := map[string]any{
+		"items": []any{"alpha", float64(2)},
+		"meta":  map[string]any{"ready": true},
+	}
+	h := newHandler(t, mcp.Options{Tools: []mcp.Tool{{
+		Name: "structured",
+		Handler: func(ctx context.Context, args json.RawMessage, id server.Identity) (map[string]any, error) {
+			return mcp.StructuredResult(want)
+		},
+	}}})
+
+	resp := rpc(t, h, `{"jsonrpc":"2.0","id":"structured","method":"tools/call","params":{"name":"structured","arguments":{}}}`, nil)
+	result := resultObject(t, resp)
+	var textValue any
+	if err := json.Unmarshal([]byte(resultText(t, resp)), &textValue); err != nil {
+		t.Fatalf("decode text block: %v", err)
+	}
+
+	// R-WTBC-C1HH
+	if !reflect.DeepEqual(textValue, result["structuredContent"]) {
+		t.Fatalf("text rendering = %#v, structuredContent = %#v", textValue, result["structuredContent"])
+	}
+	if !reflect.DeepEqual(result["structuredContent"], normalizeJSON(t, want)) {
+		t.Fatalf("structuredContent = %#v, want %#v", result["structuredContent"], normalizeJSON(t, want))
+	}
+}
+
+func TestErrorResultCarriesTypedCodeAndMessageOnWire(t *testing.T) {
+	h := newHandler(t, mcp.Options{Tools: []mcp.Tool{{
+		Name: "lookup",
+		Handler: func(ctx context.Context, args json.RawMessage, id server.Identity) (map[string]any, error) {
+			return mcp.ErrorResult(mcp.ErrNotFound, "record missing"), nil
+		},
+	}}})
+
+	resp := rpc(t, h, `{"jsonrpc":"2.0","id":"lookup","method":"tools/call","params":{"name":"lookup","arguments":{}}}`, nil)
+	result := resultObject(t, resp)
+
+	// R-WUJ8-PT86
+	if result["isError"] != true {
+		t.Fatalf("isError = %v, want true", result["isError"])
+	}
+	wantStructured := map[string]any{"code": "not_found", "message": "record missing"}
+	if !reflect.DeepEqual(result["structuredContent"], wantStructured) {
+		t.Fatalf("structuredContent = %#v, want %#v", result["structuredContent"], wantStructured)
+	}
+	if got := resultText(t, resp); got != "record missing" {
+		t.Fatalf("text = %q, want record missing", got)
 	}
 }
 
@@ -463,7 +534,12 @@ func TestToolsCallPassesRequestIdentityHeaders(t *testing.T) {
 }
 
 func TestErrorsForUnknownMethodAndUndeclaredTool(t *testing.T) {
-	h := newHandler(t, mcp.Options{})
+	h := newHandler(t, mcp.Options{Tools: []mcp.Tool{{
+		Name: "broken",
+		Handler: func(ctx context.Context, args json.RawMessage, id server.Identity) (map[string]any, error) {
+			return nil, errors.New("database disconnected")
+		},
+	}}})
 
 	unknownMethod := rpc(t, h, `{"jsonrpc":"2.0","id":"bad-method","method":"missing"}`, nil)
 	methodErr := errorObject(t, unknownMethod)
@@ -474,11 +550,21 @@ func TestErrorsForUnknownMethodAndUndeclaredTool(t *testing.T) {
 	}
 	unknownTool := rpc(t, h, `{"jsonrpc":"2.0","id":"bad-tool","method":"tools/call","params":{"name":"absent","arguments":{}}}`, nil)
 	toolErr := errorObject(t, unknownTool)
-	if _, ok := toolErr["code"]; !ok {
-		t.Fatalf("undeclared tool error missing code: %#v", toolErr)
+	declaredFault := rpc(t, h, `{"jsonrpc":"2.0","id":"broken-tool","method":"tools/call","params":{"name":"broken","arguments":{}}}`, nil)
+	faultErr := errorObject(t, declaredFault)
+
+	// R-WVR5-3KYV
+	if toolErr["code"] != float64(-32602) {
+		t.Fatalf("undeclared tool code = %v, want -32602", toolErr["code"])
 	}
 	if toolErr["message"] == "" {
 		t.Fatalf("undeclared tool error missing message: %#v", toolErr)
+	}
+	if faultErr["code"] != float64(-32603) {
+		t.Fatalf("declared handler fault code = %v, want -32603", faultErr["code"])
+	}
+	if faultErr["message"] != "database disconnected" {
+		t.Fatalf("declared handler fault message = %v, want database disconnected", faultErr["message"])
 	}
 }
 
