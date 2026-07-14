@@ -466,13 +466,25 @@ func TestListAndFileShapesR_FLPD_EPC7(t *testing.T) {
 		if schema["type"] != "object" || !mapsEqualJSON(schema["required"], []any{"items"}) {
 			t.Errorf("%s outputSchema = %v", name, schema)
 		}
+		properties, ok := schema["properties"].(map[string]any)
+		if !ok {
+			t.Fatalf("%s outputSchema properties = %v, want object", name, schema["properties"])
+		}
+		itemsSchema, ok := properties["items"].(map[string]any)
+		if !ok || itemsSchema["type"] != "array" {
+			t.Errorf("%s items schema = %v, want array", name, properties["items"])
+		}
 		res, callErr, _ := rpc(t, h, "tools/call", `{"name":"`+name+`","arguments":{"repo":"repo"}}`)
 		if callErr != nil {
 			t.Fatalf("%s error: %v", name, callErr)
 		}
 		structured, ok := res["structuredContent"].(map[string]any)
-		if !ok || structured["items"] == nil {
-			t.Errorf("%s structuredContent = %v, want object with items", name, res["structuredContent"])
+		if !ok {
+			t.Fatalf("%s structuredContent = %v, want object", name, res["structuredContent"])
+		}
+		items, ok := structured["items"].([]any)
+		if !ok || len(items) != 1 {
+			t.Errorf("%s structuredContent items = %T(%v), want one-element array", name, structured["items"], structured["items"])
 		}
 	}
 
