@@ -64,6 +64,7 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - D58 → `project/design/D58.md` — Inline first-occurrence subject links: the positional matcher + markdown-safe linkifier (`internal/wiki`) — owns R-82BY-EKDH, R-83JU-SC46, R-84RR-63UV, R-877J-XNC9, R-88FG-BF2Y, R-89NC-P6TN, R-8AV9-2YKC, R-8C35-GQB1
 - D59 → `project/design/D59.md` — Every user-facing subject link is a fully-qualified front-door URL (retire the web-relative rule) — owns R-8I6N-DL0I, R-8JEJ-RCR7
 - D60 → `project/design/D60.md` — nginx: the session-gated web locations opt into the apex `@login_bounce` (bearer prefix excluded) — none (structural; config — proven by a named-fragment check phase)
+- D61 → `project/design/D61.md` — Structured MCP adoption: `StructuredResult`, typed error codes, and per-tool output schemas — owns R-EMCA-BCU2, R-ENK6-P4KR, R-EPZZ-GO25, R-ER7V-UFSU, R-ESFS-87JJ, R-ETNO-LZA8, R-EW3H-DIRM, R-EXBD-RAIB
 
 ## Verification ids → Decision
 
@@ -196,9 +197,17 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - R-E2H4-OPZO → D27 → `project/design/D27.md`
 - R-E3P1-2HQD → D27 → `project/design/D27.md`
 - R-E4WX-G9H2 → D16 → `project/design/D16.md`
+- R-EMCA-BCU2 → D61 → `project/design/D61.md`
 - R-EMWV-6RK5 → D13 → `project/design/D13.md`
+- R-ENK6-P4KR → D61 → `project/design/D61.md`
 - R-EO4R-KJAU → D13 → `project/design/D13.md`
+- R-EPZZ-GO25 → D61 → `project/design/D61.md`
+- R-ER7V-UFSU → D61 → `project/design/D61.md`
+- R-ESFS-87JJ → D61 → `project/design/D61.md`
+- R-ETNO-LZA8 → D61 → `project/design/D61.md`
 - R-EV2H-6RKN → D38 → `project/design/D38.md`
+- R-EW3H-DIRM → D61 → `project/design/D61.md`
+- R-EXBD-RAIB → D61 → `project/design/D61.md`
 - R-FM7A-D0SZ → D38 → `project/design/D38.md`
 - R-FQLB-QWS6 → D7 → `project/design/D07.md`
 - R-FT14-IG9K → D7 → `project/design/D07.md`
