@@ -17,8 +17,9 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - D11 → `project/design/D11.md` — MCP surface over `appkit/mcp`: `internal/mcp` becomes the seven-domain-tool table — owns R-52PA-OE6N
 - D12 → `project/design/D12.md` — Delete the chassis shims (`internal/db` wrappers) and true up the doctrine doc — none (structural)
 - D13 → `project/design/D13.md` — The session-gated locations opt into the apex `@login_bounce`: a logged-out human navigation goes to sign-in, not a bare 401 (bearer tier deliberately excluded) — owns R-3FBS-8EEL, R-3GJO-M65A, R-3HRK-ZXVZ
-- D14 → `project/design/D14.md` — `external_ref`: opt-in idempotency for derived transactions (nullable column + partial unique index, `duplicate_ref` error, event-payload field, reverse interaction) — owns R-FP14-UYWQ, R-FQ91-8QNF, R-FRGX-MIE4, R-FSOU-0A4T, R-FTWQ-E1VI, R-FV4M-RTM7, R-FWCJ-5LCW
+- D14 → `project/design/D14.md` — `external_ref`: opt-in idempotency for derived transactions (nullable column + partial unique index, duplicate rejected via the shared `conflict` error, event-payload field, reverse interaction) — owns R-FP14-UYWQ, R-FQ91-8QNF, R-FRGX-MIE4, R-FSOU-0A4T, R-FTWQ-E1VI, R-FV4M-RTM7, R-FWCJ-5LCW
 - D15 → `project/design/D15.md` — Event-routing conformance: kind `recorded`, empty subject (`ledger:recorded`), family registry, new outbox migration — owns R-FXKF-JD3L, R-FYSB-X4UA, R-G184-OOBO, R-G2G1-2G2D
+- D16 → `project/design/D16.md` — Structured MCP adoption: `StructuredResult` + per-verb `outputSchema` on the six domain result verbs, typed closed-vocabulary error codes, `describe` prose exception — owns R-9FRN-SGDT, R-9GZK-684I, R-9I7G-JZV7, R-9JFC-XRLW, R-9KN9-BJCL, R-9LV5-PB3A, R-9N32-32TZ, R-9OAY-GUKO, R-9PIU-UMBD, R-9QQR-8E22, R-9RYN-M5SR, R-9T6J-ZXJG, R-9UEG-DPA5
 
 ## Verification ids → Decision
 
@@ -37,6 +38,19 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - R-7EJP-A1NB → D8 → `project/design/D08.md`
 - R-7FRL-NTE0 → D8 → `project/design/D08.md`
 - R-7GZI-1L4P → D8 → `project/design/D08.md`
+- R-9FRN-SGDT → D16 → `project/design/D16.md`
+- R-9GZK-684I → D16 → `project/design/D16.md`
+- R-9I7G-JZV7 → D16 → `project/design/D16.md`
+- R-9JFC-XRLW → D16 → `project/design/D16.md`
+- R-9KN9-BJCL → D16 → `project/design/D16.md`
+- R-9LV5-PB3A → D16 → `project/design/D16.md`
+- R-9N32-32TZ → D16 → `project/design/D16.md`
+- R-9OAY-GUKO → D16 → `project/design/D16.md`
+- R-9PIU-UMBD → D16 → `project/design/D16.md`
+- R-9QQR-8E22 → D16 → `project/design/D16.md`
+- R-9RYN-M5SR → D16 → `project/design/D16.md`
+- R-9T6J-ZXJG → D16 → `project/design/D16.md`
+- R-9UEG-DPA5 → D16 → `project/design/D16.md`
 - R-ASST-3T7V → D3 → `project/design/D03.md`
 - R-ASST-5W9X → D3 → `project/design/D03.md`
 - R-ASST-7Y2Z → D3 → `project/design/D03.md`

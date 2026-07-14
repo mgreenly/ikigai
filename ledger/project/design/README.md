@@ -30,12 +30,20 @@ here lives in the plan.
 > 3. **The domain extensions** (D14–D15): the `record`/`reverse` verbs gain an
 >    optional `external_ref` — opt-in idempotency for derived transactions,
 >    enforced by a partial unique index on a new nullable `transactions`
->    column, with the `duplicate_ref` wire error (D14); and the
+>    column, a duplicate rejected through the shared `conflict` error (D14, wire
+>    form owned by D16); and the
 >    `transaction.recorded` event conforms to the suite's routing revision
 >    (`docs/event-routing-design.md`): kind `recorded`, empty subject, canonical
 >    key `ledger:recorded`, family-shaped registry, and a new outbox migration
 >    per the revised `outbox.SchemaSQL` (D15 — externally ordered on the
 >    eventplane revision).
+>
+> 4. **Structured MCP adoption** (D16): the domain tool results conform to the
+>    suite's single verb surface (`docs/structured-mcp-design.md`) — success
+>    results carry `structuredContent` via `StructuredResult` and declare an
+>    `outputSchema`; errors carry a typed code from the shared closed vocabulary;
+>    `describe` stays a prose exception. The emitted JSON is preserved verbatim;
+>    only the transport envelope is formalized.
 >
 > The rest of the ledger bookkeeping **domain** (the immutable journal, the
 > seven-verb contract, the report reads) stands as described in
