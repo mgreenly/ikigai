@@ -3,10 +3,10 @@
 package mcp
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"appkit"
 	appkitmcp "appkit/mcp"
@@ -43,28 +43,21 @@ func NewHandler(svc *ledger.Service, rt *appkit.Router) (http.Handler, error) {
 // structured wire error the tool surface returns — the same sentinel→wire
 // pattern crm uses. bad_root points the agent at describe so it
 // can discover the five typed roots.
-func translateLedgerError(err error) string {
+func translateLedgerError(err error) map[string]any {
 	switch {
 	case errors.Is(err, ledger.ErrUnbalanced):
-		return `{"error":{"code":"unbalanced","message":"` + jsonEscape(err.Error()) + `"}}`
+		return appkitmcp.ErrorResult(appkitmcp.ErrValidation, strings.TrimPrefix(err.Error(), ledger.ErrUnbalanced.Error()+": "))
 	case errors.Is(err, ledger.ErrBadRoot):
-		return `{"error":{"code":"bad_root","message":"account root must be one of Assets, Liabilities, Equity, Income (alias Revenue), Expenses — call describe"}}`
+		return appkitmcp.ErrorResult(appkitmcp.ErrValidation, "account root must be one of Assets, Liabilities, Equity, Income (alias Revenue), Expenses — call describe")
 	case errors.Is(err, ledger.ErrAlreadyReversed):
-		return `{"error":{"code":"already_reversed","message":"transaction already has a reversal; reverse its mirror instead"}}`
+		return appkitmcp.ErrorResult(appkitmcp.ErrConflict, "transaction already has a reversal; reverse its mirror instead")
 	case errors.Is(err, ledger.ErrNotFound):
-		return `{"error":{"code":"not_found","message":"` + jsonEscape(err.Error()) + `"}}`
+		return appkitmcp.ErrorResult(appkitmcp.ErrNotFound, err.Error())
 	case errors.Is(err, ledger.ErrValidation):
-		return `{"error":{"code":"validation","message":"` + jsonEscape(err.Error()) + `"}}`
+		return appkitmcp.ErrorResult(appkitmcp.ErrValidation, err.Error())
 	case errors.Is(err, ledger.ErrDuplicateRef):
-		return `{"error":{"code":"duplicate_ref","message":"` + jsonEscape(err.Error()) + `"}}`
+		return appkitmcp.ErrorResult(appkitmcp.ErrConflict, err.Error())
 	default:
-		return `{"error":{"code":"internal","message":"internal error"}}`
+		return appkitmcp.ErrorResult(appkitmcp.ErrInternal, "internal error")
 	}
-}
-
-// jsonEscape renders s as a JSON string body (without the surrounding quotes) so
-// it can be embedded safely in the hand-built error envelopes above.
-func jsonEscape(s string) string {
-	b, _ := json.Marshal(s)
-	return string(b[1 : len(b)-1])
 }

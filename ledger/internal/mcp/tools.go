@@ -45,6 +45,7 @@ func Tools(svc *ledger.Service) []appkitmcp.Tool {
 					"status":       enumd("this posting's reconciliation status; overrides the transaction default", ledger.StatusPending, ledger.StatusCleared, ledger.StatusReconciled),
 				}, "account")),
 			}, "date", "description", "postings"),
+			OutputSchema: transactionSchema(),
 			Handler: func(ctx context.Context, args json.RawMessage, _ server.Identity) (map[string]any, error) {
 				return toolRecord(ctx, svc, args)
 			},
@@ -58,6 +59,7 @@ func Tools(svc *ledger.Service) []appkitmcp.Tool {
 				"memo":         typd("string", "optional description for the mirror (defaults to 'Reversal of: <original>')"),
 				"external_ref": typd("string", "<source>:<identifier> convention, e.g. dropbox:/bills/aws/2026-06.pdf@<content_hash> — a naming convention, not a validated format"),
 			}, "id"),
+			OutputSchema: transactionSchema(),
 			Handler: func(ctx context.Context, args json.RawMessage, _ server.Identity) (map[string]any, error) {
 				return toolReverse(ctx, svc, args)
 			},
@@ -69,6 +71,9 @@ func Tools(svc *ledger.Service) []appkitmcp.Tool {
 				"posting_ids": array(typ("string")),
 				"status":      enumd("the status to set on every listed posting", ledger.StatusPending, ledger.StatusCleared, ledger.StatusReconciled),
 			}, "posting_ids", "status"),
+			OutputSchema: obj(map[string]any{
+				"transactions": array(transactionSchema()),
+			}, "transactions"),
 			Handler: func(ctx context.Context, args json.RawMessage, _ server.Identity) (map[string]any, error) {
 				return toolReconcile(ctx, svc, args)
 			},
@@ -82,6 +87,14 @@ func Tools(svc *ledger.Service) []appkitmcp.Tool {
 				"depth":  typd("integer", "roll accounts up to this many colon-levels (1 = roots); omit or 0 for leaf accounts as posted"),
 				"status": enumd("restrict to postings in this reconciliation state — e.g. cleared for a bank-reconciliation view", ledger.StatusPending, ledger.StatusCleared, ledger.StatusReconciled),
 			}),
+			OutputSchema: obj(map[string]any{
+				"lines": array(obj(map[string]any{
+					"account":      typ("string"),
+					"amount_cents": typ("integer"),
+				}, "account", "amount_cents")),
+				"total": typ("integer"),
+				"unit":  typ("string"),
+			}, "lines", "total", "unit"),
 			Handler: func(ctx context.Context, args json.RawMessage, _ server.Identity) (map[string]any, error) {
 				return toolBalance(ctx, svc, args)
 			},
@@ -94,14 +107,28 @@ func Tools(svc *ledger.Service) []appkitmcp.Tool {
 				"period": periodSchema(),
 				"status": enumd("restrict to postings in this reconciliation state", ledger.StatusPending, ledger.StatusCleared, ledger.StatusReconciled),
 			}),
+			OutputSchema: obj(map[string]any{
+				"lines": array(obj(map[string]any{
+					"txn_id":        typ("string"),
+					"date":          typ("string"),
+					"description":   typ("string"),
+					"posting_id":    typ("string"),
+					"account":       typ("string"),
+					"amount_cents":  typ("integer"),
+					"status":        typ("string"),
+					"running_total": typ("integer"),
+				}, "txn_id", "date", "description", "posting_id", "account", "amount_cents", "status", "running_total")),
+				"unit": typ("string"),
+			}, "lines", "unit"),
 			Handler: func(ctx context.Context, args json.RawMessage, _ server.Identity) (map[string]any, error) {
 				return toolRegister(ctx, svc, args)
 			},
 		},
 		{
-			Name:        tool("get"),
-			Description: "Fetch one transaction in full: all postings, per-posting status, ord, and reversal links.",
-			InputSchema: obj(map[string]any{"id": typd("string", "the transaction id")}, "id"),
+			Name:         tool("get"),
+			Description:  "Fetch one transaction in full: all postings, per-posting status, ord, and reversal links.",
+			InputSchema:  obj(map[string]any{"id": typd("string", "the transaction id")}, "id"),
+			OutputSchema: transactionSchema(),
 			Handler: func(ctx context.Context, args json.RawMessage, _ server.Identity) (map[string]any, error) {
 				return toolGet(ctx, svc, args)
 			},
@@ -139,6 +166,25 @@ func array(items map[string]any) map[string]any {
 	return map[string]any{"type": "array", "items": items}
 }
 
+func transactionSchema() map[string]any {
+	return obj(map[string]any{
+		"id":             typ("string"),
+		"date":           typ("string"),
+		"description":    typ("string"),
+		"created_at":     typ("string"),
+		"reverses_id":    typ("string"),
+		"reversed_by_id": typ("string"),
+		"external_ref":   typ("string"),
+		"postings": array(obj(map[string]any{
+			"id":           typ("string"),
+			"account":      typ("string"),
+			"amount_cents": typ("integer"),
+			"status":       typ("string"),
+			"ord":          typ("integer"),
+		}, "id", "account", "amount_cents", "status", "ord")),
+	}, "id", "date", "description", "created_at", "postings")
+}
+
 // periodSchema describes the dual-form period argument: a bucket string
 // ("2026", "2026-06", "2026-06-01") or an inclusive {from,to} range.
 func periodSchema() map[string]any {
@@ -174,32 +220,32 @@ func toolRecord(ctx context.Context, svc *ledger.Service, raw json.RawMessage) (
 		return nil, err
 	}
 	if a.ExternalRef != nil && *a.ExternalRef == "" {
-		return appkitmcp.ErrorResult(translateLedgerError(fmt.Errorf("%w: external_ref must not be empty", ledger.ErrValidation))), nil
+		return translateLedgerError(fmt.Errorf("%w: external_ref must not be empty", ledger.ErrValidation)), nil
 	}
 	date, err := parseDay(a.Date)
 	if err != nil {
-		return appkitmcp.ErrorResult(translateLedgerError(err)), nil
+		return translateLedgerError(err), nil
 	}
 	if a.Status != "" && !ledger.ValidStatus(a.Status) {
-		return appkitmcp.ErrorResult(translateLedgerError(fmt.Errorf("%w: unknown status %q", ledger.ErrValidation, a.Status))), nil
+		return translateLedgerError(fmt.Errorf("%w: unknown status %q", ledger.ErrValidation, a.Status)), nil
 	}
 	// Well-formedness validated at this boundary (re-asserted in the service):
 	// ≥2 postings, ≤1 elided amount.
 	if len(a.Postings) < 2 {
-		return appkitmcp.ErrorResult(translateLedgerError(fmt.Errorf("%w: a transaction needs at least two postings", ledger.ErrValidation))), nil
+		return translateLedgerError(fmt.Errorf("%w: a transaction needs at least two postings", ledger.ErrValidation)), nil
 	}
 	elisions := 0
 	postings := make([]ledger.PostingInput, len(a.Postings))
 	for i, p := range a.Postings {
 		account, err := ledger.CanonicalizeAccount(p.Account)
 		if err != nil {
-			return appkitmcp.ErrorResult(translateLedgerError(err)), nil
+			return translateLedgerError(err), nil
 		}
 		status := p.Status
 		if status == "" {
 			status = a.Status // inherit the transaction default ("" → service defaults to pending)
 		} else if !ledger.ValidStatus(status) {
-			return appkitmcp.ErrorResult(translateLedgerError(fmt.Errorf("%w: unknown posting status %q", ledger.ErrValidation, status))), nil
+			return translateLedgerError(fmt.Errorf("%w: unknown posting status %q", ledger.ErrValidation, status)), nil
 		}
 		if p.AmountCents == nil {
 			elisions++
@@ -207,13 +253,13 @@ func toolRecord(ctx context.Context, svc *ledger.Service, raw json.RawMessage) (
 		postings[i] = ledger.PostingInput{Account: account, AmountCents: p.AmountCents, Status: status}
 	}
 	if elisions > 1 {
-		return appkitmcp.ErrorResult(translateLedgerError(fmt.Errorf("%w: at most one posting may elide its amount", ledger.ErrValidation))), nil
+		return translateLedgerError(fmt.Errorf("%w: at most one posting may elide its amount", ledger.ErrValidation)), nil
 	}
 	out, err := svc.Record(ctx, ledger.RecordInput{Date: date, Description: a.Description, Postings: postings, ExternalRef: a.ExternalRef})
 	if err != nil {
-		return appkitmcp.ErrorResult(translateLedgerError(err)), nil
+		return translateLedgerError(err), nil
 	}
-	return appkitmcp.JSONResult(transactionJSON(out))
+	return appkitmcp.StructuredResult(transactionJSON(out))
 }
 
 func toolReverse(ctx context.Context, svc *ledger.Service, raw json.RawMessage) (map[string]any, error) {
@@ -228,17 +274,17 @@ func toolReverse(ctx context.Context, svc *ledger.Service, raw json.RawMessage) 
 	}
 	if a.Date != nil && *a.Date != "" {
 		if _, err := parseDay(*a.Date); err != nil {
-			return appkitmcp.ErrorResult(translateLedgerError(err)), nil
+			return translateLedgerError(err), nil
 		}
 	}
 	if a.ExternalRef != nil && *a.ExternalRef == "" {
-		return appkitmcp.ErrorResult(translateLedgerError(fmt.Errorf("%w: external_ref must not be empty", ledger.ErrValidation))), nil
+		return translateLedgerError(fmt.Errorf("%w: external_ref must not be empty", ledger.ErrValidation)), nil
 	}
 	out, err := svc.Reverse(ctx, a.ID, a.Date, a.Memo, a.ExternalRef)
 	if err != nil {
-		return appkitmcp.ErrorResult(translateLedgerError(err)), nil
+		return translateLedgerError(err), nil
 	}
-	return appkitmcp.JSONResult(transactionJSON(out))
+	return appkitmcp.StructuredResult(transactionJSON(out))
 }
 
 func toolReconcile(ctx context.Context, svc *ledger.Service, raw json.RawMessage) (map[string]any, error) {
@@ -251,13 +297,13 @@ func toolReconcile(ctx context.Context, svc *ledger.Service, raw json.RawMessage
 	}
 	out, err := svc.Reconcile(ctx, a.PostingIDs, a.Status)
 	if err != nil {
-		return appkitmcp.ErrorResult(translateLedgerError(err)), nil
+		return translateLedgerError(err), nil
 	}
 	txns := make([]map[string]any, len(out))
 	for i, t := range out {
 		txns[i] = transactionJSON(t)
 	}
-	return appkitmcp.JSONResult(map[string]any{"transactions": txns})
+	return appkitmcp.StructuredResult(map[string]any{"transactions": txns})
 }
 
 func toolBalance(ctx context.Context, svc *ledger.Service, raw json.RawMessage) (map[string]any, error) {
@@ -274,17 +320,17 @@ func toolBalance(ctx context.Context, svc *ledger.Service, raw json.RawMessage) 
 	}
 	f, err := buildFilter(a.Query, a.Period, a.Status)
 	if err != nil {
-		return appkitmcp.ErrorResult(translateLedgerError(err)), nil
+		return translateLedgerError(err), nil
 	}
 	rep, err := svc.Balance(ctx, f, a.Depth)
 	if err != nil {
-		return appkitmcp.ErrorResult(translateLedgerError(err)), nil
+		return translateLedgerError(err), nil
 	}
 	lines := make([]map[string]any, len(rep.Lines))
 	for i, l := range rep.Lines {
 		lines[i] = map[string]any{"account": l.Account, "amount_cents": l.Sum}
 	}
-	return appkitmcp.JSONResult(map[string]any{"lines": lines, "total": rep.Total, "unit": ledger.Unit})
+	return appkitmcp.StructuredResult(map[string]any{"lines": lines, "total": rep.Total, "unit": ledger.Unit})
 }
 
 func toolRegister(ctx context.Context, svc *ledger.Service, raw json.RawMessage) (map[string]any, error) {
@@ -300,11 +346,11 @@ func toolRegister(ctx context.Context, svc *ledger.Service, raw json.RawMessage)
 	}
 	f, err := buildFilter(a.Query, a.Period, a.Status)
 	if err != nil {
-		return appkitmcp.ErrorResult(translateLedgerError(err)), nil
+		return translateLedgerError(err), nil
 	}
 	rep, err := svc.Register(ctx, f)
 	if err != nil {
-		return appkitmcp.ErrorResult(translateLedgerError(err)), nil
+		return translateLedgerError(err), nil
 	}
 	lines := make([]map[string]any, len(rep.Lines))
 	for i, l := range rep.Lines {
@@ -319,7 +365,7 @@ func toolRegister(ctx context.Context, svc *ledger.Service, raw json.RawMessage)
 			"running_total": l.RunningTotal,
 		}
 	}
-	return appkitmcp.JSONResult(map[string]any{"lines": lines, "unit": ledger.Unit})
+	return appkitmcp.StructuredResult(map[string]any{"lines": lines, "unit": ledger.Unit})
 }
 
 func toolGet(ctx context.Context, svc *ledger.Service, raw json.RawMessage) (map[string]any, error) {
@@ -331,15 +377,15 @@ func toolGet(ctx context.Context, svc *ledger.Service, raw json.RawMessage) (map
 	}
 	out, err := svc.Get(ctx, a.ID)
 	if err != nil {
-		return appkitmcp.ErrorResult(translateLedgerError(err)), nil
+		return translateLedgerError(err), nil
 	}
-	return appkitmcp.JSONResult(transactionJSON(out))
+	return appkitmcp.StructuredResult(transactionJSON(out))
 }
 
 func toolDescribe(ctx context.Context, svc *ledger.Service) (map[string]any, error) {
 	rep, err := svc.Describe(ctx)
 	if err != nil {
-		return appkitmcp.ErrorResult(translateLedgerError(err)), nil
+		return translateLedgerError(err), nil
 	}
 	roots := make([]map[string]any, len(rep.Roots))
 	for i, r := range rep.Roots {
@@ -353,14 +399,19 @@ func toolDescribe(ctx context.Context, svc *ledger.Service) (map[string]any, err
 	for i, rc := range rep.Recipes {
 		recipes[i] = map[string]any{"name": rc.Name, "how": rc.How}
 	}
-	return appkitmcp.JSONResult(map[string]any{
+	payload := map[string]any{
 		"unit":                  rep.Unit,
 		"roots":                 roots,
 		"reconciliation_states": states,
 		"accounts":              rep.Accounts,
 		"recipes":               recipes,
 		"external_refs":         rep.ExternalRefs,
-	})
+	}
+	b, err := json.Marshal(payload)
+	if err != nil {
+		return nil, err
+	}
+	return appkitmcp.TextResult(string(b)), nil
 }
 
 // transactionJSON renders the rich transaction shape returned by

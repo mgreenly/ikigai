@@ -3,11 +3,13 @@ package mcp
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -104,7 +106,12 @@ func rpc(t *testing.T, h http.Handler, method, params string) map[string]any {
 // isError flag.
 func callTool(t *testing.T, h http.Handler, name, args string) (map[string]any, bool) {
 	t.Helper()
-	text, isErr := callToolText(t, h, name, args)
+	res := callToolResult(t, h, name, args)
+	isErr, _ := res["isError"].(bool)
+	if payload, ok := res["structuredContent"].(map[string]any); ok {
+		return payload, isErr
+	}
+	text := resultText(t, name, res)
 	var payload map[string]any
 	if err := json.Unmarshal([]byte(text), &payload); err != nil {
 		t.Fatalf("%s: decode payload %q: %v", name, text, err)
@@ -114,14 +121,24 @@ func callTool(t *testing.T, h http.Handler, name, args string) (map[string]any, 
 
 func callToolText(t *testing.T, h http.Handler, name, args string) (string, bool) {
 	t.Helper()
-	res := rpc(t, h, "tools/call", `{"name":"`+name+`","arguments":`+args+`}`)
+	res := callToolResult(t, h, name, args)
 	isErr, _ := res["isError"].(bool)
+	return resultText(t, name, res), isErr
+}
+
+func callToolResult(t *testing.T, h http.Handler, name, args string) map[string]any {
+	t.Helper()
+	return rpc(t, h, "tools/call", `{"name":"`+name+`","arguments":`+args+`}`)
+}
+
+func resultText(t *testing.T, name string, res map[string]any) string {
+	t.Helper()
 	content, ok := res["content"].([]any)
 	if !ok || len(content) == 0 {
 		t.Fatalf("%s: no content: %v", name, res)
 	}
 	text := content[0].(map[string]any)["text"].(string)
-	return text, isErr
+	return text
 }
 
 func TestToolsListIncludesDomainAndChassisTools(t *testing.T) {
@@ -143,6 +160,219 @@ func TestToolsListIncludesDomainAndChassisTools(t *testing.T) {
 	} {
 		if !names[want] {
 			t.Errorf("tools/list missing %s", want)
+		}
+	}
+}
+
+func TestDomainToolsDeclareOutputSchemasExceptDescribe(t *testing.T) {
+	h := newTestHandler(t)
+	listed := rpc(t, h, "tools/list", `{}`)["tools"].([]any)
+	byName := make(map[string]map[string]any, len(listed))
+	for _, item := range listed {
+		descriptor := item.(map[string]any)
+		byName[descriptor["name"].(string)] = descriptor
+	}
+
+	// R-9FRN-SGDT
+	for _, name := range []string{"record", "reverse", "reconcile", "balance", "register", "get"} {
+		schema, ok := byName[name]["outputSchema"].(map[string]any)
+		if !ok || schema["type"] != "object" {
+			t.Errorf("%s outputSchema = %v, want object schema", name, byName[name]["outputSchema"])
+		}
+	}
+	if _, exists := byName["describe"]["outputSchema"]; exists {
+		t.Errorf("describe unexpectedly declares outputSchema: %v", byName["describe"])
+	}
+}
+
+func TestDomainSuccessResultsAreStructuredAndMirrored(t *testing.T) {
+	h := newTestHandler(t)
+	recordArgs := `{"date":"2026-06-01","description":"structured","postings":[{"account":"Assets:Bank","amount_cents":2500},{"account":"Income:Hosting","amount_cents":-2500}]}`
+
+	// R-9GZK-684I
+	recorded := assertStructuredMirror(t, h, "record", recordArgs)
+	assertFullTransaction(t, recorded)
+	txnID := recorded["id"].(string)
+	postingID := recorded["postings"].([]any)[0].(map[string]any)["id"].(string)
+	got := assertStructuredMirror(t, h, "get", `{"id":"`+txnID+`"}`)
+	assertFullTransaction(t, got)
+	if got["id"] != txnID {
+		t.Errorf("get id = %v, want %s", got["id"], txnID)
+	}
+
+	// R-9KN9-BJCL
+	reconciled := assertStructuredMirror(t, h, "reconcile", `{"posting_ids":["`+postingID+`"],"status":"cleared"}`)
+	if len(reconciled) != 1 {
+		t.Fatalf("reconcile keys = %v", reconciled)
+	}
+	txns, ok := reconciled["transactions"].([]any)
+	if !ok || len(txns) != 1 {
+		t.Fatalf("reconcile transactions = %v", reconciled["transactions"])
+	}
+	assertFullTransaction(t, txns[0].(map[string]any))
+
+	// R-9I7G-JZV7
+	balanced := assertStructuredMirror(t, h, "balance", `{"query":"Assets:Bank"}`)
+	if len(balanced) != 3 || balanced["unit"] != "USD cents" {
+		t.Fatalf("balance shape = %v", balanced)
+	}
+	lines, ok := balanced["lines"].([]any)
+	if !ok || len(lines) != 1 {
+		t.Fatalf("balance lines = %v", balanced["lines"])
+	}
+	line := lines[0].(map[string]any)
+	if len(line) != 2 || line["account"] != "Assets:Bank" || line["amount_cents"].(float64) != 2500 || balanced["total"].(float64) != 2500 {
+		t.Errorf("balance payload = %v", balanced)
+	}
+
+	// R-9JFC-XRLW
+	registered := assertStructuredMirror(t, h, "register", `{"query":"Assets:Bank"}`)
+	if len(registered) != 2 || registered["unit"] != "USD cents" {
+		t.Fatalf("register shape = %v", registered)
+	}
+	regLines, ok := registered["lines"].([]any)
+	if !ok || len(regLines) != 1 {
+		t.Fatalf("register lines = %v", registered["lines"])
+	}
+	regLine := regLines[0].(map[string]any)
+	for _, key := range []string{"txn_id", "date", "description", "posting_id", "account", "amount_cents", "status", "running_total"} {
+		if _, exists := regLine[key]; !exists {
+			t.Errorf("register line missing %s: %v", key, regLine)
+		}
+	}
+	if len(regLine) != 8 || regLine["amount_cents"].(float64) != 2500 || regLine["running_total"].(float64) != 2500 {
+		t.Errorf("register line = %v", regLine)
+	}
+
+	reversed := assertStructuredMirror(t, h, "reverse", `{"id":"`+txnID+`"}`)
+	assertFullTransaction(t, reversed)
+	if reversed["reverses_id"] != txnID {
+		t.Errorf("reverse reverses_id = %v, want %s", reversed["reverses_id"], txnID)
+	}
+}
+
+func TestDescribeRemainsPlainText(t *testing.T) {
+	// R-9LV5-PB3A
+	h := newTestHandler(t)
+	res := callToolResult(t, h, "describe", `{}`)
+	if _, exists := res["structuredContent"]; exists {
+		t.Fatalf("describe unexpectedly returned structuredContent: %v", res)
+	}
+	var payload map[string]any
+	if err := json.Unmarshal([]byte(resultText(t, "describe", res)), &payload); err != nil {
+		t.Fatalf("describe text is not its marshalled discovery payload: %v", err)
+	}
+	if roots, ok := payload["roots"].([]any); !ok || len(roots) != 5 {
+		t.Errorf("describe roots = %v", payload["roots"])
+	}
+}
+
+func TestDomainErrorsUseTypedClosedVocabulary(t *testing.T) {
+	h := newTestHandler(t)
+	var results []map[string]any
+	callError := func(name, args, wantCode string) map[string]any {
+		t.Helper()
+		res := callToolResult(t, h, name, args)
+		if isErr, _ := res["isError"].(bool); !isErr {
+			t.Errorf("%s did not set isError: %v", name, res)
+		}
+		structured, ok := res["structuredContent"].(map[string]any)
+		if !ok || structured["code"] != wantCode {
+			t.Errorf("%s structured error = %v, want code %s", name, res["structuredContent"], wantCode)
+		}
+		if msg, _ := structured["message"].(string); msg == "" {
+			t.Errorf("%s error message is empty: %v", name, structured)
+		}
+		results = append(results, res)
+		return structured
+	}
+
+	// R-9N32-32TZ
+	unbalanced := callError("record", `{"date":"2026-06-01","description":"x","postings":[{"account":"Assets:Bank","amount_cents":2},{"account":"Income:Hosting","amount_cents":-1}]}`, "validation")
+	if strings.Contains(unbalanced["code"].(string), "unbalanced") {
+		t.Errorf("unbalanced private code survived: %v", unbalanced)
+	}
+
+	// R-9OAY-GUKO
+	badRoot := callError("record", `{"date":"2026-06-01","description":"x","postings":[{"account":"Bogus:Bank","amount_cents":1},{"account":"Income:Hosting","amount_cents":-1}]}`, "validation")
+	rootMessage := badRoot["message"].(string)
+	for _, text := range []string{"Assets", "Liabilities", "Equity", "Income", "Expenses", "describe"} {
+		if !strings.Contains(rootMessage, text) {
+			t.Errorf("bad-root message missing %q: %q", text, rootMessage)
+		}
+	}
+
+	// R-9PIU-UMBD
+	callError("get", `{"id":"missing"}`, "not_found")
+
+	original, bad := callTool(t, h, "record", `{"date":"2026-06-02","description":"reverse","postings":[{"account":"Assets:Bank","amount_cents":5},{"account":"Income:Hosting","amount_cents":-5}]}`)
+	if bad {
+		t.Fatalf("record reverse fixture: %v", original)
+	}
+	originalID := original["id"].(string)
+	if _, bad = callTool(t, h, "reverse", `{"id":"`+originalID+`"}`); bad {
+		t.Fatal("first reversal failed")
+	}
+	// R-9QQR-8E22
+	already := callError("reverse", `{"id":"`+originalID+`"}`, "conflict")
+	if !strings.Contains(already["message"].(string), "mirror") {
+		t.Errorf("already-reversed message = %v", already)
+	}
+
+	refArgs := `{"date":"2026-06-03","description":"ref","external_ref":"source:one","postings":[{"account":"Assets:Bank","amount_cents":7},{"account":"Income:Hosting","amount_cents":-7}]}`
+	refTxn, bad := callTool(t, h, "record", refArgs)
+	if bad {
+		t.Fatalf("record ref fixture: %v", refTxn)
+	}
+	// R-9RYN-M5SR
+	duplicate := callError("record", refArgs, "conflict")
+	if !strings.Contains(duplicate["message"].(string), refTxn["id"].(string)) {
+		t.Errorf("duplicate-ref message does not name existing transaction: %v", duplicate)
+	}
+
+	// R-9T6J-ZXJG
+	validationCases := []struct {
+		name string
+		tool string
+		args string
+	}{
+		{"fewer than two postings", "record", `{"date":"2026-06-04","description":"x","postings":[{"account":"Assets:Bank","amount_cents":0}]}`},
+		{"multiple elisions", "record", `{"date":"2026-06-04","description":"x","postings":[{"account":"Assets:Bank"},{"account":"Income:Hosting"}]}`},
+		{"malformed date", "record", `{"date":"2026-6-4","description":"x","postings":[{"account":"Assets:Bank","amount_cents":1},{"account":"Income:Hosting","amount_cents":-1}]}`},
+		{"unknown status", "record", `{"date":"2026-06-04","description":"x","status":"unknown","postings":[{"account":"Assets:Bank","amount_cents":1},{"account":"Income:Hosting","amount_cents":-1}]}`},
+		{"empty external ref", "record", `{"date":"2026-06-04","description":"x","external_ref":"","postings":[{"account":"Assets:Bank","amount_cents":1},{"account":"Income:Hosting","amount_cents":-1}]}`},
+		{"malformed period", "balance", `{"period":"June 2026"}`},
+	}
+	for _, tc := range validationCases {
+		t.Run(tc.name, func(t *testing.T) {
+			callError(tc.tool, tc.args, "validation")
+		})
+	}
+
+	internalWire, err := json.Marshal(translateLedgerError(errors.New("unexpected")))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var internalResult map[string]any
+	if err := json.Unmarshal(internalWire, &internalResult); err != nil {
+		t.Fatal(err)
+	}
+	results = append(results, internalResult)
+	// R-9UEG-DPA5
+	allowed := map[string]bool{"validation": true, "not_found": true, "conflict": true, "too_large": true, "source_unavailable": true, "internal": true}
+	for _, res := range results {
+		structured, ok := res["structuredContent"].(map[string]any)
+		if !ok || !allowed[structured["code"].(string)] || structured["message"] == "" || res["isError"] != true {
+			t.Errorf("error violates closed envelope: %v", res)
+		}
+		if _, oldEnvelope := structured["error"]; oldEnvelope {
+			t.Errorf("error contains hand-built envelope: %v", structured)
+		}
+		wire, _ := json.Marshal(res)
+		for _, retired := range []string{"unbalanced", "bad_root", "already_reversed", "duplicate_ref"} {
+			if strings.Contains(string(wire), retired) {
+				t.Errorf("error contains retired code %q: %s", retired, wire)
+			}
 		}
 	}
 }
@@ -330,15 +560,15 @@ func TestRecordGetReverseReconcile_EndToEnd(t *testing.T) {
 func TestRecord_ErrorsSurfaceAsToolErrors(t *testing.T) {
 	h := newTestHandler(t)
 
-	// Unknown root → bad_root.
+	// Unknown root → validation.
 	p, isErr := callTool(t, h, "record", `{"date":"2026-06-01","description":"x","postings":[{"account":"Bogus:Acct","amount_cents":1},{"account":"Assets:Bank","amount_cents":-1}]}`)
-	if !isErr || errCode(p) != "bad_root" {
+	if !isErr || errCode(p) != "validation" {
 		t.Errorf("bad root: isErr=%v payload=%v", isErr, p)
 	}
 
-	// Unbalanced explicit postings → unbalanced.
+	// Unbalanced explicit postings → validation.
 	p, isErr = callTool(t, h, "record", `{"date":"2026-06-01","description":"x","postings":[{"account":"Assets:Bank","amount_cents":5000},{"account":"Income:Hosting","amount_cents":-4000}]}`)
-	if !isErr || errCode(p) != "unbalanced" {
+	if !isErr || errCode(p) != "validation" {
 		t.Errorf("unbalanced: isErr=%v payload=%v", isErr, p)
 	}
 
@@ -399,7 +629,7 @@ func TestExternalRefMCPContract(t *testing.T) {
 		t.Errorf("get ref = %v", got)
 	}
 	dup, bad := callTool(t, h, "record", args)
-	if !bad || errCode(dup) != "duplicate_ref" || !strings.Contains(dup["error"].(map[string]any)["message"].(string), id) {
+	if !bad || errCode(dup) != "conflict" || !strings.Contains(dup["message"].(string), id) {
 		t.Errorf("duplicate response = %v", dup)
 	}
 	var before, after int
@@ -465,10 +695,50 @@ func mustRecord(t *testing.T, h http.Handler, args string) {
 }
 
 func errCode(payload map[string]any) string {
-	e, ok := payload["error"].(map[string]any)
-	if !ok {
-		return ""
-	}
-	code, _ := e["code"].(string)
+	code, _ := payload["code"].(string)
 	return code
+}
+
+func assertStructuredMirror(t *testing.T, h http.Handler, name, args string) map[string]any {
+	t.Helper()
+	res := callToolResult(t, h, name, args)
+	if isErr, _ := res["isError"].(bool); isErr {
+		t.Fatalf("%s returned tool error: %v", name, res)
+	}
+	structured, ok := res["structuredContent"].(map[string]any)
+	if !ok {
+		t.Fatalf("%s structuredContent = %T %v", name, res["structuredContent"], res)
+	}
+	var mirrored map[string]any
+	if err := json.Unmarshal([]byte(resultText(t, name, res)), &mirrored); err != nil {
+		t.Fatalf("%s mirrored text is not JSON: %v", name, err)
+	}
+	if !reflect.DeepEqual(structured, mirrored) {
+		t.Fatalf("%s structured/text mismatch: structured=%v text=%v", name, structured, mirrored)
+	}
+	return structured
+}
+
+func assertFullTransaction(t *testing.T, txn map[string]any) {
+	t.Helper()
+	for _, key := range []string{"id", "date", "description", "created_at", "postings"} {
+		if _, exists := txn[key]; !exists {
+			t.Errorf("transaction missing %s: %v", key, txn)
+		}
+	}
+	postings, ok := txn["postings"].([]any)
+	if !ok || len(postings) < 2 {
+		t.Fatalf("transaction postings = %v", txn["postings"])
+	}
+	for _, item := range postings {
+		posting := item.(map[string]any)
+		for _, key := range []string{"id", "account", "amount_cents", "status", "ord"} {
+			if _, exists := posting[key]; !exists {
+				t.Errorf("posting missing %s: %v", key, posting)
+			}
+		}
+		if _, ok := posting["amount_cents"].(float64); !ok {
+			t.Errorf("posting amount_cents is %T, want JSON number", posting["amount_cents"])
+		}
+	}
 }
