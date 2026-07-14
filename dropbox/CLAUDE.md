@@ -63,8 +63,10 @@ and `source_unavailable` where applicable.
 ## Loopback filesystem API
 
 Services sharing the mirror use the loopback filesystem API documented in
-[`docs/filesystem-api.md`](docs/filesystem-api.md). Every route rejects requests
-that bear nginx's external identity headers, so these are loopback surfaces:
+[`docs/filesystem-api.md`](docs/filesystem-api.md). Every route is guarded by the
+shared chassis loopback guard: any request stamped `X-Forwarded-Proto` (i.e. one
+that crossed nginx) gets a bare 404, while loopback callers — including those
+asserting `X-Owner-Email`/`X-Client-Id` themselves — are served:
 
 - `GET /content` streams a file, optionally pinned by `rev`.
 - `PUT /content` writes file bytes; `DELETE /content` removes a file or
