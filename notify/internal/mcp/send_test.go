@@ -82,6 +82,7 @@ func handlerForMock(t testing.TB, m *ntfyMock) http.Handler {
 // one correctly-shaped POST to /<topic> with the mapped headers and bearer auth,
 // and returns {ok:true}.
 func TestSendHappyPath(t *testing.T) {
+	// R-A918-YY6H
 	m := newNtfyMock(t)
 	h := handlerForMock(t, m)
 
@@ -150,18 +151,18 @@ func TestSendMinimal(t *testing.T) {
 	}
 }
 
-// TestSendValidation: each malformed call returns a `validation` error envelope
-// (with the offending field) and fires NO POST.
+// TestSendValidation: each malformed call returns a structured `validation`
+// error and fires NO POST.
 func TestSendValidation(t *testing.T) {
+	// R-ACOY-49EK
 	cases := []struct {
-		name  string
-		args  map[string]any
-		field string
+		name string
+		args map[string]any
 	}{
-		{"missing message", map[string]any{}, "message"},
-		{"empty message", map[string]any{"message": "   "}, "message"},
-		{"bad priority", map[string]any{"message": "x", "priority": "loud"}, "priority"},
-		{"relative click", map[string]any{"message": "x", "click": "/not/absolute"}, "click"},
+		{"missing message", map[string]any{}},
+		{"empty message", map[string]any{"message": "   "}},
+		{"bad priority", map[string]any{"message": "x", "priority": "loud"}},
+		{"relative click", map[string]any{"message": "x", "click": "/not/absolute"}},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -172,8 +173,8 @@ func TestSendValidation(t *testing.T) {
 			if e["code"] != "validation" {
 				t.Fatalf("code = %v, want validation: %+v", e["code"], e)
 			}
-			if e["field"] != c.field {
-				t.Errorf("field = %v, want %q", e["field"], c.field)
+			if _, exists := e["field"]; exists {
+				t.Errorf("structured validation error retains retired field key: %+v", e)
 			}
 			if got := m.snapshot(); len(got) != 0 {
 				t.Fatalf("validation failure still fired %d POSTs, want 0", len(got))
@@ -183,15 +184,16 @@ func TestSendValidation(t *testing.T) {
 }
 
 // TestSendUpstreamNon2xx: when ntfy rejects the publish, send returns an
-// `upstream` envelope whose message leaks neither the topic nor the token.
+// `source_unavailable` result whose message leaks neither topic nor token.
 func TestSendUpstreamNon2xx(t *testing.T) {
+	// R-ADWU-I159
 	m := newNtfyMock(t)
 	m.setStatus(http.StatusInternalServerError)
 	h := handlerForMock(t, m)
 
 	e := callErr(t, h, "send", map[string]any{"message": "x"})
-	if e["code"] != "upstream" {
-		t.Fatalf("code = %v, want upstream: %+v", e["code"], e)
+	if e["code"] != "source_unavailable" {
+		t.Fatalf("code = %v, want source_unavailable: %+v", e["code"], e)
 	}
 	msg, _ := e["message"].(string)
 	if strings.Contains(msg, "mytopic") || strings.Contains(msg, "secret-token") {
@@ -200,14 +202,15 @@ func TestSendUpstreamNon2xx(t *testing.T) {
 }
 
 // TestSendUpstreamUnreachable: a dead ntfy server (transport error) also surfaces
-// as a non-leaking `upstream` envelope.
+// as a non-leaking `source_unavailable` result.
 func TestSendUpstreamUnreachable(t *testing.T) {
+	// R-ADWU-I159
 	// A client pointed at a closed port: NewClient against an unroutable address.
 	h := newHandlerWithClient(t, push.NewClient("http://127.0.0.1:1", "mytopic", "secret-token", discardLogger()))
 
 	e := callErr(t, h, "send", map[string]any{"message": "x"})
-	if e["code"] != "upstream" {
-		t.Fatalf("code = %v, want upstream: %+v", e["code"], e)
+	if e["code"] != "source_unavailable" {
+		t.Fatalf("code = %v, want source_unavailable: %+v", e["code"], e)
 	}
 	msg, _ := e["message"].(string)
 	if strings.Contains(msg, "mytopic") || strings.Contains(msg, "secret-token") {

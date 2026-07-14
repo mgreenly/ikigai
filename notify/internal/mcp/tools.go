@@ -48,6 +48,7 @@ func Tools(client *push.Client) []appkitmcp.Tool {
 				"tags":     map[string]any{"type": "array", "items": typ("string"), "description": "optional ntfy tags; emoji shortcodes render as icons, others as labels"},
 				"click":    descTyp("string", "optional absolute URL opened when the owner taps the notification"),
 			}, "message"),
+			OutputSchema: sendOutputSchema,
 			Handler: func(ctx context.Context, args json.RawMessage, _ server.Identity) (map[string]any, error) {
 				return h.toolSend(ctx, args)
 			},
@@ -73,11 +74,16 @@ func enumTyp(t string, vals ...string) map[string]any {
 	return map[string]any{"type": t, "enum": vals}
 }
 
+// sendOutputSchema mirrors the {"ok": true} success object send returns.
+var sendOutputSchema = obj(map[string]any{
+	"ok": typ("boolean"),
+}, "ok")
+
 // toolSend is notify's one write verb: it publishes a single notification to the
 // owner's fixed ntfy topic and reports the real outcome synchronously. Caller
-// errors render as a `validation` envelope so the agent can self-correct; an
-// ntfy rejection or unreachable server renders as a generic `upstream` envelope
-// that never leaks the topic or token.
+// errors render with the shared validation code so the agent can self-correct;
+// an ntfy rejection or unreachable server renders as source_unavailable and
+// never leaks the topic or token.
 func (h *toolHandlers) toolSend(ctx context.Context, raw json.RawMessage) (map[string]any, error) {
 	var a struct {
 		Message  string   `json:"message"`
@@ -92,15 +98,15 @@ func (h *toolHandlers) toolSend(ctx context.Context, raw json.RawMessage) (map[s
 		}
 	}
 	if strings.TrimSpace(a.Message) == "" {
-		return validationErr("message", "message is required and must be non-empty"), nil
+		return appkitmcp.ErrorResult(appkitmcp.ErrValidation, "message is required and must be non-empty"), nil
 	}
 	prio, err := mapPriority(a.Priority)
 	if err != nil {
-		return validationErr("priority", err.Error()), nil
+		return appkitmcp.ErrorResult(appkitmcp.ErrValidation, err.Error()), nil
 	}
 	if a.Click != "" {
 		if err := validateClick(a.Click); err != nil {
-			return validationErr("click", err.Error()), nil
+			return appkitmcp.ErrorResult(appkitmcp.ErrValidation, err.Error()), nil
 		}
 	}
 	if err := h.push.Publish(ctx, push.Notification{
@@ -110,9 +116,9 @@ func (h *toolHandlers) toolSend(ctx context.Context, raw json.RawMessage) (map[s
 		Tags:     a.Tags,
 		Click:    a.Click,
 	}); err != nil {
-		return upstreamErr(), nil
+		return appkitmcp.ErrorResult(appkitmcp.ErrSourceUnavailable, "the notification service rejected the request or was unreachable"), nil
 	}
-	return appkitmcp.JSONResult(map[string]any{"ok": true})
+	return appkitmcp.StructuredResult(map[string]any{"ok": true})
 }
 
 // mapPriority translates the send verb's string enum to ntfy's numeric priority.
@@ -144,21 +150,4 @@ func validateClick(s string) error {
 		return fmt.Errorf("click must be a well-formed absolute URL")
 	}
 	return nil
-}
-
-func validationErr(field, message string) map[string]any {
-	e := map[string]any{"code": "validation", "message": message}
-	if field != "" {
-		e["field"] = field
-	}
-	b, _ := json.Marshal(map[string]any{"error": e})
-	return appkitmcp.ErrorResult(string(b))
-}
-
-func upstreamErr() map[string]any {
-	b, _ := json.Marshal(map[string]any{"error": map[string]any{
-		"code":    "upstream",
-		"message": "the notification service rejected the request or was unreachable",
-	}})
-	return appkitmcp.ErrorResult(string(b))
 }

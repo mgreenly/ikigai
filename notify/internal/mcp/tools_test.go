@@ -82,8 +82,9 @@ type jsonRPCResponse struct {
 }
 
 type toolResult struct {
-	IsError bool `json:"isError"`
-	Content []struct {
+	IsError           bool           `json:"isError"`
+	StructuredContent map[string]any `json:"structuredContent"`
+	Content           []struct {
 		Type string `json:"type"`
 		Text string `json:"text"`
 	} `json:"content"`
@@ -128,8 +129,7 @@ func call(t *testing.T, h http.Handler, name string, args any) toolResult {
 	return tr
 }
 
-// callOK asserts the success envelope (no isError) and decodes the text payload
-// into a generic map.
+// callOK asserts that the success result has matching structured and text JSON.
 func callOK(t *testing.T, h http.Handler, name string, args any) map[string]any {
 	t.Helper()
 	tr := call(t, h, name, args)
@@ -143,27 +143,37 @@ func callOK(t *testing.T, h http.Handler, name string, args any) map[string]any 
 	if err := json.Unmarshal([]byte(tr.Content[0].Text), &m); err != nil {
 		t.Fatalf("%s: text payload is not a JSON object: %v (%s)", name, err, tr.Content[0].Text)
 	}
-	return m
+	if tr.StructuredContent == nil {
+		t.Fatalf("%s: result is missing structuredContent", name)
+	}
+	textJSON, err := json.Marshal(m)
+	if err != nil {
+		t.Fatalf("%s: marshal text object: %v", name, err)
+	}
+	structuredJSON, err := json.Marshal(tr.StructuredContent)
+	if err != nil {
+		t.Fatalf("%s: marshal structuredContent: %v", name, err)
+	}
+	if !bytes.Equal(textJSON, structuredJSON) {
+		t.Fatalf("%s: text JSON %s does not mirror structuredContent %s", name, textJSON, structuredJSON)
+	}
+	return tr.StructuredContent
 }
 
-// callErr asserts an error envelope (isError:true) and returns the rendered
-// `error` object.
+// callErr asserts an error result and returns its structured error object.
 func callErr(t *testing.T, h http.Handler, name string, args any) map[string]any {
 	t.Helper()
 	tr := call(t, h, name, args)
 	if !tr.IsError {
 		t.Fatalf("%s: expected an error envelope, got success: %s", name, payloadText(tr))
 	}
-	var env struct {
-		Error map[string]any `json:"error"`
+	if len(tr.Content) != 1 || tr.Content[0].Type != "text" || tr.Content[0].Text == "" {
+		t.Fatalf("%s: expected one non-empty human text block, got %+v", name, tr.Content)
 	}
-	if err := json.Unmarshal([]byte(tr.Content[0].Text), &env); err != nil {
-		t.Fatalf("%s: error payload is not the envelope shape: %v (%s)", name, err, tr.Content[0].Text)
+	if tr.StructuredContent == nil {
+		t.Fatalf("%s: error result missing structuredContent", name)
 	}
-	if env.Error == nil {
-		t.Fatalf("%s: error envelope missing the top-level \"error\" key: %s", name, tr.Content[0].Text)
-	}
-	return env.Error
+	return tr.StructuredContent
 }
 
 func payloadText(tr toolResult) string {
@@ -180,9 +190,10 @@ func TestToolsListComposesNotifyToolWithChassisTools(t *testing.T) {
 
 	var result struct {
 		Tools []struct {
-			Name        string         `json:"name"`
-			Description string         `json:"description"`
-			InputSchema map[string]any `json:"inputSchema"`
+			Name         string         `json:"name"`
+			Description  string         `json:"description"`
+			InputSchema  map[string]any `json:"inputSchema"`
+			OutputSchema map[string]any `json:"outputSchema"`
 		} `json:"tools"`
 	}
 	if err := json.Unmarshal(resp.Result, &result); err != nil {
@@ -215,6 +226,28 @@ func TestToolsListComposesNotifyToolWithChassisTools(t *testing.T) {
 		case "send", "health", "reflection":
 		default:
 			t.Errorf("unexpected tool %q in tools/list: %+v", name, result.Tools)
+		}
+	}
+
+	// R-AA95-CPX6
+	for _, declared := range result.Tools {
+		if declared.Name != "send" {
+			continue
+		}
+		if declared.OutputSchema["type"] != "object" {
+			t.Fatalf("send outputSchema is not an object schema: %+v", declared.OutputSchema)
+		}
+		props, ok := declared.OutputSchema["properties"].(map[string]any)
+		if !ok {
+			t.Fatalf("send outputSchema has no properties object: %+v", declared.OutputSchema)
+		}
+		okSchema, ok := props["ok"].(map[string]any)
+		if !ok || okSchema["type"] != "boolean" {
+			t.Fatalf("send outputSchema ok property is not boolean: %+v", declared.OutputSchema)
+		}
+		required, ok := declared.OutputSchema["required"].([]any)
+		if !ok || len(required) != 1 || required[0] != "ok" {
+			t.Fatalf("send outputSchema required = %#v, want [ok]", declared.OutputSchema["required"])
 		}
 	}
 }
