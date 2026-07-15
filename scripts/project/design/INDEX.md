@@ -30,6 +30,7 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - D24 → `project/design/D24.md` — `suite.files`: the file share's filesystem API, service-agnostic (all seven verbs, streaming, `X-Client-Id: scripts:<script_id>`, status-derived failure mapping) — owns R-IBFE-EREE, R-ICNA-SJ53, R-IDV7-6AVS, R-IF33-K2MH, R-IGAZ-XUD6, R-IHIW-BM3V
 - D25 → `project/design/D25.md` — Content-plane holder: `GET /run-content` over run dirs (chassis loopback guard, 404-never-leaks) + `content_url` on non-directory `run_fs_list` entries — owns R-IIQS-PDUK, R-IJYP-35L9, R-IMEH-UP2N, R-INME-8GTC
 - D26 → `project/design/D26.md` — `describe` teaches the runtime contract (the `suite` module, the error model, products travel by reference) — owns R-IOUA-M8K1
+- D27 → `project/design/D27.md` — `suite.files` share paths: client-side leading-slash normalization on every share-path argument (`list` prefix included, absent path unchanged), absolute-canonical teaching in `describe` — owns R-ZECX-40UZ, R-ZFKT-HSLO, R-ZGSP-VKCD
 
 ## Verification ids → Decision
 
@@ -115,5 +116,8 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - R-ROUT-8U2J → D2 → `project/design/D02.md`
 - R-RUNS-BOOT → D9 → `project/design/D09.md`
 - R-RUNS-CDIR → D9 → `project/design/D09.md`
+- R-ZECX-40UZ → D27 → `project/design/D27.md`
+- R-ZFKT-HSLO → D27 → `project/design/D27.md`
+- R-ZGSP-VKCD → D27 → `project/design/D27.md`
 
 _Retired: R-RGST-PEER (was D10) — the peer feed-URL default resolution it pinned became chassis-owned when D11 moved the consumer loops to `Spec.Consumers`; the behavior is pinned by appkit's `R-464U-T3T1`/`R-47CR-6VJQ`._

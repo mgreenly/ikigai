@@ -27,12 +27,22 @@ Each Decision maps to its `project/design/DNN.md`; every `R-XXXX-XXXX` id maps t
 - D21 → `project/design/D21.md` — The session-gated locations opt into the apex `@login_bounce`: a logged-out human navigation goes to sign-in, not a bare 401 (bearer tier deliberately excluded) — owns R-3MN6-J0UR, R-3NV2-WSLG, R-3P2Z-AKC5
 - D22 → `project/design/D22.md` — Event-routing conformance: kinds `create`/`modify`/`delete`, subject = mirror path, family registry, new outbox migration — owns R-QB5T-GLB6, R-QCDP-UD1V, R-QDLM-84SK, R-QETI-LWJ9
 - D23 → `project/design/D23.md` — Structured MCP adoption: `StructuredResult` + declared `outputSchema` on all six domain tools, typed `ErrorResult` codes, shared chassis loopback guard — owns R-7PKS-A5KE, R-7QSO-NXB3, R-7S0L-1P1S, R-7T8H-FGSH, R-7UGD-T8J6
+- D24 → `project/design/D24.md` — Canonical absolute paths at the Service seam (`normalizePath`: leading slash + lexical clean, every external verb, reads and writes) + mutation errors logged before the 500 — owns R-54T0-VFZG, R-560X-97Q5, R-578T-MZGU, R-58GQ-0R7J
+- D25 → `project/design/D25.md` — `content_url` on loopback `/stat` and `/list` file entries (Service.ContentBase injected at the composition root; MCP surface deliberately excluded) — owns R-59OM-EIY8, R-5AWI-SAOX, R-5C4F-62FM, R-5DCB-JU6B
 
 ## Verification ids → Decision
 
 - R-3MN6-J0UR → D21 → `project/design/D21.md`
 - R-3NV2-WSLG → D21 → `project/design/D21.md`
 - R-3P2Z-AKC5 → D21 → `project/design/D21.md`
+- R-54T0-VFZG → D24 → `project/design/D24.md`
+- R-560X-97Q5 → D24 → `project/design/D24.md`
+- R-578T-MZGU → D24 → `project/design/D24.md`
+- R-58GQ-0R7J → D24 → `project/design/D24.md`
+- R-59OM-EIY8 → D25 → `project/design/D25.md`
+- R-5AWI-SAOX → D25 → `project/design/D25.md`
+- R-5C4F-62FM → D25 → `project/design/D25.md`
+- R-5DCB-JU6B → D25 → `project/design/D25.md`
 - R-7PKS-A5KE → D23 → `project/design/D23.md`
 - R-7QSO-NXB3 → D23 → `project/design/D23.md`
 - R-7S0L-1P1S → D23 → `project/design/D23.md`
