@@ -10,6 +10,7 @@ import (
 
 	"appkit"
 	"appkit/config"
+	"appkit/web"
 	"eventplane/consumer"
 	"eventplane/outbox"
 	"registry"
@@ -119,7 +120,7 @@ func reposSpec() appkit.Spec {
 				return err
 			}
 			rt.Handle("POST /mcp", rt.RequireIdentity(handler))
-			rt.Handle("GET /{$}", landingHandler(rt))
+			rt.Handle("GET /{$}", landingHandler(rt.WWW(), rt.Service(), rt.Version()))
 			return nil
 		},
 		Producer: func(producer *outbox.Outbox) error {
@@ -173,12 +174,16 @@ func reposSpec() appkit.Spec {
 	}
 }
 
-func landingHandler(rt *appkit.Router) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		if err := rt.WWW().Render(w, "landing.html", struct {
+func landingHandler(site *web.Site, service, version string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+		if request.URL.Path != "/" {
+			http.NotFound(w, request)
+			return
+		}
+		if err := site.Render(w, "landing.html", struct {
 			Service string
 			Version string
-		}{Service: rt.Service(), Version: rt.Version()}); err != nil {
+		}{Service: service, Version: version}); err != nil {
 			http.Error(w, "template error", http.StatusInternalServerError)
 		}
 	})
