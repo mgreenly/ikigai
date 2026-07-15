@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -67,17 +68,19 @@ type SessionRequest struct {
 }
 
 // IssueContent is the untrusted issue material fetched runner-side.
-type IssueContent struct {
-	Title    string
-	Body     string
-	Comments []string
-}
+type IssueContent = repos.IssueContent
 
 // Protocol is the narrow Phase 03 seam implemented by the GitHub protocol in
 // the next phase.
 type Protocol interface {
-	FetchIssue(context.Context, string, int) (IssueContent, error)
-	PostQueued(context.Context, string, int) error
+	FetchIssue(context.Context, repos.Session) (IssueContent, error)
+	PostQueued(context.Context, repos.Session) error
+}
+
+type lifecycleProtocol interface {
+	Admit(context.Context, repos.Session) error
+	Success(context.Context, repos.Session, repos.Repo, string, string, string) (string, error)
+	Failure(context.Context, repos.Session, string) error
 }
 
 // Agent is one conversation turn, drained to completion by Send.
@@ -116,14 +119,40 @@ func (agentkitFactory) New(config ConversationConfig) Agent {
 	}}
 }
 
-type conversationAgent struct{ conversation *agentkit.Conversation }
+type conversationAgent struct {
+	conversation *agentkit.Conversation
+	summary      string
+}
 
 func (a *conversationAgent) Send(ctx context.Context, text string) error {
 	stream := a.conversation.Send(ctx, text)
-	for range stream.Events() {
+	for event := range stream.Events() {
+		var message *agentkit.Message
+		switch done := event.(type) {
+		case agentkit.MessageDone:
+			message = &done.Message
+		case *agentkit.MessageDone:
+			message = &done.Message
+		}
+		if message != nil {
+			var visible strings.Builder
+			for _, block := range message.Blocks {
+				switch text := block.(type) {
+				case agentkit.TextBlock:
+					visible.WriteString(text.Text)
+				case *agentkit.TextBlock:
+					visible.WriteString(text.Text)
+				}
+			}
+			if value := strings.TrimSpace(visible.String()); value != "" {
+				a.summary = value
+			}
+		}
 	}
 	return stream.Err()
 }
+
+func (a *conversationAgent) Summary() string { return a.summary }
 
 // Clock is the deterministic time seam used for durable timestamps.
 type Clock interface{ Now() time.Time }
@@ -231,7 +260,7 @@ func (r *Runner) Enqueue(ctx context.Context, request SessionRequest) (repos.Ses
 		return repos.Session{}, err
 	}
 	if queuedBehind && r.protocol != nil {
-		if err := r.protocol.PostQueued(ctx, request.RepoName, *request.IssueNumber); err != nil {
+		if err := r.protocol.PostQueued(ctx, session); err != nil {
 			return repos.Session{}, fmt.Errorf("post queued comment: %w", err)
 		}
 	}
@@ -261,7 +290,7 @@ func (r *Runner) Cancel(sessionID string) bool {
 		r.mu.Unlock()
 		return false
 	}
-	if err := r.finish(context.Background(), sessionID, repos.StatusCancelled, nil); err != nil {
+	if err := r.finish(context.Background(), sessionID, repos.StatusCancelled, nil, nil); err != nil {
 		return false
 	}
 	r.ring()
@@ -342,9 +371,10 @@ func (r *Runner) run(parent context.Context, session repos.Session) {
 		r.ring()
 	}()
 
-	err := r.execute(ctx, session)
+	result, err := r.execute(ctx, session)
 	status := repos.StatusSucceeded
 	var message *string
+	var prURL *string
 	r.mu.Lock()
 	userCancelled := r.userCancel[session.ID]
 	r.mu.Unlock()
@@ -359,54 +389,158 @@ func (r *Runner) run(parent context.Context, session repos.Session) {
 		text := err.Error()
 		message = &text
 	}
-	_ = r.finish(context.Background(), session.ID, status, message)
+	if lifecycle, ok := r.protocol.(lifecycleProtocol); status != repos.StatusCancelled && ok {
+		status, message, prURL = r.complete(context.Background(), ctx, lifecycle, session, result, status, message)
+	}
+	_ = r.finish(context.Background(), session.ID, status, message, prURL)
 }
 
-func (r *Runner) execute(ctx context.Context, session repos.Session) error {
+type execution struct {
+	repo     repos.Repo
+	worktree string
+	title    string
+	summary  string
+}
+
+func (r *Runner) execute(ctx context.Context, session repos.Session) (execution, error) {
+	if lifecycle, ok := r.protocol.(lifecycleProtocol); ok {
+		if err := lifecycle.Admit(ctx, session); err != nil {
+			return execution{}, fmt.Errorf("admit protocol: %w", err)
+		}
+	}
 	repo, err := r.store.GetRepo(ctx, session.RepoName)
 	if err != nil {
-		return err
+		return execution{}, err
 	}
 	if err := r.git.Freshen(ctx, repo.Name, repo.DefaultBranch); err != nil {
-		return err
+		return execution{}, err
 	}
 	sessionDir := filepath.Join(r.stateRoot, "sessions", session.ID)
 	worktree := filepath.Join(sessionDir, "worktree")
 	if err := os.MkdirAll(sessionDir, 0o755); err != nil {
-		return err
+		return execution{}, err
 	}
 	if err := r.git.WorktreeAdd(ctx, repo.Name, session.Branch, worktree, "origin/"+repo.DefaultBranch); err != nil {
-		return err
+		return execution{}, err
 	}
+	result := execution{repo: repo, worktree: worktree}
 	instructions := session.Instructions
 	if session.IssueNumber != nil {
 		if r.protocol == nil {
-			return errors.New("issue session: protocol is required")
+			return result, errors.New("issue session: protocol is required")
 		}
-		issue, err := r.protocol.FetchIssue(ctx, session.RepoName, *session.IssueNumber)
+		issue, err := r.protocol.FetchIssue(ctx, session)
 		if err != nil {
-			return err
+			return result, err
 		}
+		result.title = issue.Title
 		instructions = formatIssue(issue)
 	}
 	instructionPath := filepath.Join(sessionDir, "instructions.md")
 	if err := os.WriteFile(instructionPath, []byte(instructions), 0o600); err != nil {
-		return err
+		return result, err
 	}
 	logFile, err := os.OpenFile(session.LogPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600)
 	if err != nil {
-		return err
+		return result, err
 	}
 	defer logFile.Close()
 	agent := r.factory.New(ConversationConfig{
 		Provider: r.provider, Model: r.model.Model, System: framingPrompt,
 		Tools: toolset.New(worktree), Log: logFile,
 	})
-	return agent.Send(ctx, instructions)
+	err = agent.Send(ctx, instructions)
+	if summarizer, ok := agent.(interface{ Summary() string }); ok {
+		result.summary = strings.TrimSpace(summarizer.Summary())
+	}
+	return result, err
 }
 
-func (r *Runner) finish(ctx context.Context, id, status string, message *string) error {
-	return r.store.FinishSession(ctx, id, status, message, nil, r.clock.Now(),
+func (r *Runner) complete(bg, runCtx context.Context, protocol lifecycleProtocol, session repos.Session, result execution, status string, message *string) (string, *string, *string) {
+	fail := func(reason string) (string, *string, *string) {
+		if err := protocol.Failure(bg, session, reason); err != nil {
+			reason += "; failure protocol: " + err.Error()
+		}
+		return repos.StatusFailed, &reason, nil
+	}
+	if result.worktree == "" {
+		reason := "session failed before worktree creation"
+		if message != nil {
+			reason = *message
+		}
+		return fail(reason)
+	}
+	committed, err := r.git.HasCommits(bg, result.worktree, result.repo.DefaultBranch)
+	if err != nil {
+		return fail(err.Error())
+	}
+	if !committed {
+		return fail("no commits produced")
+	}
+	checkSummary := ""
+	if status == repos.StatusSucceeded {
+		var checkErr error
+		checkSummary, checkErr = runCheck(runCtx, result.worktree, filepath.Join(r.stateRoot, "sessions", session.ID, "check.log"))
+		if checkErr != nil {
+			status = repos.StatusFailed
+			reason := checkErr.Error()
+			message = &reason
+		}
+	}
+	if err := r.git.Push(bg, result.worktree, session.Branch); err != nil {
+		return fail(err.Error())
+	}
+	if status != repos.StatusSucceeded {
+		reason := "session failed"
+		if message != nil {
+			reason = *message
+		}
+		return fail(reason)
+	}
+	summary := result.summary
+	if summary == "" {
+		summary = "Agent completed the requested work."
+	}
+	url, err := protocol.Success(bg, session, result.repo, result.title, summary, checkSummary)
+	if err != nil {
+		return fail("success protocol: " + err.Error())
+	}
+	return repos.StatusSucceeded, nil, &url
+}
+
+func runCheck(ctx context.Context, worktree, logPath string) (string, error) {
+	path := filepath.Join(worktree, ".ikibot", "check")
+	info, err := os.Stat(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return "no check declared", nil
+	}
+	if err != nil {
+		return "", fmt.Errorf("inspect check: %w", err)
+	}
+	if info.Mode().Perm()&0o111 == 0 {
+		return "no check declared", nil
+	}
+	command := exec.CommandContext(ctx, path)
+	command.Dir = worktree
+	output, commandErr := command.CombinedOutput()
+	if writeErr := os.WriteFile(logPath, output, 0o600); writeErr != nil {
+		return "", fmt.Errorf("write check log: %w", writeErr)
+	}
+	trimmed := strings.TrimSpace(string(output))
+	if commandErr != nil {
+		if len(trimmed) > 4000 {
+			trimmed = trimmed[len(trimmed)-4000:]
+		}
+		return "", fmt.Errorf("check failed: %s", trimmed)
+	}
+	if trimmed == "" {
+		return "check passed", nil
+	}
+	return trimmed, nil
+}
+
+func (r *Runner) finish(ctx context.Context, id, status string, message, prURL *string) error {
+	return r.store.FinishSession(ctx, id, status, message, prURL, r.clock.Now(),
 		func(context.Context, *sql.Tx, repos.Session) error { return nil })
 }
 

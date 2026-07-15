@@ -126,6 +126,15 @@ func (g *Git) Push(ctx context.Context, worktreePath, branch string) error {
 	return g.authenticated(ctx, worktreePath, "push", "push", "-u", "origin", branch)
 }
 
+// HasCommits reports whether the worktree is ahead of its starting remote branch.
+func (g *Git) HasCommits(ctx context.Context, worktreePath, defaultBranch string) (bool, error) {
+	output, err := g.runner(ctx, worktreePath, nil, "rev-list", "--count", "origin/"+defaultBranch+"..HEAD")
+	if err != nil {
+		return false, fmt.Errorf("git inspect commits: %w: %s", err, strings.TrimSpace(string(output)))
+	}
+	return strings.TrimSpace(string(output)) != "0", nil
+}
+
 func (g *Git) BranchExists(ctx context.Context, name, branch string) (bool, error) {
 	dir := g.repoPath(name)
 	_, err := g.runner(ctx, dir, nil, "show-ref", "--verify", "--quiet", "refs/heads/"+branch)

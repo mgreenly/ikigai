@@ -2,7 +2,10 @@ package runner
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -306,6 +309,149 @@ func TestModelValidationRejectsBadBootConfigurationAndAcceptsDefaultPricing(t *t
 	}
 }
 
+func TestPassingCheckPushesBranchCreatesPRAndPersistsURL(t *testing.T) {
+	// R-FEIC-0N91
+	fixture := newFixture(t, 1, time.Minute)
+	canonical, remote := fixture.addRepo(t, "passing")
+	installCheck(t, canonical, "#!/bin/sh\necho gate-passed\n")
+	recorder := newGitHubRecorder(t)
+	defer recorder.Close()
+	fixture.config.Protocol = repos.NewProtocol(repos.NewGitHubPeerAt(recorder.URL, recorder.Client()))
+	issue := 23
+	fixture.config.Factory = committingFactory(filepath.Join(fixture.stateRoot, "sessions", "passing", "worktree"), "agent-pass")
+	runner := fixture.runner(t)
+	session := enqueueAndDispatch(t, runner, SessionRequest{ID: "passing", RepoName: "passing", OwnerEmail: "owner@example.com", IssueNumber: &issue})
+	ended := waitStatus(t, fixture.store, session.ID, repos.StatusSucceeded)
+	if ended.PRURL == nil || *ended.PRURL != "https://example.test/pull/1" {
+		t.Fatalf("persisted PR URL = %#v", ended.PRURL)
+	}
+	if !remoteHasBranch(t, remote, "ikibot/issue-23") {
+		t.Fatal("passing branch was not pushed")
+	}
+	pr := recorder.only(t, "pr_create")
+	if pr.string("head") != "ikibot/issue-23" || pr.string("base") != "main" ||
+		!strings.Contains(pr.string("body"), "Fixes #23") || !strings.Contains(pr.string("body"), "passing") {
+		t.Fatalf("PR arguments = %#v", pr.arguments)
+	}
+	if got := recorder.namesAfter("pr_create"); !reflect.DeepEqual(got[:2], []string{"issue_comment", "label_remove"}) {
+		t.Fatalf("calls after PR = %v", got)
+	}
+}
+
+func TestFailingCheckPushesBranchWithoutPRAndPersistsFullLog(t *testing.T) {
+	// R-FFQ8-EEZQ
+	fixture := newFixture(t, 1, time.Minute)
+	canonical, remote := fixture.addRepo(t, "failing")
+	installCheck(t, canonical, "#!/bin/sh\necho first-line\necho final-tail\nexit 7\n")
+	recorder := newGitHubRecorder(t)
+	defer recorder.Close()
+	fixture.config.Protocol = repos.NewProtocol(repos.NewGitHubPeerAt(recorder.URL, recorder.Client()))
+	issue := 24
+	fixture.config.Factory = committingFactory(filepath.Join(fixture.stateRoot, "sessions", "failing", "worktree"), "agent-fail")
+	runner := fixture.runner(t)
+	session := enqueueAndDispatch(t, runner, SessionRequest{ID: "failing", RepoName: "failing", OwnerEmail: "owner@example.com", IssueNumber: &issue})
+	ended := waitStatus(t, fixture.store, session.ID, repos.StatusFailed)
+	if ended.Error == nil || !strings.Contains(*ended.Error, "final-tail") || recorder.count("pr_create") != 0 {
+		t.Fatalf("failed outcome = %#v, PR calls = %d", ended, recorder.count("pr_create"))
+	}
+	if !remoteHasBranch(t, remote, "ikibot/issue-24") {
+		t.Fatal("failed branch was not pushed")
+	}
+	log, err := os.ReadFile(filepath.Join(fixture.stateRoot, "sessions", "failing", "check.log"))
+	if err != nil || string(log) != "first-line\nfinal-tail\n" {
+		t.Fatalf("check.log = %q, %v", log, err)
+	}
+	comment := recorder.last(t, "issue_comment")
+	if !strings.Contains(comment.string("body"), "final-tail") || !recorder.hasLabel("failed") {
+		t.Fatalf("failure calls = %#v", recorder.calls)
+	}
+}
+
+func TestMissingCheckCreatesPRWithNoCheckDeclaration(t *testing.T) {
+	// R-FGY4-S6QF
+	fixture := newFixture(t, 1, time.Minute)
+	fixture.addRepo(t, "unchecked")
+	recorder := newGitHubRecorder(t)
+	defer recorder.Close()
+	fixture.config.Protocol = repos.NewProtocol(repos.NewGitHubPeerAt(recorder.URL, recorder.Client()))
+	issue := 25
+	fixture.config.Factory = committingFactory(filepath.Join(fixture.stateRoot, "sessions", "unchecked", "worktree"), "agent-unchecked")
+	runner := fixture.runner(t)
+	session := enqueueAndDispatch(t, runner, SessionRequest{ID: "unchecked", RepoName: "unchecked", OwnerEmail: "owner@example.com", IssueNumber: &issue})
+	waitStatus(t, fixture.store, session.ID, repos.StatusSucceeded)
+	if body := recorder.only(t, "pr_create").string("body"); !strings.Contains(body, "no check declared") {
+		t.Fatalf("PR body = %q", body)
+	}
+	if _, err := os.Stat(filepath.Join(fixture.stateRoot, "sessions", "unchecked", "check.log")); !os.IsNotExist(err) {
+		t.Fatalf("undeclared check unexpectedly created a log: %v", err)
+	}
+}
+
+func TestNoCommitFailsWithoutPushOrPR(t *testing.T) {
+	// R-FI61-5YH4
+	fixture := newFixture(t, 1, time.Minute)
+	_, remote := fixture.addRepo(t, "empty")
+	recorder := newGitHubRecorder(t)
+	defer recorder.Close()
+	fixture.config.Protocol = repos.NewProtocol(repos.NewGitHubPeerAt(recorder.URL, recorder.Client()))
+	fixture.config.Factory = AgentFactoryFunc(func(ConversationConfig) Agent {
+		return agentFunc(func(context.Context, string) error { return nil })
+	})
+	issue := 26
+	runner := fixture.runner(t)
+	session := enqueueAndDispatch(t, runner, SessionRequest{ID: "empty", RepoName: "empty", OwnerEmail: "owner@example.com", IssueNumber: &issue})
+	ended := waitStatus(t, fixture.store, session.ID, repos.StatusFailed)
+	if ended.Error == nil || *ended.Error != "no commits produced" || recorder.count("pr_create") != 0 || remoteHasBranch(t, remote, session.Branch) {
+		t.Fatalf("no-commit outcome = %#v, calls = %#v", ended, recorder.calls)
+	}
+}
+
+func TestRetryPushesAttemptTwoBranch(t *testing.T) {
+	// R-FKLT-XHYI
+	fixture := newFixture(t, 1, time.Minute)
+	_, remote := fixture.addRepo(t, "retry")
+	issue := 27
+	reason := "old failure"
+	if err := fixture.store.InsertSession(context.Background(), repos.Session{
+		ID: "old", RepoName: "retry", OwnerEmail: "owner@example.com", IssueNumber: &issue,
+		Attempt: 1, Branch: "ikibot/issue-27", Status: repos.StatusFailed, Error: &reason,
+		CreatedAt: fixture.clock.Now(), LogPath: "old.log",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	recorder := newGitHubRecorder(t)
+	defer recorder.Close()
+	fixture.config.Protocol = repos.NewProtocol(repos.NewGitHubPeerAt(recorder.URL, recorder.Client()))
+	fixture.config.Factory = committingFactory(filepath.Join(fixture.stateRoot, "sessions", "retry-2", "worktree"), "agent-retry")
+	runner := fixture.runner(t)
+	session := enqueueAndDispatch(t, runner, SessionRequest{ID: "retry-2", RepoName: "retry", OwnerEmail: "owner@example.com", IssueNumber: &issue})
+	waitStatus(t, fixture.store, session.ID, repos.StatusSucceeded)
+	if session.Branch != "ikibot/issue-27.2" || !remoteHasBranch(t, remote, session.Branch) {
+		t.Fatalf("retry branch = %q, pushed = %v", session.Branch, remoteHasBranch(t, remote, session.Branch))
+	}
+}
+
+func TestManualSessionSkipsIssueTrafficAndCreatesPRWithoutFixes(t *testing.T) {
+	// R-FLTQ-B9P7
+	fixture := newFixture(t, 1, time.Minute)
+	canonical, _ := fixture.addRepo(t, "manual")
+	installCheck(t, canonical, "#!/bin/sh\necho manual-check-passed\n")
+	recorder := newGitHubRecorder(t)
+	defer recorder.Close()
+	fixture.config.Protocol = repos.NewProtocol(repos.NewGitHubPeerAt(recorder.URL, recorder.Client()))
+	fixture.config.Factory = committingFactory(filepath.Join(fixture.stateRoot, "sessions", "manual-protocol", "worktree"), "agent-manual")
+	runner := fixture.runner(t)
+	session := enqueueAndDispatch(t, runner, SessionRequest{ID: "manual-protocol", RepoName: "manual", OwnerEmail: "owner@example.com", Instructions: "manual work"})
+	waitStatus(t, fixture.store, session.ID, repos.StatusSucceeded)
+	if recorder.count("label_add") != 0 || recorder.count("label_remove") != 0 || recorder.count("issue_comment") != 0 {
+		t.Fatalf("manual issue traffic = %#v", recorder.calls)
+	}
+	body := recorder.only(t, "pr_create").string("body")
+	if strings.Contains(body, "Fixes #") || !strings.Contains(body, "manual-check-passed") {
+		t.Fatalf("manual PR body = %q", body)
+	}
+}
+
 type fixture struct {
 	store     *repos.Store
 	git       *repos.Git
@@ -386,11 +532,11 @@ type protocolStub struct {
 	fetches int
 }
 
-func (p *protocolStub) FetchIssue(context.Context, string, int) (IssueContent, error) {
+func (p *protocolStub) FetchIssue(context.Context, repos.Session) (IssueContent, error) {
 	p.fetches++
 	return p.issue, nil
 }
-func (*protocolStub) PostQueued(context.Context, string, int) error { return nil }
+func (*protocolStub) PostQueued(context.Context, repos.Session) error { return nil }
 
 func waitStatus(t *testing.T, store *repos.Store, id, status string) repos.Session {
 	t.Helper()
@@ -488,4 +634,189 @@ func gitOutput(t *testing.T, dir string, args ...string) string {
 		t.Fatalf("git %v: %v\n%s", args, err, output)
 	}
 	return strings.TrimSpace(string(output))
+}
+
+func installCheck(t *testing.T, canonical, script string) {
+	t.Helper()
+	path := filepath.Join(canonical, ".ikibot", "check")
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(script), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	gitRun(t, canonical, "add", ".ikibot/check")
+	gitRun(t, canonical, "commit", "-m", "add check")
+	gitRun(t, canonical, "push", "origin", "main")
+}
+
+func committingFactory(worktree, contents string) AgentFactory {
+	return AgentFactoryFunc(func(ConversationConfig) Agent {
+		return agentFunc(func(context.Context, string) error {
+			command := exec.Command("git", "config", "user.email", "agent@example.com")
+			command.Dir = worktree
+			if output, err := command.CombinedOutput(); err != nil {
+				return fmt.Errorf("git config email: %w: %s", err, output)
+			}
+			command = exec.Command("git", "config", "user.name", "Fixture Agent")
+			command.Dir = worktree
+			if output, err := command.CombinedOutput(); err != nil {
+				return fmt.Errorf("git config name: %w: %s", err, output)
+			}
+			if err := os.WriteFile(filepath.Join(worktree, contents+".txt"), []byte(contents), 0o644); err != nil {
+				return err
+			}
+			command = exec.Command("git", "add", ".")
+			command.Dir = worktree
+			if output, err := command.CombinedOutput(); err != nil {
+				return fmt.Errorf("git add: %w: %s", err, output)
+			}
+			command = exec.Command("git", "commit", "-m", contents)
+			command.Dir = worktree
+			if output, err := command.CombinedOutput(); err != nil {
+				return fmt.Errorf("git commit: %w: %s", err, output)
+			}
+			return nil
+		})
+	})
+}
+
+func enqueueAndDispatch(t *testing.T, runner *Runner, request SessionRequest) repos.Session {
+	t.Helper()
+	session, err := runner.Enqueue(context.Background(), request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	go runner.Dispatch(ctx)
+	return session
+}
+
+func remoteHasBranch(t *testing.T, remote, branch string) bool {
+	t.Helper()
+	command := exec.Command("git", "ls-remote", "--heads", remote, "refs/heads/"+branch)
+	output, err := command.CombinedOutput()
+	if err != nil {
+		t.Fatalf("git ls-remote: %v\n%s", err, output)
+	}
+	return len(strings.TrimSpace(string(output))) > 0
+}
+
+type recordedCall struct {
+	name      string
+	arguments map[string]any
+}
+
+func (c recordedCall) string(name string) string {
+	value, _ := c.arguments[name].(string)
+	return value
+}
+
+type githubRecorder struct {
+	*httptest.Server
+	mu    sync.Mutex
+	calls []recordedCall
+}
+
+func newGitHubRecorder(t *testing.T) *githubRecorder {
+	t.Helper()
+	recorder := &githubRecorder{}
+	recorder.Server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var request struct {
+			Params struct {
+				Name      string         `json:"name"`
+				Arguments map[string]any `json:"arguments"`
+			} `json:"params"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			t.Error(err)
+		}
+		recorder.mu.Lock()
+		recorder.calls = append(recorder.calls, recordedCall{name: request.Params.Name, arguments: request.Params.Arguments})
+		recorder.mu.Unlock()
+		result := any(map[string]any{})
+		switch request.Params.Name {
+		case "issue_get":
+			result = map[string]any{"number": 1, "title": "Fixture issue", "body": "Do the work."}
+		case "issue_comments":
+			result = []any{}
+		case "pr_create":
+			result = map[string]any{"number": 1, "url": "https://example.test/pull/1"}
+		}
+		if err := json.NewEncoder(w).Encode(map[string]any{"jsonrpc": "2.0", "id": 1, "result": result}); err != nil {
+			t.Error(err)
+		}
+	}))
+	return recorder
+}
+
+func (r *githubRecorder) snapshot() []recordedCall {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return append([]recordedCall(nil), r.calls...)
+}
+
+func (r *githubRecorder) count(name string) int {
+	count := 0
+	for _, call := range r.snapshot() {
+		if call.name == name {
+			count++
+		}
+	}
+	return count
+}
+
+func (r *githubRecorder) only(t *testing.T, name string) recordedCall {
+	t.Helper()
+	var found []recordedCall
+	for _, call := range r.snapshot() {
+		if call.name == name {
+			found = append(found, call)
+		}
+	}
+	if len(found) != 1 {
+		t.Fatalf("%s calls = %d; all calls = %#v", name, len(found), r.snapshot())
+	}
+	return found[0]
+}
+
+func (r *githubRecorder) last(t *testing.T, name string) recordedCall {
+	t.Helper()
+	calls := r.snapshot()
+	for i := len(calls) - 1; i >= 0; i-- {
+		if calls[i].name == name {
+			return calls[i]
+		}
+	}
+	t.Fatalf("no %s call; all calls = %#v", name, calls)
+	return recordedCall{}
+}
+
+func (r *githubRecorder) namesAfter(name string) []string {
+	calls := r.snapshot()
+	for i, call := range calls {
+		if call.name == name {
+			var names []string
+			for _, next := range calls[i+1:] {
+				names = append(names, next.name)
+			}
+			return names
+		}
+	}
+	return nil
+}
+
+func (r *githubRecorder) hasLabel(label string) bool {
+	for _, call := range r.snapshot() {
+		if call.name != "label_add" {
+			continue
+		}
+		for _, value := range call.arguments["labels"].([]any) {
+			if value == label {
+				return true
+			}
+		}
+	}
+	return false
 }
