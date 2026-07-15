@@ -29,9 +29,14 @@ Verification ids change.
 - D20 → `project/design/D20.md` — Apex login-bounce nginx primitive: a shared `@login_bounce` that redirects logged-out navigations to `/login` and 401s scripted fetches — owns R-XJBT-7YIF, R-XKJP-LQ94
 - D21 → `project/design/D21.md` — Sign-in remembers where you were headed: a validated same-site `return_to` on the web handshake — owns R-XLRL-ZHZT, R-XO7E-R1H7, R-XPFB-4T7W
 - D22 → `project/design/D22.md` — The web callback returns you to `return_to`, or `/` by default — owns R-XQN7-IKYL, R-XRV3-WCPA
+- D23 → `project/design/D23.md` — Purge legacy auth state and enforce the `owner_id` invariant (`NOT NULL`) — owns R-6QJD-1MUY, R-6RR9-FELN, R-6SZ5-T6CC, R-6U72-6Y31
 
 ## Verification ids → Decision
 
+- R-6QJD-1MUY → D23 → `project/design/D23.md`
+- R-6RR9-FELN → D23 → `project/design/D23.md`
+- R-6SZ5-T6CC → D23 → `project/design/D23.md`
+- R-6U72-6Y31 → D23 → `project/design/D23.md`
 - R-DB01-PG3A → D1 → `project/design/D01.md`
 - R-DB02-LND7 → D1 → `project/design/D01.md`
 - R-DB03-PRF9 → D1 → `project/design/D01.md`
