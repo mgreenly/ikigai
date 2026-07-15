@@ -4,6 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -298,6 +301,155 @@ func TestSuiteRuntimeFactsAreRequiredOutsideRunner(t *testing.T) {
 				t.Fatalf("error message = %q, want missing variable %s", lines[1], tt.missing)
 			}
 		})
+	}
+}
+
+type recordedMCPRequest struct {
+	Method string
+	Path   string
+	Header http.Header
+	Body   map[string]any
+}
+
+func newMCPServer(t *testing.T, response string) (*httptest.Server, *[]recordedMCPRequest) {
+	t.Helper()
+	requests := []recordedMCPRequest{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Errorf("read request body: %v", err)
+			return
+		}
+		var decoded map[string]any
+		if err := json.Unmarshal(body, &decoded); err != nil {
+			t.Errorf("decode request body: %v", err)
+			return
+		}
+		requests = append(requests, recordedMCPRequest{
+			Method: r.Method,
+			Path:   r.URL.Path,
+			Header: r.Header.Clone(),
+			Body:   decoded,
+		})
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, response)
+	}))
+	t.Cleanup(server.Close)
+	return server, &requests
+}
+
+func runSuiteMCPProbe(t *testing.T, services, body string) (script.Run, string) {
+	t.Helper()
+	requirePython(t)
+	st, _ := newStore(t)
+	dataDir := t.TempDir()
+	r := New(st, dataDir, 30*time.Second, []string{
+		"SUITE_SERVICES=" + services,
+		"SUITE_FILES_BASE_URL=http://127.0.0.1:1",
+	})
+	run := seed(t, st, body)
+	r.Spawn(run, []byte("{}"))
+	got := waitTerminal(t, st, run.ID)
+	stdout, err := os.ReadFile(filepath.Join(dataDir, "runs", run.ID, "stdout.log"))
+	if err != nil {
+		t.Fatalf("read stdout.log: %v", err)
+	}
+	return got, string(stdout)
+}
+
+func TestSuiteMcpHappyPath(t *testing.T) {
+	// R-I0GA-YTQ5
+	server, requests := newMCPServer(t, `{"jsonrpc":"2.0","id":1,"result":{"structuredContent":{"id":"x","nested":{"ok":true}},"isError":false}}`)
+	services, _ := json.Marshal(map[string]string{"svc": server.URL})
+	body := "import json, suite\nprint(json.dumps([suite.mcp('svc', 'get', {'id': 'x'}), suite.mcp('svc', 'list')], sort_keys=True))\n"
+	got, stdout := runSuiteMCPProbe(t, string(services), body)
+	if got.Status != script.RunSucceeded {
+		t.Fatalf("status = %q, want succeeded; error = %q", got.Status, got.Error)
+	}
+	if strings.TrimSpace(stdout) != `[{"id": "x", "nested": {"ok": true}}, {"id": "x", "nested": {"ok": true}}]` {
+		t.Fatalf("suite.mcp output = %q", stdout)
+	}
+	if len(*requests) != 2 {
+		t.Fatalf("requests = %d, want 2 (one per call)", len(*requests))
+	}
+	wantArguments := []map[string]any{{"id": "x"}, {}}
+	for i, request := range *requests {
+		if request.Method != http.MethodPost || request.Path != "/mcp" {
+			t.Fatalf("request %d = %s %s, want POST /mcp", i, request.Method, request.Path)
+		}
+		wantBody := map[string]any{
+			"jsonrpc": "2.0", "id": float64(1), "method": "tools/call",
+			"params": map[string]any{"name": map[bool]string{true: "list", false: "get"}[i == 1], "arguments": wantArguments[i]},
+		}
+		if !reflect.DeepEqual(request.Body, wantBody) {
+			t.Fatalf("request %d body = %#v, want %#v", i, request.Body, wantBody)
+		}
+		if request.Header.Get("X-Owner-Email") != owner {
+			t.Fatalf("X-Owner-Email = %q, want %q", request.Header.Get("X-Owner-Email"), owner)
+		}
+		if request.Header.Get("X-Client-Id") != "scripts:"+got.ScriptID {
+			t.Fatalf("X-Client-Id = %q, want scripts:%s", request.Header.Get("X-Client-Id"), got.ScriptID)
+		}
+		if request.Header.Get("Content-Type") != "application/json" {
+			t.Fatalf("Content-Type = %q, want application/json", request.Header.Get("Content-Type"))
+		}
+		if _, ok := request.Header["X-Forwarded-Proto"]; ok {
+			t.Fatalf("X-Forwarded-Proto unexpectedly present")
+		}
+	}
+}
+
+func TestSuiteMcpProseFallback(t *testing.T) {
+	// R-I1O7-CLGU
+	server, _ := newMCPServer(t, `{"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"hello "},{"type":"text","text":"world"}],"isError":false}}`)
+	services, _ := json.Marshal(map[string]string{"svc": server.URL})
+	got, stdout := runSuiteMCPProbe(t, string(services), "import suite\nr = suite.mcp('svc', 'describe')\nprint(type(r).__name__)\nprint(r)\n")
+	if got.Status != script.RunSucceeded {
+		t.Fatalf("status = %q, want succeeded; error = %q", got.Status, got.Error)
+	}
+	if stdout != "str\nhello world\n" {
+		t.Fatalf("suite.mcp prose output = %q, want str and concatenated text", stdout)
+	}
+}
+
+func TestSuiteMcpIsErrorRaisesToolError(t *testing.T) {
+	// R-I2W3-QD7J
+	server, _ := newMCPServer(t, `{"jsonrpc":"2.0","id":1,"result":{"structuredContent":{"code":"not_found","message":"missing x"},"isError":true}}`)
+	services, _ := json.Marshal(map[string]string{"svc": server.URL})
+	body := "import suite\ntry:\n    suite.mcp('svc', 'get')\nexcept suite.ToolError as exc:\n    print(exc.code)\n    print(exc.message)\n"
+	got, stdout := runSuiteMCPProbe(t, string(services), body)
+	if got.Status != script.RunSucceeded {
+		t.Fatalf("status = %q, want succeeded; error = %q", got.Status, got.Error)
+	}
+	if stdout != "not_found\nmissing x\n" {
+		t.Fatalf("ToolError fields = %q", stdout)
+	}
+}
+
+func TestSuiteMcpUnknownServiceRaisesValueError(t *testing.T) {
+	// R-I5BW-HWOX
+	server, requests := newMCPServer(t, `{}`)
+	services, _ := json.Marshal(map[string]string{"svc": server.URL})
+	body := "import suite\ntry:\n    suite.mcp('nonesuch', 'get')\nexcept Exception as exc:\n    print(type(exc).__name__)\n"
+	got, stdout := runSuiteMCPProbe(t, string(services), body)
+	if got.Status != script.RunSucceeded || stdout != "ValueError\n" {
+		t.Fatalf("status = %q, error = %q, stdout = %q", got.Status, got.Error, stdout)
+	}
+	if len(*requests) != 0 {
+		t.Fatalf("requests = %d, want zero", len(*requests))
+	}
+}
+
+func TestSuiteMcpSourceUnavailableOnTransportFailure(t *testing.T) {
+	// R-I6JS-VOFM
+	closed := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	closedURL := closed.URL
+	closed.Close()
+	services, _ := json.Marshal(map[string]string{"svc": closedURL})
+	body := "import suite\ntry:\n    suite.mcp('svc', 'get')\nexcept suite.ToolError as exc:\n    print(exc.code)\n"
+	got, stdout := runSuiteMCPProbe(t, string(services), body)
+	if got.Status != script.RunSucceeded || stdout != "source_unavailable\n" {
+		t.Fatalf("status = %q, error = %q, stdout = %q", got.Status, got.Error, stdout)
 	}
 }
 
