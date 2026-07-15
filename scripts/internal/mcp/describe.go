@@ -39,7 +39,8 @@ RUNTIME CONTRACT
   sync, and are what the owner and other workflows see; the run dir is private
   working space. Put a product in the file share to publish it durably and let
   watching workflows trigger.
-    suite.files.put("reports/summary.pdf", "summary.pdf")
+  Share paths are absolute and /-rooted; relative spellings are accepted and treated as rooted.
+    suite.files.put("summary.pdf", "/reports/summary.pdf")
 - Suite-service failures raise suite.ToolError; its .code is one of validation,
   not_found, conflict, too_large, source_unavailable, or internal. Catch it and
   branch on .code, or let it crash the run: the

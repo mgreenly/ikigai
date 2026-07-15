@@ -53,3 +53,31 @@ func TestDescribeTeachesSuiteRuntimeContract(t *testing.T) {
 		t.Errorf("file share guidance names its backing service: %q", shareGuidance)
 	}
 }
+
+func TestDescribeTeachesAbsoluteSharePaths(t *testing.T) {
+	// R-ZGSP-VKCD
+	result, err := toolDescribe()
+	if err != nil {
+		t.Fatalf("toolDescribe() error = %v", err)
+	}
+	content, ok := result["content"].([]map[string]any)
+	if !ok || len(content) != 1 {
+		t.Fatalf("describe content = %#v, want one content block", result["content"])
+	}
+	text, ok := content[0]["text"].(string)
+	if !ok {
+		t.Fatalf("describe text = %#v, want string", content[0]["text"])
+	}
+
+	for _, want := range []string{
+		"Share paths are absolute and /-rooted; relative spellings are accepted and treated as rooted.",
+		`suite.files.put("summary.pdf", "/reports/summary.pdf")`,
+	} {
+		if !strings.Contains(text, want) {
+			t.Errorf("describe result does not contain %q", want)
+		}
+	}
+	if strings.Contains(text, `suite.files.put("reports/summary.pdf", "summary.pdf")`) {
+		t.Errorf("describe result still teaches a relative share path")
+	}
+}

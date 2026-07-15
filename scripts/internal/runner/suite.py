@@ -245,8 +245,16 @@ def fetch(content_url, dest):
         raise
 
 
+def _share_path(p):
+    """Return the share path rooted: prefix '/' when missing."""
+
+    if p and not p.startswith("/"):
+        return "/" + p
+    return p
+
+
 class _Files:
-    """Filesystem client for the suite file share."""
+    """Filesystem client; share paths are absolute, with relative spellings rooted."""
 
     @staticmethod
     def _url(route, params=None):
@@ -288,11 +296,11 @@ class _Files:
             connection.close()
 
     def list(self, path=None, cursor=None, limit=None):
-        """List entries in the file share."""
+        """List entries; a given share path is absolute or treated as rooted."""
 
         params = {}
         if path is not None:
-            params["path"] = path
+            params["path"] = _share_path(path)
         if cursor is not None:
             params["cursor"] = cursor
         if limit is not None:
@@ -300,17 +308,17 @@ class _Files:
         return self._json("GET", "/list", params)
 
     def stat(self, path):
-        """Return metadata for a file-share path."""
+        """Return metadata; the share path is absolute or treated as rooted."""
 
-        return self._json("GET", "/stat", {"path": path})
+        return self._json("GET", "/stat", {"path": _share_path(path)})
 
     def get(self, share_path, dest):
-        """Stream a file-share object to a local file."""
+        """Download an absolute (or rooted relative) share path to local dest."""
 
         try:
             connection, response = _open_http(
                 "GET",
-                self._url("/content", {"path": share_path}),
+                self._url("/content", {"path": _share_path(share_path)}),
                 headers=self._headers(),
             )
             try:
@@ -329,14 +337,14 @@ class _Files:
             raise
 
     def put(self, source, share_path):
-        """Stream a local file into the file share."""
+        """Upload local source to an absolute (or rooted relative) share path."""
 
         with open(source, "rb") as body:
             headers = self._headers()
             headers["Content-Length"] = str(os.fstat(body.fileno()).st_size)
             connection, response = _open_http(
                 "PUT",
-                self._url("/content", {"path": share_path}),
+                self._url("/content", {"path": _share_path(share_path)}),
                 headers=headers,
                 body_file=body,
             )
@@ -355,19 +363,21 @@ class _Files:
                 connection.close()
 
     def delete(self, path):
-        """Delete a file-share path if it exists."""
+        """Delete an absolute (or rooted relative) share path if it exists."""
 
-        return self._empty("DELETE", "/content", {"path": path})
+        return self._empty("DELETE", "/content", {"path": _share_path(path)})
 
     def move(self, src, dest):
-        """Move a file-share path."""
+        """Move between absolute (or rooted relative) share paths."""
 
-        return self._empty("POST", "/move", {"from": src, "to": dest})
+        return self._empty(
+            "POST", "/move", {"from": _share_path(src), "to": _share_path(dest)}
+        )
 
     def mkdir(self, path):
-        """Create a directory in the file share."""
+        """Create an absolute (or rooted relative) share directory."""
 
-        return self._empty("POST", "/mkdir", {"path": path})
+        return self._empty("POST", "/mkdir", {"path": _share_path(path)})
 
 
 files = _Files()

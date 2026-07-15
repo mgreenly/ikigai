@@ -763,6 +763,79 @@ print(json.dumps([suite.files.delete('/a b'), suite.files.mkdir('/new dir'), sui
 	}
 }
 
+func TestSuiteFilesRootsEverySharePathAndPreservesAbsolutePaths(t *testing.T) {
+	// R-ZECX-40UZ
+	server, requests := newRecordedSuiteServer(t, defaultFileShareResponse)
+	services, _ := json.Marshal(map[string]string{"svc": server.URL})
+	body := `import suite
+open('source', 'wb').write(b'payload')
+suite.files.stat('a/b')
+suite.files.get('a/b', 'relative-download')
+suite.files.put('source', 'a/b')
+suite.files.delete('a/b')
+suite.files.mkdir('a/b')
+suite.files.move('a/b', 'c/d')
+suite.files.stat('/raw//path')
+suite.files.get('/raw//path', 'absolute-download')
+suite.files.put('source', '/raw//path')
+suite.files.delete('/raw//path')
+suite.files.mkdir('/raw//path')
+suite.files.move('/raw//path', '/other//path')
+`
+	got, _, _ := runSuiteProbe(t, string(services), server.URL, body)
+	requireSucceededProbe(t, got)
+
+	want := []recordedSuiteRequest{
+		{Method: http.MethodGet, Path: "/stat", Query: "path=%2Fa%2Fb"},
+		{Method: http.MethodGet, Path: "/content", Query: "path=%2Fa%2Fb"},
+		{Method: http.MethodPut, Path: "/content", Query: "path=%2Fa%2Fb"},
+		{Method: http.MethodDelete, Path: "/content", Query: "path=%2Fa%2Fb"},
+		{Method: http.MethodPost, Path: "/mkdir", Query: "path=%2Fa%2Fb"},
+		{Method: http.MethodPost, Path: "/move", Query: "from=%2Fa%2Fb&to=%2Fc%2Fd"},
+		{Method: http.MethodGet, Path: "/stat", Query: "path=%2Fraw%2F%2Fpath"},
+		{Method: http.MethodGet, Path: "/content", Query: "path=%2Fraw%2F%2Fpath"},
+		{Method: http.MethodPut, Path: "/content", Query: "path=%2Fraw%2F%2Fpath"},
+		{Method: http.MethodDelete, Path: "/content", Query: "path=%2Fraw%2F%2Fpath"},
+		{Method: http.MethodPost, Path: "/mkdir", Query: "path=%2Fraw%2F%2Fpath"},
+		{Method: http.MethodPost, Path: "/move", Query: "from=%2Fraw%2F%2Fpath&to=%2Fother%2F%2Fpath"},
+	}
+	if len(*requests) != len(want) {
+		t.Fatalf("requests = %#v, want %d", *requests, len(want))
+	}
+	for i, wantRequest := range want {
+		gotRequest := (*requests)[i]
+		if gotRequest.Method != wantRequest.Method || gotRequest.Path != wantRequest.Path || gotRequest.Query != wantRequest.Query {
+			t.Errorf("request %d = %s %s?%s, want %s %s?%s", i, gotRequest.Method, gotRequest.Path, gotRequest.Query, wantRequest.Method, wantRequest.Path, wantRequest.Query)
+		}
+	}
+}
+
+func TestSuiteFilesListOmitsAbsentPathAndRootsGivenPath(t *testing.T) {
+	// R-ZFKT-HSLO
+	server, requests := newRecordedSuiteServer(t, defaultFileShareResponse)
+	services, _ := json.Marshal(map[string]string{"svc": server.URL})
+	body := `import suite
+suite.files.list()
+suite.files.list('a')
+`
+	got, _, _ := runSuiteProbe(t, string(services), server.URL, body)
+	requireSucceededProbe(t, got)
+
+	want := []recordedSuiteRequest{
+		{Method: http.MethodGet, Path: "/list", Query: ""},
+		{Method: http.MethodGet, Path: "/list", Query: "path=%2Fa"},
+	}
+	if len(*requests) != len(want) {
+		t.Fatalf("requests = %#v, want %d", *requests, len(want))
+	}
+	for i, wantRequest := range want {
+		gotRequest := (*requests)[i]
+		if gotRequest.Method != wantRequest.Method || gotRequest.Path != wantRequest.Path || gotRequest.Query != wantRequest.Query {
+			t.Errorf("request %d = %s %s?%s, want %s %s?%s", i, gotRequest.Method, gotRequest.Path, gotRequest.Query, wantRequest.Method, wantRequest.Path, wantRequest.Query)
+		}
+	}
+}
+
 func TestSuiteFilesMapsFailuresAndCleansFailedGet(t *testing.T) {
 	// R-IHIW-BM3V
 	server, _ := newRecordedSuiteServer(t, func(w http.ResponseWriter, r *http.Request) {
