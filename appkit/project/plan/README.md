@@ -83,6 +83,29 @@ Until this runs, the mid-investigation bridge symlink `/opt/crm/etc/manifest.env
 stays on the box on purpose — removing it before the `current` reader ships would
 re-hide crm.
 
+**R-ELE5-W5ML — a strict MCP client accepts the deployed tool list (D8,
+operator-verified).** The construction guard (R-EIYD-4M57) and the open-object
+`reflection` schema (R-EK69-IDVW) *model* the strict-client rule; only a real
+strict client proves the emitted `tools/list` is actually accepted. That proof
+is a live/deploy step, not a `STATUS.md` phase (the unattended loop cannot drive
+an external client against the deployed box), and runs **only on explicit
+instruction to deploy**. Prerequisite: Phase 15 merged. Because all twelve
+services share the appkit chassis, the fix reaches production only after each is
+rebuilt and redeployed:
+
+1. Rebuild and redeploy every service on the new chassis, per `deploy.md`
+   (`bin/ship <svc>` → `opsctl stage` → `opsctl deploy`; services first,
+   dashboard last).
+2. In Claude Code, confirm each `ikigenba_<svc>` MCP server now reports
+   `connected` with its tools listed — **not** `connected · tools fetch
+   failed`. Equivalently, a strict schema-validating client (Claude Code, or
+   MCP Inspector's strict mode) fetches the full `tools/list` from each
+   `/srv/<svc>/mcp` without a schema-validation rejection. A `curl` 200 is
+   **not** sufficient — curl does no schema validation.
+
+Until every service is redeployed, the un-fixed services keep showing
+`tools fetch failed`; the chassis change alone does not clear production.
+
 **Registry replace mirror (D10, operator-applied).** Phase 10 makes appkit
 require the in-repo `registry` module. A dependency's `replace` directives are
 not transitive, so every module that requires appkit must carry its own

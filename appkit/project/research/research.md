@@ -56,7 +56,51 @@ MCP *client* of appkit-served surfaces. Verified against its source:
   with an older revision.
 
 Conclusion: appkit's protocol bump and result-shape additions require **no
-agentkit change**.
+agentkit change**. agentkit is a **lenient** client, though — it ignores
+`outputSchema` entirely — so verifying against it proves nothing about clients
+that *do* validate the advertised schemas. The strict client below is the one
+that constrains the schema shapes.
+
+## Strict MCP client schema validation (Claude Code / Anthropic tools API, verified 2026-07-15)
+
+Claude Code is the suite's real end-user MCP *client*, and unlike agentkit it
+**strictly validates every advertised `inputSchema`/`outputSchema`** before it
+will use a server's tools. The rules the design must satisfy, established from
+the Claude Code issue tracker and confirmed against the live box:
+
+- **Draft 2020-12 + a top-level-object constraint.** Every advertised schema is
+  checked as JSON Schema draft 2020-12 **and** against the Anthropic tools-API
+  rule that the schema's **top level must be a plain object** — `"type":
+  "object"` at the root, and **no `oneOf` / `anyOf` / `allOf` at the top
+  level**. The API rejects a top-level composition with
+  `input_schema does not support oneOf, allOf, or anyOf at the top level`;
+  Claude Code's client-side validator likewise skips a tool/server whose schema
+  has composition at the root (e.g. "invalid schema (oneOf at top level)").
+- **One bad schema fails the whole server.** Validation is all-or-nothing per
+  server: a single non-conforming tool descriptor fails the entire `tools/list`,
+  and the client reports **`tools fetch failed`**. Because `initialize` carries
+  no schemas, it still succeeds, so the server shows **`connected` yet
+  `tools fetch failed`** — connected but tool-less. In the worst case a
+  malformed schema 400s the whole session.
+- **Curl is not a test.** A raw `curl` of `tools/list` returns 200 with a
+  well-formed body — curl does no schema validation. Only a strict client
+  (Claude Code, MCP Inspector's strict mode, any Zod/JSON-Schema-validating
+  consumer) exercises this contract. The live proof is a strict client actually
+  fetching the tools, not a 200 from curl.
+- **Nested composition may be tolerated**, but appkit deliberately advertises
+  **no** `oneOf`/`anyOf`/`allOf` anywhere in its schemas, so chassis correctness
+  never rides on that uncertainty.
+
+Evidence: claude-code issues #10606 (strict schema validation introduced
+v2.0.21+, top-level `oneOf` server skipped), #10031 / #28620 (client requires a
+top-level `"type": "object"`; a top-level `anyOf`/`oneOf` without it is
+rejected). Observed 2026-07-15 on `int.ikigenba.com`: **all twelve services**
+showed `△ connected · tools fetch failed` in Claude Code while `curl` of the
+same `/srv/<svc>/mcp` `tools/list` returned 200 — because the one appkit schema
+with a top-level `oneOf` (`reflection`'s `outputSchema`, D9) is present on every
+service via the shared chassis. The design blind spot: only agentkit — which
+ignores `outputSchema` — had been modeled as a client, so no strict validator
+ever saw the emitted schemas until they reached Claude Code in production.
 
 ## Error-code vocabulary in live use (suite survey, 2026-07-14)
 

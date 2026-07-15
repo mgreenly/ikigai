@@ -115,7 +115,11 @@ deliberately out of scope for this round.
   consumes directly, and its shape is discoverable up front from the tool
   listing; agents keep the readable rendering they see today. The chassis's
   own `health` and `reflection` conform like any other tool. Documentation
-  tools and raw-content reads stay plain text on purpose.
+  tools and raw-content reads stay plain text on purpose. **The advertised
+  schemas satisfy strict schema-validating MCP clients**, so a service's whole
+  tool list loads in the clients users actually connect — not only lenient
+  ones; the chassis refuses at startup to stand up a tool whose advertised
+  schema a strict client would reject.
 - **A tool error is something a program can branch on.** Every tool error
   carries one code from a single, small, suite-wide vocabulary — the same
   words every service already uses informally — alongside its human message.
@@ -157,6 +161,11 @@ deliberately out of scope for this round.
   before calling.
 - The agent-visible behavior of every converted tool is unchanged: an agent
   reading the tool result today sees the same information after conversion.
+- A strict schema-validating MCP client (e.g. Claude Code) loads a converted
+  service's entire tool list — every advertised tool, standard and domain —
+  rather than rejecting the whole listing over one non-conforming schema, and a
+  service whose tools would be rejected fails to start instead of coming up with
+  a tool list no strict client can fetch.
 - A request that arrives through the front door to a loopback-only surface is
   turned away exactly as before, while an on-box caller asserting its own
   identity gets through — across every service, from one shared enforcement
