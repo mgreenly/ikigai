@@ -50,29 +50,37 @@ type tokenSource struct {
 // token returns a valid installation token, minting/refreshing as needed.
 // force=true discards the cache and re-mints unconditionally.
 func (t *tokenSource) token(ctx context.Context, force bool) (string, error) {
+	token, _, err := t.tokenWithExpiry(ctx, force)
+	return token, err
+}
+
+// tokenWithExpiry returns the installation token and the expiry GitHub
+// supplied for it. It is the single cache and minting path used by both REST
+// requests and callers that need the token for git transport.
+func (t *tokenSource) tokenWithExpiry(ctx context.Context, force bool) (string, time.Time, error) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	now := t.currentTime()
 	if !force && t.cached != "" && now.Add(tokenSlack).Before(t.expiry) {
-		return t.cached, nil
+		return t.cached, t.expiry, nil
 	}
 
 	if t.instID == "" {
 		instID, err := t.resolveInstallationLocked(ctx, now)
 		if err != nil {
-			return "", err
+			return "", time.Time{}, err
 		}
 		t.instID = instID
 	}
 
 	token, expiry, err := t.mintTokenLocked(ctx, now)
 	if err != nil {
-		return "", err
+		return "", time.Time{}, err
 	}
 	t.cached = token
 	t.expiry = expiry
-	return token, nil
+	return token, expiry, nil
 }
 
 func (t *tokenSource) do(ctx context.Context, req *http.Request) (*http.Response, error) {
@@ -186,7 +194,7 @@ func (t *tokenSource) mintTokenLocked(ctx context.Context, now time.Time) (strin
 		return "", time.Time{}, appAuthStatusError(resp)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		return "", time.Time{}, fmt.Errorf("github: mint token failed: %s", resp.Status)
+		return "", time.Time{}, fmt.Errorf("%w: mint token failed: %s", ErrAppAuth, resp.Status)
 	}
 
 	var out struct {

@@ -50,6 +50,7 @@ func Spec() appkit.Spec {
 			rt.Handle("GET /{$}", web.LandingHandler(rt.Service(), rt.Version()))
 			rt.Handle("GET /static/", http.StripPrefix("/static/", web.StaticHandler()))
 			rt.HandleLoopback("GET /pr", client.PRHandler())
+			rt.HandleLoopback("GET /token", client.TokenHandler())
 			handler, err := mcp.NewHandler(client, rt)
 			if err != nil {
 				return err

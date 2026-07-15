@@ -80,6 +80,20 @@ func TestNginxSessionLocationsUseLoginBounce(t *testing.T) {
 	}
 }
 
+func TestNginxDeniesPublicTokenRouteR_GW5W_UJVL(t *testing.T) {
+	// R-GW5W-UJVL
+	conf := readNginxFragment(t)
+
+	for _, want := range []string{
+		"location = /srv/github/pr { return 404; }",
+		"location = /srv/github/token { return 404; }",
+	} {
+		if !strings.Contains(conf, want) {
+			t.Fatalf("nginx fragment missing loopback route denial %q", want)
+		}
+	}
+}
+
 func TestNginxBearerLocationDoesNotUseLoginBounce(t *testing.T) {
 	// R-43PR-VT8H
 	conf := readNginxFragment(t)

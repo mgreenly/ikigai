@@ -170,6 +170,91 @@ func TestTokenCacheHonorsReturnedExpiryAndSlack(t *testing.T) {
 	}
 }
 
+func TestClientTokenSharesHeaderCacheExpiryAndAppAuthFailureR_GSI7_P8NI(t *testing.T) {
+	// R-GSI7-P8NI
+	key := mustRSAKey(t)
+	now := time.Date(2026, 7, 4, 12, 0, 0, 0, time.UTC)
+	firstExpiry := now.Add(5 * time.Minute)
+	secondExpiry := now.Add(30 * time.Minute)
+	var mintCalls int
+	var bearerTokens []string
+	client := stubClient(func(req *http.Request) (*http.Response, error) {
+		switch req.URL.Path {
+		case "/orgs/acme/installation":
+			return jsonResponse(http.StatusOK, `{"id":42}`), nil
+		case "/app/installations/42/access_tokens":
+			mintCalls++
+			if mintCalls == 1 {
+				return jsonResponse(http.StatusCreated, `{"token":"first-token","expires_at":"2026-07-04T12:05:00Z"}`), nil
+			}
+			return jsonResponse(http.StatusCreated, `{"token":"second-token","expires_at":"2026-07-04T12:30:00Z"}`), nil
+		case "/repos/acme/widgets":
+			bearerTokens = append(bearerTokens, req.Header.Get("Authorization"))
+			return jsonResponse(http.StatusOK, `{}`), nil
+		default:
+			t.Fatalf("unexpected path %s", req.URL.Path)
+			return nil, nil
+		}
+	})
+	withAPIBase(t, "https://stub.github.test")
+	c := &Client{org: "acme", http: client, ts: &tokenSource{
+		appID: "12345", org: "acme", signer: key, httpClient: client,
+		now: func() time.Time { return now },
+	}}
+
+	token, expiresAt, err := c.Token(context.Background())
+	if err != nil {
+		t.Fatalf("Token() error = %v", err)
+	}
+	if token != "first-token" || !expiresAt.Equal(firstExpiry) {
+		t.Fatalf("Token() = %q, %v; want first token expiring %v", token, expiresAt, firstExpiry)
+	}
+
+	now = firstExpiry.Add(-tokenSlack - time.Second)
+	req, err := http.NewRequest(http.MethodGet, apiBase+"/repos/acme/widgets", nil)
+	if err != nil {
+		t.Fatalf("NewRequest: %v", err)
+	}
+	resp, err := c.ts.do(context.Background(), req)
+	if err != nil {
+		t.Fatalf("header path error = %v", err)
+	}
+	closeBody(resp)
+	if len(bearerTokens) != 1 || bearerTokens[0] != "Bearer first-token" || mintCalls != 1 {
+		t.Fatalf("header tokens = %v, mint calls = %d; want shared cached first token", bearerTokens, mintCalls)
+	}
+
+	now = firstExpiry.Add(-tokenSlack)
+	token, expiresAt, err = c.Token(context.Background())
+	if err != nil {
+		t.Fatalf("refresh Token() error = %v", err)
+	}
+	if token != "second-token" || !expiresAt.Equal(secondExpiry) || mintCalls != 2 {
+		t.Fatalf("refreshed Token() = %q, %v with %d mints; want second token, %v, 2 mints", token, expiresAt, mintCalls, secondExpiry)
+	}
+
+	t.Run("mint failure", func(t *testing.T) {
+		failingHTTP := stubClient(func(req *http.Request) (*http.Response, error) {
+			switch req.URL.Path {
+			case "/orgs/acme/installation":
+				return jsonResponse(http.StatusOK, `{"id":42}`), nil
+			case "/app/installations/42/access_tokens":
+				return jsonResponse(http.StatusInternalServerError, `{"message":"mint unavailable"}`), nil
+			default:
+				t.Fatalf("unexpected path %s", req.URL.Path)
+				return nil, nil
+			}
+		})
+		failing := &Client{ts: &tokenSource{
+			appID: "12345", org: "acme", signer: key, httpClient: failingHTTP,
+			now: func() time.Time { return now },
+		}}
+		if _, _, err := failing.Token(context.Background()); !errors.Is(err, ErrAppAuth) {
+			t.Fatalf("Token() error = %v, want ErrAppAuth", err)
+		}
+	})
+}
+
 func TestRESTUnauthorizedForcesOneRefreshAndRetry(t *testing.T) {
 	// R-DQII-VQCD
 	t.Run("retry wins", func(t *testing.T) {
