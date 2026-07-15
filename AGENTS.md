@@ -114,13 +114,16 @@ suite isn't up (run `bin/start`).
 > separate, explicit request.
 
 > ⚠️ **TEMPORARY (migration window only — REMOVE this note once migration is
-> done): there is NO live/production customer data yet.** Until migration
-> completes, every service's `state/` is disposable — no real customers, no data
-> to protect. Do **not** reason about deploy, `convert`, migrations, or `opsctl`
-> as if they must guard against data loss; do **not** justify anything by
-> "protecting customer data." State can be wiped and rebuilt at will.
-> **This flips the moment migration finishes** — after that there WILL be real
-> customer data and this whole note must be deleted.
+> done): ONLY `ledger` holds live/production customer data.** The ledger's
+> `state/` is real and must be protected — treat every deploy, `convert`,
+> migration, or `opsctl` action against ledger as if data loss is
+> unacceptable, because it is. Every **other** service's `state/` is still
+> disposable until migration completes — no real customers, no data to
+> protect; do **not** justify caution on those services by "protecting
+> customer data"; their state can be wiped and rebuilt at will.
+> **This flips service by service as migration proceeds** — once migration
+> finishes, ALL services hold real customer data and this whole note must be
+> deleted.
 
 The full deploy runbook — the `bump → ship → stage → deploy` sequence, rollback,
 and inspection commands — lives in **`deploy.md`** at the repo root.
