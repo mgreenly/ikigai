@@ -17,6 +17,7 @@ const timeFormat = time.RFC3339Nano
 type Webhook struct {
 	Name            string
 	OwnerEmail      string
+	Verification    string
 	CreatedAt       time.Time
 	LastTriggeredAt *time.Time
 }
@@ -29,43 +30,51 @@ type Store struct{ db *sql.DB }
 // NewStore wraps an open *sql.DB (already migrated) in a Store.
 func NewStore(db *sql.DB) *Store { return &Store{db: db} }
 
-// Insert writes a new webhook row plus its secret hash. A second Insert with the
+// Insert writes a webhook, its secret fingerprint, and optional retained HMAC key. A second Insert with the
 // same name fails on the real PRIMARY KEY constraint and returns a non-nil error
 // (the existing row is left untouched) — there is no read-modify pre-check.
-func (s *Store) Insert(ctx context.Context, w Webhook, secretHash string) error {
+func (s *Store) Insert(ctx context.Context, w Webhook, secretHash string, retainedSecret ...string) error {
 	var lastTriggered any
 	if w.LastTriggeredAt != nil {
 		lastTriggered = w.LastTriggeredAt.UTC().Format(timeFormat)
 	}
+	verification := w.Verification
+	if verification == "" {
+		verification = "bearer"
+	}
+	var secret any
+	if len(retainedSecret) > 0 {
+		secret = retainedSecret[0]
+	}
 	_, err := s.db.ExecContext(ctx,
-		`INSERT INTO webhooks (name, owner_email, secret_hash, created_at, last_triggered_at)
-		 VALUES (?, ?, ?, ?, ?)`,
-		w.Name, w.OwnerEmail, secretHash, w.CreatedAt.UTC().Format(timeFormat), lastTriggered)
+		`INSERT INTO webhooks (name, owner_email, secret_hash, created_at, last_triggered_at, verification, secret)
+		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		w.Name, w.OwnerEmail, secretHash, w.CreatedAt.UTC().Format(timeFormat), lastTriggered, verification, secret)
 	return err
 }
 
 // GetByName resolves a webhook by its name. ok is false (with nil error) when no
-// such row exists. The secret hash is returned separately from the Webhook so the
-// value object never carries secret material.
-func (s *Store) GetByName(ctx context.Context, name string) (w Webhook, secretHash string, ok bool, err error) {
+// such row exists. Secret material is returned separately from the Webhook so
+// the value object remains safe to list or log.
+func (s *Store) GetByName(ctx context.Context, name string) (w Webhook, secretHash, secret string, ok bool, err error) {
 	row := s.db.QueryRowContext(ctx,
-		`SELECT name, owner_email, secret_hash, created_at, last_triggered_at
+		`SELECT name, owner_email, secret_hash, created_at, last_triggered_at, verification, secret
 		 FROM webhooks WHERE name = ?`, name)
-	w, secretHash, err = scanWebhook(row)
+	w, secretHash, secret, err = scanWebhook(row)
 	if err == sql.ErrNoRows {
-		return Webhook{}, "", false, nil
+		return Webhook{}, "", "", false, nil
 	}
 	if err != nil {
-		return Webhook{}, "", false, err
+		return Webhook{}, "", "", false, err
 	}
-	return w, secretHash, true, nil
+	return w, secretHash, secret, true, nil
 }
 
 // ListByOwner returns exactly the webhooks owned by owner, ordered by name. It is
 // owner-scoped: another owner's rows are never returned.
 func (s *Store) ListByOwner(ctx context.Context, owner string) ([]Webhook, error) {
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT name, owner_email, secret_hash, created_at, last_triggered_at
+		`SELECT name, owner_email, secret_hash, created_at, last_triggered_at, verification, secret
 		 FROM webhooks WHERE owner_email = ? ORDER BY name`, owner)
 	if err != nil {
 		return nil, err
@@ -74,7 +83,7 @@ func (s *Store) ListByOwner(ctx context.Context, owner string) ([]Webhook, error
 
 	var out []Webhook
 	for rows.Next() {
-		w, _, scanErr := scanWebhook(rows)
+		w, _, _, scanErr := scanWebhook(rows)
 		if scanErr != nil {
 			return nil, scanErr
 		}
@@ -99,12 +108,16 @@ func (s *Store) Delete(ctx context.Context, owner, name string) (deleted bool, e
 	return n > 0, nil
 }
 
-// UpdateSecret rotates the stored secret hash, owner-scoped. updated reports
-// whether a row matched (D3).
-func (s *Store) UpdateSecret(ctx context.Context, owner, name, secretHash string) (updated bool, err error) {
+// UpdateSecret rotates the fingerprint and, for github-hmac, retained key.
+// The update is owner-scoped; updated reports whether a row matched.
+func (s *Store) UpdateSecret(ctx context.Context, owner, name, secretHash string, plaintext ...string) (updated bool, err error) {
+	var secret any
+	if len(plaintext) > 0 {
+		secret = plaintext[0]
+	}
 	res, err := s.db.ExecContext(ctx,
-		`UPDATE webhooks SET secret_hash = ? WHERE owner_email = ? AND name = ?`,
-		secretHash, owner, name)
+		`UPDATE webhooks SET secret_hash = ?, secret = CASE WHEN verification = 'github-hmac' THEN ? ELSE NULL END WHERE owner_email = ? AND name = ?`,
+		secretHash, secret, owner, name)
 	if err != nil {
 		return false, err
 	}
@@ -131,27 +144,28 @@ type rowScanner interface {
 
 // scanWebhook decodes one webhooks row, parsing the TEXT timestamps back into
 // time.Time and leaving LastTriggeredAt nil when the column is NULL.
-func scanWebhook(sc rowScanner) (Webhook, string, error) {
+func scanWebhook(sc rowScanner) (Webhook, string, string, error) {
 	var (
 		w             Webhook
 		secretHash    string
 		createdAt     string
 		lastTriggered sql.NullString
+		secret        sql.NullString
 	)
-	if err := sc.Scan(&w.Name, &w.OwnerEmail, &secretHash, &createdAt, &lastTriggered); err != nil {
-		return Webhook{}, "", err
+	if err := sc.Scan(&w.Name, &w.OwnerEmail, &secretHash, &createdAt, &lastTriggered, &w.Verification, &secret); err != nil {
+		return Webhook{}, "", "", err
 	}
 	t, err := time.Parse(timeFormat, createdAt)
 	if err != nil {
-		return Webhook{}, "", err
+		return Webhook{}, "", "", err
 	}
 	w.CreatedAt = t
 	if lastTriggered.Valid {
 		lt, err := time.Parse(timeFormat, lastTriggered.String)
 		if err != nil {
-			return Webhook{}, "", err
+			return Webhook{}, "", "", err
 		}
 		w.LastTriggeredAt = &lt
 	}
-	return w, secretHash, nil
+	return w, secretHash, secret.String, nil
 }

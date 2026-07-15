@@ -36,7 +36,8 @@ func Tools(svc *webhooks.Service, baseURL string) []appkitmcp.Tool {
 			Name:        tool("create"),
 			Description: "Provision a new inbound webhook owned by you. Omit 'name' for a freshly-generated opaque name, or pass a name matching ^[A-Za-z0-9_-]{1,64}$. Returns the webhook's trigger_url and a show-once signing secret (prefix ms_wh_) — the secret is shown ONLY here, never again, so capture it now.",
 			InputSchema: obj(map[string]any{
-				"name": descTyp("string", "optional; ^[A-Za-z0-9_-]{1,64}$. Omit for a generated name."),
+				"name":         descTyp("string", "optional; ^[A-Za-z0-9_-]{1,64}$. Omit for a generated name."),
+				"verification": descTyp("string", "optional; bearer (default) or github-hmac."),
 			}),
 			OutputSchema: createOutputSchema,
 			Handler: func(ctx context.Context, args json.RawMessage, id server.Identity) (map[string]any, error) {
@@ -97,18 +98,20 @@ func outObj(props map[string]any, required ...string) map[string]any {
 
 var webhookOutputSchema = outObj(map[string]any{
 	"name":              typ("string"),
+	"verification":      typ("string"),
 	"trigger_url":       typ("string"),
 	"created_at":        typ("string"),
 	"last_triggered_at": map[string]any{"type": []string{"string", "null"}},
-}, "name", "trigger_url", "created_at", "last_triggered_at")
+}, "name", "verification", "trigger_url", "created_at", "last_triggered_at")
 
 var createOutputSchema = outObj(map[string]any{
 	"name":              typ("string"),
+	"verification":      typ("string"),
 	"trigger_url":       typ("string"),
 	"created_at":        typ("string"),
 	"last_triggered_at": map[string]any{"type": []string{"string", "null"}},
 	"secret":            typ("string"),
-}, "name", "trigger_url", "created_at", "last_triggered_at", "secret")
+}, "name", "verification", "trigger_url", "created_at", "last_triggered_at", "secret")
 
 var listOutputSchema = outObj(map[string]any{
 	"items": map[string]any{"type": "array", "items": webhookOutputSchema},
@@ -135,6 +138,7 @@ func (h *toolHandlers) triggerURL(name string) string { return h.baseURL + "in/"
 func (h *toolHandlers) webhookView(wh db.Webhook) map[string]any {
 	v := map[string]any{
 		"name":              wh.Name,
+		"verification":      wh.Verification,
 		"trigger_url":       h.triggerURL(wh.Name),
 		"created_at":        wh.CreatedAt.UTC().Format(time.RFC3339Nano),
 		"last_triggered_at": nil,
@@ -147,14 +151,15 @@ func (h *toolHandlers) webhookView(wh db.Webhook) map[string]any {
 
 func (h *toolHandlers) toolCreate(ctx context.Context, raw json.RawMessage, id server.Identity) (map[string]any, error) {
 	var a struct {
-		Name string `json:"name,omitempty"`
+		Name         string `json:"name,omitempty"`
+		Verification string `json:"verification,omitempty"`
 	}
 	if len(raw) > 0 {
 		if err := json.Unmarshal(raw, &a); err != nil {
 			return nil, err
 		}
 	}
-	wh, secret, err := h.svc.Create(ctx, id.OwnerEmail, a.Name)
+	wh, secret, err := h.svc.Create(ctx, id.OwnerEmail, a.Name, a.Verification)
 	if err != nil {
 		return toolErr(err), nil
 	}
@@ -215,7 +220,7 @@ func toolErr(err error) map[string]any {
 	switch {
 	case errors.Is(err, webhooks.ErrNameTaken):
 		return appkitmcp.ErrorResult(appkitmcp.ErrConflict, err.Error())
-	case errors.Is(err, webhooks.ErrInvalidName):
+	case errors.Is(err, webhooks.ErrInvalidName), errors.Is(err, webhooks.ErrInvalidVerification):
 		return appkitmcp.ErrorResult(appkitmcp.ErrValidation, err.Error())
 	case errors.Is(err, webhooks.ErrNotFound):
 		return appkitmcp.ErrorResult(appkitmcp.ErrNotFound, err.Error())

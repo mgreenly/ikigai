@@ -167,7 +167,7 @@ func TestRecord_TouchEqualsReceivedAtInOneTx(t *testing.T) {
 
 	_, _, p := decodeOnlyOutboxRow(t, svc.db) // also asserts exactly one row
 
-	got, _, ok, err := db.NewStore(svc.db).GetByName(context.Background(), "atomic")
+	got, _, _, ok, err := db.NewStore(svc.db).GetByName(context.Background(), "atomic")
 	if err != nil || !ok {
 		t.Fatalf("GetByName: ok=%v err=%v", ok, err)
 	}
@@ -247,7 +247,7 @@ func TestRecord_RoutesEachHookAndTouchesAtomically(t *testing.T) {
 		if payload["name"] != row.subject[1:] || payload["owner"] != owner {
 			t.Errorf("payload for %s = %v, want name %q and owner %q", row.subject, payload, row.subject[1:], owner)
 		}
-		wh, _, ok, err := db.NewStore(svc.db).GetByName(context.Background(), row.subject[1:])
+		wh, _, _, ok, err := db.NewStore(svc.db).GetByName(context.Background(), row.subject[1:])
 		if err != nil || !ok || wh.LastTriggeredAt == nil {
 			t.Fatalf("GetByName(%s): webhook=%+v ok=%v err=%v", row.subject[1:], wh, ok, err)
 		}

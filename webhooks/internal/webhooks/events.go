@@ -21,11 +21,17 @@ const kindReceived = "received"
 // never caller input, and body is base64.StdEncoding of the raw request bytes so
 // a non-UTF8/binary body round-trips byte-for-byte through JSON.
 type webhookReceivedPayload struct {
-	Name        string `json:"name"`
-	Owner       string `json:"owner"`
-	ReceivedAt  string `json:"received_at"` // RFC3339Nano UTC from the injected clock
-	ContentType string `json:"content_type"`
-	Body        string `json:"body"` // base64.StdEncoding of the raw request bytes
+	Name        string         `json:"name"`
+	Owner       string         `json:"owner"`
+	ReceivedAt  string         `json:"received_at"` // RFC3339Nano UTC from the injected clock
+	ContentType string         `json:"content_type"`
+	Body        string         `json:"body"` // base64.StdEncoding of the raw request bytes
+	Headers     *githubHeaders `json:"headers,omitempty"`
+}
+
+type githubHeaders struct {
+	Event    string `json:"x-github-event,omitempty"`
+	Delivery string `json:"x-github-delivery,omitempty"`
 }
 
 // Events is the registry of every event family this service may emit. Append
@@ -52,8 +58,15 @@ var Events = outbox.Registry{
 // and the touch both use one fixed instant from the injected clock, so they are
 // equal. owner is the stored wh.OwnerEmail, never caller input. Record returns
 // nil only once the row is committed; the doorbell rings best-effort afterward.
-func (s *Service) Record(ctx context.Context, wh db.Webhook, contentType string, body []byte) error {
+func (s *Service) Record(ctx context.Context, wh db.Webhook, contentType string, body []byte, headers ...map[string]string) error {
 	now := s.clock.Now().UTC()
+	var allowed *githubHeaders
+	if len(headers) > 0 && headers[0] != nil {
+		allowed = &githubHeaders{
+			Event:    headers[0]["x-github-event"],
+			Delivery: headers[0]["x-github-delivery"],
+		}
+	}
 
 	raw, err := json.Marshal(webhookReceivedPayload{
 		Name:        wh.Name,
@@ -61,6 +74,7 @@ func (s *Service) Record(ctx context.Context, wh db.Webhook, contentType string,
 		ReceivedAt:  now.Format(time.RFC3339Nano),
 		ContentType: contentType,
 		Body:        base64.StdEncoding.EncodeToString(body),
+		Headers:     allowed,
 	})
 	if err != nil {
 		return fmt.Errorf("webhooks: marshal payload: %w", err)

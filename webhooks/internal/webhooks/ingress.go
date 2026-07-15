@@ -1,6 +1,10 @@
 package webhooks
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"crypto/subtle"
+	"encoding/hex"
 	"errors"
 	"io"
 	"log/slog"
@@ -20,8 +24,9 @@ const notFoundBody = "not found\n"
 
 // NewIngressHandler builds the public ingress endpoint for POST /in/<name>. It is
 // the only surface a third party reaches directly (no front-door auth chain), so
-// it trusts nothing: it never echoes caller identity, returns a byte-identical 404
-// for every authentication failure, and authenticates before reading the body.
+// it trusts nothing: it never echoes caller identity and returns a byte-identical
+// 404 for every authentication failure. Bearer authenticates before reading;
+// github-hmac reads under the cap first because its signature covers the body.
 func NewIngressHandler(svc *Service, log *slog.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
@@ -47,27 +52,34 @@ func NewIngressHandler(svc *Service, log *slog.Logger) http.Handler {
 			return
 		}
 
-		// 4. Authenticate BEFORE reading the body. Any failure — missing/empty/
-		//    malformed header, unknown name, wrong secret — yields the identical 404.
-		presented, ok := bearerToken(r.Header.Get("Authorization"))
-		if !ok {
-			notFound(w)
-			return
-		}
-		wh, secretHash, found, err := svc.store.GetByName(ctx, name)
+		// 4. Resolve the hook, then dispatch authentication by its stored scheme.
+		wh, secretHash, secret, found, err := svc.store.GetByName(ctx, name)
 		if err != nil {
 			log.ErrorContext(ctx, "ingress: GetByName failed", "error", err)
 			notFound(w)
 			return
 		}
-		if !found || !verifySecret(presented, secretHash) {
+		if !found {
 			notFound(w)
 			return
 		}
 
-		// 5. Read the body under a hard cap; over the cap → 413.
+		// GitHub HMAC covers the raw body, so that scheme reads under the cap first.
+		// Bearer authentication remains before any body read.
+		var body []byte
+		if wh.Verification == "bearer" {
+			presented, ok := bearerToken(r.Header.Get("Authorization"))
+			if !ok || !verifySecret(presented, secretHash) {
+				notFound(w)
+				return
+			}
+		} else if wh.Verification != "github-hmac" {
+			notFound(w)
+			return
+		}
+
 		r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
-		body, err := io.ReadAll(r.Body)
+		body, err = io.ReadAll(r.Body)
 		if err != nil {
 			var mbe *http.MaxBytesError
 			if errors.As(err, &mbe) {
@@ -78,9 +90,21 @@ func NewIngressHandler(svc *Service, log *slog.Logger) http.Handler {
 			http.Error(w, "bad request\n", http.StatusBadRequest)
 			return
 		}
+		if wh.Verification == "github-hmac" && !verifyGitHubHMAC(r.Header.Get("X-Hub-Signature-256"), body, secret) {
+			notFound(w)
+			return
+		}
 
-		// 6. Durably record the event (owner is the STORED owner, never caller input).
-		if err := svc.Record(ctx, wh, r.Header.Get("Content-Type"), body); err != nil {
+		var headers map[string]string
+		if wh.Verification == "github-hmac" {
+			headers = make(map[string]string)
+			for _, key := range []string{"x-github-event", "x-github-delivery"} {
+				if value := r.Header.Get(key); value != "" {
+					headers[key] = value
+				}
+			}
+		}
+		if err := svc.Record(ctx, wh, r.Header.Get("Content-Type"), body, headers); err != nil {
 			log.ErrorContext(ctx, "ingress: Record failed", "error", err)
 			http.Error(w, "internal error\n", http.StatusInternalServerError)
 			return
@@ -92,10 +116,27 @@ func NewIngressHandler(svc *Service, log *slog.Logger) http.Handler {
 	})
 }
 
+func verifyGitHubHMAC(header string, body []byte, secret string) bool {
+	const prefix = "sha256="
+	if !strings.HasPrefix(header, prefix) {
+		return false
+	}
+	presented, err := hex.DecodeString(strings.TrimPrefix(header, prefix))
+	if err != nil || len(presented) != sha256.Size {
+		return false
+	}
+	mac := hmac.New(sha256.New, []byte(secret))
+	_, _ = mac.Write(body)
+	return subtle.ConstantTimeCompare(presented, mac.Sum(nil)) == 1
+}
+
 // notFound writes the single byte-identical 404 shared by every authentication
 // failure so the public ingress leaks nothing about which check rejected the call.
 func notFound(w http.ResponseWriter) {
-	http.Error(w, notFoundBody, http.StatusNotFound)
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.WriteHeader(http.StatusNotFound)
+	_, _ = io.WriteString(w, notFoundBody)
 }
 
 // bearerToken extracts the secret from an "Authorization: Bearer <secret>" header.

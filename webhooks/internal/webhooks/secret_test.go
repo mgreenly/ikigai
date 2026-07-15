@@ -137,7 +137,7 @@ func TestRotateReplacesSecretKeepsIdentity(t *testing.T) {
 	}
 
 	// Identity columns unchanged.
-	got, _, ok, err := svc.store.GetByName(ctx, "rotate-me")
+	got, _, _, ok, err := svc.store.GetByName(ctx, "rotate-me")
 	if err != nil || !ok {
 		t.Fatalf("GetByName after rotate: ok=%v err=%v", ok, err)
 	}
@@ -189,7 +189,7 @@ func TestWebhookValueCarriesNoSecret(t *testing.T) {
 		t.Fatalf("serialized webhook leaks secret material: %s", blob)
 	}
 
-	got, secretHash, ok, err := svc.store.GetByName(ctx, "hidden")
+	got, secretHash, _, ok, err := svc.store.GetByName(ctx, "hidden")
 	if err != nil || !ok {
 		t.Fatalf("GetByName: ok=%v err=%v", ok, err)
 	}
@@ -222,7 +222,7 @@ func TestCreateValidatesUserName(t *testing.T) {
 		if !errors.Is(err, ErrInvalidName) {
 			t.Fatalf("Create(%q): err = %v, want ErrInvalidName", name, err)
 		}
-		if _, _, ok, err := svc.store.GetByName(ctx, name); err != nil || ok {
+		if _, _, _, ok, err := svc.store.GetByName(ctx, name); err != nil || ok {
 			t.Fatalf("invalid name %q wrote a row (ok=%v err=%v)", name, ok, err)
 		}
 	}
@@ -234,7 +234,7 @@ func TestCreateValidatesUserName(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Create valid name: %v", err)
 	}
-	if _, _, ok, err := svc.store.GetByName(ctx, w.Name); err != nil || !ok {
+	if _, _, _, ok, err := svc.store.GetByName(ctx, w.Name); err != nil || !ok {
 		t.Fatalf("valid name not persisted: ok=%v err=%v", ok, err)
 	}
 }

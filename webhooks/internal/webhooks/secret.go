@@ -13,8 +13,8 @@ import (
 )
 
 // secretPrefix marks a webhook signing secret so it is recognizable in logs and
-// configuration. The plaintext is shown exactly once (at Create/Rotate); only
-// its sha256 hash is ever persisted.
+// configuration. The plaintext is shown exactly once (at Create/Rotate); bearer
+// stores only its hash, while github-hmac retains the key required to verify HMACs.
 const secretPrefix = "ms_wh_"
 
 // nameRE constrains user-supplied webhook names. Generated names (from ids.New)
@@ -23,9 +23,10 @@ var nameRE = regexp.MustCompile(`^[A-Za-z0-9_-]{1,64}$`)
 
 // Sentinel errors callers can match with errors.Is.
 var (
-	ErrNameTaken   = errors.New("webhook name already in use")
-	ErrInvalidName = errors.New("invalid webhook name")
-	ErrNotFound    = errors.New("webhook not found")
+	ErrNameTaken           = errors.New("webhook name already in use")
+	ErrInvalidName         = errors.New("invalid webhook name")
+	ErrNotFound            = errors.New("webhook not found")
+	ErrInvalidVerification = errors.New("invalid verification scheme")
 )
 
 // newName mints a fresh opaque webhook name (26 chars over [A-Z2-7]).
@@ -59,10 +60,17 @@ func validateName(name string) error {
 // Create provisions a new webhook owned by owner. An empty name is replaced by a
 // freshly-generated opaque name; a non-empty name must match
 // ^[A-Za-z0-9_-]{1,64}$ or Create returns ErrInvalidName with no row written.
-// Only hashSecret(secret) is persisted; the plaintext secret is returned for the
-// caller to show once. A duplicate name maps the PRIMARY KEY violation to
-// ErrNameTaken.
-func (s *Service) Create(ctx context.Context, owner, name string) (w db.Webhook, secret string, err error) {
+// Bearer persists only hashSecret(secret); github-hmac additionally retains the
+// key needed for verification. The plaintext is returned for the caller to show
+// once. A duplicate name maps the PRIMARY KEY violation to ErrNameTaken.
+func (s *Service) Create(ctx context.Context, owner, name string, requested ...string) (w db.Webhook, secret string, err error) {
+	verification := "bearer"
+	if len(requested) > 0 && requested[0] != "" {
+		verification = requested[0]
+	}
+	if verification != "bearer" && verification != "github-hmac" {
+		return db.Webhook{}, "", ErrInvalidVerification
+	}
 	if name == "" {
 		name = newName()
 	} else if err := validateName(name); err != nil {
@@ -71,15 +79,22 @@ func (s *Service) Create(ctx context.Context, owner, name string) (w db.Webhook,
 
 	secret = newSecret()
 	w = db.Webhook{
-		Name:       name,
-		OwnerEmail: owner,
-		CreatedAt:  s.clock.Now(),
+		Name:         name,
+		OwnerEmail:   owner,
+		Verification: verification,
+		CreatedAt:    s.clock.Now(),
 	}
-	if err := s.store.Insert(ctx, w, hashSecret(secret)); err != nil {
+	var insertErr error
+	if verification == "github-hmac" {
+		insertErr = s.store.Insert(ctx, w, hashSecret(secret), secret)
+	} else {
+		insertErr = s.store.Insert(ctx, w, hashSecret(secret))
+	}
+	if insertErr != nil {
 		if isDuplicate(ctx, s, name) {
 			return db.Webhook{}, "", ErrNameTaken
 		}
-		return db.Webhook{}, "", err
+		return db.Webhook{}, "", insertErr
 	}
 	return w, secret, nil
 }
@@ -89,7 +104,7 @@ func (s *Service) Create(ctx context.Context, owner, name string) (w db.Webhook,
 // webhook (Store.UpdateSecret reporting updated==false) maps to ErrNotFound.
 func (s *Service) Rotate(ctx context.Context, owner, name string) (secret string, err error) {
 	secret = newSecret()
-	updated, err := s.store.UpdateSecret(ctx, owner, name, hashSecret(secret))
+	updated, err := s.store.UpdateSecret(ctx, owner, name, hashSecret(secret), secret)
 	if err != nil {
 		return "", err
 	}
@@ -102,6 +117,6 @@ func (s *Service) Rotate(ctx context.Context, owner, name string) (secret string
 // isDuplicate distinguishes a PRIMARY KEY collision from other Insert failures:
 // a row already exists under this name.
 func isDuplicate(ctx context.Context, s *Service, name string) bool {
-	_, _, ok, err := s.store.GetByName(ctx, name)
+	_, _, _, ok, err := s.store.GetByName(ctx, name)
 	return err == nil && ok
 }

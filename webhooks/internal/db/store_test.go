@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"path/filepath"
+	"reflect"
 	"testing"
 	"time"
 
@@ -26,6 +27,61 @@ func newTestStore(t *testing.T) *Store {
 		t.Fatalf("migrate: %v", err)
 	}
 	return NewStore(conn)
+}
+
+// R-G7RX-751P — the full real migration set adds the scheme/default and nullable
+// retained secret, and Store round-trips both schemes without putting secrets on Webhook.
+func TestVerificationSchemaAndStoreRoundTrip(t *testing.T) {
+	s := newTestStore(t)
+	ctx := context.Background()
+	columns := map[string]struct {
+		notNull int
+		def     any
+	}{}
+	rows, err := s.db.Query(`PRAGMA table_info(webhooks)`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var cid, notNull, pk int
+		var name, typ string
+		var def any
+		if err := rows.Scan(&cid, &name, &typ, &notNull, &def, &pk); err != nil {
+			t.Fatal(err)
+		}
+		columns[name] = struct {
+			notNull int
+			def     any
+		}{notNull, def}
+	}
+	if got := columns["verification"]; got.notNull != 1 || got.def != "'bearer'" {
+		t.Fatalf("verification schema = %+v, want NOT NULL DEFAULT 'bearer'", got)
+	}
+	if got := columns["secret"]; got.notNull != 0 {
+		t.Fatalf("secret schema = %+v, want nullable", got)
+	}
+
+	at := fixedTime(t)
+	hmacHook := Webhook{Name: "github", OwnerEmail: "a@example.com", Verification: "github-hmac", CreatedAt: at}
+	if err := s.Insert(ctx, hmacHook, "fingerprint", "retained-key"); err != nil {
+		t.Fatal(err)
+	}
+	got, hash, secret, ok, err := s.GetByName(ctx, "github")
+	if err != nil || !ok || got.Verification != "github-hmac" || hash != "fingerprint" || secret != "retained-key" {
+		t.Fatalf("github round trip = (%+v,%q,%q,%v,%v)", got, hash, secret, ok, err)
+	}
+	if err := s.Insert(ctx, Webhook{Name: "bearer", OwnerEmail: "a@example.com", CreatedAt: at}, "bearer-hash"); err != nil {
+		t.Fatal(err)
+	}
+	got, _, secret, ok, err = s.GetByName(ctx, "bearer")
+	if err != nil || !ok || got.Verification != "bearer" || secret != "" {
+		t.Fatalf("bearer round trip = (%+v,%q,%v,%v)", got, secret, ok, err)
+	}
+	typ := reflect.TypeFor[Webhook]()
+	if _, found := typ.FieldByName("Secret"); found {
+		t.Fatal("Webhook must not carry secret material")
+	}
 }
 
 // fixedTime is a deterministic RFC3339Nano UTC stamp; this phase has no Clock, so
@@ -54,7 +110,7 @@ func TestInsertDuplicateNameRejectedByConstraint(t *testing.T) {
 		t.Fatal("second insert with duplicate name: want non-nil error, got nil")
 	}
 
-	got, secretHash, ok, err := s.GetByName(ctx, "deploy")
+	got, secretHash, _, ok, err := s.GetByName(ctx, "deploy")
 	if err != nil || !ok {
 		t.Fatalf("GetByName after dup: ok=%v err=%v", ok, err)
 	}
@@ -119,7 +175,7 @@ func TestDeleteIsOwnerScoped(t *testing.T) {
 	if deleted {
 		t.Error("Delete(alice, deploy) reported deleted=true for bob's row")
 	}
-	if _, _, ok, err := s.GetByName(ctx, "deploy"); err != nil || !ok {
+	if _, _, _, ok, err := s.GetByName(ctx, "deploy"); err != nil || !ok {
 		t.Fatalf("bob's row should survive A's delete: ok=%v err=%v", ok, err)
 	}
 
@@ -130,7 +186,7 @@ func TestDeleteIsOwnerScoped(t *testing.T) {
 	if !deleted {
 		t.Error("Delete(bob, deploy) reported deleted=false for his own row")
 	}
-	if _, _, ok, err := s.GetByName(ctx, "deploy"); err != nil || ok {
+	if _, _, _, ok, err := s.GetByName(ctx, "deploy"); err != nil || ok {
 		t.Fatalf("row should be gone after B's delete: ok=%v err=%v", ok, err)
 	}
 }

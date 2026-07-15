@@ -487,6 +487,36 @@ func TestCreateDuplicateAndInvalid(t *testing.T) {
 	}
 }
 
+// R-G8ZT-KWSE — create defaults to bearer, accepts github-hmac with a show-once
+// secret and secret-free list projection, and rejects unknown schemes without a row.
+func TestCreateVerificationSchemesAndValidation(t *testing.T) {
+	h, _ := newTestHandler(t)
+	github := callOK(t, h, ownerA, "create", map[string]any{"name": "github", "verification": "github-hmac"})
+	if github["verification"] != "github-hmac" || !strings.HasPrefix(str(t, github, "secret"), "ms_wh_") {
+		t.Fatalf("github create = %v", github)
+	}
+	defaulted := callOK(t, h, ownerA, "create", map[string]any{"name": "defaulted"})
+	if defaulted["verification"] != "bearer" {
+		t.Fatalf("default verification = %v, want bearer", defaulted["verification"])
+	}
+	err := callErr(t, h, ownerA, "create", map[string]any{"name": "invalid", "verification": "basic"})
+	if err["code"] != "validation" {
+		t.Fatalf("unknown scheme code = %v, want validation", err["code"])
+	}
+	items := listNames(t, h, ownerA)
+	if len(items) != 2 || items["github"]["verification"] != "github-hmac" || items["defaulted"]["verification"] != "bearer" {
+		t.Fatalf("list schemes = %v", items)
+	}
+	for name, item := range items {
+		if _, leaked := item["secret"]; leaked {
+			t.Fatalf("%s list item leaked secret: %v", name, item)
+		}
+	}
+	if _, exists := items["invalid"]; exists {
+		t.Fatal("invalid verification wrote a row")
+	}
+}
+
 // R-DRUS-R3AP — every webhooks-owned domain tool advertises a non-nil output
 // schema through the assembled handler's tools/list response.
 func TestDomainToolsDeclareOutputSchemas(t *testing.T) {
