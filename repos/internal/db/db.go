@@ -15,6 +15,9 @@ import (
 //go:embed migrations/*.sql
 var migrationsFS embed.FS
 
+// FS is the complete migration filesystem handed to the appkit chassis.
+var FS = migrationsFS
+
 // Migrations loads the ordered embedded migration set and guards the copied
 // eventplane outbox DDL against drift.
 func Migrations() ([]appdb.Migration, error) {
