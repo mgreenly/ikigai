@@ -115,6 +115,76 @@ func TestGitLifecyclePushesCommitAndRemovesWorktree(t *testing.T) {
 	}
 }
 
+func TestResolveStateRootKeepsGitWorktreesIndependentOfProcessWorkingDirectory(t *testing.T) {
+	// R-C9CO-ODYU
+	originalWorkingDirectory, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("get working directory: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := os.Chdir(originalWorkingDirectory); err != nil {
+			t.Errorf("restore working directory: %v", err)
+		}
+	})
+
+	workingDirectory := t.TempDir()
+	if err := os.Chdir(workingDirectory); err != nil {
+		t.Fatalf("change to fixture working directory: %v", err)
+	}
+	stateRoot, err := ResolveStateRoot(func(key string) string {
+		if key != "REPOS_STATE_DIR" {
+			t.Fatalf("getenv key = %q, want REPOS_STATE_DIR", key)
+		}
+		return ""
+	})
+	if err != nil {
+		t.Fatalf("resolve state root: %v", err)
+	}
+	wantStateRoot := filepath.Join(workingDirectory, "state")
+	if !filepath.IsAbs(stateRoot) {
+		t.Fatalf("state root %q is not absolute", stateRoot)
+	}
+	if stateRoot != wantStateRoot {
+		t.Fatalf("state root = %q, want %q", stateRoot, wantStateRoot)
+	}
+
+	remote := newBareRemote(t)
+	ctx := context.Background()
+	resolvedGit := NewGit(filepath.Join(stateRoot, "repos"), &staticTokenSource{token: "fixture"})
+	if err := resolvedGit.Clone(ctx, fileURL(remote), "resolved"); err != nil {
+		t.Fatalf("clone with resolved root: %v", err)
+	}
+	resolvedWorktree := filepath.Join(stateRoot, "worktrees", "resolved")
+	if err := resolvedGit.WorktreeAdd(ctx, "resolved", "agent/resolved", resolvedWorktree, "main"); err != nil {
+		t.Fatalf("add worktree with resolved root: %v", err)
+	}
+
+	unresolvedRoot := "relative-state"
+	unresolvedGit := NewGit(filepath.Join(unresolvedRoot, "repos"), &staticTokenSource{token: "fixture"})
+	if err := unresolvedGit.Clone(ctx, fileURL(remote), "unresolved"); err != nil {
+		t.Fatalf("clone with unresolved root: %v", err)
+	}
+	unresolvedWorktree := filepath.Join(unresolvedRoot, "worktrees", "unresolved")
+	if err := unresolvedGit.WorktreeAdd(ctx, "unresolved", "agent/unresolved", unresolvedWorktree, "main"); err != nil {
+		t.Fatalf("add worktree with unresolved root: %v", err)
+	}
+	nestedWorktree := filepath.Join(workingDirectory, unresolvedRoot, "repos", "unresolved", unresolvedWorktree)
+	if info, err := os.Stat(nestedWorktree); err != nil || !info.IsDir() {
+		t.Fatalf("unresolved worktree was not nested at %q: %v", nestedWorktree, err)
+	}
+
+	otherWorkingDirectory := t.TempDir()
+	if err := os.Chdir(otherWorkingDirectory); err != nil {
+		t.Fatalf("change away from canonical clone: %v", err)
+	}
+	if hasCommits, err := resolvedGit.HasCommits(ctx, resolvedWorktree, "main"); err != nil || hasCommits {
+		t.Fatalf("inspect resolved worktree = %v, %v; want false, nil", hasCommits, err)
+	}
+	if _, err := unresolvedGit.HasCommits(ctx, unresolvedWorktree, "main"); err == nil {
+		t.Fatal("inspect unresolved worktree succeeded after changing working directory")
+	}
+}
+
 func newBareRemote(t *testing.T) string {
 	t.Helper()
 	root := t.TempDir()

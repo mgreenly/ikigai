@@ -100,7 +100,10 @@ func reposSpec() appkit.Spec {
 				return err
 			}
 
-			stateRoot := config.EnvOr(os.Getenv, "REPOS_STATE_DIR", "state")
+			stateRoot, err := repos.ResolveStateRoot(os.Getenv)
+			if err != nil {
+				return err
+			}
 			store := repos.NewStore(rt.DB())
 			tokens := repos.NewHTTPTokenSource(http.DefaultClient, clock.Now)
 			git := repos.NewGit(filepath.Join(stateRoot, "repos"), tokens)
