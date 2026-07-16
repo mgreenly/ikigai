@@ -497,18 +497,28 @@ func (r *Runner) complete(bg, runCtx context.Context, protocol lifecycleProtocol
 	if err != nil {
 		return fail(err.Error())
 	}
+	if status != repos.StatusSucceeded {
+		if committed {
+			if err := r.git.Push(bg, result.worktree, session.Branch); err != nil {
+				return fail(err.Error())
+			}
+		}
+		reason := "session failed"
+		if message != nil {
+			reason = *message
+		}
+		return fail(reason)
+	}
 	if !committed {
 		return fail("no commits produced")
 	}
 	checkSummary := ""
-	if status == repos.StatusSucceeded {
-		var checkErr error
-		checkSummary, checkErr = runCheck(runCtx, result.worktree, filepath.Join(r.stateRoot, "sessions", session.ID, "check.log"))
-		if checkErr != nil {
-			status = repos.StatusFailed
-			reason := checkErr.Error()
-			message = &reason
-		}
+	var checkErr error
+	checkSummary, checkErr = runCheck(runCtx, result.worktree, filepath.Join(r.stateRoot, "sessions", session.ID, "check.log"))
+	if checkErr != nil {
+		status = repos.StatusFailed
+		reason := checkErr.Error()
+		message = &reason
 	}
 	if err := r.git.Push(bg, result.worktree, session.Branch); err != nil {
 		return fail(err.Error())

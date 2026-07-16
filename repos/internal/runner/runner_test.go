@@ -585,6 +585,38 @@ func TestNoCommitFailsWithoutPushOrPR(t *testing.T) {
 	}
 }
 
+func TestEngineErrorSurfacesVerbatimReasonWithoutCommitMask(t *testing.T) {
+	// R-2V8C-1FO6
+	fixture := newFixture(t, 1, time.Minute)
+	_, remote := fixture.addRepo(t, "engine-error")
+	recorder := newGitHubRecorder(t)
+	defer recorder.Close()
+	fixture.config.Protocol = repos.NewProtocol(repos.NewGitHubPeerAt(recorder.URL, recorder.Client()))
+	const reason = "scripted engine exploded before committing"
+	fixture.config.Factory = AgentFactoryFunc(func(ConversationConfig) Agent {
+		return agentFunc(func(context.Context, string) error { return fmt.Errorf("%s", reason) })
+	})
+	issue := 29
+	runner := fixture.runner(t)
+	session := enqueueAndDispatch(t, runner, SessionRequest{ID: "engine-error", RepoName: "engine-error", OwnerEmail: "owner@example.com", IssueNumber: &issue})
+	ended := waitStatus(t, fixture.store, session.ID, repos.StatusFailed)
+	if ended.Error == nil || *ended.Error != reason {
+		t.Fatalf("engine failure reason = %#v, want %q", ended.Error, reason)
+	}
+	if body := recorder.last(t, "issue_comment").string("body"); body != reason {
+		t.Fatalf("failure comment = %q, want %q", body, reason)
+	}
+	if recorder.count("pr_create") != 0 {
+		t.Fatalf("PR calls = %d, want 0", recorder.count("pr_create"))
+	}
+	if remoteHasBranch(t, remote, session.Branch) {
+		t.Fatalf("zero-commit branch %q was pushed", session.Branch)
+	}
+	if _, err := os.Stat(filepath.Join(fixture.stateRoot, "sessions", session.ID, "check.log")); !os.IsNotExist(err) {
+		t.Fatalf("errored run unexpectedly created check.log: %v", err)
+	}
+}
+
 func TestRetryPushesAttemptTwoBranch(t *testing.T) {
 	// R-FKLT-XHYI
 	fixture := newFixture(t, 1, time.Minute)
