@@ -21,7 +21,7 @@ if [ ! -d "$RUN_DIR" ]; then
 fi
 
 # Reverse of start order: front door first, then services.
-for name in nginx wiki webhooks sites scripts github gmail cron dropbox prompts notify ledger crm dashboard; do
+for name in nginx wiki repos webhooks sites scripts github gmail cron dropbox prompts notify ledger crm dashboard; do
 	pf="$RUN_DIR/$name.pid"
 	[ -f "$pf" ] || continue
 	pid="$(cat "$pf")"

@@ -8,7 +8,7 @@ Verification ids change.
 ## Decisions
 
 - D1 → `project/design/D01.md` — Composition root & chassis boot — R-EISY-2LYZ, R-EL8Q-U5GD
-- D2 → `project/design/D02.md` — Data model & migrations — R-EMGN-7X72, R-ENOJ-LOXR, R-EOWF-ZGOG
+- D2 → `project/design/D02.md` — Data model & migrations — R-EMGN-7X72, R-ENOJ-LOXR, R-EOWF-ZGOG, R-TY2R-GFRU, R-TZAN-U7IJ
 - D3 → `project/design/D03.md` — GitHub-fact intake: the webhooks consumer & dispatch table — R-EQ4C-D8F5, R-ERC8-R05U, R-ESK5-4RWJ, R-ETS1-IJN8, R-EUZX-WBDX, R-EW7U-A34M
 - D4 → `project/design/D04.md` — Repo lifecycle & git custody — R-EXFQ-NUVB, R-EYNN-1MM0, R-EZVJ-FECP, R-F13F-T63E, R-F3J8-KPKS
 - D5 → `project/design/D05.md` — The session engine: worktree-per-session, queue, and the confined agent — R-F4R4-YHBH, R-F5Z1-C926, R-F76X-Q0SV, R-F8EU-3SJK, R-F9MQ-HKA9, R-FAUM-VC0Y, R-FC2J-93RN
@@ -64,3 +64,5 @@ Verification ids change.
 - R-G1OF-AAC8 → D10 — `project/design/D10.md`
 - R-G2WB-O22X → D10 — `project/design/D10.md`
 - R-G448-1TTM → D10 — `project/design/D10.md`
+- R-TY2R-GFRU → D2 — `project/design/D02.md`
+- R-TZAN-U7IJ → D2 — `project/design/D02.md`
