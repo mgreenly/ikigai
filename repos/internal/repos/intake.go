@@ -2,9 +2,7 @@ package repos
 
 import (
 	"context"
-	"crypto/rand"
 	"encoding/base64"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -22,20 +20,36 @@ const (
 type Intake struct {
 	store    *Store
 	svc      *Service
+	enqueuer Enqueuer
 	botLogin string
 	log      *slog.Logger
 }
 
+// SessionRequest describes an issue-driven or manual session. ID is optional
+// so callers and deterministic tests can correlate a request.
+type SessionRequest struct {
+	ID           string
+	RepoName     string
+	OwnerEmail   string
+	IssueNumber  *int
+	Instructions string
+}
+
+// Enqueuer is the session-construction seam implemented by the runner.
+type Enqueuer interface {
+	Enqueue(context.Context, SessionRequest) (Session, error)
+}
+
 // NewIntake constructs a GitHub-fact intake handler. An empty bot login uses
 // the service default.
-func NewIntake(store *Store, svc *Service, botLogin string, log *slog.Logger) *Intake {
+func NewIntake(store *Store, svc *Service, enqueuer Enqueuer, botLogin string, log *slog.Logger) *Intake {
 	if botLogin == "" {
 		botLogin = defaultBotLogin
 	}
 	if log == nil {
 		log = slog.Default()
 	}
-	return &Intake{store: store, svc: svc, botLogin: botLogin, log: log}
+	return &Intake{store: store, svc: svc, enqueuer: enqueuer, botLogin: botLogin, log: log}
 }
 
 // Subscriptions declares the single webhooks feed signal consumed by intake.
@@ -135,38 +149,17 @@ func (in *Intake) handleIssues(ctx context.Context, delivery ghDelivery) error {
 	if err := in.svc.EnsureRepo(ctx, facts); err != nil {
 		return fmt.Errorf("provision delivery repository: %w", err)
 	}
-	attempt, err := in.store.MaxAttempt(ctx, facts.Name, delivery.Issue.Number)
-	if err != nil {
-		return fmt.Errorf("find issue attempt: %w", err)
-	}
-	id, err := intakeSessionID()
-	if err != nil {
-		return err
-	}
 	issue := delivery.Issue.Number
-	session := Session{
-		ID:           id,
+	_, err := in.enqueuer.Enqueue(ctx, SessionRequest{
 		RepoName:     facts.Name,
 		OwnerEmail:   delivery.owner,
 		IssueNumber:  &issue,
-		Attempt:      attempt + 1,
-		Branch:       fmt.Sprintf("ikibot/issue-%d-%d", issue, attempt+1),
 		Instructions: fmt.Sprintf("Resolve GitHub issue #%d.", issue),
-		Status:       StatusQueued,
-		CreatedAt:    in.svc.clock.Now(),
-	}
-	if err := in.store.InsertSession(ctx, session); err != nil {
+	})
+	if err != nil {
 		return fmt.Errorf("enqueue issue session: %w", err)
 	}
 	return nil
-}
-
-func intakeSessionID() (string, error) {
-	var bytes [12]byte
-	if _, err := rand.Read(bytes[:]); err != nil {
-		return "", fmt.Errorf("create intake session id: %w", err)
-	}
-	return hex.EncodeToString(bytes[:]), nil
 }
 
 func (in *Intake) skip(action string, err error) error {

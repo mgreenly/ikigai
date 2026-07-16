@@ -57,15 +57,8 @@ func ValidateModel(config ModelConfig) (agentkit.Provider, error) {
 	return provider, nil
 }
 
-// SessionRequest describes an issue-driven or manual run. ID is optional and
-// exists to make callers and deterministic tests able to correlate a request.
-type SessionRequest struct {
-	ID           string
-	RepoName     string
-	OwnerEmail   string
-	IssueNumber  *int
-	Instructions string
-}
+// SessionRequest is the intake-owned request shared by webhook and MCP paths.
+type SessionRequest = repos.SessionRequest
 
 // IssueContent is the untrusted issue material fetched runner-side.
 type IssueContent = repos.IssueContent

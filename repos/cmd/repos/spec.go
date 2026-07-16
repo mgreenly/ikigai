@@ -45,6 +45,9 @@ func (d *domainAdapter) DeleteRepo(ctx context.Context, name string) error {
 	return d.reaper.DeleteRepo(ctx, name)
 }
 func (d *domainAdapter) Enqueue(ctx context.Context, request runner.SessionRequest) (repos.Session, error) {
+	if d.runner == nil {
+		return repos.Session{}, fmt.Errorf("repos: runner is not initialized")
+	}
 	return d.runner.Enqueue(ctx, request)
 }
 func (d *domainAdapter) GetSession(ctx context.Context, id string) (repos.Session, error) {
@@ -112,7 +115,7 @@ func reposSpec() appkit.Spec {
 			protocol := repos.NewProtocol(repos.NewGitHubPeer(http.DefaultClient))
 			domain.lifecycle = lifecycle
 			domain.store = store
-			intake = repos.NewIntake(store, lifecycle, os.Getenv("REPOS_BOT_LOGIN"), rt.Logger())
+			intake = repos.NewIntake(store, lifecycle, domain, os.Getenv("REPOS_BOT_LOGIN"), rt.Logger())
 			runnerConfig = runner.Config{
 				Store: store, Git: git, Protocol: protocol, Clock: clock,
 				StateRoot: stateRoot, TTL: ttl, MaxRun: maxRun, Model: model,

@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"path/filepath"
@@ -28,6 +29,7 @@ func TestIntakeSubscriptionsUseConfiguredHook(t *testing.T) {
 
 func TestIntakeExecuteDeliveryProvisionsRepoAndQueuesSession(t *testing.T) {
 	// R-ERC8-R05U
+	// R-2U0F-NNXH
 	fixture := newIntakeFixture(t, "")
 	if err := fixture.intake.Handle(context.Background(), fixture.event(t, issueDelivery("alice", "open", "execute"))); err != nil {
 		t.Fatalf("Handle: %v", err)
@@ -41,7 +43,7 @@ func TestIntakeExecuteDeliveryProvisionsRepoAndQueuesSession(t *testing.T) {
 		t.Fatalf("sessions = %#v, %v", sessions, err)
 	}
 	got := sessions[0]
-	if got.Status != StatusQueued || got.OwnerEmail != "owner@example.com" || got.IssueNumber == nil || *got.IssueNumber != 42 || got.Attempt != 1 {
+	if got.Status != StatusQueued || got.OwnerEmail != "owner@example.com" || got.IssueNumber == nil || *got.IssueNumber != 42 || got.Attempt != 1 || got.LogPath == "" {
 		t.Fatalf("queued session = %#v", got)
 	}
 }
@@ -150,6 +152,35 @@ type intakeFixture struct {
 	clock  fixedClock
 }
 
+type intakeTestEnqueuer struct {
+	store *Store
+	clock fixedClock
+}
+
+func (e *intakeTestEnqueuer) Enqueue(ctx context.Context, request SessionRequest) (Session, error) {
+	attempt := 1
+	branch := "ikibot/session-intake-1"
+	if request.IssueNumber != nil {
+		max, err := e.store.MaxAttempt(ctx, request.RepoName, *request.IssueNumber)
+		if err != nil {
+			return Session{}, err
+		}
+		attempt = max + 1
+		branch = fmt.Sprintf("ikibot/issue-%d", *request.IssueNumber)
+		if attempt > 1 {
+			branch += fmt.Sprintf(".%d", attempt)
+		}
+	}
+	session := Session{
+		ID: fmt.Sprintf("intake-%d", attempt), RepoName: request.RepoName,
+		OwnerEmail: request.OwnerEmail, IssueNumber: request.IssueNumber,
+		Attempt: attempt, Branch: branch,
+		Instructions: request.Instructions, Status: StatusQueued,
+		CreatedAt: e.clock.Now(), LogPath: fmt.Sprintf("state/sessions/intake-%d/output.jsonl", attempt),
+	}
+	return session, e.store.InsertSession(ctx, session)
+}
+
 func newIntakeFixture(t *testing.T, botLogin string) intakeFixture {
 	t.Helper()
 	store, db := migratedStore(t)
@@ -157,7 +188,8 @@ func newIntakeFixture(t *testing.T, botLogin string) intakeFixture {
 	clock := fixedClock{time.Date(2026, 7, 15, 14, 0, 0, 0, time.UTC)}
 	service := NewService(store, NewGit(filepath.Join(t.TempDir(), "repos"), &staticTokenSource{token: "fixture"}), clock, "fixture-org")
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	return intakeFixture{NewIntake(store, service, botLogin, logger), store, db, remote, clock}
+	enqueuer := &intakeTestEnqueuer{store: store, clock: clock}
+	return intakeFixture{NewIntake(store, service, enqueuer, botLogin, logger), store, db, remote, clock}
 }
 
 func (f intakeFixture) event(t *testing.T, delivery map[string]any) consumer.Event {

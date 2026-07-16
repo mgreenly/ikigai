@@ -3,6 +3,7 @@ package runner
 import (
 	"context"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -17,10 +18,152 @@ import (
 	"time"
 
 	appdb "appkit/db"
+	"eventplane/consumer"
 	"eventplane/outbox"
 	reposdb "repos/internal/db"
 	"repos/internal/repos"
 )
+
+func TestWebhookIntakeEnqueuesRunnableSessionAndRingsDispatcher(t *testing.T) {
+	// R-2U0F-NNXH
+	t.Run("runner enqueuer", func(t *testing.T) {
+		fixture := newFixture(t, 1, time.Minute)
+		_, remote := fixture.addRepo(t, "fixture")
+		recorder := newGitHubRecorder(t)
+		defer recorder.Close()
+		fixture.config.Protocol = repos.NewProtocol(repos.NewGitHubPeerAt(recorder.URL, recorder.Client()))
+		sessionIDs := make(chan string, 1)
+		fixture.config.Factory = AgentFactoryFunc(func(config ConversationConfig) Agent {
+			return agentFunc(func(context.Context, string) error {
+				if _, err := config.Log.Write([]byte("scripted transcript\n")); err != nil {
+					return err
+				}
+				id := <-sessionIDs
+				return commitScriptedChange(filepath.Join(fixture.stateRoot, "sessions", id, "worktree"))
+			})
+		})
+		engine := fixture.runner(t)
+		service := repos.NewService(fixture.store, fixture.git, fixture.clock, "fixture-org")
+		intake := repos.NewIntake(fixture.store, service, engine, "", nil)
+
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		engine.ring() // Prime the select so the test can prove Dispatch is already waiting.
+		go engine.Dispatch(ctx)
+		waitForDoorbell(t, engine, false)
+
+		if err := intake.Handle(context.Background(), webhookIssueEvent(t, remote)); err != nil {
+			t.Fatalf("Handle: %v", err)
+		}
+		sessions, err := fixture.store.ListSessions(context.Background(), "fixture", "")
+		if err != nil || len(sessions) != 1 {
+			t.Fatalf("sessions = %#v, %v", sessions, err)
+		}
+		session := sessions[0]
+		wantLog := filepath.Join(fixture.stateRoot, "sessions", session.ID, "output.jsonl")
+		if session.LogPath == "" || session.LogPath != wantLog {
+			t.Fatalf("webhook session = %#v, want log %q", session, wantLog)
+		}
+		sessionIDs <- session.ID
+		finished := waitStatus(t, fixture.store, session.ID, repos.StatusSucceeded)
+		transcript, err := os.ReadFile(finished.LogPath)
+		if err != nil || len(transcript) == 0 {
+			t.Fatalf("transcript at %q = %q, %v", finished.LogPath, transcript, err)
+		}
+		if recorder.count("issue_get") != 1 {
+			t.Fatalf("github issue fetches = %d, want 1", recorder.count("issue_get"))
+		}
+	})
+
+	t.Run("hand rolled insert is malformed and silent", func(t *testing.T) {
+		fixture := newFixture(t, 1, time.Minute)
+		fixture.addRepo(t, "fixture")
+		engine := fixture.runner(t)
+		issue := 42
+		handRolled := repos.Session{
+			ID: "hand-rolled", RepoName: "fixture", OwnerEmail: "owner@example.com",
+			IssueNumber: &issue, Attempt: 1, Branch: "ikibot/issue-42",
+			Instructions: "Resolve GitHub issue #42.", Status: repos.StatusQueued,
+			CreatedAt: fixture.clock.Now(),
+		}
+		if err := fixture.store.InsertSession(context.Background(), handRolled); err != nil {
+			t.Fatal(err)
+		}
+		stored, err := fixture.store.GetSession(context.Background(), handRolled.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if stored.LogPath != "" || len(engine.wake) != 0 {
+			t.Fatalf("hand-rolled session log = %q, doorbell depth = %d; want empty and silent", stored.LogPath, len(engine.wake))
+		}
+	})
+}
+
+func commitScriptedChange(worktree string) error {
+	commands := [][]string{
+		{"config", "user.email", "agent@example.com"},
+		{"config", "user.name", "Fixture Agent"},
+	}
+	for _, args := range commands {
+		command := exec.Command("git", args...)
+		command.Dir = worktree
+		if output, err := command.CombinedOutput(); err != nil {
+			return fmt.Errorf("git %v: %w: %s", args, err, output)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(worktree, "scripted.txt"), []byte("done\n"), 0o644); err != nil {
+		return err
+	}
+	for _, args := range [][]string{{"add", "scripted.txt"}, {"commit", "-m", "scripted change"}} {
+		command := exec.Command("git", args...)
+		command.Dir = worktree
+		if output, err := command.CombinedOutput(); err != nil {
+			return fmt.Errorf("git %v: %w: %s", args, err, output)
+		}
+	}
+	return nil
+}
+
+func webhookIssueEvent(t *testing.T, remote string) consumer.Event {
+	t.Helper()
+	delivery, err := json.Marshal(map[string]any{
+		"action": "labeled",
+		"issue":  map[string]any{"number": 42, "state": "open"},
+		"label":  map[string]any{"name": "execute"},
+		"sender": map[string]any{"login": "alice"},
+		"repository": map[string]any{
+			"name": "fixture", "clone_url": "file://" + filepath.ToSlash(remote), "default_branch": "main",
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	payload, err := json.Marshal(map[string]any{
+		"name": "fixture", "owner": "owner@example.com",
+		"content_type": "application/json", "body": base64.StdEncoding.EncodeToString(delivery),
+		"headers": map[string]string{"x-github-event": "issues"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return consumer.Event{Payload: payload}
+}
+
+func waitForDoorbell(t *testing.T, engine *Runner, want bool) {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	wantDepth := 0
+	if want {
+		wantDepth = 1
+	}
+	for time.Now().Before(deadline) {
+		if len(engine.wake) == wantDepth {
+			return
+		}
+		time.Sleep(time.Millisecond)
+	}
+	t.Fatalf("doorbell depth = %d, want %d", len(engine.wake), wantDepth)
+}
 
 func TestIssueSessionCreatesFreshWorktreeAndPinsInstructionsBeforeSend(t *testing.T) {
 	// R-F4R4-YHBH
